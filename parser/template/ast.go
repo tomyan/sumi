@@ -46,3 +46,11 @@ type BoxElement struct {
 }
 
 func (b *BoxElement) nodeType() string { return "box" }
+
+// ComponentElement represents a user-defined component reference like <counter />.
+type ComponentElement struct {
+	Name       string
+	Attributes map[string]string
+}
+
+func (c *ComponentElement) nodeType() string { return "component" }

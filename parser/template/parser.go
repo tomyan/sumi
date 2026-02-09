@@ -47,14 +47,14 @@ func (p *parser) parseElement() (Node, error) {
 	case "box":
 		return p.parseBoxElement()
 	default:
-		return nil, fmt.Errorf("unknown element <%s>", tagName)
+		return p.parseComponentElement(tagName)
 	}
 }
 
-// readTagName reads a tag name (until whitespace or '>').
+// readTagName reads a tag name (until whitespace, '>', or '/').
 func (p *parser) readTagName() string {
 	return p.readWhile(func(b byte) bool {
-		return b != '>' && !isWhitespace(b)
+		return b != '>' && b != '/' && !isWhitespace(b)
 	})
 }
 
@@ -86,6 +86,40 @@ func (p *parser) parseBoxElement() (Node, error) {
 		attrs = make(map[string]string)
 	}
 	return &BoxElement{Attributes: attrs, Children: children}, nil
+}
+
+func (p *parser) parseComponentElement(name string) (Node, error) {
+	attrs, err := p.parseAttributes()
+	if err != nil {
+		return nil, err
+	}
+	if attrs == nil {
+		attrs = make(map[string]string)
+	}
+	if p.isSelfClosing() {
+		return &ComponentElement{Name: name, Attributes: attrs}, nil
+	}
+	return p.parseComponentClosingTag(name, attrs)
+}
+
+func (p *parser) isSelfClosing() bool {
+	if p.pos+1 < len(p.input) && p.input[p.pos] == '/' && p.input[p.pos+1] == '>' {
+		p.pos += 2 // consume '/>'
+		return true
+	}
+	return false
+}
+
+func (p *parser) parseComponentClosingTag(name string, attrs map[string]string) (Node, error) {
+	if err := p.expectClose(name); err != nil {
+		return nil, err
+	}
+	closingTag := "</" + name + ">"
+	if !strings.HasPrefix(p.input[p.pos:], closingTag) {
+		return nil, fmt.Errorf("expected closing </%s> tag", name)
+	}
+	p.pos += len(closingTag)
+	return &ComponentElement{Name: name, Attributes: attrs}, nil
 }
 
 // expectClose expects and consumes a '>' to close an opening tag.
@@ -138,7 +172,7 @@ func (p *parser) parseAttributes() (map[string]string, error) {
 		if p.pos >= len(p.input) {
 			return nil, fmt.Errorf("unexpected end of input in tag attributes")
 		}
-		if p.input[p.pos] == '>' {
+		if p.input[p.pos] == '>' || p.input[p.pos] == '/' {
 			break
 		}
 		name, value, err := p.readAttribute()
