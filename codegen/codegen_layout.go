@@ -12,31 +12,34 @@ import (
 
 // writeLayoutTree writes the layout.Input tree construction code.
 // When inClosure is true, adds an extra tab of indentation.
-func writeLayoutTree(buf *bytes.Buffer, doc *template.Document, stylesheet *style.Stylesheet, inClosure bool) {
+func writeLayoutTree(buf *bytes.Buffer, doc *template.Document, stylesheet *style.Stylesheet, inClosure bool, instances []componentInstance) {
 	baseIndent := 1
 	if inClosure {
 		baseIndent = 2
 	}
 	tabs := indentStr(baseIndent)
+	tracker := newInstanceTracker(instances)
 
 	fmt.Fprintf(buf, "%sroot := &layout.Input{\n", tabs)
 	fmt.Fprintf(buf, "%s\tKind:      layout.KindBox,\n", tabs)
 	fmt.Fprintf(buf, "%s\tDirection: \"column\",\n", tabs)
 	fmt.Fprintf(buf, "%s\tChildren:  []*layout.Input{\n", tabs)
 	for _, child := range doc.Children {
-		writeInputNode(buf, child, stylesheet, baseIndent+2)
+		writeInputNode(buf, child, stylesheet, baseIndent+2, tracker)
 	}
 	fmt.Fprintf(buf, "%s\t},\n", tabs)
 	fmt.Fprintf(buf, "%s}\n", tabs)
 }
 
 // writeInputNode writes a layout.Input literal for a template AST node.
-func writeInputNode(buf *bytes.Buffer, node template.Node, stylesheet *style.Stylesheet, indent int) {
+func writeInputNode(buf *bytes.Buffer, node template.Node, stylesheet *style.Stylesheet, indent int, tracker *instanceTracker) {
 	switch n := node.(type) {
 	case *template.TextElement:
 		writeTextInput(buf, n, stylesheet, indent)
 	case *template.BoxElement:
-		writeBoxInput(buf, n, stylesheet, indent)
+		writeBoxInput(buf, n, stylesheet, indent, tracker)
+	case *template.ComponentElement:
+		writeComponentRef(buf, indent, tracker)
 	}
 }
 
@@ -59,7 +62,7 @@ func writeTextInput(buf *bytes.Buffer, n *template.TextElement, stylesheet *styl
 }
 
 // writeBoxInput writes a layout.Input literal for a box element.
-func writeBoxInput(buf *bytes.Buffer, n *template.BoxElement, stylesheet *style.Stylesheet, indent int) {
+func writeBoxInput(buf *bytes.Buffer, n *template.BoxElement, stylesheet *style.Stylesheet, indent int, tracker *instanceTracker) {
 	tabs := indentStr(indent)
 	props := resolveProps(stylesheet, "box", n.Attributes)
 
@@ -69,8 +72,15 @@ func writeBoxInput(buf *bytes.Buffer, n *template.BoxElement, stylesheet *style.
 	if props != nil {
 		writeStyleLiteral(buf, tabs, props)
 	}
-	writeBoxChildren(buf, n.Children, stylesheet, indent, tabs)
+	writeBoxChildren(buf, n.Children, stylesheet, indent, tabs, tracker)
 	fmt.Fprintf(buf, "%s},\n", tabs)
+}
+
+// writeComponentRef writes a component Layout() call as a layout tree entry.
+func writeComponentRef(buf *bytes.Buffer, indent int, tracker *instanceTracker) {
+	tabs := indentStr(indent)
+	varName := tracker.next()
+	fmt.Fprintf(buf, "%s%s.Layout(),\n", tabs, varName)
 }
 
 // writeBoxAttributes writes direction, width, height, padding, and border fields.
@@ -102,13 +112,13 @@ func writeIntAttr(buf *bytes.Buffer, tabs string, attrs, props map[string]string
 }
 
 // writeBoxChildren writes the Children field of a box input if there are children.
-func writeBoxChildren(buf *bytes.Buffer, children []template.Node, stylesheet *style.Stylesheet, indent int, tabs string) {
+func writeBoxChildren(buf *bytes.Buffer, children []template.Node, stylesheet *style.Stylesheet, indent int, tabs string, tracker *instanceTracker) {
 	if len(children) == 0 {
 		return
 	}
 	fmt.Fprintf(buf, "%s\tChildren: []*layout.Input{\n", tabs)
 	for _, child := range children {
-		writeInputNode(buf, child, stylesheet, indent+2)
+		writeInputNode(buf, child, stylesheet, indent+2, tracker)
 	}
 	fmt.Fprintf(buf, "%s\t},\n", tabs)
 }

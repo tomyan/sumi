@@ -11,30 +11,54 @@ import (
 )
 
 // writeReactiveBody generates the reactive function body with event loop.
-func writeReactiveBody(buf *bytes.Buffer, doc *template.Document, sc *script.Script, stylesheet *style.Stylesheet) {
-	writeStateDecls(buf, sc.StateDecls)
-	writeDirtyFlagAndFuncClosures(buf, sc.FuncDecls)
-	writeRenderClosure(buf, doc, stylesheet)
-	writeSuppressUnused(buf, doc, sc.FuncDecls)
+func writeReactiveBody(buf *bytes.Buffer, doc *template.Document, sc *script.Script, stylesheet *style.Stylesheet, instances []componentInstance) {
+	writeComponentInits(buf, instances)
+	writeStateOrDirtyOnly(buf, sc)
+	writeFuncClosures(buf, sc)
+	writeRenderClosure(buf, doc, stylesheet, instances)
+	writeSuppressUnusedFuncs(buf, doc, sc)
 	writeTerminalSetup(buf)
-	writeEventLoop(buf, doc)
+	writeEventLoop(buf, doc, instances)
+}
+
+// writeStateOrDirtyOnly writes state decls if present, otherwise just the dirty flag.
+func writeStateOrDirtyOnly(buf *bytes.Buffer, sc *script.Script) {
+	if sc != nil && len(sc.StateDecls) > 0 {
+		writeStateDecls(buf, sc.StateDecls)
+	}
+	buf.WriteString("\tdirty := true\n")
+}
+
+// writeFuncClosures writes function closure declarations if present.
+func writeFuncClosures(buf *bytes.Buffer, sc *script.Script) {
+	if sc == nil || len(sc.FuncDecls) == 0 {
+		buf.WriteString("\n")
+		return
+	}
+	for _, funcDecl := range sc.FuncDecls {
+		fmt.Fprintf(buf, "\t%s := func() {\n", funcDecl.Name)
+		writeReactiveFuncBody(buf, funcDecl)
+		buf.WriteString("\t}\n")
+	}
+	buf.WriteString("\n")
+}
+
+// writeSuppressUnusedFuncs writes _ = funcName for functions not referenced in onkey handlers.
+func writeSuppressUnusedFuncs(buf *bytes.Buffer, doc *template.Document, sc *script.Script) {
+	if sc == nil {
+		return
+	}
+	for _, funcDecl := range sc.FuncDecls {
+		if !docHasOnkey(doc, funcDecl.Name) {
+			fmt.Fprintf(buf, "\t_ = %s\n", funcDecl.Name)
+		}
+	}
 }
 
 // writeStateDecls writes state variable declarations.
 func writeStateDecls(buf *bytes.Buffer, stateDecls []script.StateDecl) {
 	for _, stateDecl := range stateDecls {
 		fmt.Fprintf(buf, "\t%s := %s\n", stateDecl.Name, stateDecl.InitExpr)
-	}
-	buf.WriteString("\n")
-}
-
-// writeDirtyFlagAndFuncClosures writes the dirty flag and function closure declarations.
-func writeDirtyFlagAndFuncClosures(buf *bytes.Buffer, funcDecls []script.FuncDecl) {
-	buf.WriteString("\tdirty := true\n")
-	for _, funcDecl := range funcDecls {
-		fmt.Fprintf(buf, "\t%s := func() {\n", funcDecl.Name)
-		writeReactiveFuncBody(buf, funcDecl)
-		buf.WriteString("\t}\n")
 	}
 	buf.WriteString("\n")
 }
@@ -64,10 +88,10 @@ func buildStateLinesSet(assignments []script.StateAssignment) map[string]bool {
 }
 
 // writeRenderClosure writes the doRender closure.
-func writeRenderClosure(buf *bytes.Buffer, doc *template.Document, stylesheet *style.Stylesheet) {
+func writeRenderClosure(buf *bytes.Buffer, doc *template.Document, stylesheet *style.Stylesheet, instances []componentInstance) {
 	buf.WriteString("\tvar prevBuf *render.Buffer\n")
 	buf.WriteString("\tdoRender := func() {\n")
-	writeLayoutTree(buf, doc, stylesheet, true)
+	writeLayoutTree(buf, doc, stylesheet, true, instances)
 	buf.WriteString("\t\ttree := layout.Layout(root, 80, 24)\n")
 	buf.WriteString("\t\tbuf := render.NewBuffer(80, 24)\n")
 	buf.WriteString("\t\trenderTree(buf, tree)\n")
@@ -81,15 +105,6 @@ func writeRenderClosure(buf *bytes.Buffer, doc *template.Document, stylesheet *s
 	buf.WriteString("\t}\n\n")
 }
 
-// writeSuppressUnused writes _ = funcName for functions not referenced in onkey handlers.
-func writeSuppressUnused(buf *bytes.Buffer, doc *template.Document, funcDecls []script.FuncDecl) {
-	for _, funcDecl := range funcDecls {
-		if !docHasOnkey(doc, funcDecl.Name) {
-			fmt.Fprintf(buf, "\t_ = %s\n", funcDecl.Name)
-		}
-	}
-}
-
 // writeTerminalSetup writes raw mode and alternate screen setup.
 func writeTerminalSetup(buf *bytes.Buffer) {
 	buf.WriteString("\trestore, _ := input.EnableRawMode(int(os.Stdin.Fd()))\n")
@@ -100,22 +115,50 @@ func writeTerminalSetup(buf *bytes.Buffer) {
 }
 
 // writeEventLoop writes the main event loop.
-func writeEventLoop(buf *bytes.Buffer, doc *template.Document) {
+func writeEventLoop(buf *bytes.Buffer, doc *template.Document, instances []componentInstance) {
 	buf.WriteString("\tfor {\n")
 	buf.WriteString("\t\tkey, err := input.ReadKey(os.Stdin)\n")
 	buf.WriteString("\t\tif err != nil || key == 'q' {\n")
 	buf.WriteString("\t\t\tbreak\n")
 	buf.WriteString("\t\t}\n")
+	writeOnkeyDispatch(buf, doc)
+	writeChildHandleKey(buf, instances)
+	writeDirtyCheck(buf, instances)
+	buf.WriteString("\t}\n")
+}
 
+// writeOnkeyDispatch writes the root onkey handler call if present.
+func writeOnkeyDispatch(buf *bytes.Buffer, doc *template.Document) {
 	onkeyFunc := findRootOnkey(doc)
 	if onkeyFunc != "" {
 		fmt.Fprintf(buf, "\t\t%s()\n", onkeyFunc)
 	}
+}
 
-	buf.WriteString("\t\tif dirty {\n")
+// writeChildHandleKey writes HandleKey dispatch to stateful child components.
+func writeChildHandleKey(buf *bytes.Buffer, instances []componentInstance) {
+	for _, inst := range instances {
+		if inst.Info.HasState {
+			fmt.Fprintf(buf, "\t\t%s.HandleKey(key)\n", inst.VarName)
+		}
+	}
+}
+
+// writeDirtyCheck writes the dirty check including child component dirty flags.
+func writeDirtyCheck(buf *bytes.Buffer, instances []componentInstance) {
+	condition := buildDirtyCondition(instances)
+	fmt.Fprintf(buf, "\t\tif %s {\n", condition)
 	buf.WriteString("\t\t\tdoRender()\n")
 	buf.WriteString("\t\t}\n")
-	buf.WriteString("\t}\n")
+}
+
+// buildDirtyCondition builds the dirty check expression including children.
+func buildDirtyCondition(instances []componentInstance) string {
+	parts := []string{"dirty"}
+	for _, inst := range instances {
+		parts = append(parts, fmt.Sprintf("%s.Dirty()", inst.VarName))
+	}
+	return strings.Join(parts, " || ")
 }
 
 // findRootOnkey finds an onkey attribute on the root-level box element.

@@ -27,7 +27,7 @@ func writeImports(buf *bytes.Buffer, reactive, hasExprs bool) {
 
 // writeStaticBody generates the static (non-reactive) function body.
 func writeStaticBody(buf *bytes.Buffer, doc *template.Document, stylesheet *style.Stylesheet) {
-	writeLayoutTree(buf, doc, stylesheet, false)
+	writeLayoutTree(buf, doc, stylesheet, false, nil)
 
 	buf.WriteString("\ttree := layout.Layout(root, 80, 24)\n")
 	buf.WriteString("\tbuf := render.NewBuffer(80, 24)\n")

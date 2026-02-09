@@ -10,10 +10,19 @@ import (
 	"github.com/tomyan/sumi/parser/template"
 )
 
+// ComponentInfo describes a child component available in templates.
+type ComponentInfo struct {
+	Name         string   // component name as used in template, e.g. "counter"
+	ExportedName string   // Go exported name, e.g. "Counter"
+	Props        []string // prop names in order, e.g. ["label"]
+	HasState     bool     // whether component has state (affects if HandleKey exists)
+}
+
 // Options configures code generation.
 type Options struct {
 	PackageName   string
-	ComponentName string // empty for root components, set for child components
+	ComponentName string                    // empty for root components, set for child components
+	Components    map[string]*ComponentInfo // child components available in templates
 }
 
 // Generate produces Go source code from a template AST, optional script, and optional stylesheet.
@@ -34,17 +43,26 @@ func isComponentMode(sc *script.Script) bool {
 
 // generateRunFunc generates the existing func Run() code path.
 func generateRunFunc(doc *template.Document, sc *script.Script, stylesheet *style.Stylesheet, opts Options) ([]byte, error) {
-	reactive := sc != nil && len(sc.StateDecls) > 0
+	instances := collectComponentInstances(doc, opts.Components)
+	reactive := hasReactiveContent(sc, instances)
 	var buf bytes.Buffer
 	fmt.Fprintf(&buf, "package %s\n\n", opts.PackageName)
 	writeImports(&buf, reactive, docHasExprs(doc))
 	buf.WriteString("func Run() {\n")
 	if reactive {
-		writeReactiveBody(&buf, doc, sc, stylesheet)
+		writeReactiveBody(&buf, doc, sc, stylesheet, instances)
 	} else {
 		writeStaticBody(&buf, doc, stylesheet)
 	}
 	buf.WriteString("}\n\n")
 	writeRenderTreeFunc(&buf)
 	return format.Source(buf.Bytes())
+}
+
+// hasReactiveContent returns true when the document needs the reactive code path.
+func hasReactiveContent(sc *script.Script, instances []componentInstance) bool {
+	if sc != nil && len(sc.StateDecls) > 0 {
+		return true
+	}
+	return len(instances) > 0
 }
