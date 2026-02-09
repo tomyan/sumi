@@ -12,7 +12,8 @@ import (
 
 // Options configures code generation.
 type Options struct {
-	PackageName string
+	PackageName   string
+	ComponentName string // empty for root components, set for child components
 }
 
 // Generate produces Go source code from a template AST, optional script, and optional stylesheet.
@@ -20,6 +21,19 @@ type Options struct {
 // When sc has state, generates reactive code with an event loop.
 // When stylesheet is non-nil, styles are resolved at codegen time and emitted as render.Style literals.
 func Generate(doc *template.Document, sc *script.Script, stylesheet *style.Stylesheet, opts Options) ([]byte, error) {
+	if isComponentMode(sc) {
+		return generateComponent(doc, sc, stylesheet, opts)
+	}
+	return generateRunFunc(doc, sc, stylesheet, opts)
+}
+
+// isComponentMode returns true when the script has prop declarations.
+func isComponentMode(sc *script.Script) bool {
+	return sc != nil && len(sc.PropDecls) > 0
+}
+
+// generateRunFunc generates the existing func Run() code path.
+func generateRunFunc(doc *template.Document, sc *script.Script, stylesheet *style.Stylesheet, opts Options) ([]byte, error) {
 	reactive := sc != nil && len(sc.StateDecls) > 0
 	var buf bytes.Buffer
 	fmt.Fprintf(&buf, "package %s\n\n", opts.PackageName)
