@@ -18,50 +18,32 @@ type parser struct {
 
 func (p *parser) parse() (*Document, error) {
 	doc := &Document{}
-
 	for p.pos < len(p.input) {
 		p.skipWhitespace()
 		if p.pos >= len(p.input) {
 			break
 		}
-
 		if p.input[p.pos] != '<' {
 			return nil, fmt.Errorf("unexpected character %q at position %d", p.input[p.pos], p.pos)
 		}
-
 		node, err := p.parseElement()
 		if err != nil {
 			return nil, err
 		}
 		doc.Children = append(doc.Children, node)
 	}
-
 	return doc, nil
 }
 
 func (p *parser) parseElement() (Node, error) {
-	// Consume opening '<'
-	p.pos++
-
-	// Read tag name (until whitespace or '>')
-	tagName := p.readWhile(func(b byte) bool {
-		return b != '>' && !isWhitespace(b)
-	})
+	p.pos++ // consume opening '<'
+	tagName := p.readTagName()
 	if tagName == "" {
 		return nil, fmt.Errorf("empty tag name at position %d", p.pos)
 	}
-
 	switch tagName {
 	case "text":
-		attrs, err := p.parseAttributes()
-		if err != nil {
-			return nil, err
-		}
-		if p.pos >= len(p.input) || p.input[p.pos] != '>' {
-			return nil, fmt.Errorf("expected '>' to close <text> tag")
-		}
-		p.pos++ // consume '>'
-		return p.parseTextElement(attrs)
+		return p.parseTextTag()
 	case "box":
 		return p.parseBoxElement()
 	default:
@@ -69,48 +51,84 @@ func (p *parser) parseElement() (Node, error) {
 	}
 }
 
+// readTagName reads a tag name (until whitespace or '>').
+func (p *parser) readTagName() string {
+	return p.readWhile(func(b byte) bool {
+		return b != '>' && !isWhitespace(b)
+	})
+}
+
+// parseTextTag parses attributes and body of a <text> element.
+func (p *parser) parseTextTag() (Node, error) {
+	attrs, err := p.parseAttributes()
+	if err != nil {
+		return nil, err
+	}
+	if err := p.expectClose("text"); err != nil {
+		return nil, err
+	}
+	return p.parseTextElement(attrs)
+}
+
 func (p *parser) parseBoxElement() (Node, error) {
 	attrs, err := p.parseAttributes()
 	if err != nil {
 		return nil, err
 	}
-
-	// Expect '>' to close the opening tag
-	if p.pos >= len(p.input) || p.input[p.pos] != '>' {
-		return nil, fmt.Errorf("expected '>' to close <box> tag")
+	if err := p.expectClose("box"); err != nil {
+		return nil, err
 	}
-	p.pos++ // consume '>'
-
-	// Parse children until </box>
-	var children []Node
-	for {
-		p.skipWhitespace()
-		if p.pos >= len(p.input) {
-			return nil, fmt.Errorf("missing closing </box> tag")
-		}
-
-		// Check for closing tag
-		if strings.HasPrefix(p.input[p.pos:], "</box>") {
-			p.pos += len("</box>")
-			break
-		}
-
-		if p.input[p.pos] != '<' {
-			return nil, fmt.Errorf("unexpected character %q inside <box> at position %d", p.input[p.pos], p.pos)
-		}
-
-		child, err := p.parseElement()
-		if err != nil {
-			return nil, err
-		}
-		children = append(children, child)
+	children, err := p.parseChildren("box")
+	if err != nil {
+		return nil, err
 	}
-
 	if attrs == nil {
 		attrs = make(map[string]string)
 	}
-
 	return &BoxElement{Attributes: attrs, Children: children}, nil
+}
+
+// expectClose expects and consumes a '>' to close an opening tag.
+func (p *parser) expectClose(tagName string) error {
+	if p.pos >= len(p.input) || p.input[p.pos] != '>' {
+		return fmt.Errorf("expected '>' to close <%s> tag", tagName)
+	}
+	p.pos++ // consume '>'
+	return nil
+}
+
+// parseChildren parses child elements until the closing tag </tagName> is found.
+func (p *parser) parseChildren(tagName string) ([]Node, error) {
+	closingTag := "</" + tagName + ">"
+	var children []Node
+	for {
+		child, done, err := p.parseNextChild(closingTag, tagName)
+		if err != nil {
+			return nil, err
+		}
+		if done {
+			return children, nil
+		}
+		children = append(children, child)
+	}
+}
+
+// parseNextChild parses one child element or detects the closing tag.
+// Returns (nil, true, nil) when the closing tag is consumed.
+func (p *parser) parseNextChild(closingTag, tagName string) (Node, bool, error) {
+	p.skipWhitespace()
+	if p.pos >= len(p.input) {
+		return nil, false, fmt.Errorf("missing closing </%s> tag", tagName)
+	}
+	if strings.HasPrefix(p.input[p.pos:], closingTag) {
+		p.pos += len(closingTag)
+		return nil, true, nil
+	}
+	if p.input[p.pos] != '<' {
+		return nil, false, fmt.Errorf("unexpected character %q inside <%s> at position %d", p.input[p.pos], tagName, p.pos)
+	}
+	child, err := p.parseElement()
+	return child, false, err
 }
 
 func (p *parser) parseAttributes() (map[string]string, error) {
@@ -123,37 +141,57 @@ func (p *parser) parseAttributes() (map[string]string, error) {
 		if p.input[p.pos] == '>' {
 			break
 		}
-
-		// Read attribute name
-		name := p.readWhile(func(b byte) bool {
-			return b != '=' && b != '>' && !isWhitespace(b)
-		})
+		name, value, err := p.readAttribute()
+		if err != nil {
+			return nil, err
+		}
 		if name == "" {
 			break
 		}
-
-		// Expect '='
-		if p.pos >= len(p.input) || p.input[p.pos] != '=' {
-			return nil, fmt.Errorf("expected '=' after attribute name %q", name)
-		}
-		p.pos++ // consume '='
-
-		// Expect '"'
-		if p.pos >= len(p.input) || p.input[p.pos] != '"' {
-			return nil, fmt.Errorf("expected '\"' for attribute %q value", name)
-		}
-		p.pos++ // consume opening '"'
-
-		// Read until closing '"'
-		value := p.readUntil('"')
-		if p.pos >= len(p.input) {
-			return nil, fmt.Errorf("unterminated attribute value for %q", name)
-		}
-		p.pos++ // consume closing '"'
-
 		attrs[name] = value
 	}
 	return attrs, nil
+}
+
+// readAttribute reads a single name="value" attribute pair.
+func (p *parser) readAttribute() (string, string, error) {
+	name := p.readWhile(func(b byte) bool {
+		return b != '=' && b != '>' && !isWhitespace(b)
+	})
+	if name == "" {
+		return "", "", nil
+	}
+	if err := p.expectByte('=', "after attribute name %q", name); err != nil {
+		return "", "", err
+	}
+	value, err := p.readQuotedValue(name)
+	if err != nil {
+		return "", "", err
+	}
+	return name, value, nil
+}
+
+// readQuotedValue reads a double-quoted attribute value.
+func (p *parser) readQuotedValue(attrName string) (string, error) {
+	if err := p.expectByte('"', "for attribute %q value", attrName); err != nil {
+		return "", err
+	}
+	value := p.readUntil('"')
+	if p.pos >= len(p.input) {
+		return "", fmt.Errorf("unterminated attribute value for %q", attrName)
+	}
+	p.pos++ // consume closing '"'
+	return value, nil
+}
+
+// expectByte checks the current byte matches ch and consumes it.
+func (p *parser) expectByte(ch byte, context string, args ...any) error {
+	if p.pos >= len(p.input) || p.input[p.pos] != ch {
+		msg := fmt.Sprintf(context, args...)
+		return fmt.Errorf("expected %q %s", ch, msg)
+	}
+	p.pos++
+	return nil
 }
 
 func (p *parser) parseTextElement(attrs map[string]string) (Node, error) {
@@ -162,10 +200,8 @@ func (p *parser) parseTextElement(attrs map[string]string) (Node, error) {
 	if closeIdx == -1 {
 		return nil, fmt.Errorf("missing closing </text> tag")
 	}
-
 	content := p.input[p.pos : p.pos+closeIdx]
 	p.pos += closeIdx + len(closingTag)
-
 	parts := parseTextParts(content)
 	return &TextElement{Attributes: attrs, Parts: parts}, nil
 }
@@ -175,31 +211,37 @@ func parseTextParts(content string) []Part {
 	if content == "" {
 		return nil
 	}
-
 	var parts []Part
 	for len(content) > 0 {
-		openIdx := strings.Index(content, "{")
-		if openIdx == -1 {
-			// No more expressions — rest is a string part
-			parts = append(parts, &StringPart{Value: content})
+		part, rest, done := extractNextPart(content)
+		parts = append(parts, part...)
+		content = rest
+		if done {
 			break
 		}
-		// Text before the '{'
-		if openIdx > 0 {
-			parts = append(parts, &StringPart{Value: content[:openIdx]})
-		}
-		// Find closing '}'
-		closeIdx := strings.Index(content[openIdx:], "}")
-		if closeIdx == -1 {
-			// No closing brace — treat rest as literal text
-			parts = append(parts, &StringPart{Value: content[openIdx:]})
-			break
-		}
-		expr := strings.TrimSpace(content[openIdx+1 : openIdx+closeIdx])
-		parts = append(parts, &ExprPart{Expr: expr})
-		content = content[openIdx+closeIdx+1:]
 	}
 	return parts
+}
+
+// extractNextPart extracts the next part(s) from content.
+// Returns the parts found, remaining content, and whether parsing is done.
+func extractNextPart(content string) ([]Part, string, bool) {
+	openIdx := strings.Index(content, "{")
+	if openIdx == -1 {
+		return []Part{&StringPart{Value: content}}, "", true
+	}
+	var parts []Part
+	if openIdx > 0 {
+		parts = append(parts, &StringPart{Value: content[:openIdx]})
+	}
+	closeIdx := strings.Index(content[openIdx:], "}")
+	if closeIdx == -1 {
+		parts = append(parts, &StringPart{Value: content[openIdx:]})
+		return parts, "", true
+	}
+	expr := strings.TrimSpace(content[openIdx+1 : openIdx+closeIdx])
+	parts = append(parts, &ExprPart{Expr: expr})
+	return parts, content[openIdx+closeIdx+1:], false
 }
 
 func (p *parser) skipWhitespace() {

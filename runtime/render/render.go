@@ -3,6 +3,7 @@ package render
 import (
 	"fmt"
 	"io"
+	"strings"
 )
 
 // RenderTo renders the buffer to a writer using ANSI cursor-addressed output.
@@ -17,38 +18,57 @@ func (b *Buffer) RenderTo(w io.Writer) {
 				continue
 			}
 			fmt.Fprintf(w, "\x1b[%d;%dH", row+1, col+1)
-			if !c.Style.IsZero() {
+			if sgr := buildSGR(c.Style); sgr != "" {
 				hasStyled = true
-				fmt.Fprint(w, "\x1b[0m")
-				if c.Style.Bold {
-					fmt.Fprint(w, "\x1b[1m")
-				}
-				if c.Style.Dim {
-					fmt.Fprint(w, "\x1b[2m")
-				}
-				if c.Style.Italic {
-					fmt.Fprint(w, "\x1b[3m")
-				}
-				if c.Style.Underline {
-					fmt.Fprint(w, "\x1b[4m")
-				}
-				if c.Style.Inverse {
-					fmt.Fprint(w, "\x1b[7m")
-				}
-				if c.Style.Strikethrough {
-					fmt.Fprint(w, "\x1b[9m")
-				}
-				if code, ok := colorToFGCode(c.Style.FG.Name); ok {
-					fmt.Fprintf(w, "\x1b[%dm", code)
-				}
-				if code, ok := colorToBGCode(c.Style.BG.Name); ok {
-					fmt.Fprintf(w, "\x1b[%dm", code)
-				}
+				fmt.Fprint(w, sgr)
 			}
 			fmt.Fprintf(w, "%c", c.Ch)
 		}
 	}
 	if hasStyled {
 		fmt.Fprint(w, "\x1b[0m")
+	}
+}
+
+// buildSGR returns the ANSI SGR escape sequence for a style.
+// Returns an empty string if the style has no attributes set.
+func buildSGR(s Style) string {
+	if s.IsZero() {
+		return ""
+	}
+	var b strings.Builder
+	b.WriteString("\x1b[0m")
+	appendAttrCodes(&b, s)
+	appendColorCodes(&b, s)
+	return b.String()
+}
+
+// appendAttrCodes appends SGR codes for text attributes (bold, dim, etc.).
+func appendAttrCodes(b *strings.Builder, s Style) {
+	attrs := []struct {
+		set  bool
+		code int
+	}{
+		{s.Bold, 1},
+		{s.Dim, 2},
+		{s.Italic, 3},
+		{s.Underline, 4},
+		{s.Inverse, 7},
+		{s.Strikethrough, 9},
+	}
+	for _, a := range attrs {
+		if a.set {
+			fmt.Fprintf(b, "\x1b[%dm", a.code)
+		}
+	}
+}
+
+// appendColorCodes appends SGR codes for foreground and background colors.
+func appendColorCodes(b *strings.Builder, s Style) {
+	if code, ok := colorToFGCode(s.FG.Name); ok {
+		fmt.Fprintf(b, "\x1b[%dm", code)
+	}
+	if code, ok := colorToBGCode(s.BG.Name); ok {
+		fmt.Fprintf(b, "\x1b[%dm", code)
 	}
 }
