@@ -1,0 +1,24 @@
+<script>
+label := $prop("Count")
+count := $state(0)
+
+func increment() {
+    count = count + 1
+}
+</script>
+
+<style>
+.label {
+    color: cyan;
+    bold: true;
+}
+.count {
+    color: yellow;
+    bold: true;
+}
+</style>
+
+<box onkey="increment">
+    <text class="label">{label}:</text>
+    <text class="count">{count}</text>
+</box>

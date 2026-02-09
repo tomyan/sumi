@@ -286,7 +286,7 @@ func writeComponentHandleKey(buf *bytes.Buffer, name string, doc *template.Docum
 	if onkeyFunc == "" {
 		return
 	}
-	fmt.Fprintf(buf, "func (c *%sComponent) HandleKey(key byte) {\n", name)
+	fmt.Fprintf(buf, "func (c *%sComponent) HandleKey(key rune) {\n", name)
 	fmt.Fprintf(buf, "\tc.%s()\n", onkeyFunc)
 	buf.WriteString("}\n\n")
 }

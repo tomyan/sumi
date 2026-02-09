@@ -205,7 +205,7 @@ func TestGenerateComponentHandleKeyGenerated(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 	src := string(out)
-	if !strings.Contains(src, "func (c *CounterComponent) HandleKey(key byte)") {
+	if !strings.Contains(src, "func (c *CounterComponent) HandleKey(key rune)") {
 		t.Errorf("expected HandleKey method in output:\n%s", src)
 	}
 }

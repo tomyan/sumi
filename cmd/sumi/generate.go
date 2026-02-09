@@ -272,13 +272,17 @@ func outputPath(sumiPath string) string {
 }
 
 // packageName derives the Go package name from the directory containing the .sumi file.
-// Falls back to "main" if the directory name isn't a valid Go identifier.
+// If a main.go exists in the same directory, returns "main" (it's an executable package).
+// Otherwise uses the directory name, falling back to "main" if it's not a valid Go identifier.
 func packageName(sumiPath string) string {
 	absPath, err := filepath.Abs(sumiPath)
 	if err != nil {
 		return "main"
 	}
 	dir := filepath.Dir(absPath)
+	if _, err := os.Stat(filepath.Join(dir, "main.go")); err == nil {
+		return "main"
+	}
 	name := filepath.Base(dir)
 	if !token.IsIdentifier(name) {
 		return "main"

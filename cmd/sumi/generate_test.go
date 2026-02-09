@@ -173,6 +173,40 @@ func TestGenerateDirectoryWithNoSumiFilesIsNoOp(t *testing.T) {
 	}
 }
 
+func TestGenerateFileUsesPackageMainWhenMainGoExists(t *testing.T) {
+	// Given a directory containing main.go alongside a .sumi file
+	dir := t.TempDir()
+	subdir := filepath.Join(dir, "mywidget")
+	if err := os.MkdirAll(subdir, 0755); err != nil {
+		t.Fatal(err)
+	}
+	mainGo := filepath.Join(subdir, "main.go")
+	if err := os.WriteFile(mainGo, []byte("package main\n\nfunc main() {}\n"), 0644); err != nil {
+		t.Fatal(err)
+	}
+	sumiFile := filepath.Join(subdir, "hello.sumi")
+	if err := os.WriteFile(sumiFile, []byte(`<text>Hello</text>`), 0644); err != nil {
+		t.Fatal(err)
+	}
+
+	// When
+	err := generateFile(sumiFile)
+
+	// Then the generated file should use package main, not package mywidget
+	if err != nil {
+		t.Fatalf("generateFile: %v", err)
+	}
+	goFile := filepath.Join(subdir, "hello_sumi.go")
+	src, err := os.ReadFile(goFile)
+	if err != nil {
+		t.Fatalf("reading generated file: %v", err)
+	}
+	code := string(src)
+	if !contains(code, "package main") {
+		t.Errorf("expected 'package main' when main.go exists, got:\n%s", code)
+	}
+}
+
 func TestGenerateFileWithStyleBlock(t *testing.T) {
 	// Given
 	dir := t.TempDir()
