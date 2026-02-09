@@ -1,0 +1,12 @@
+<script>
+count := $state(0)
+
+func increment() {
+    count = count + 1
+}
+</script>
+
+<box border="single" padding="1 2" onkey="increment">
+    <text>Count: {count}</text>
+    <text>Press any key to increment, q to quit</text>
+</box>

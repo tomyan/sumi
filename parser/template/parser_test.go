@@ -4,6 +4,37 @@ import (
 	"testing"
 )
 
+// assertParts is a test helper that checks a TextElement's Parts match expectations.
+func assertParts(t *testing.T, te *TextElement, expected []Part) {
+	t.Helper()
+	if len(te.Parts) != len(expected) {
+		t.Fatalf("got %d parts, want %d", len(te.Parts), len(expected))
+	}
+	for i, want := range expected {
+		got := te.Parts[i]
+		switch w := want.(type) {
+		case *StringPart:
+			g, ok := got.(*StringPart)
+			if !ok {
+				t.Fatalf("part[%d] is %T, want *StringPart", i, got)
+			}
+			if g.Value != w.Value {
+				t.Errorf("part[%d] Value = %q, want %q", i, g.Value, w.Value)
+			}
+		case *ExprPart:
+			g, ok := got.(*ExprPart)
+			if !ok {
+				t.Fatalf("part[%d] is %T, want *ExprPart", i, got)
+			}
+			if g.Expr != w.Expr {
+				t.Errorf("part[%d] Expr = %q, want %q", i, g.Expr, w.Expr)
+			}
+		default:
+			t.Fatalf("unexpected part type %T at index %d", want, i)
+		}
+	}
+}
+
 func TestParseSingleTextElement(t *testing.T) {
 	doc, err := Parse(`<text>Hello</text>`)
 	if err != nil {
@@ -16,9 +47,7 @@ func TestParseSingleTextElement(t *testing.T) {
 	if !ok {
 		t.Fatalf("child is %T, want *TextElement", doc.Children[0])
 	}
-	if te.Content != "Hello" {
-		t.Errorf("Content = %q, want %q", te.Content, "Hello")
-	}
+	assertParts(t, te, []Part{&StringPart{Value: "Hello"}})
 }
 
 func TestParseTwoTextElements(t *testing.T) {
@@ -33,16 +62,12 @@ func TestParseTwoTextElements(t *testing.T) {
 	if !ok {
 		t.Fatalf("child 0 is %T, want *TextElement", doc.Children[0])
 	}
-	if te1.Content != "Hello" {
-		t.Errorf("child 0 Content = %q, want %q", te1.Content, "Hello")
-	}
+	assertParts(t, te1, []Part{&StringPart{Value: "Hello"}})
 	te2, ok := doc.Children[1].(*TextElement)
 	if !ok {
 		t.Fatalf("child 1 is %T, want *TextElement", doc.Children[1])
 	}
-	if te2.Content != "World" {
-		t.Errorf("child 1 Content = %q, want %q", te2.Content, "World")
-	}
+	assertParts(t, te2, []Part{&StringPart{Value: "World"}})
 }
 
 func TestParseEmptyTextElement(t *testing.T) {
@@ -57,8 +82,8 @@ func TestParseEmptyTextElement(t *testing.T) {
 	if !ok {
 		t.Fatalf("child is %T, want *TextElement", doc.Children[0])
 	}
-	if te.Content != "" {
-		t.Errorf("Content = %q, want empty", te.Content)
+	if len(te.Parts) != 0 {
+		t.Errorf("got %d parts, want 0", len(te.Parts))
 	}
 }
 
@@ -72,12 +97,8 @@ func TestParseWhitespaceBetweenElementsIgnored(t *testing.T) {
 	}
 	te1 := doc.Children[0].(*TextElement)
 	te2 := doc.Children[1].(*TextElement)
-	if te1.Content != "A" {
-		t.Errorf("child 0 Content = %q, want %q", te1.Content, "A")
-	}
-	if te2.Content != "B" {
-		t.Errorf("child 1 Content = %q, want %q", te2.Content, "B")
-	}
+	assertParts(t, te1, []Part{&StringPart{Value: "A"}})
+	assertParts(t, te2, []Part{&StringPart{Value: "B"}})
 }
 
 func TestParseMissingClosingTagReturnsError(t *testing.T) {
@@ -109,9 +130,7 @@ func TestParseBoxWithSingleTextChild(t *testing.T) {
 	if !ok {
 		t.Fatalf("box child is %T, want *TextElement", box.Children[0])
 	}
-	if te.Content != "Hello" {
-		t.Errorf("Content = %q, want %q", te.Content, "Hello")
-	}
+	assertParts(t, te, []Part{&StringPart{Value: "Hello"}})
 }
 
 func TestParseBoxWithDirectionAndTwoChildren(t *testing.T) {
@@ -131,12 +150,8 @@ func TestParseBoxWithDirectionAndTwoChildren(t *testing.T) {
 	}
 	te1 := box.Children[0].(*TextElement)
 	te2 := box.Children[1].(*TextElement)
-	if te1.Content != "A" {
-		t.Errorf("child 0 Content = %q, want %q", te1.Content, "A")
-	}
-	if te2.Content != "B" {
-		t.Errorf("child 1 Content = %q, want %q", te2.Content, "B")
-	}
+	assertParts(t, te1, []Part{&StringPart{Value: "A"}})
+	assertParts(t, te2, []Part{&StringPart{Value: "B"}})
 }
 
 func TestParseBoxWithMultipleAttributes(t *testing.T) {
@@ -175,9 +190,7 @@ func TestParseNestedBoxes(t *testing.T) {
 		t.Fatalf("inner box has %d children, want 1", len(inner.Children))
 	}
 	te := inner.Children[0].(*TextElement)
-	if te.Content != "Deep" {
-		t.Errorf("Content = %q, want %q", te.Content, "Deep")
-	}
+	assertParts(t, te, []Part{&StringPart{Value: "Deep"}})
 }
 
 func TestParseEmptyBox(t *testing.T) {
@@ -224,7 +237,54 @@ func TestParseWhitespaceInsideTextPreserved(t *testing.T) {
 		t.Fatalf("got %d children, want 1", len(doc.Children))
 	}
 	te := doc.Children[0].(*TextElement)
-	if te.Content != "  Hello  " {
-		t.Errorf("Content = %q, want %q", te.Content, "  Hello  ")
+	assertParts(t, te, []Part{&StringPart{Value: "  Hello  "}})
+}
+
+// --- Expression tests ---
+
+func TestParseTextWithExpressionOnly(t *testing.T) {
+	doc, err := Parse(`<text>{count}</text>`)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
 	}
+	te := doc.Children[0].(*TextElement)
+	assertParts(t, te, []Part{&ExprPart{Expr: "count"}})
+}
+
+func TestParseTextWithStringAndExpression(t *testing.T) {
+	doc, err := Parse(`<text>Count: {count}</text>`)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	te := doc.Children[0].(*TextElement)
+	assertParts(t, te, []Part{
+		&StringPart{Value: "Count: "},
+		&ExprPart{Expr: "count"},
+	})
+}
+
+func TestParseTextWithTwoExpressions(t *testing.T) {
+	doc, err := Parse(`<text>{a} and {b}</text>`)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	te := doc.Children[0].(*TextElement)
+	assertParts(t, te, []Part{
+		&ExprPart{Expr: "a"},
+		&StringPart{Value: " and "},
+		&ExprPart{Expr: "b"},
+	})
+}
+
+func TestParseTextWithExpressionContainingSpaces(t *testing.T) {
+	doc, err := Parse(`<text>Count: {count + 1}!</text>`)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	te := doc.Children[0].(*TextElement)
+	assertParts(t, te, []Part{
+		&StringPart{Value: "Count: "},
+		&ExprPart{Expr: "count + 1"},
+		&StringPart{Value: "!"},
+	})
 }

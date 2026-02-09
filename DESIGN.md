@@ -395,3 +395,22 @@ Thin slices, each delivering something you can see working in the terminal.
 - `@media (theme: dark | light)` detection
 - Graceful color degradation
 - **You see:** UI adapting to terminal capabilities and theme
+
+### Iteration 11: Layering and positioning
+- `z-index` property — controls paint order for overlapping elements
+- `position: absolute` — position relative to nearest positioned ancestor (or screen)
+- `position: relative` — establishes positioning context for children
+- `top`, `left`, `right`, `bottom` — offset from positioned parent
+- Layout engine maintains a layer stack, paints back-to-front by z-index
+- **You see:** modals, overlays, dropdowns rendered on top of other content
+
+### Iteration 12: Compositing and transparency
+- `opacity: 0.5` — semi-transparent elements (blends with content below)
+- `background: transparent` — no background, content below shows through
+- `background: dim` — dims content below (like a modal backdrop)
+- Compositing model: when rendering a cell, blend foreground element's style with the cell already in the buffer
+  - Transparent background → keep the character and bg color from below, apply fg styling on top
+  - Dim → keep character from below, apply dim attribute
+  - Opacity → interpolate colors between layers (truecolor), or use dim/bold approximation (ANSI)
+- `backdrop-filter: dim | blur` — apply effect to content behind the element (dim is practical for terminals, blur is approximated)
+- **You see:** modal dialogs with dimmed backgrounds, overlapping panels where content shows through

@@ -12,9 +12,28 @@ type Document struct {
 
 func (d *Document) nodeType() string { return "document" }
 
+// Part is the interface for parts of text content.
+type Part interface {
+	partType() string
+}
+
+// StringPart represents literal text content.
+type StringPart struct {
+	Value string
+}
+
+func (s *StringPart) partType() string { return "string" }
+
+// ExprPart represents an {expression} in text content.
+type ExprPart struct {
+	Expr string
+}
+
+func (e *ExprPart) partType() string { return "expr" }
+
 // TextElement represents a <text>content</text> element.
 type TextElement struct {
-	Content string
+	Parts []Part
 }
 
 func (t *TextElement) nodeType() string { return "text" }

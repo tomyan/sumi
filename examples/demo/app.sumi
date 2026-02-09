@@ -1,0 +1,7 @@
+<box border="single" padding="1 2">
+  <text>Welcome to Sumi!</text>
+  <text>A declarative TTY framework for Go.</text>
+  <box border="single" padding="0 1">
+    <text>Press Enter to exit.</text>
+  </box>
+</box>

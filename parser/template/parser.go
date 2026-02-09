@@ -164,7 +164,40 @@ func (p *parser) parseTextElement() (Node, error) {
 	content := p.input[p.pos : p.pos+closeIdx]
 	p.pos += closeIdx + len(closingTag)
 
-	return &TextElement{Content: content}, nil
+	parts := parseTextParts(content)
+	return &TextElement{Parts: parts}, nil
+}
+
+// parseTextParts splits text content into StringPart and ExprPart segments.
+func parseTextParts(content string) []Part {
+	if content == "" {
+		return nil
+	}
+
+	var parts []Part
+	for len(content) > 0 {
+		openIdx := strings.Index(content, "{")
+		if openIdx == -1 {
+			// No more expressions — rest is a string part
+			parts = append(parts, &StringPart{Value: content})
+			break
+		}
+		// Text before the '{'
+		if openIdx > 0 {
+			parts = append(parts, &StringPart{Value: content[:openIdx]})
+		}
+		// Find closing '}'
+		closeIdx := strings.Index(content[openIdx:], "}")
+		if closeIdx == -1 {
+			// No closing brace — treat rest as literal text
+			parts = append(parts, &StringPart{Value: content[openIdx:]})
+			break
+		}
+		expr := strings.TrimSpace(content[openIdx+1 : openIdx+closeIdx])
+		parts = append(parts, &ExprPart{Expr: expr})
+		content = content[openIdx+closeIdx+1:]
+	}
+	return parts
 }
 
 func (p *parser) skipWhitespace() {
