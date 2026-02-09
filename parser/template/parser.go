@@ -43,19 +43,115 @@ func (p *parser) parseElement() (Node, error) {
 	// Consume opening '<'
 	p.pos++
 
-	// Read tag name
-	tagName := p.readUntil('>')
-	if p.pos >= len(p.input) {
-		return nil, fmt.Errorf("unexpected end of input in opening tag")
+	// Read tag name (until whitespace or '>')
+	tagName := p.readWhile(func(b byte) bool {
+		return b != '>' && !isWhitespace(b)
+	})
+	if tagName == "" {
+		return nil, fmt.Errorf("empty tag name at position %d", p.pos)
 	}
-	p.pos++ // consume '>'
 
 	switch tagName {
 	case "text":
+		// Skip any remaining content up to '>'
+		p.readUntil('>')
+		if p.pos >= len(p.input) {
+			return nil, fmt.Errorf("unexpected end of input in opening tag")
+		}
+		p.pos++ // consume '>'
 		return p.parseTextElement()
+	case "box":
+		return p.parseBoxElement()
 	default:
 		return nil, fmt.Errorf("unknown element <%s>", tagName)
 	}
+}
+
+func (p *parser) parseBoxElement() (Node, error) {
+	attrs, err := p.parseAttributes()
+	if err != nil {
+		return nil, err
+	}
+
+	// Expect '>' to close the opening tag
+	if p.pos >= len(p.input) || p.input[p.pos] != '>' {
+		return nil, fmt.Errorf("expected '>' to close <box> tag")
+	}
+	p.pos++ // consume '>'
+
+	// Parse children until </box>
+	var children []Node
+	for {
+		p.skipWhitespace()
+		if p.pos >= len(p.input) {
+			return nil, fmt.Errorf("missing closing </box> tag")
+		}
+
+		// Check for closing tag
+		if strings.HasPrefix(p.input[p.pos:], "</box>") {
+			p.pos += len("</box>")
+			break
+		}
+
+		if p.input[p.pos] != '<' {
+			return nil, fmt.Errorf("unexpected character %q inside <box> at position %d", p.input[p.pos], p.pos)
+		}
+
+		child, err := p.parseElement()
+		if err != nil {
+			return nil, err
+		}
+		children = append(children, child)
+	}
+
+	if attrs == nil {
+		attrs = make(map[string]string)
+	}
+
+	return &BoxElement{Attributes: attrs, Children: children}, nil
+}
+
+func (p *parser) parseAttributes() (map[string]string, error) {
+	attrs := make(map[string]string)
+	for {
+		p.skipWhitespace()
+		if p.pos >= len(p.input) {
+			return nil, fmt.Errorf("unexpected end of input in tag attributes")
+		}
+		if p.input[p.pos] == '>' {
+			break
+		}
+
+		// Read attribute name
+		name := p.readWhile(func(b byte) bool {
+			return b != '=' && b != '>' && !isWhitespace(b)
+		})
+		if name == "" {
+			break
+		}
+
+		// Expect '='
+		if p.pos >= len(p.input) || p.input[p.pos] != '=' {
+			return nil, fmt.Errorf("expected '=' after attribute name %q", name)
+		}
+		p.pos++ // consume '='
+
+		// Expect '"'
+		if p.pos >= len(p.input) || p.input[p.pos] != '"' {
+			return nil, fmt.Errorf("expected '\"' for attribute %q value", name)
+		}
+		p.pos++ // consume opening '"'
+
+		// Read until closing '"'
+		value := p.readUntil('"')
+		if p.pos >= len(p.input) {
+			return nil, fmt.Errorf("unterminated attribute value for %q", name)
+		}
+		p.pos++ // consume closing '"'
+
+		attrs[name] = value
+	}
+	return attrs, nil
 }
 
 func (p *parser) parseTextElement() (Node, error) {
@@ -80,6 +176,14 @@ func (p *parser) skipWhitespace() {
 func (p *parser) readUntil(ch byte) string {
 	start := p.pos
 	for p.pos < len(p.input) && p.input[p.pos] != ch {
+		p.pos++
+	}
+	return p.input[start:p.pos]
+}
+
+func (p *parser) readWhile(pred func(byte) bool) string {
+	start := p.pos
+	for p.pos < len(p.input) && pred(p.input[p.pos]) {
 		p.pos++
 	}
 	return p.input[start:p.pos]
