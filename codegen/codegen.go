@@ -8,7 +8,9 @@ import (
 	"strings"
 
 	"github.com/tomyan/sumi/parser/script"
+	"github.com/tomyan/sumi/parser/style"
 	"github.com/tomyan/sumi/parser/template"
+	"github.com/tomyan/sumi/runtime/css"
 )
 
 // Options configures code generation.
@@ -16,10 +18,11 @@ type Options struct {
 	PackageName string
 }
 
-// Generate produces Go source code from a template AST and optional script.
+// Generate produces Go source code from a template AST, optional script, and optional stylesheet.
 // When script is nil, generates static code (render once, wait for Enter).
 // When script has state, generates reactive code with an event loop.
-func Generate(doc *template.Document, sc *script.Script, opts Options) ([]byte, error) {
+// When stylesheet is non-nil, styles are resolved at codegen time and emitted as render.Style literals.
+func Generate(doc *template.Document, sc *script.Script, ss *style.Stylesheet, opts Options) ([]byte, error) {
 	reactive := sc != nil && len(sc.StateDecls) > 0
 	hasExprs := docHasExprs(doc)
 
@@ -33,9 +36,9 @@ func Generate(doc *template.Document, sc *script.Script, opts Options) ([]byte, 
 	buf.WriteString("func Run() {\n")
 
 	if reactive {
-		writeReactiveBody(&buf, doc, sc)
+		writeReactiveBody(&buf, doc, sc, ss)
 	} else {
-		writeStaticBody(&buf, doc)
+		writeStaticBody(&buf, doc, ss)
 	}
 
 	buf.WriteString("}\n\n")
@@ -65,8 +68,8 @@ func writeImports(buf *bytes.Buffer, reactive, hasExprs bool) {
 }
 
 // writeStaticBody generates the static (non-reactive) function body.
-func writeStaticBody(buf *bytes.Buffer, doc *template.Document) {
-	writeLayoutTree(buf, doc, false)
+func writeStaticBody(buf *bytes.Buffer, doc *template.Document, ss *style.Stylesheet) {
+	writeLayoutTree(buf, doc, ss, false)
 
 	buf.WriteString("\ttree := layout.Layout(root, 80, 24)\n")
 	buf.WriteString("\tbuf := render.NewBuffer(80, 24)\n")
@@ -78,7 +81,7 @@ func writeStaticBody(buf *bytes.Buffer, doc *template.Document) {
 }
 
 // writeReactiveBody generates the reactive function body with event loop.
-func writeReactiveBody(buf *bytes.Buffer, doc *template.Document, sc *script.Script) {
+func writeReactiveBody(buf *bytes.Buffer, doc *template.Document, sc *script.Script, ss *style.Stylesheet) {
 	// State declarations
 	for _, sd := range sc.StateDecls {
 		fmt.Fprintf(buf, "\t%s := %s\n", sd.Name, sd.InitExpr)
@@ -100,7 +103,7 @@ func writeReactiveBody(buf *bytes.Buffer, doc *template.Document, sc *script.Scr
 	buf.WriteString("\tvar prevBuf *render.Buffer\n")
 	buf.WriteString("\tdoRender := func() {\n")
 
-	writeLayoutTree(buf, doc, true)
+	writeLayoutTree(buf, doc, ss, true)
 
 	buf.WriteString("\t\ttree := layout.Layout(root, 80, 24)\n")
 	buf.WriteString("\t\tbuf := render.NewBuffer(80, 24)\n")
@@ -171,7 +174,7 @@ func writeReactiveFuncBody(buf *bytes.Buffer, fd script.FuncDecl) {
 
 // writeLayoutTree writes the layout.Input tree construction code.
 // When inClosure is true, adds an extra tab of indentation.
-func writeLayoutTree(buf *bytes.Buffer, doc *template.Document, inClosure bool) {
+func writeLayoutTree(buf *bytes.Buffer, doc *template.Document, ss *style.Stylesheet, inClosure bool) {
 	baseIndent := 1
 	if inClosure {
 		baseIndent = 2
@@ -183,51 +186,130 @@ func writeLayoutTree(buf *bytes.Buffer, doc *template.Document, inClosure bool) 
 	fmt.Fprintf(buf, "%s\tDirection: \"column\",\n", tabs)
 	fmt.Fprintf(buf, "%s\tChildren:  []*layout.Input{\n", tabs)
 	for _, child := range doc.Children {
-		writeInputNode(buf, child, baseIndent+2)
+		writeInputNode(buf, child, ss, baseIndent+2)
 	}
 	fmt.Fprintf(buf, "%s\t},\n", tabs)
 	fmt.Fprintf(buf, "%s}\n", tabs)
 }
 
+// resolveProps resolves CSS properties for a node using the stylesheet.
+// Returns nil if no stylesheet or no matching rules.
+func resolveProps(ss *style.Stylesheet, tag string, attrs map[string]string) map[string]string {
+	if ss == nil {
+		return nil
+	}
+	var classes []string
+	if classAttr, ok := attrs["class"]; ok && classAttr != "" {
+		classes = strings.Fields(classAttr)
+	}
+	props := css.Resolve(ss, tag, classes)
+	if len(props) == 0 {
+		return nil
+	}
+	return props
+}
+
+// writeStyleLiteral writes a render.Style{...} literal from resolved CSS properties.
+func writeStyleLiteral(buf *bytes.Buffer, tabs string, props map[string]string) {
+	s := css.ToRenderStyle(props)
+	if s.IsZero() {
+		return
+	}
+	fmt.Fprintf(buf, "%s\tStyle: render.Style{\n", tabs)
+	if s.FG.Name != "" {
+		fmt.Fprintf(buf, "%s\t\tFG: render.Color{Name: %q},\n", tabs, s.FG.Name)
+	}
+	if s.BG.Name != "" {
+		fmt.Fprintf(buf, "%s\t\tBG: render.Color{Name: %q},\n", tabs, s.BG.Name)
+	}
+	if s.Bold {
+		fmt.Fprintf(buf, "%s\t\tBold: true,\n", tabs)
+	}
+	if s.Dim {
+		fmt.Fprintf(buf, "%s\t\tDim: true,\n", tabs)
+	}
+	if s.Italic {
+		fmt.Fprintf(buf, "%s\t\tItalic: true,\n", tabs)
+	}
+	if s.Underline {
+		fmt.Fprintf(buf, "%s\t\tUnderline: true,\n", tabs)
+	}
+	if s.Strikethrough {
+		fmt.Fprintf(buf, "%s\t\tStrikethrough: true,\n", tabs)
+	}
+	if s.Inverse {
+		fmt.Fprintf(buf, "%s\t\tInverse: true,\n", tabs)
+	}
+	fmt.Fprintf(buf, "%s\t},\n", tabs)
+}
+
+// mergedAttr returns the value for a layout-affecting attribute.
+// Inline attributes (from the element) override stylesheet properties.
+func mergedAttr(attrs map[string]string, props map[string]string, key string) (string, bool) {
+	if v, ok := attrs[key]; ok {
+		return v, true
+	}
+	if props != nil {
+		if v, ok := props[key]; ok {
+			return v, true
+		}
+	}
+	return "", false
+}
+
 // writeInputNode writes a layout.Input literal for a template AST node.
-func writeInputNode(buf *bytes.Buffer, node template.Node, indent int) {
+func writeInputNode(buf *bytes.Buffer, node template.Node, ss *style.Stylesheet, indent int) {
 	tabs := indentStr(indent)
 
 	switch n := node.(type) {
 	case *template.TextElement:
+		attrs := n.Attributes
+		if attrs == nil {
+			attrs = map[string]string{}
+		}
+		props := resolveProps(ss, "text", attrs)
+
 		fmt.Fprintf(buf, "%s{\n", tabs)
 		fmt.Fprintf(buf, "%s\tKind:    layout.KindText,\n", tabs)
 		fmt.Fprintf(buf, "%s\tContent: %s,\n", tabs, contentExpr(n.Parts))
+		if props != nil {
+			writeStyleLiteral(buf, tabs, props)
+		}
 		fmt.Fprintf(buf, "%s},\n", tabs)
 
 	case *template.BoxElement:
+		props := resolveProps(ss, "box", n.Attributes)
+
 		fmt.Fprintf(buf, "%s{\n", tabs)
 		fmt.Fprintf(buf, "%s\tKind: layout.KindBox,\n", tabs)
 
-		if dir, ok := n.Attributes["direction"]; ok {
+		if dir, ok := mergedAttr(n.Attributes, props, "direction"); ok {
 			fmt.Fprintf(buf, "%s\tDirection: %q,\n", tabs, dir)
 		}
-		if w, ok := n.Attributes["width"]; ok {
+		if w, ok := mergedAttr(n.Attributes, props, "width"); ok {
 			if v, err := strconv.Atoi(w); err == nil {
 				fmt.Fprintf(buf, "%s\tFixedWidth:  %d,\n", tabs, v)
 			}
 		}
-		if h, ok := n.Attributes["height"]; ok {
+		if h, ok := mergedAttr(n.Attributes, props, "height"); ok {
 			if v, err := strconv.Atoi(h); err == nil {
 				fmt.Fprintf(buf, "%s\tFixedHeight: %d,\n", tabs, v)
 			}
 		}
-		if p, ok := n.Attributes["padding"]; ok {
+		if p, ok := mergedAttr(n.Attributes, props, "padding"); ok {
 			fmt.Fprintf(buf, "%s\tPadding: layout.ParsePadding(%q),\n", tabs, p)
 		}
-		if b, ok := n.Attributes["border"]; ok {
+		if b, ok := mergedAttr(n.Attributes, props, "border"); ok {
 			fmt.Fprintf(buf, "%s\tBorder: %q,\n", tabs, b)
+		}
+		if props != nil {
+			writeStyleLiteral(buf, tabs, props)
 		}
 
 		if len(n.Children) > 0 {
 			fmt.Fprintf(buf, "%s\tChildren: []*layout.Input{\n", tabs)
 			for _, child := range n.Children {
-				writeInputNode(buf, child, indent+2)
+				writeInputNode(buf, child, ss, indent+2)
 			}
 			fmt.Fprintf(buf, "%s\t},\n", tabs)
 		}
@@ -283,10 +365,10 @@ func contentExpr(parts []template.Part) string {
 func writeRenderTreeFunc(buf *bytes.Buffer) {
 	buf.WriteString("func renderTree(buf *render.Buffer, box *layout.Box) {\n")
 	buf.WriteString("\tif box.Border != \"\" && box.Border != \"none\" {\n")
-	buf.WriteString("\t\tbuf.DrawBorder(box.Y, box.X, box.Width, box.Height, box.Border)\n")
+	buf.WriteString("\t\tbuf.DrawStyledBorder(box.Y, box.X, box.Width, box.Height, box.Border, box.Style)\n")
 	buf.WriteString("\t}\n")
 	buf.WriteString("\tif box.Content != \"\" {\n")
-	buf.WriteString("\t\tbuf.WriteText(box.Y, box.X, box.Content)\n")
+	buf.WriteString("\t\tbuf.WriteStyledText(box.Y, box.X, box.Content, box.Style)\n")
 	buf.WriteString("\t}\n")
 	buf.WriteString("\tfor _, child := range box.Children {\n")
 	buf.WriteString("\t\trenderTree(buf, child)\n")

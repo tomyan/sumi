@@ -31,11 +31,27 @@ func Run() {
 					Children: []*layout.Input{
 						{
 							Kind:    layout.KindText,
-							Content: fmt.Sprintf("Count: %v", count),
+							Content: "Sumi Counter",
+							Style: render.Style{
+								FG:   render.Color{Name: "green"},
+								Bold: true,
+							},
 						},
 						{
 							Kind:    layout.KindText,
 							Content: "Press any key to increment, q to quit",
+							Style: render.Style{
+								FG:  render.Color{Name: "cyan"},
+								Dim: true,
+							},
+						},
+						{
+							Kind:    layout.KindText,
+							Content: fmt.Sprintf("Count: %v", count),
+							Style: render.Style{
+								FG:   render.Color{Name: "yellow"},
+								Bold: true,
+							},
 						},
 					},
 				},
@@ -74,10 +90,10 @@ func Run() {
 
 func renderTree(buf *render.Buffer, box *layout.Box) {
 	if box.Border != "" && box.Border != "none" {
-		buf.DrawBorder(box.Y, box.X, box.Width, box.Height, box.Border)
+		buf.DrawStyledBorder(box.Y, box.X, box.Width, box.Height, box.Border, box.Style)
 	}
 	if box.Content != "" {
-		buf.WriteText(box.Y, box.X, box.Content)
+		buf.WriteStyledText(box.Y, box.X, box.Content, box.Style)
 	}
 	for _, child := range box.Children {
 		renderTree(buf, child)

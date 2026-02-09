@@ -53,13 +53,15 @@ func (p *parser) parseElement() (Node, error) {
 
 	switch tagName {
 	case "text":
-		// Skip any remaining content up to '>'
-		p.readUntil('>')
-		if p.pos >= len(p.input) {
-			return nil, fmt.Errorf("unexpected end of input in opening tag")
+		attrs, err := p.parseAttributes()
+		if err != nil {
+			return nil, err
+		}
+		if p.pos >= len(p.input) || p.input[p.pos] != '>' {
+			return nil, fmt.Errorf("expected '>' to close <text> tag")
 		}
 		p.pos++ // consume '>'
-		return p.parseTextElement()
+		return p.parseTextElement(attrs)
 	case "box":
 		return p.parseBoxElement()
 	default:
@@ -154,7 +156,7 @@ func (p *parser) parseAttributes() (map[string]string, error) {
 	return attrs, nil
 }
 
-func (p *parser) parseTextElement() (Node, error) {
+func (p *parser) parseTextElement(attrs map[string]string) (Node, error) {
 	closingTag := "</text>"
 	closeIdx := strings.Index(p.input[p.pos:], closingTag)
 	if closeIdx == -1 {
@@ -165,7 +167,7 @@ func (p *parser) parseTextElement() (Node, error) {
 	p.pos += closeIdx + len(closingTag)
 
 	parts := parseTextParts(content)
-	return &TextElement{Parts: parts}, nil
+	return &TextElement{Attributes: attrs, Parts: parts}, nil
 }
 
 // parseTextParts splits text content into StringPart and ExprPart segments.

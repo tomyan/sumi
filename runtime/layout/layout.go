@@ -3,6 +3,8 @@ package layout
 import (
 	"strconv"
 	"strings"
+
+	"github.com/tomyan/sumi/runtime/render"
 )
 
 // NodeKind distinguishes text nodes from box containers.
@@ -16,12 +18,13 @@ const (
 // Input describes a node in the layout tree before layout is computed.
 type Input struct {
 	Kind        NodeKind
-	Content     string   // text content (KindText only)
-	Direction   string   // "column" (default) or "row" (future)
-	FixedWidth  int      // 0 = auto
-	FixedHeight int      // 0 = auto
+	Content     string       // text content (KindText only)
+	Direction   string       // "column" (default) or "row" (future)
+	FixedWidth  int          // 0 = auto
+	FixedHeight int          // 0 = auto
 	Padding     Padding
-	Border      string   // "single", "none", or ""
+	Border      string       // "single", "none", or ""
+	Style       render.Style // resolved style for this node
 	Children    []*Input
 }
 
@@ -34,8 +37,9 @@ type Padding struct {
 type Box struct {
 	X, Y, Width, Height int
 	Children            []*Box
-	Content             string // text content if text node
-	Border              string // border style
+	Content             string       // text content if text node
+	Border              string       // border style
+	Style               render.Style // visual style
 }
 
 // ParsePadding parses a CSS-like padding shorthand string.
@@ -90,6 +94,7 @@ func Layout(input *Input, availWidth, availHeight int) *Box {
 func layoutNode(input *Input) *Box {
 	box := &Box{
 		Border: input.Border,
+		Style:  input.Style,
 	}
 
 	if input.Kind == KindText {

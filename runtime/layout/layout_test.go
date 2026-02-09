@@ -2,6 +2,8 @@ package layout
 
 import (
 	"testing"
+
+	"github.com/tomyan/sumi/runtime/render"
 )
 
 func TestParsePadding(t *testing.T) {
@@ -443,5 +445,37 @@ func TestLayoutColumnThreeChildren(t *testing.T) {
 		if box.Children[i].Y != wantY {
 			t.Errorf("child[%d].Y = %d, want %d", i, box.Children[i].Y, wantY)
 		}
+	}
+}
+
+func TestLayoutStylePassthrough(t *testing.T) {
+	s := render.Style{FG: render.Color{Name: "red"}, Bold: true}
+	input := &Input{
+		Kind:    KindText,
+		Content: "styled",
+		Style:   s,
+	}
+	box := Layout(input, 80, 24)
+	if box.Style != s {
+		t.Errorf("Style = %+v, want %+v", box.Style, s)
+	}
+}
+
+func TestLayoutStylePassthroughBox(t *testing.T) {
+	boxStyle := render.Style{BG: render.Color{Name: "blue"}}
+	childStyle := render.Style{FG: render.Color{Name: "green"}}
+	input := &Input{
+		Kind:  KindBox,
+		Style: boxStyle,
+		Children: []*Input{
+			{Kind: KindText, Content: "hi", Style: childStyle},
+		},
+	}
+	box := Layout(input, 80, 24)
+	if box.Style != boxStyle {
+		t.Errorf("box Style = %+v, want %+v", box.Style, boxStyle)
+	}
+	if box.Children[0].Style != childStyle {
+		t.Errorf("child Style = %+v, want %+v", box.Children[0].Style, childStyle)
 	}
 }

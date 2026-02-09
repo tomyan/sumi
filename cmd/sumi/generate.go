@@ -10,6 +10,7 @@ import (
 	"github.com/tomyan/sumi/codegen"
 	"github.com/tomyan/sumi/parser/script"
 	"github.com/tomyan/sumi/parser/section"
+	"github.com/tomyan/sumi/parser/style"
 	"github.com/tomyan/sumi/parser/template"
 )
 
@@ -38,8 +39,16 @@ func generateFile(path string) error {
 		}
 	}
 
+	var ss *style.Stylesheet
+	if sections.Style != "" {
+		ss, err = style.Parse(sections.Style)
+		if err != nil {
+			return fmt.Errorf("%s: %w", path, err)
+		}
+	}
+
 	pkgName := packageName(path)
-	out, err := codegen.Generate(doc, sc, codegen.Options{PackageName: pkgName})
+	out, err := codegen.Generate(doc, sc, ss, codegen.Options{PackageName: pkgName})
 	if err != nil {
 		return fmt.Errorf("%s: %w", path, err)
 	}

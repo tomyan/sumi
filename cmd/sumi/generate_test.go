@@ -311,6 +311,45 @@ func TestGenerateMixedBoxesAndText(t *testing.T) {
 	}
 }
 
+func TestGenerateFileWithStyleBlock(t *testing.T) {
+	dir := t.TempDir()
+	sumiFile := filepath.Join(dir, "styled.sumi")
+	input := `<style>
+.title {
+  color: red;
+  bold: true;
+}
+</style>
+<text class="title">Hello</text>`
+	if err := os.WriteFile(sumiFile, []byte(input), 0644); err != nil {
+		t.Fatal(err)
+	}
+
+	if err := generateFile(sumiFile); err != nil {
+		t.Fatalf("generateFile: %v", err)
+	}
+
+	goFile := filepath.Join(dir, "styled_sumi.go")
+	src, err := os.ReadFile(goFile)
+	if err != nil {
+		t.Fatalf("reading generated file: %v", err)
+	}
+
+	fset := token.NewFileSet()
+	_, parseErr := parser.ParseFile(fset, goFile, src, parser.AllErrors)
+	if parseErr != nil {
+		t.Fatalf("generated code is not valid Go:\n%s\n\nerror: %v", string(src), parseErr)
+	}
+
+	code := string(src)
+	if !contains(code, "render.Style{") {
+		t.Errorf("expected render.Style literal in generated code:\n%s", code)
+	}
+	if !contains(code, "Bold: true") {
+		t.Errorf("expected Bold: true in generated code:\n%s", code)
+	}
+}
+
 func contains(s, substr string) bool {
 	return len(s) >= len(substr) && (s == substr || len(s) > 0 && containsImpl(s, substr))
 }

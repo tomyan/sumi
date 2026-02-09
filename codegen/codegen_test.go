@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/tomyan/sumi/parser/script"
+	"github.com/tomyan/sumi/parser/style"
 	"github.com/tomyan/sumi/parser/template"
 )
 
@@ -21,7 +22,7 @@ func TestGenerateSingleTextElementIsValidGo(t *testing.T) {
 	doc := &template.Document{
 		Children: []template.Node{textNode("Hello")},
 	}
-	out, err := Generate(doc, nil, Options{PackageName: "main"})
+	out, err := Generate(doc, nil, nil, Options{PackageName: "main"})
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -36,7 +37,7 @@ func TestGenerateTextElementUsesLayout(t *testing.T) {
 	doc := &template.Document{
 		Children: []template.Node{textNode("Hello")},
 	}
-	out, err := Generate(doc, nil, Options{PackageName: "main"})
+	out, err := Generate(doc, nil, nil, Options{PackageName: "main"})
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -56,7 +57,7 @@ func TestGenerateMultipleTextElements(t *testing.T) {
 	doc := &template.Document{
 		Children: []template.Node{textNode("Hello"), textNode("World")},
 	}
-	out, err := Generate(doc, nil, Options{PackageName: "main"})
+	out, err := Generate(doc, nil, nil, Options{PackageName: "main"})
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -73,7 +74,7 @@ func TestGenerateContainsCorrectImports(t *testing.T) {
 	doc := &template.Document{
 		Children: []template.Node{textNode("Hello")},
 	}
-	out, err := Generate(doc, nil, Options{PackageName: "main"})
+	out, err := Generate(doc, nil, nil, Options{PackageName: "main"})
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -96,7 +97,7 @@ func TestGenerateReferencesRuntimeRender(t *testing.T) {
 	doc := &template.Document{
 		Children: []template.Node{textNode("Hello")},
 	}
-	out, err := Generate(doc, nil, Options{PackageName: "main"})
+	out, err := Generate(doc, nil, nil, Options{PackageName: "main"})
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -116,7 +117,7 @@ func TestGenerateRespectsPackageName(t *testing.T) {
 	doc := &template.Document{
 		Children: []template.Node{textNode("Hello")},
 	}
-	out, err := Generate(doc, nil, Options{PackageName: "myapp"})
+	out, err := Generate(doc, nil, nil, Options{PackageName: "myapp"})
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -135,7 +136,7 @@ func TestGenerateBoxContainingTextIsValidGo(t *testing.T) {
 			},
 		},
 	}
-	out, err := Generate(doc, nil, Options{PackageName: "main"})
+	out, err := Generate(doc, nil, nil, Options{PackageName: "main"})
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -155,7 +156,7 @@ func TestGenerateBoxUsesLayoutKindBox(t *testing.T) {
 			},
 		},
 	}
-	out, err := Generate(doc, nil, Options{PackageName: "main"})
+	out, err := Generate(doc, nil, nil, Options{PackageName: "main"})
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -174,7 +175,7 @@ func TestGenerateBoxWithAttributesDirection(t *testing.T) {
 			},
 		},
 	}
-	out, err := Generate(doc, nil, Options{PackageName: "main"})
+	out, err := Generate(doc, nil, nil, Options{PackageName: "main"})
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -193,7 +194,7 @@ func TestGenerateBoxWithBorder(t *testing.T) {
 			},
 		},
 	}
-	out, err := Generate(doc, nil, Options{PackageName: "main"})
+	out, err := Generate(doc, nil, nil, Options{PackageName: "main"})
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -212,7 +213,7 @@ func TestGenerateBoxWithPadding(t *testing.T) {
 			},
 		},
 	}
-	out, err := Generate(doc, nil, Options{PackageName: "main"})
+	out, err := Generate(doc, nil, nil, Options{PackageName: "main"})
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -231,7 +232,7 @@ func TestGenerateBoxWithWidthAndHeight(t *testing.T) {
 			},
 		},
 	}
-	out, err := Generate(doc, nil, Options{PackageName: "main"})
+	out, err := Generate(doc, nil, nil, Options{PackageName: "main"})
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -258,7 +259,7 @@ func TestGenerateNestedBoxesIsValidGo(t *testing.T) {
 			},
 		},
 	}
-	out, err := Generate(doc, nil, Options{PackageName: "main"})
+	out, err := Generate(doc, nil, nil, Options{PackageName: "main"})
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -273,7 +274,7 @@ func TestGenerateContainsRenderTree(t *testing.T) {
 	doc := &template.Document{
 		Children: []template.Node{textNode("Hello")},
 	}
-	out, err := Generate(doc, nil, Options{PackageName: "main"})
+	out, err := Generate(doc, nil, nil, Options{PackageName: "main"})
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -295,16 +296,16 @@ func TestGenerateRenderTreeDrawsBorders(t *testing.T) {
 			},
 		},
 	}
-	out, err := Generate(doc, nil, Options{PackageName: "main"})
+	out, err := Generate(doc, nil, nil, Options{PackageName: "main"})
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 	src := string(out)
-	if !strings.Contains(src, "DrawBorder(") {
-		t.Errorf("expected DrawBorder call in renderTree in output:\n%s", src)
+	if !strings.Contains(src, "DrawStyledBorder(") {
+		t.Errorf("expected DrawStyledBorder call in renderTree in output:\n%s", src)
 	}
-	if !strings.Contains(src, "WriteText(") {
-		t.Errorf("expected WriteText call in renderTree in output:\n%s", src)
+	if !strings.Contains(src, "WriteStyledText(") {
+		t.Errorf("expected WriteStyledText call in renderTree in output:\n%s", src)
 	}
 }
 
@@ -314,7 +315,7 @@ func TestGenerateWithNilScriptIsBackwardsCompatible(t *testing.T) {
 	doc := &template.Document{
 		Children: []template.Node{textNode("Hello")},
 	}
-	out, err := Generate(doc, nil, Options{PackageName: "main"})
+	out, err := Generate(doc, nil, nil, Options{PackageName: "main"})
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -345,7 +346,7 @@ func TestGenerateWithStateDeclaration(t *testing.T) {
 			{Name: "count", InitExpr: "0"},
 		},
 	}
-	out, err := Generate(doc, sc, Options{PackageName: "main"})
+	out, err := Generate(doc, sc, nil, Options{PackageName: "main"})
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -376,7 +377,7 @@ func TestGenerateWithExpressionUsesFmtSprintf(t *testing.T) {
 			{Name: "count", InitExpr: "0"},
 		},
 	}
-	out, err := Generate(doc, sc, Options{PackageName: "main"})
+	out, err := Generate(doc, sc, nil, Options{PackageName: "main"})
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -398,7 +399,7 @@ func TestGenerateWithStateContainsEventLoop(t *testing.T) {
 			{Name: "count", InitExpr: "0"},
 		},
 	}
-	out, err := Generate(doc, sc, Options{PackageName: "main"})
+	out, err := Generate(doc, sc, nil, Options{PackageName: "main"})
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -438,7 +439,7 @@ func TestGenerateWithOnkeyHandler(t *testing.T) {
 			},
 		},
 	}
-	out, err := Generate(doc, sc, Options{PackageName: "main"})
+	out, err := Generate(doc, sc, nil, Options{PackageName: "main"})
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -472,7 +473,7 @@ func TestGenerateWithFunctionSetsDirecty(t *testing.T) {
 			},
 		},
 	}
-	out, err := Generate(doc, sc, Options{PackageName: "main"})
+	out, err := Generate(doc, sc, nil, Options{PackageName: "main"})
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -511,7 +512,7 @@ func TestGenerateMultipleStateVarsAndFunctions(t *testing.T) {
 			},
 		},
 	}
-	out, err := Generate(doc, sc, Options{PackageName: "main"})
+	out, err := Generate(doc, sc, nil, Options{PackageName: "main"})
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -526,5 +527,182 @@ func TestGenerateMultipleStateVarsAndFunctions(t *testing.T) {
 	}
 	if !strings.Contains(src, "y := 0") {
 		t.Errorf("expected y := 0 in output:\n%s", src)
+	}
+}
+
+// --- Stylesheet tests ---
+
+func TestGenerateWithNilStylesheetBackwardCompat(t *testing.T) {
+	doc := &template.Document{
+		Children: []template.Node{textNode("Hello")},
+	}
+	out, err := Generate(doc, nil, nil, Options{PackageName: "main"})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	fset := token.NewFileSet()
+	_, parseErr := parser.ParseFile(fset, "generated.go", out, parser.AllErrors)
+	if parseErr != nil {
+		t.Fatalf("generated code is not valid Go:\n%s\n\nerror: %v", string(out), parseErr)
+	}
+	src := string(out)
+	// Should use WriteStyledText and DrawStyledBorder (always use styled versions)
+	if !strings.Contains(src, "WriteStyledText(") {
+		t.Errorf("expected WriteStyledText in output:\n%s", src)
+	}
+}
+
+func TestGenerateWithStylesheetAndClassOnText(t *testing.T) {
+	doc := &template.Document{
+		Children: []template.Node{
+			&template.TextElement{
+				Attributes: map[string]string{"class": "title"},
+				Parts:      []template.Part{&template.StringPart{Value: "Hello"}},
+			},
+		},
+	}
+	ss := &style.Stylesheet{
+		Rules: []style.Rule{
+			{Selector: ".title", Properties: map[string]string{"color": "red", "bold": "true"}},
+		},
+	}
+	out, err := Generate(doc, nil, ss, Options{PackageName: "main"})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	fset := token.NewFileSet()
+	_, parseErr := parser.ParseFile(fset, "generated.go", out, parser.AllErrors)
+	if parseErr != nil {
+		t.Fatalf("generated code is not valid Go:\n%s\n\nerror: %v", string(out), parseErr)
+	}
+	src := string(out)
+	if !strings.Contains(src, `render.Style{`) {
+		t.Errorf("expected render.Style literal in output:\n%s", src)
+	}
+	if !strings.Contains(src, `FG:`) {
+		t.Errorf("expected FG field in Style literal:\n%s", src)
+	}
+	if !strings.Contains(src, `Bold: true`) {
+		t.Errorf("expected Bold: true in Style literal:\n%s", src)
+	}
+}
+
+func TestGenerateStylesheetLayoutProperties(t *testing.T) {
+	doc := &template.Document{
+		Children: []template.Node{
+			&template.BoxElement{
+				Attributes: map[string]string{"class": "container"},
+				Children:   []template.Node{textNode("Hello")},
+			},
+		},
+	}
+	ss := &style.Stylesheet{
+		Rules: []style.Rule{
+			{Selector: ".container", Properties: map[string]string{
+				"border":  "single",
+				"padding": "1 2",
+			}},
+		},
+	}
+	out, err := Generate(doc, nil, ss, Options{PackageName: "main"})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	fset := token.NewFileSet()
+	_, parseErr := parser.ParseFile(fset, "generated.go", out, parser.AllErrors)
+	if parseErr != nil {
+		t.Fatalf("generated code is not valid Go:\n%s\n\nerror: %v", string(out), parseErr)
+	}
+	src := string(out)
+	if !strings.Contains(src, `"single"`) || !strings.Contains(src, "Border:") {
+		t.Errorf("expected Border with single from stylesheet in output:\n%s", src)
+	}
+	if !strings.Contains(src, `layout.ParsePadding("1 2")`) {
+		t.Errorf("expected ParsePadding from stylesheet in output:\n%s", src)
+	}
+}
+
+func TestGenerateInlineAttributeOverridesStylesheet(t *testing.T) {
+	doc := &template.Document{
+		Children: []template.Node{
+			&template.BoxElement{
+				Attributes: map[string]string{"class": "container", "border": "double"},
+				Children:   []template.Node{textNode("Hello")},
+			},
+		},
+	}
+	ss := &style.Stylesheet{
+		Rules: []style.Rule{
+			{Selector: ".container", Properties: map[string]string{
+				"border":  "single",
+				"padding": "1",
+			}},
+		},
+	}
+	out, err := Generate(doc, nil, ss, Options{PackageName: "main"})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	src := string(out)
+	// Inline "double" should override stylesheet "single"
+	if !strings.Contains(src, `"double"`) || !strings.Contains(src, "Border:") {
+		t.Errorf("expected Border with double (inline override) in output:\n%s", src)
+	}
+	// Should NOT contain "single" since inline overrides it
+	if strings.Contains(src, `"single"`) {
+		t.Errorf("expected inline border to override stylesheet, but found single in output:\n%s", src)
+	}
+	// Stylesheet padding should still apply
+	if !strings.Contains(src, `layout.ParsePadding("1")`) {
+		t.Errorf("expected ParsePadding from stylesheet in output:\n%s", src)
+	}
+}
+
+func TestGenerateElementSelectorStylesheet(t *testing.T) {
+	doc := &template.Document{
+		Children: []template.Node{
+			&template.TextElement{
+				Attributes: map[string]string{},
+				Parts:      []template.Part{&template.StringPart{Value: "Hello"}},
+			},
+		},
+	}
+	ss := &style.Stylesheet{
+		Rules: []style.Rule{
+			{Selector: "text", Properties: map[string]string{"color": "green"}},
+		},
+	}
+	out, err := Generate(doc, nil, ss, Options{PackageName: "main"})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	fset := token.NewFileSet()
+	_, parseErr := parser.ParseFile(fset, "generated.go", out, parser.AllErrors)
+	if parseErr != nil {
+		t.Fatalf("generated code is not valid Go:\n%s\n\nerror: %v", string(out), parseErr)
+	}
+	src := string(out)
+	if !strings.Contains(src, `render.Style{`) {
+		t.Errorf("expected render.Style literal for element selector:\n%s", src)
+	}
+	if !strings.Contains(src, `"green"`) {
+		t.Errorf("expected green color in Style literal:\n%s", src)
+	}
+}
+
+func TestGenerateRenderTreeUsesStyledMethods(t *testing.T) {
+	doc := &template.Document{
+		Children: []template.Node{textNode("Hello")},
+	}
+	out, err := Generate(doc, nil, nil, Options{PackageName: "main"})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	src := string(out)
+	if !strings.Contains(src, "WriteStyledText(") {
+		t.Errorf("expected WriteStyledText in renderTree:\n%s", src)
+	}
+	if !strings.Contains(src, "DrawStyledBorder(") {
+		t.Errorf("expected DrawStyledBorder in renderTree:\n%s", src)
 	}
 }

@@ -2,7 +2,8 @@ package render
 
 // Cell represents a single terminal cell.
 type Cell struct {
-	Ch rune
+	Ch    rune
+	Style Style
 }
 
 // Buffer is a 2D grid of terminal cells.
@@ -50,6 +51,25 @@ func (b *Buffer) WriteText(row, col int, text string) {
 			break
 		}
 		b.SetCell(row, col, ch)
+		col++
+	}
+}
+
+// SetStyledCell sets the character and style at (row, col). Out-of-bounds is a no-op.
+func (b *Buffer) SetStyledCell(row, col int, ch rune, style Style) {
+	if row < 0 || row >= b.height || col < 0 || col >= b.width {
+		return
+	}
+	b.cells[row][col] = Cell{Ch: ch, Style: style}
+}
+
+// WriteStyledText writes a styled string starting at (row, col), truncating at the buffer edge.
+func (b *Buffer) WriteStyledText(row, col int, text string, style Style) {
+	for _, ch := range text {
+		if col >= b.width {
+			break
+		}
+		b.SetStyledCell(row, col, ch, style)
 		col++
 	}
 }

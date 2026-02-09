@@ -33,7 +33,8 @@ func (e *ExprPart) partType() string { return "expr" }
 
 // TextElement represents a <text>content</text> element.
 type TextElement struct {
-	Parts []Part
+	Attributes map[string]string
+	Parts      []Part
 }
 
 func (t *TextElement) nodeType() string { return "text" }
