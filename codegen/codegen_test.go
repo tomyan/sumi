@@ -6,16 +6,22 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/tomyan/sumi/parser/script"
 	"github.com/tomyan/sumi/parser/template"
 )
 
+// textNode is a test helper that creates a TextElement with a single StringPart.
+func textNode(s string) *template.TextElement {
+	return &template.TextElement{Parts: []template.Part{&template.StringPart{Value: s}}}
+}
+
+// --- Existing tests updated for Parts and new Generate signature ---
+
 func TestGenerateSingleTextElementIsValidGo(t *testing.T) {
 	doc := &template.Document{
-		Children: []template.Node{
-			&template.TextElement{Content: "Hello"},
-		},
+		Children: []template.Node{textNode("Hello")},
 	}
-	out, err := Generate(doc, Options{PackageName: "main"})
+	out, err := Generate(doc, nil, Options{PackageName: "main"})
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -28,11 +34,9 @@ func TestGenerateSingleTextElementIsValidGo(t *testing.T) {
 
 func TestGenerateTextElementUsesLayout(t *testing.T) {
 	doc := &template.Document{
-		Children: []template.Node{
-			&template.TextElement{Content: "Hello"},
-		},
+		Children: []template.Node{textNode("Hello")},
 	}
-	out, err := Generate(doc, Options{PackageName: "main"})
+	out, err := Generate(doc, nil, Options{PackageName: "main"})
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -50,12 +54,9 @@ func TestGenerateTextElementUsesLayout(t *testing.T) {
 
 func TestGenerateMultipleTextElements(t *testing.T) {
 	doc := &template.Document{
-		Children: []template.Node{
-			&template.TextElement{Content: "Hello"},
-			&template.TextElement{Content: "World"},
-		},
+		Children: []template.Node{textNode("Hello"), textNode("World")},
 	}
-	out, err := Generate(doc, Options{PackageName: "main"})
+	out, err := Generate(doc, nil, Options{PackageName: "main"})
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -70,11 +71,9 @@ func TestGenerateMultipleTextElements(t *testing.T) {
 
 func TestGenerateContainsCorrectImports(t *testing.T) {
 	doc := &template.Document{
-		Children: []template.Node{
-			&template.TextElement{Content: "Hello"},
-		},
+		Children: []template.Node{textNode("Hello")},
 	}
-	out, err := Generate(doc, Options{PackageName: "main"})
+	out, err := Generate(doc, nil, Options{PackageName: "main"})
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -95,11 +94,9 @@ func TestGenerateContainsCorrectImports(t *testing.T) {
 
 func TestGenerateReferencesRuntimeRender(t *testing.T) {
 	doc := &template.Document{
-		Children: []template.Node{
-			&template.TextElement{Content: "Hello"},
-		},
+		Children: []template.Node{textNode("Hello")},
 	}
-	out, err := Generate(doc, Options{PackageName: "main"})
+	out, err := Generate(doc, nil, Options{PackageName: "main"})
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -117,11 +114,9 @@ func TestGenerateReferencesRuntimeRender(t *testing.T) {
 
 func TestGenerateRespectsPackageName(t *testing.T) {
 	doc := &template.Document{
-		Children: []template.Node{
-			&template.TextElement{Content: "Hello"},
-		},
+		Children: []template.Node{textNode("Hello")},
 	}
-	out, err := Generate(doc, Options{PackageName: "myapp"})
+	out, err := Generate(doc, nil, Options{PackageName: "myapp"})
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -136,13 +131,11 @@ func TestGenerateBoxContainingTextIsValidGo(t *testing.T) {
 		Children: []template.Node{
 			&template.BoxElement{
 				Attributes: map[string]string{},
-				Children: []template.Node{
-					&template.TextElement{Content: "Hello"},
-				},
+				Children:   []template.Node{textNode("Hello")},
 			},
 		},
 	}
-	out, err := Generate(doc, Options{PackageName: "main"})
+	out, err := Generate(doc, nil, Options{PackageName: "main"})
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -158,13 +151,11 @@ func TestGenerateBoxUsesLayoutKindBox(t *testing.T) {
 		Children: []template.Node{
 			&template.BoxElement{
 				Attributes: map[string]string{},
-				Children: []template.Node{
-					&template.TextElement{Content: "Hello"},
-				},
+				Children:   []template.Node{textNode("Hello")},
 			},
 		},
 	}
-	out, err := Generate(doc, Options{PackageName: "main"})
+	out, err := Generate(doc, nil, Options{PackageName: "main"})
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -178,16 +169,12 @@ func TestGenerateBoxWithAttributesDirection(t *testing.T) {
 	doc := &template.Document{
 		Children: []template.Node{
 			&template.BoxElement{
-				Attributes: map[string]string{
-					"direction": "column",
-				},
-				Children: []template.Node{
-					&template.TextElement{Content: "Hello"},
-				},
+				Attributes: map[string]string{"direction": "column"},
+				Children:   []template.Node{textNode("Hello")},
 			},
 		},
 	}
-	out, err := Generate(doc, Options{PackageName: "main"})
+	out, err := Generate(doc, nil, Options{PackageName: "main"})
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -201,16 +188,12 @@ func TestGenerateBoxWithBorder(t *testing.T) {
 	doc := &template.Document{
 		Children: []template.Node{
 			&template.BoxElement{
-				Attributes: map[string]string{
-					"border": "single",
-				},
-				Children: []template.Node{
-					&template.TextElement{Content: "Hello"},
-				},
+				Attributes: map[string]string{"border": "single"},
+				Children:   []template.Node{textNode("Hello")},
 			},
 		},
 	}
-	out, err := Generate(doc, Options{PackageName: "main"})
+	out, err := Generate(doc, nil, Options{PackageName: "main"})
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -224,16 +207,12 @@ func TestGenerateBoxWithPadding(t *testing.T) {
 	doc := &template.Document{
 		Children: []template.Node{
 			&template.BoxElement{
-				Attributes: map[string]string{
-					"padding": "1 2",
-				},
-				Children: []template.Node{
-					&template.TextElement{Content: "Hello"},
-				},
+				Attributes: map[string]string{"padding": "1 2"},
+				Children:   []template.Node{textNode("Hello")},
 			},
 		},
 	}
-	out, err := Generate(doc, Options{PackageName: "main"})
+	out, err := Generate(doc, nil, Options{PackageName: "main"})
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -247,17 +226,12 @@ func TestGenerateBoxWithWidthAndHeight(t *testing.T) {
 	doc := &template.Document{
 		Children: []template.Node{
 			&template.BoxElement{
-				Attributes: map[string]string{
-					"width":  "40",
-					"height": "10",
-				},
-				Children: []template.Node{
-					&template.TextElement{Content: "Hello"},
-				},
+				Attributes: map[string]string{"width": "40", "height": "10"},
+				Children:   []template.Node{textNode("Hello")},
 			},
 		},
 	}
-	out, err := Generate(doc, Options{PackageName: "main"})
+	out, err := Generate(doc, nil, Options{PackageName: "main"})
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -278,15 +252,13 @@ func TestGenerateNestedBoxesIsValidGo(t *testing.T) {
 				Children: []template.Node{
 					&template.BoxElement{
 						Attributes: map[string]string{"padding": "1"},
-						Children: []template.Node{
-							&template.TextElement{Content: "Nested"},
-						},
+						Children:   []template.Node{textNode("Nested")},
 					},
 				},
 			},
 		},
 	}
-	out, err := Generate(doc, Options{PackageName: "main"})
+	out, err := Generate(doc, nil, Options{PackageName: "main"})
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -299,11 +271,9 @@ func TestGenerateNestedBoxesIsValidGo(t *testing.T) {
 
 func TestGenerateContainsRenderTree(t *testing.T) {
 	doc := &template.Document{
-		Children: []template.Node{
-			&template.TextElement{Content: "Hello"},
-		},
+		Children: []template.Node{textNode("Hello")},
 	}
-	out, err := Generate(doc, Options{PackageName: "main"})
+	out, err := Generate(doc, nil, Options{PackageName: "main"})
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -311,7 +281,6 @@ func TestGenerateContainsRenderTree(t *testing.T) {
 	if !strings.Contains(src, "renderTree(") {
 		t.Errorf("expected renderTree call in output:\n%s", src)
 	}
-	// Should contain the renderTree function definition
 	if !strings.Contains(src, "func renderTree(") {
 		t.Errorf("expected renderTree function definition in output:\n%s", src)
 	}
@@ -322,13 +291,11 @@ func TestGenerateRenderTreeDrawsBorders(t *testing.T) {
 		Children: []template.Node{
 			&template.BoxElement{
 				Attributes: map[string]string{"border": "single"},
-				Children: []template.Node{
-					&template.TextElement{Content: "Hello"},
-				},
+				Children:   []template.Node{textNode("Hello")},
 			},
 		},
 	}
-	out, err := Generate(doc, Options{PackageName: "main"})
+	out, err := Generate(doc, nil, Options{PackageName: "main"})
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -338,5 +305,226 @@ func TestGenerateRenderTreeDrawsBorders(t *testing.T) {
 	}
 	if !strings.Contains(src, "WriteText(") {
 		t.Errorf("expected WriteText call in renderTree in output:\n%s", src)
+	}
+}
+
+// --- New tests for reactive codegen ---
+
+func TestGenerateWithNilScriptIsBackwardsCompatible(t *testing.T) {
+	doc := &template.Document{
+		Children: []template.Node{textNode("Hello")},
+	}
+	out, err := Generate(doc, nil, Options{PackageName: "main"})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	src := string(out)
+	// Static mode: uses bufio.Scanner to wait for Enter
+	if !strings.Contains(src, "bufio.NewScanner") {
+		t.Errorf("expected bufio.NewScanner in static mode output:\n%s", src)
+	}
+	// Should NOT contain event loop or input package
+	if strings.Contains(src, "input.ReadKey") {
+		t.Errorf("unexpected input.ReadKey in static mode output:\n%s", src)
+	}
+}
+
+func TestGenerateWithStateDeclaration(t *testing.T) {
+	doc := &template.Document{
+		Children: []template.Node{
+			&template.TextElement{
+				Parts: []template.Part{
+					&template.StringPart{Value: "Count: "},
+					&template.ExprPart{Expr: "count"},
+				},
+			},
+		},
+	}
+	sc := &script.Script{
+		StateDecls: []script.StateDecl{
+			{Name: "count", InitExpr: "0"},
+		},
+	}
+	out, err := Generate(doc, sc, Options{PackageName: "main"})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	fset := token.NewFileSet()
+	_, parseErr := parser.ParseFile(fset, "generated.go", out, parser.AllErrors)
+	if parseErr != nil {
+		t.Fatalf("generated code is not valid Go:\n%s\n\nerror: %v", string(out), parseErr)
+	}
+	src := string(out)
+	if !strings.Contains(src, "count := 0") {
+		t.Errorf("expected state variable declaration in output:\n%s", src)
+	}
+}
+
+func TestGenerateWithExpressionUsesFmtSprintf(t *testing.T) {
+	doc := &template.Document{
+		Children: []template.Node{
+			&template.TextElement{
+				Parts: []template.Part{
+					&template.StringPart{Value: "Count: "},
+					&template.ExprPart{Expr: "count"},
+				},
+			},
+		},
+	}
+	sc := &script.Script{
+		StateDecls: []script.StateDecl{
+			{Name: "count", InitExpr: "0"},
+		},
+	}
+	out, err := Generate(doc, sc, Options{PackageName: "main"})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	src := string(out)
+	if !strings.Contains(src, "fmt.Sprintf") {
+		t.Errorf("expected fmt.Sprintf for expression in output:\n%s", src)
+	}
+	if !strings.Contains(src, `"fmt"`) {
+		t.Errorf("expected fmt import in output:\n%s", src)
+	}
+}
+
+func TestGenerateWithStateContainsEventLoop(t *testing.T) {
+	doc := &template.Document{
+		Children: []template.Node{textNode("Hello")},
+	}
+	sc := &script.Script{
+		StateDecls: []script.StateDecl{
+			{Name: "count", InitExpr: "0"},
+		},
+	}
+	out, err := Generate(doc, sc, Options{PackageName: "main"})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	src := string(out)
+	if !strings.Contains(src, "input.ReadKey") {
+		t.Errorf("expected input.ReadKey in reactive mode output:\n%s", src)
+	}
+	if !strings.Contains(src, "input.EnableRawMode") {
+		t.Errorf("expected input.EnableRawMode in reactive mode output:\n%s", src)
+	}
+	if !strings.Contains(src, `"github.com/tomyan/sumi/runtime/input"`) {
+		t.Errorf("expected runtime/input import in output:\n%s", src)
+	}
+}
+
+func TestGenerateWithOnkeyHandler(t *testing.T) {
+	doc := &template.Document{
+		Children: []template.Node{
+			&template.BoxElement{
+				Attributes: map[string]string{"onkey": "increment"},
+				Children:   []template.Node{textNode("Hello")},
+			},
+		},
+	}
+	sc := &script.Script{
+		StateDecls: []script.StateDecl{
+			{Name: "count", InitExpr: "0"},
+		},
+		FuncDecls: []script.FuncDecl{
+			{
+				Name:   "increment",
+				Params: "",
+				Body:   "\n\tcount = count + 1\n",
+				StateAssignments: []script.StateAssignment{
+					{VarName: "count", Line: "count = count + 1"},
+				},
+			},
+		},
+	}
+	out, err := Generate(doc, sc, Options{PackageName: "main"})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	fset := token.NewFileSet()
+	_, parseErr := parser.ParseFile(fset, "generated.go", out, parser.AllErrors)
+	if parseErr != nil {
+		t.Fatalf("generated code is not valid Go:\n%s\n\nerror: %v", string(out), parseErr)
+	}
+	src := string(out)
+	if !strings.Contains(src, "increment()") {
+		t.Errorf("expected increment() call in event loop:\n%s", src)
+	}
+}
+
+func TestGenerateWithFunctionSetsDirecty(t *testing.T) {
+	doc := &template.Document{
+		Children: []template.Node{textNode("Hello")},
+	}
+	sc := &script.Script{
+		StateDecls: []script.StateDecl{
+			{Name: "count", InitExpr: "0"},
+		},
+		FuncDecls: []script.FuncDecl{
+			{
+				Name:   "increment",
+				Params: "",
+				Body:   "\n\tcount = count + 1\n",
+				StateAssignments: []script.StateAssignment{
+					{VarName: "count", Line: "count = count + 1"},
+				},
+			},
+		},
+	}
+	out, err := Generate(doc, sc, Options{PackageName: "main"})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	src := string(out)
+	if !strings.Contains(src, "dirty = true") {
+		t.Errorf("expected dirty = true in function body:\n%s", src)
+	}
+}
+
+func TestGenerateMultipleStateVarsAndFunctions(t *testing.T) {
+	doc := &template.Document{
+		Children: []template.Node{
+			&template.TextElement{
+				Parts: []template.Part{
+					&template.StringPart{Value: "X: "},
+					&template.ExprPart{Expr: "x"},
+					&template.StringPart{Value: " Y: "},
+					&template.ExprPart{Expr: "y"},
+				},
+			},
+		},
+	}
+	sc := &script.Script{
+		StateDecls: []script.StateDecl{
+			{Name: "x", InitExpr: "0"},
+			{Name: "y", InitExpr: "0"},
+		},
+		FuncDecls: []script.FuncDecl{
+			{
+				Name: "incX", Params: "", Body: "\n\tx = x + 1\n",
+				StateAssignments: []script.StateAssignment{{VarName: "x", Line: "x = x + 1"}},
+			},
+			{
+				Name: "incY", Params: "", Body: "\n\ty = y + 1\n",
+				StateAssignments: []script.StateAssignment{{VarName: "y", Line: "y = y + 1"}},
+			},
+		},
+	}
+	out, err := Generate(doc, sc, Options{PackageName: "main"})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	fset := token.NewFileSet()
+	_, parseErr := parser.ParseFile(fset, "generated.go", out, parser.AllErrors)
+	if parseErr != nil {
+		t.Fatalf("generated code is not valid Go:\n%s\n\nerror: %v", string(out), parseErr)
+	}
+	src := string(out)
+	if !strings.Contains(src, "x := 0") {
+		t.Errorf("expected x := 0 in output:\n%s", src)
+	}
+	if !strings.Contains(src, "y := 0") {
+		t.Errorf("expected y := 0 in output:\n%s", src)
 	}
 }
