@@ -7,6 +7,7 @@ import (
 )
 
 func TestParsePadding(t *testing.T) {
+	// Given
 	tests := []struct {
 		name  string
 		input string
@@ -41,7 +42,10 @@ func TestParsePadding(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			// When
 			got := ParsePadding(tt.input)
+
+			// Then
 			if got != tt.want {
 				t.Errorf("ParsePadding(%q) = %+v, want %+v", tt.input, got, tt.want)
 			}
@@ -50,13 +54,16 @@ func TestParsePadding(t *testing.T) {
 }
 
 func TestLayoutSingleTextNode(t *testing.T) {
+	// Given
 	input := &Input{
 		Kind:    KindText,
 		Content: "hello",
 	}
 
+	// When
 	box := Layout(input, 80, 24)
 
+	// Then
 	if box.Width != 5 {
 		t.Errorf("Width = %d, want 5", box.Width)
 	}
@@ -75,6 +82,7 @@ func TestLayoutSingleTextNode(t *testing.T) {
 }
 
 func TestLayoutColumnTwoTextNodes(t *testing.T) {
+	// Given
 	input := &Input{
 		Kind:      KindBox,
 		Direction: "column",
@@ -84,8 +92,10 @@ func TestLayoutColumnTwoTextNodes(t *testing.T) {
 		},
 	}
 
+	// When
 	box := Layout(input, 80, 24)
 
+	// Then
 	if len(box.Children) != 2 {
 		t.Fatalf("len(Children) = %d, want 2", len(box.Children))
 	}
@@ -119,14 +129,17 @@ func TestLayoutColumnTwoTextNodes(t *testing.T) {
 }
 
 func TestLayoutBoxFixedSize(t *testing.T) {
+	// Given
 	input := &Input{
 		Kind:        KindBox,
 		FixedWidth:  20,
 		FixedHeight: 10,
 	}
 
+	// When
 	box := Layout(input, 80, 24)
 
+	// Then
 	if box.Width != 20 {
 		t.Errorf("Width = %d, want 20", box.Width)
 	}
@@ -136,6 +149,7 @@ func TestLayoutBoxFixedSize(t *testing.T) {
 }
 
 func TestLayoutBoxWithPadding(t *testing.T) {
+	// Given
 	input := &Input{
 		Kind:      KindBox,
 		Direction: "column",
@@ -145,8 +159,10 @@ func TestLayoutBoxWithPadding(t *testing.T) {
 		},
 	}
 
+	// When
 	box := Layout(input, 80, 24)
 
+	// Then
 	if len(box.Children) != 1 {
 		t.Fatalf("len(Children) = %d, want 1", len(box.Children))
 	}
@@ -171,6 +187,7 @@ func TestLayoutBoxWithPadding(t *testing.T) {
 }
 
 func TestLayoutBoxWithBorder(t *testing.T) {
+	// Given
 	input := &Input{
 		Kind:      KindBox,
 		Direction: "column",
@@ -180,8 +197,10 @@ func TestLayoutBoxWithBorder(t *testing.T) {
 		},
 	}
 
+	// When
 	box := Layout(input, 80, 24)
 
+	// Then
 	if len(box.Children) != 1 {
 		t.Fatalf("len(Children) = %d, want 1", len(box.Children))
 	}
@@ -208,6 +227,7 @@ func TestLayoutBoxWithBorder(t *testing.T) {
 }
 
 func TestLayoutBoxWithBorderAndPadding(t *testing.T) {
+	// Given
 	input := &Input{
 		Kind:      KindBox,
 		Direction: "column",
@@ -218,8 +238,10 @@ func TestLayoutBoxWithBorderAndPadding(t *testing.T) {
 		},
 	}
 
+	// When
 	box := Layout(input, 80, 24)
 
+	// Then
 	if len(box.Children) != 1 {
 		t.Fatalf("len(Children) = %d, want 1", len(box.Children))
 	}
@@ -245,6 +267,7 @@ func TestLayoutBoxWithBorderAndPadding(t *testing.T) {
 }
 
 func TestLayoutAutoSizedBoxMultipleChildren(t *testing.T) {
+	// Given
 	input := &Input{
 		Kind:      KindBox,
 		Direction: "column",
@@ -256,8 +279,10 @@ func TestLayoutAutoSizedBoxMultipleChildren(t *testing.T) {
 		},
 	}
 
+	// When
 	box := Layout(input, 80, 24)
 
+	// Then
 	// Max child width = 13 ("a longer line")
 	// + padding left(1) + padding right(1) + border(2) = 17
 	wantWidth := 13 + 1 + 1 + 2
@@ -274,6 +299,7 @@ func TestLayoutAutoSizedBoxMultipleChildren(t *testing.T) {
 }
 
 func TestLayoutNestedBoxes(t *testing.T) {
+	// Given
 	input := &Input{
 		Kind:      KindBox,
 		Direction: "column",
@@ -290,8 +316,10 @@ func TestLayoutNestedBoxes(t *testing.T) {
 		},
 	}
 
+	// When
 	box := Layout(input, 80, 24)
 
+	// Then
 	if len(box.Children) != 1 {
 		t.Fatalf("len(Children) = %d, want 1", len(box.Children))
 	}
@@ -335,6 +363,7 @@ func TestLayoutNestedBoxes(t *testing.T) {
 }
 
 func TestLayoutTextNodeFixedSize(t *testing.T) {
+	// Given
 	input := &Input{
 		Kind:        KindText,
 		Content:     "hello",
@@ -342,8 +371,10 @@ func TestLayoutTextNodeFixedSize(t *testing.T) {
 		FixedHeight: 3,
 	}
 
+	// When
 	box := Layout(input, 80, 24)
 
+	// Then
 	if box.Width != 10 {
 		t.Errorf("Width = %d, want 10", box.Width)
 	}
@@ -353,6 +384,7 @@ func TestLayoutTextNodeFixedSize(t *testing.T) {
 }
 
 func TestLayoutBorderBoxFixedSize(t *testing.T) {
+	// Given
 	// Border-box model: border is included in fixed size, not added
 	input := &Input{
 		Kind:        KindBox,
@@ -366,8 +398,10 @@ func TestLayoutBorderBoxFixedSize(t *testing.T) {
 		},
 	}
 
+	// When
 	box := Layout(input, 80, 24)
 
+	// Then
 	// Fixed size should be the total size (border-box)
 	if box.Width != 20 {
 		t.Errorf("Width = %d, want 20", box.Width)
@@ -387,13 +421,16 @@ func TestLayoutBorderBoxFixedSize(t *testing.T) {
 }
 
 func TestLayoutEmptyBox(t *testing.T) {
+	// Given
 	input := &Input{
 		Kind:      KindBox,
 		Direction: "column",
 	}
 
+	// When
 	box := Layout(input, 80, 24)
 
+	// Then
 	if box.Width != 0 {
 		t.Errorf("Width = %d, want 0", box.Width)
 	}
@@ -403,6 +440,7 @@ func TestLayoutEmptyBox(t *testing.T) {
 }
 
 func TestLayoutDefaultDirectionIsColumn(t *testing.T) {
+	// Given
 	input := &Input{
 		Kind: KindBox,
 		Children: []*Input{
@@ -411,8 +449,10 @@ func TestLayoutDefaultDirectionIsColumn(t *testing.T) {
 		},
 	}
 
+	// When
 	box := Layout(input, 80, 24)
 
+	// Then
 	// Default direction should be column, so children stack vertically
 	second := box.Children[1]
 	if second.Y != 1 {
@@ -421,6 +461,7 @@ func TestLayoutDefaultDirectionIsColumn(t *testing.T) {
 }
 
 func TestLayoutColumnThreeChildren(t *testing.T) {
+	// Given
 	input := &Input{
 		Kind:      KindBox,
 		Direction: "column",
@@ -431,8 +472,10 @@ func TestLayoutColumnThreeChildren(t *testing.T) {
 		},
 	}
 
+	// When
 	box := Layout(input, 80, 24)
 
+	// Then
 	if box.Width != 3 {
 		t.Errorf("Width = %d, want 3 (max child width)", box.Width)
 	}
@@ -449,19 +492,25 @@ func TestLayoutColumnThreeChildren(t *testing.T) {
 }
 
 func TestLayoutStylePassthrough(t *testing.T) {
+	// Given
 	s := render.Style{FG: render.Color{Name: "red"}, Bold: true}
 	input := &Input{
 		Kind:    KindText,
 		Content: "styled",
 		Style:   s,
 	}
+
+	// When
 	box := Layout(input, 80, 24)
+
+	// Then
 	if box.Style != s {
 		t.Errorf("Style = %+v, want %+v", box.Style, s)
 	}
 }
 
 func TestLayoutStylePassthroughBox(t *testing.T) {
+	// Given
 	boxStyle := render.Style{BG: render.Color{Name: "blue"}}
 	childStyle := render.Style{FG: render.Color{Name: "green"}}
 	input := &Input{
@@ -471,7 +520,11 @@ func TestLayoutStylePassthroughBox(t *testing.T) {
 			{Kind: KindText, Content: "hi", Style: childStyle},
 		},
 	}
+
+	// When
 	box := Layout(input, 80, 24)
+
+	// Then
 	if box.Style != boxStyle {
 		t.Errorf("box Style = %+v, want %+v", box.Style, boxStyle)
 	}

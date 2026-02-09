@@ -5,8 +5,13 @@ import (
 )
 
 func TestParseTemplateOnly(t *testing.T) {
+	// Given
 	input := `<text>Hello</text>`
+
+	// When
 	got, err := Parse(input)
+
+	// Then
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -22,6 +27,7 @@ func TestParseTemplateOnly(t *testing.T) {
 }
 
 func TestParseAllThreeSections(t *testing.T) {
+	// Given
 	input := `<script>
 count := $state(0)
 </script>
@@ -32,7 +38,10 @@ count := $state(0)
 
 <text>Hello</text>`
 
+	// When
 	got, err := Parse(input)
+
+	// Then
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -48,13 +57,17 @@ count := $state(0)
 }
 
 func TestParseScriptAndTemplate(t *testing.T) {
+	// Given
 	input := `<script>
 name := $state("world")
 </script>
 
 <text>Hello, {name}</text>`
 
+	// When
 	got, err := Parse(input)
+
+	// Then
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -70,7 +83,10 @@ name := $state("world")
 }
 
 func TestParseEmptyInput(t *testing.T) {
+	// When
 	got, err := Parse("")
+
+	// Then
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -86,6 +102,7 @@ func TestParseEmptyInput(t *testing.T) {
 }
 
 func TestParseWhitespaceBetweenSections(t *testing.T) {
+	// Given
 	input := `<script>
 x := 1
 </script>
@@ -94,7 +111,10 @@ x := 1
 <text>Hello</text>
   `
 
+	// When
 	got, err := Parse(input)
+
+	// Then
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}

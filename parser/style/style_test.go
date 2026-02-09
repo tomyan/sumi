@@ -5,7 +5,10 @@ import (
 )
 
 func TestEmptyStylesheet(t *testing.T) {
+	// When
 	s, err := Parse("")
+
+	// Then
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -15,7 +18,10 @@ func TestEmptyStylesheet(t *testing.T) {
 }
 
 func TestWhitespaceOnlyStylesheet(t *testing.T) {
+	// When
 	s, err := Parse("   \n\n\t  \n")
+
+	// Then
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -25,7 +31,10 @@ func TestWhitespaceOnlyStylesheet(t *testing.T) {
 }
 
 func TestSingleRuleClassSelector(t *testing.T) {
+	// When
 	s, err := Parse(`.title { color: green; }`)
+
+	// Then
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -45,7 +54,10 @@ func TestSingleRuleClassSelector(t *testing.T) {
 }
 
 func TestMultipleProperties(t *testing.T) {
+	// When
 	s, err := Parse(`.title { color: green; bold: true; }`)
+
+	// Then
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -68,9 +80,14 @@ func TestMultipleProperties(t *testing.T) {
 }
 
 func TestMultipleRules(t *testing.T) {
+	// Given
 	input := `.title { color: green; }
 .subtitle { color: cyan; dim: true; }`
+
+	// When
 	s, err := Parse(input)
+
+	// Then
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -95,7 +112,10 @@ func TestMultipleRules(t *testing.T) {
 }
 
 func TestElementSelector(t *testing.T) {
+	// When
 	s, err := Parse(`text { color: white; }`)
+
+	// Then
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -111,7 +131,10 @@ func TestElementSelector(t *testing.T) {
 }
 
 func TestBoxElementSelector(t *testing.T) {
+	// When
 	s, err := Parse(`box { border: single; direction: row; }`)
+
+	// Then
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -130,7 +153,10 @@ func TestBoxElementSelector(t *testing.T) {
 }
 
 func TestNoSemicolonOnLastProperty(t *testing.T) {
+	// When
 	s, err := Parse(`.x { color: red }`)
+
+	// Then
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -143,6 +169,7 @@ func TestNoSemicolonOnLastProperty(t *testing.T) {
 }
 
 func TestMultilineWhitespace(t *testing.T) {
+	// Given
 	input := `
 		.title {
 			color: green;
@@ -153,7 +180,11 @@ func TestMultilineWhitespace(t *testing.T) {
 			color: cyan;
 		}
 	`
+
+	// When
 	s, err := Parse(input)
+
+	// Then
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -178,7 +209,10 @@ func TestMultilineWhitespace(t *testing.T) {
 }
 
 func TestPropertyValueWithSpaces(t *testing.T) {
+	// When
 	s, err := Parse(`.container { padding: 1 2; }`)
+
+	// Then
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -191,6 +225,7 @@ func TestPropertyValueWithSpaces(t *testing.T) {
 }
 
 func TestAllSupportedProperties(t *testing.T) {
+	// Given
 	input := `.styled {
 		color: green;
 		background: black;
@@ -205,7 +240,11 @@ func TestAllSupportedProperties(t *testing.T) {
 		direction: row;
 		border-color: cyan;
 	}`
+
+	// When
 	s, err := Parse(input)
+
+	// Then
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -238,13 +277,18 @@ func TestAllSupportedProperties(t *testing.T) {
 }
 
 func TestComments(t *testing.T) {
+	// Given
 	input := `/* header comment */
 .title {
 	/* color is green */
 	color: green;
 }
 /* footer */`
+
+	// When
 	s, err := Parse(input)
+
+	// Then
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -257,20 +301,27 @@ func TestComments(t *testing.T) {
 }
 
 func TestUnterminatedBlock(t *testing.T) {
+	// When
 	_, err := Parse(`.title { color: green;`)
+
+	// Then
 	if err == nil {
 		t.Fatal("expected error for unterminated block, got nil")
 	}
 }
 
 func TestMissingSelectorBeforeBrace(t *testing.T) {
+	// When
 	_, err := Parse(`{ color: green; }`)
+
+	// Then
 	if err == nil {
 		t.Fatal("expected error for missing selector, got nil")
 	}
 }
 
 func TestPhase4DemoStylesheet(t *testing.T) {
+	// Given
 	input := `.container {
 	border: single;
 	padding: 1 2;
@@ -287,7 +338,11 @@ func TestPhase4DemoStylesheet(t *testing.T) {
 	color: yellow;
 	bold: true;
 }`
+
+	// When
 	s, err := Parse(input)
+
+	// Then
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -341,9 +396,14 @@ func TestPhase4DemoStylesheet(t *testing.T) {
 }
 
 func TestMixedElementAndClassSelectors(t *testing.T) {
+	// Given
 	input := `text { color: white; }
 .highlight { bold: true; }`
+
+	// When
 	s, err := Parse(input)
+
+	// Then
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -359,15 +419,20 @@ func TestMixedElementAndClassSelectors(t *testing.T) {
 }
 
 func TestUnterminatedComment(t *testing.T) {
+	// When
 	_, err := Parse(`/* unterminated comment .title { color: green; }`)
+
+	// Then
 	if err == nil {
 		t.Fatal("expected error for unterminated comment, got nil")
 	}
 }
 
 func TestNoSemicolonMultipleProperties(t *testing.T) {
-	// Last property without semicolon, but earlier ones have it
+	// When
 	s, err := Parse(`.x { color: red; bold: true }`)
+
+	// Then
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -383,7 +448,10 @@ func TestNoSemicolonMultipleProperties(t *testing.T) {
 }
 
 func TestExtraSpacesAroundColon(t *testing.T) {
+	// When
 	s, err := Parse(`.x { color :  green ; }`)
+
+	// Then
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -396,8 +464,13 @@ func TestExtraSpacesAroundColon(t *testing.T) {
 }
 
 func TestTabsInProperties(t *testing.T) {
+	// Given
 	input := ".x {\n\tcolor:\tgreen;\n\tbold:\ttrue;\n}"
+
+	// When
 	s, err := Parse(input)
+
+	// Then
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}

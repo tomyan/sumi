@@ -36,7 +36,10 @@ func assertParts(t *testing.T, te *TextElement, expected []Part) {
 }
 
 func TestParseSingleTextElement(t *testing.T) {
+	// When
 	doc, err := Parse(`<text>Hello</text>`)
+
+	// Then
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -51,7 +54,10 @@ func TestParseSingleTextElement(t *testing.T) {
 }
 
 func TestParseTwoTextElements(t *testing.T) {
+	// When
 	doc, err := Parse(`<text>Hello</text><text>World</text>`)
+
+	// Then
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -71,7 +77,10 @@ func TestParseTwoTextElements(t *testing.T) {
 }
 
 func TestParseEmptyTextElement(t *testing.T) {
+	// When
 	doc, err := Parse(`<text></text>`)
+
+	// Then
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -88,7 +97,10 @@ func TestParseEmptyTextElement(t *testing.T) {
 }
 
 func TestParseWhitespaceBetweenElementsIgnored(t *testing.T) {
+	// When
 	doc, err := Parse("  <text>A</text>  \n  <text>B</text>  ")
+
+	// Then
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -102,14 +114,20 @@ func TestParseWhitespaceBetweenElementsIgnored(t *testing.T) {
 }
 
 func TestParseMissingClosingTagReturnsError(t *testing.T) {
+	// When
 	_, err := Parse(`<text>Hello`)
+
+	// Then
 	if err == nil {
 		t.Fatal("expected error for missing closing tag, got nil")
 	}
 }
 
 func TestParseBoxWithSingleTextChild(t *testing.T) {
+	// When
 	doc, err := Parse(`<box><text>Hello</text></box>`)
+
+	// Then
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -134,7 +152,10 @@ func TestParseBoxWithSingleTextChild(t *testing.T) {
 }
 
 func TestParseBoxWithDirectionAndTwoChildren(t *testing.T) {
+	// When
 	doc, err := Parse(`<box direction="column"><text>A</text><text>B</text></box>`)
+
+	// Then
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -155,7 +176,10 @@ func TestParseBoxWithDirectionAndTwoChildren(t *testing.T) {
 }
 
 func TestParseBoxWithMultipleAttributes(t *testing.T) {
+	// When
 	doc, err := Parse(`<box width="40" height="10" border="single" padding="1 2"><text>X</text></box>`)
+
+	// Then
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -174,7 +198,10 @@ func TestParseBoxWithMultipleAttributes(t *testing.T) {
 }
 
 func TestParseNestedBoxes(t *testing.T) {
+	// When
 	doc, err := Parse(`<box><box><text>Deep</text></box></box>`)
+
+	// Then
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -194,7 +221,10 @@ func TestParseNestedBoxes(t *testing.T) {
 }
 
 func TestParseEmptyBox(t *testing.T) {
+	// When
 	doc, err := Parse(`<box></box>`)
+
+	// Then
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -208,17 +238,26 @@ func TestParseEmptyBox(t *testing.T) {
 }
 
 func TestParseBoxMissingClosingTag(t *testing.T) {
+	// When
 	_, err := Parse(`<box><text>Hello</text>`)
+
+	// Then
 	if err == nil {
 		t.Fatal("expected error for missing </box> closing tag, got nil")
 	}
 }
 
 func TestParseBoxWithWhitespaceBetweenChildren(t *testing.T) {
-	doc, err := Parse(`<box>
+	// Given
+	input := `<box>
   <text>A</text>
   <text>B</text>
-</box>`)
+</box>`
+
+	// When
+	doc, err := Parse(input)
+
+	// Then
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -229,7 +268,10 @@ func TestParseBoxWithWhitespaceBetweenChildren(t *testing.T) {
 }
 
 func TestParseWhitespaceInsideTextPreserved(t *testing.T) {
+	// When
 	doc, err := Parse(`<text>  Hello  </text>`)
+
+	// Then
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -243,7 +285,10 @@ func TestParseWhitespaceInsideTextPreserved(t *testing.T) {
 // --- Expression tests ---
 
 func TestParseTextWithExpressionOnly(t *testing.T) {
+	// When
 	doc, err := Parse(`<text>{count}</text>`)
+
+	// Then
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -252,7 +297,10 @@ func TestParseTextWithExpressionOnly(t *testing.T) {
 }
 
 func TestParseTextWithStringAndExpression(t *testing.T) {
+	// When
 	doc, err := Parse(`<text>Count: {count}</text>`)
+
+	// Then
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -264,7 +312,10 @@ func TestParseTextWithStringAndExpression(t *testing.T) {
 }
 
 func TestParseTextWithTwoExpressions(t *testing.T) {
+	// When
 	doc, err := Parse(`<text>{a} and {b}</text>`)
+
+	// Then
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -277,7 +328,10 @@ func TestParseTextWithTwoExpressions(t *testing.T) {
 }
 
 func TestParseTextWithExpressionContainingSpaces(t *testing.T) {
+	// When
 	doc, err := Parse(`<text>Count: {count + 1}!</text>`)
+
+	// Then
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -292,7 +346,10 @@ func TestParseTextWithExpressionContainingSpaces(t *testing.T) {
 // --- Text element attribute tests ---
 
 func TestParseTextWithClassAttribute(t *testing.T) {
+	// When
 	doc, err := Parse(`<text class="title">Hello</text>`)
+
+	// Then
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -313,7 +370,10 @@ func TestParseTextWithClassAttribute(t *testing.T) {
 }
 
 func TestParseTextWithoutAttributesBackwardCompat(t *testing.T) {
+	// When
 	doc, err := Parse(`<text>Hello</text>`)
+
+	// Then
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -326,7 +386,10 @@ func TestParseTextWithoutAttributesBackwardCompat(t *testing.T) {
 }
 
 func TestParseTextWithMultipleAttributes(t *testing.T) {
+	// When
 	doc, err := Parse(`<text class="title" id="heading">Content</text>`)
+
+	// Then
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -347,7 +410,10 @@ func TestParseTextWithMultipleAttributes(t *testing.T) {
 }
 
 func TestParseTextWithClassInsideBox(t *testing.T) {
+	// When
 	doc, err := Parse(`<box><text class="label">Name</text></box>`)
+
+	// Then
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}

@@ -3,6 +3,7 @@ package render
 import "testing"
 
 func TestDrawBorderCorners(t *testing.T) {
+	// Given
 	b := NewBuffer(10, 6)
 	b.DrawBorder(1, 2, 4, 3, "single")
 
@@ -17,7 +18,10 @@ func TestDrawBorderCorners(t *testing.T) {
 		{3, 5, '┘', "bottom-right"},
 	}
 	for _, tt := range tests {
+		// When
 		c := b.Cell(tt.row, tt.col)
+
+		// Then
 		if c.Ch != tt.want {
 			t.Errorf("%s: Cell(%d, %d).Ch = %c, want %c", tt.name, tt.row, tt.col, c.Ch, tt.want)
 		}
@@ -25,9 +29,11 @@ func TestDrawBorderCorners(t *testing.T) {
 }
 
 func TestDrawBorderHorizontalEdges(t *testing.T) {
+	// Given
 	b := NewBuffer(10, 5)
 	b.DrawBorder(0, 0, 6, 4, "single")
 
+	// Then
 	// Top edge: cols 1..4 should be '─'
 	for col := 1; col <= 4; col++ {
 		c := b.Cell(0, col)
@@ -45,9 +51,11 @@ func TestDrawBorderHorizontalEdges(t *testing.T) {
 }
 
 func TestDrawBorderVerticalEdges(t *testing.T) {
+	// Given
 	b := NewBuffer(10, 5)
 	b.DrawBorder(0, 0, 6, 4, "single")
 
+	// Then
 	// Left edge: rows 1..2 should be '│'
 	for row := 1; row <= 2; row++ {
 		c := b.Cell(row, 0)
@@ -65,10 +73,13 @@ func TestDrawBorderVerticalEdges(t *testing.T) {
 }
 
 func TestDrawBorderSmallDimensionsNoOp(t *testing.T) {
+	// Given
 	b := NewBuffer(10, 5)
 
-	// Width < 2
+	// When — Width < 2
 	b.DrawBorder(0, 0, 1, 5, "single")
+
+	// Then
 	for row := 0; row < 5; row++ {
 		for col := 0; col < 10; col++ {
 			if c := b.Cell(row, col); c.Ch != 0 {
@@ -77,8 +88,10 @@ func TestDrawBorderSmallDimensionsNoOp(t *testing.T) {
 		}
 	}
 
-	// Height < 2
+	// When — Height < 2
 	b.DrawBorder(0, 0, 5, 1, "single")
+
+	// Then
 	for row := 0; row < 5; row++ {
 		for col := 0; col < 10; col++ {
 			if c := b.Cell(row, col); c.Ch != 0 {
@@ -87,8 +100,10 @@ func TestDrawBorderSmallDimensionsNoOp(t *testing.T) {
 		}
 	}
 
-	// Width == 0
+	// When — Width == 0
 	b.DrawBorder(0, 0, 0, 5, "single")
+
+	// Then
 	for row := 0; row < 5; row++ {
 		for col := 0; col < 10; col++ {
 			if c := b.Cell(row, col); c.Ch != 0 {
@@ -97,8 +112,10 @@ func TestDrawBorderSmallDimensionsNoOp(t *testing.T) {
 		}
 	}
 
-	// Negative dimensions
+	// When — Negative dimensions
 	b.DrawBorder(0, 0, -3, -2, "single")
+
+	// Then
 	for row := 0; row < 5; row++ {
 		for col := 0; col < 10; col++ {
 			if c := b.Cell(row, col); c.Ch != 0 {
@@ -109,10 +126,13 @@ func TestDrawBorderSmallDimensionsNoOp(t *testing.T) {
 }
 
 func TestDrawBorderClipsOutOfBounds(t *testing.T) {
-	// Border starts at (-1, -1) with size 5x4 — should clip without panic
+	// Given — Border starts at (-1, -1) with size 5x4 — should clip without panic
 	b := NewBuffer(6, 5)
+
+	// When
 	b.DrawBorder(-1, -1, 5, 4, "single")
 
+	// Then
 	// Top-left corner at (-1, -1) is clipped
 	// Top-right corner at (-1, 3) is clipped
 	// Bottom-left corner at (2, -1) is clipped
@@ -140,10 +160,13 @@ func TestDrawBorderClipsOutOfBounds(t *testing.T) {
 }
 
 func TestDrawBorderClipsRightAndBottom(t *testing.T) {
-	// Border extends beyond right and bottom edges
+	// Given — Border extends beyond right and bottom edges
 	b := NewBuffer(4, 3)
+
+	// When
 	b.DrawBorder(1, 2, 5, 5, "single")
 
+	// Then
 	// Top-left corner at (1, 2) should be visible
 	c := b.Cell(1, 2)
 	if c.Ch != '┌' {
@@ -162,9 +185,13 @@ func TestDrawBorderClipsRightAndBottom(t *testing.T) {
 }
 
 func TestDrawBorderStyleNoneIsNoOp(t *testing.T) {
+	// Given
 	b := NewBuffer(10, 5)
+
+	// When
 	b.DrawBorder(0, 0, 5, 3, "none")
 
+	// Then
 	for row := 0; row < 5; row++ {
 		for col := 0; col < 10; col++ {
 			if c := b.Cell(row, col); c.Ch != 0 {
@@ -175,9 +202,13 @@ func TestDrawBorderStyleNoneIsNoOp(t *testing.T) {
 }
 
 func TestDrawBorderStyleEmptyIsNoOp(t *testing.T) {
+	// Given
 	b := NewBuffer(10, 5)
+
+	// When
 	b.DrawBorder(0, 0, 5, 3, "")
 
+	// Then
 	for row := 0; row < 5; row++ {
 		for col := 0; col < 10; col++ {
 			if c := b.Cell(row, col); c.Ch != 0 {
@@ -188,10 +219,13 @@ func TestDrawBorderStyleEmptyIsNoOp(t *testing.T) {
 }
 
 func TestDrawBorderMinimumSize(t *testing.T) {
-	// 2x2 is the minimum — just four corners
+	// Given — 2x2 is the minimum — just four corners
 	b := NewBuffer(5, 5)
+
+	// When
 	b.DrawBorder(1, 1, 2, 2, "single")
 
+	// Then
 	if c := b.Cell(1, 1); c.Ch != '┌' {
 		t.Errorf("Cell(1,1).Ch = %c, want ┌", c.Ch)
 	}
@@ -207,10 +241,13 @@ func TestDrawBorderMinimumSize(t *testing.T) {
 }
 
 func TestDrawBorderInteriorUntouched(t *testing.T) {
+	// Given
 	b := NewBuffer(10, 8)
+
+	// When
 	b.DrawBorder(0, 0, 5, 4, "single")
 
-	// Interior cells (rows 1..2, cols 1..3) should be untouched (zero)
+	// Then — Interior cells (rows 1..2, cols 1..3) should be untouched (zero)
 	for row := 1; row <= 2; row++ {
 		for col := 1; col <= 3; col++ {
 			if c := b.Cell(row, col); c.Ch != 0 {

@@ -19,10 +19,15 @@ func textNode(s string) *template.TextElement {
 // --- Existing tests updated for Parts and new Generate signature ---
 
 func TestGenerateSingleTextElementIsValidGo(t *testing.T) {
+	// Given
 	doc := &template.Document{
 		Children: []template.Node{textNode("Hello")},
 	}
+
+	// When
 	out, err := Generate(doc, nil, nil, Options{PackageName: "main"})
+
+	// Then
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -34,10 +39,15 @@ func TestGenerateSingleTextElementIsValidGo(t *testing.T) {
 }
 
 func TestGenerateTextElementUsesLayout(t *testing.T) {
+	// Given
 	doc := &template.Document{
 		Children: []template.Node{textNode("Hello")},
 	}
+
+	// When
 	out, err := Generate(doc, nil, nil, Options{PackageName: "main"})
+
+	// Then
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -54,10 +64,15 @@ func TestGenerateTextElementUsesLayout(t *testing.T) {
 }
 
 func TestGenerateMultipleTextElements(t *testing.T) {
+	// Given
 	doc := &template.Document{
 		Children: []template.Node{textNode("Hello"), textNode("World")},
 	}
+
+	// When
 	out, err := Generate(doc, nil, nil, Options{PackageName: "main"})
+
+	// Then
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -71,10 +86,15 @@ func TestGenerateMultipleTextElements(t *testing.T) {
 }
 
 func TestGenerateContainsCorrectImports(t *testing.T) {
+	// Given
 	doc := &template.Document{
 		Children: []template.Node{textNode("Hello")},
 	}
+
+	// When
 	out, err := Generate(doc, nil, nil, Options{PackageName: "main"})
+
+	// Then
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -94,10 +114,15 @@ func TestGenerateContainsCorrectImports(t *testing.T) {
 }
 
 func TestGenerateReferencesRuntimeRender(t *testing.T) {
+	// Given
 	doc := &template.Document{
 		Children: []template.Node{textNode("Hello")},
 	}
+
+	// When
 	out, err := Generate(doc, nil, nil, Options{PackageName: "main"})
+
+	// Then
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -114,10 +139,15 @@ func TestGenerateReferencesRuntimeRender(t *testing.T) {
 }
 
 func TestGenerateRespectsPackageName(t *testing.T) {
+	// Given
 	doc := &template.Document{
 		Children: []template.Node{textNode("Hello")},
 	}
+
+	// When
 	out, err := Generate(doc, nil, nil, Options{PackageName: "myapp"})
+
+	// Then
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -128,6 +158,7 @@ func TestGenerateRespectsPackageName(t *testing.T) {
 }
 
 func TestGenerateBoxContainingTextIsValidGo(t *testing.T) {
+	// Given
 	doc := &template.Document{
 		Children: []template.Node{
 			&template.BoxElement{
@@ -136,7 +167,11 @@ func TestGenerateBoxContainingTextIsValidGo(t *testing.T) {
 			},
 		},
 	}
+
+	// When
 	out, err := Generate(doc, nil, nil, Options{PackageName: "main"})
+
+	// Then
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -148,6 +183,7 @@ func TestGenerateBoxContainingTextIsValidGo(t *testing.T) {
 }
 
 func TestGenerateBoxUsesLayoutKindBox(t *testing.T) {
+	// Given
 	doc := &template.Document{
 		Children: []template.Node{
 			&template.BoxElement{
@@ -156,7 +192,11 @@ func TestGenerateBoxUsesLayoutKindBox(t *testing.T) {
 			},
 		},
 	}
+
+	// When
 	out, err := Generate(doc, nil, nil, Options{PackageName: "main"})
+
+	// Then
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -167,6 +207,7 @@ func TestGenerateBoxUsesLayoutKindBox(t *testing.T) {
 }
 
 func TestGenerateBoxWithAttributesDirection(t *testing.T) {
+	// Given
 	doc := &template.Document{
 		Children: []template.Node{
 			&template.BoxElement{
@@ -175,7 +216,11 @@ func TestGenerateBoxWithAttributesDirection(t *testing.T) {
 			},
 		},
 	}
+
+	// When
 	out, err := Generate(doc, nil, nil, Options{PackageName: "main"})
+
+	// Then
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -186,6 +231,7 @@ func TestGenerateBoxWithAttributesDirection(t *testing.T) {
 }
 
 func TestGenerateBoxWithBorder(t *testing.T) {
+	// Given
 	doc := &template.Document{
 		Children: []template.Node{
 			&template.BoxElement{
@@ -194,7 +240,11 @@ func TestGenerateBoxWithBorder(t *testing.T) {
 			},
 		},
 	}
+
+	// When
 	out, err := Generate(doc, nil, nil, Options{PackageName: "main"})
+
+	// Then
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -205,6 +255,7 @@ func TestGenerateBoxWithBorder(t *testing.T) {
 }
 
 func TestGenerateBoxWithPadding(t *testing.T) {
+	// Given
 	doc := &template.Document{
 		Children: []template.Node{
 			&template.BoxElement{
@@ -213,7 +264,11 @@ func TestGenerateBoxWithPadding(t *testing.T) {
 			},
 		},
 	}
+
+	// When
 	out, err := Generate(doc, nil, nil, Options{PackageName: "main"})
+
+	// Then
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -224,6 +279,7 @@ func TestGenerateBoxWithPadding(t *testing.T) {
 }
 
 func TestGenerateBoxWithWidthAndHeight(t *testing.T) {
+	// Given
 	doc := &template.Document{
 		Children: []template.Node{
 			&template.BoxElement{
@@ -232,7 +288,11 @@ func TestGenerateBoxWithWidthAndHeight(t *testing.T) {
 			},
 		},
 	}
+
+	// When
 	out, err := Generate(doc, nil, nil, Options{PackageName: "main"})
+
+	// Then
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -246,6 +306,7 @@ func TestGenerateBoxWithWidthAndHeight(t *testing.T) {
 }
 
 func TestGenerateNestedBoxesIsValidGo(t *testing.T) {
+	// Given
 	doc := &template.Document{
 		Children: []template.Node{
 			&template.BoxElement{
@@ -259,7 +320,11 @@ func TestGenerateNestedBoxesIsValidGo(t *testing.T) {
 			},
 		},
 	}
+
+	// When
 	out, err := Generate(doc, nil, nil, Options{PackageName: "main"})
+
+	// Then
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -271,10 +336,15 @@ func TestGenerateNestedBoxesIsValidGo(t *testing.T) {
 }
 
 func TestGenerateContainsRenderTree(t *testing.T) {
+	// Given
 	doc := &template.Document{
 		Children: []template.Node{textNode("Hello")},
 	}
+
+	// When
 	out, err := Generate(doc, nil, nil, Options{PackageName: "main"})
+
+	// Then
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -288,6 +358,7 @@ func TestGenerateContainsRenderTree(t *testing.T) {
 }
 
 func TestGenerateRenderTreeDrawsBorders(t *testing.T) {
+	// Given
 	doc := &template.Document{
 		Children: []template.Node{
 			&template.BoxElement{
@@ -296,7 +367,11 @@ func TestGenerateRenderTreeDrawsBorders(t *testing.T) {
 			},
 		},
 	}
+
+	// When
 	out, err := Generate(doc, nil, nil, Options{PackageName: "main"})
+
+	// Then
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -312,10 +387,15 @@ func TestGenerateRenderTreeDrawsBorders(t *testing.T) {
 // --- New tests for reactive codegen ---
 
 func TestGenerateWithNilScriptIsBackwardsCompatible(t *testing.T) {
+	// Given
 	doc := &template.Document{
 		Children: []template.Node{textNode("Hello")},
 	}
+
+	// When
 	out, err := Generate(doc, nil, nil, Options{PackageName: "main"})
+
+	// Then
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -331,6 +411,7 @@ func TestGenerateWithNilScriptIsBackwardsCompatible(t *testing.T) {
 }
 
 func TestGenerateWithStateDeclaration(t *testing.T) {
+	// Given
 	doc := &template.Document{
 		Children: []template.Node{
 			&template.TextElement{
@@ -346,7 +427,11 @@ func TestGenerateWithStateDeclaration(t *testing.T) {
 			{Name: "count", InitExpr: "0"},
 		},
 	}
+
+	// When
 	out, err := Generate(doc, sc, nil, Options{PackageName: "main"})
+
+	// Then
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -362,6 +447,7 @@ func TestGenerateWithStateDeclaration(t *testing.T) {
 }
 
 func TestGenerateWithExpressionUsesFmtSprintf(t *testing.T) {
+	// Given
 	doc := &template.Document{
 		Children: []template.Node{
 			&template.TextElement{
@@ -377,7 +463,11 @@ func TestGenerateWithExpressionUsesFmtSprintf(t *testing.T) {
 			{Name: "count", InitExpr: "0"},
 		},
 	}
+
+	// When
 	out, err := Generate(doc, sc, nil, Options{PackageName: "main"})
+
+	// Then
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -391,6 +481,7 @@ func TestGenerateWithExpressionUsesFmtSprintf(t *testing.T) {
 }
 
 func TestGenerateWithStateContainsEventLoop(t *testing.T) {
+	// Given
 	doc := &template.Document{
 		Children: []template.Node{textNode("Hello")},
 	}
@@ -399,7 +490,11 @@ func TestGenerateWithStateContainsEventLoop(t *testing.T) {
 			{Name: "count", InitExpr: "0"},
 		},
 	}
+
+	// When
 	out, err := Generate(doc, sc, nil, Options{PackageName: "main"})
+
+	// Then
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -416,6 +511,7 @@ func TestGenerateWithStateContainsEventLoop(t *testing.T) {
 }
 
 func TestGenerateWithOnkeyHandler(t *testing.T) {
+	// Given
 	doc := &template.Document{
 		Children: []template.Node{
 			&template.BoxElement{
@@ -439,7 +535,11 @@ func TestGenerateWithOnkeyHandler(t *testing.T) {
 			},
 		},
 	}
+
+	// When
 	out, err := Generate(doc, sc, nil, Options{PackageName: "main"})
+
+	// Then
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -455,6 +555,7 @@ func TestGenerateWithOnkeyHandler(t *testing.T) {
 }
 
 func TestGenerateWithFunctionSetsDirecty(t *testing.T) {
+	// Given
 	doc := &template.Document{
 		Children: []template.Node{textNode("Hello")},
 	}
@@ -473,7 +574,11 @@ func TestGenerateWithFunctionSetsDirecty(t *testing.T) {
 			},
 		},
 	}
+
+	// When
 	out, err := Generate(doc, sc, nil, Options{PackageName: "main"})
+
+	// Then
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -484,6 +589,7 @@ func TestGenerateWithFunctionSetsDirecty(t *testing.T) {
 }
 
 func TestGenerateMultipleStateVarsAndFunctions(t *testing.T) {
+	// Given
 	doc := &template.Document{
 		Children: []template.Node{
 			&template.TextElement{
@@ -512,7 +618,11 @@ func TestGenerateMultipleStateVarsAndFunctions(t *testing.T) {
 			},
 		},
 	}
+
+	// When
 	out, err := Generate(doc, sc, nil, Options{PackageName: "main"})
+
+	// Then
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -533,10 +643,15 @@ func TestGenerateMultipleStateVarsAndFunctions(t *testing.T) {
 // --- Stylesheet tests ---
 
 func TestGenerateWithNilStylesheetBackwardCompat(t *testing.T) {
+	// Given
 	doc := &template.Document{
 		Children: []template.Node{textNode("Hello")},
 	}
+
+	// When
 	out, err := Generate(doc, nil, nil, Options{PackageName: "main"})
+
+	// Then
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -553,6 +668,7 @@ func TestGenerateWithNilStylesheetBackwardCompat(t *testing.T) {
 }
 
 func TestGenerateWithStylesheetAndClassOnText(t *testing.T) {
+	// Given
 	doc := &template.Document{
 		Children: []template.Node{
 			&template.TextElement{
@@ -566,7 +682,11 @@ func TestGenerateWithStylesheetAndClassOnText(t *testing.T) {
 			{Selector: ".title", Properties: map[string]string{"color": "red", "bold": "true"}},
 		},
 	}
+
+	// When
 	out, err := Generate(doc, nil, ss, Options{PackageName: "main"})
+
+	// Then
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -588,6 +708,7 @@ func TestGenerateWithStylesheetAndClassOnText(t *testing.T) {
 }
 
 func TestGenerateStylesheetLayoutProperties(t *testing.T) {
+	// Given
 	doc := &template.Document{
 		Children: []template.Node{
 			&template.BoxElement{
@@ -604,7 +725,11 @@ func TestGenerateStylesheetLayoutProperties(t *testing.T) {
 			}},
 		},
 	}
+
+	// When
 	out, err := Generate(doc, nil, ss, Options{PackageName: "main"})
+
+	// Then
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -623,6 +748,7 @@ func TestGenerateStylesheetLayoutProperties(t *testing.T) {
 }
 
 func TestGenerateInlineAttributeOverridesStylesheet(t *testing.T) {
+	// Given
 	doc := &template.Document{
 		Children: []template.Node{
 			&template.BoxElement{
@@ -639,7 +765,11 @@ func TestGenerateInlineAttributeOverridesStylesheet(t *testing.T) {
 			}},
 		},
 	}
+
+	// When
 	out, err := Generate(doc, nil, ss, Options{PackageName: "main"})
+
+	// Then
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -659,6 +789,7 @@ func TestGenerateInlineAttributeOverridesStylesheet(t *testing.T) {
 }
 
 func TestGenerateElementSelectorStylesheet(t *testing.T) {
+	// Given
 	doc := &template.Document{
 		Children: []template.Node{
 			&template.TextElement{
@@ -672,7 +803,11 @@ func TestGenerateElementSelectorStylesheet(t *testing.T) {
 			{Selector: "text", Properties: map[string]string{"color": "green"}},
 		},
 	}
+
+	// When
 	out, err := Generate(doc, nil, ss, Options{PackageName: "main"})
+
+	// Then
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -691,10 +826,15 @@ func TestGenerateElementSelectorStylesheet(t *testing.T) {
 }
 
 func TestGenerateRenderTreeUsesStyledMethods(t *testing.T) {
+	// Given
 	doc := &template.Document{
 		Children: []template.Node{textNode("Hello")},
 	}
+
+	// When
 	out, err := Generate(doc, nil, nil, Options{PackageName: "main"})
+
+	// Then
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}

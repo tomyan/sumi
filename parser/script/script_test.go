@@ -5,7 +5,10 @@ import (
 )
 
 func TestEmptyScript(t *testing.T) {
+	// When
 	s, err := Parse("")
+
+	// Then
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -18,7 +21,10 @@ func TestEmptyScript(t *testing.T) {
 }
 
 func TestWhitespaceOnlyScript(t *testing.T) {
+	// When
 	s, err := Parse("   \n\n\t  \n")
+
+	// Then
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -31,7 +37,10 @@ func TestWhitespaceOnlyScript(t *testing.T) {
 }
 
 func TestSingleStateInt(t *testing.T) {
+	// When
 	s, err := Parse(`count := $state(0)`)
+
+	// Then
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -47,7 +56,10 @@ func TestSingleStateInt(t *testing.T) {
 }
 
 func TestSingleStateString(t *testing.T) {
+	// When
 	s, err := Parse(`name := $state("world")`)
+
+	// Then
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -63,9 +75,14 @@ func TestSingleStateString(t *testing.T) {
 }
 
 func TestMultipleStateDecls(t *testing.T) {
+	// Given
 	input := `count := $state(0)
 name := $state("hello")`
+
+	// When
 	s, err := Parse(input)
+
+	// Then
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -87,7 +104,10 @@ name := $state("hello")`
 }
 
 func TestStateWithNestedParens(t *testing.T) {
+	// When
 	s, err := Parse(`items := $state([]string{"a", "b"})`)
+
+	// Then
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -103,7 +123,10 @@ func TestStateWithNestedParens(t *testing.T) {
 }
 
 func TestStateWithNestedParensInExpr(t *testing.T) {
+	// When
 	s, err := Parse(`val := $state(max(1, min(2, 3)))`)
+
+	// Then
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -116,10 +139,15 @@ func TestStateWithNestedParensInExpr(t *testing.T) {
 }
 
 func TestSimpleFunction(t *testing.T) {
+	// Given
 	input := `func increment() {
 	count = count + 1
 }`
+
+	// When
 	s, err := Parse(input)
+
+	// Then
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -139,10 +167,15 @@ func TestSimpleFunction(t *testing.T) {
 }
 
 func TestFunctionWithParams(t *testing.T) {
+	// Given
 	input := `func handleKey(key string) {
 	name = key
 }`
+
+	// When
 	s, err := Parse(input)
+
+	// Then
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -158,12 +191,17 @@ func TestFunctionWithParams(t *testing.T) {
 }
 
 func TestStateAssignmentDetection(t *testing.T) {
+	// Given
 	input := `count := $state(0)
 
 func increment() {
 	count = count + 1
 }`
+
+	// When
 	s, err := Parse(input)
+
+	// Then
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -186,6 +224,7 @@ func increment() {
 }
 
 func TestMultipleStateAssignments(t *testing.T) {
+	// Given
 	input := `count := $state(0)
 name := $state("world")
 
@@ -193,7 +232,11 @@ func reset() {
 	count = 0
 	name = "world"
 }`
+
+	// When
 	s, err := Parse(input)
+
+	// Then
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -209,13 +252,18 @@ func reset() {
 }
 
 func TestNonStateAssignmentIgnored(t *testing.T) {
+	// Given
 	input := `count := $state(0)
 
 func doSomething() {
 	x = 42
 	count = count + 1
 }`
+
+	// When
 	s, err := Parse(input)
+
+	// Then
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -228,6 +276,7 @@ func doSomething() {
 }
 
 func TestMultipleFunctions(t *testing.T) {
+	// Given
 	input := `func increment() {
 	count = count + 1
 }
@@ -235,7 +284,11 @@ func TestMultipleFunctions(t *testing.T) {
 func decrement() {
 	count = count - 1
 }`
+
+	// When
 	s, err := Parse(input)
+
+	// Then
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -251,12 +304,17 @@ func decrement() {
 }
 
 func TestFunctionWithNestedBraces(t *testing.T) {
+	// Given
 	input := `func doThings() {
 	if true {
 		count = 1
 	}
 }`
+
+	// When
 	s, err := Parse(input)
+
+	// Then
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -270,6 +328,7 @@ func TestFunctionWithNestedBraces(t *testing.T) {
 }
 
 func TestMixedStateAndFunctions(t *testing.T) {
+	// Given
 	input := `count := $state(0)
 name := $state("world")
 
@@ -281,7 +340,11 @@ func reset() {
 	count = 0
 	name = "world"
 }`
+
+	// When
 	s, err := Parse(input)
+
+	// Then
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -302,7 +365,10 @@ func reset() {
 }
 
 func TestStateWithBacktickString(t *testing.T) {
+	// When
 	s, err := Parse("msg := $state(`hello world`)")
+
+	// Then
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -315,26 +381,37 @@ func TestStateWithBacktickString(t *testing.T) {
 }
 
 func TestUnterminatedState(t *testing.T) {
+	// When
 	_, err := Parse("count := $state(0")
+
+	// Then
 	if err == nil {
 		t.Fatal("expected error for unterminated $state, got nil")
 	}
 }
 
 func TestUnterminatedFuncBody(t *testing.T) {
+	// When
 	_, err := Parse("func foo() {")
+
+	// Then
 	if err == nil {
 		t.Fatal("expected error for unterminated function body, got nil")
 	}
 }
 
 func TestStateAssignmentWithCompoundExpr(t *testing.T) {
+	// Given
 	input := `count := $state(0)
 
 func update() {
 	count = append(items, "new")
 }`
+
+	// When
 	s, err := Parse(input)
+
+	// Then
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -347,13 +424,18 @@ func update() {
 }
 
 func TestStateNamePrefixNotMatched(t *testing.T) {
+	// Given
 	input := `count := $state(0)
 
 func doThing() {
 	counter = 5
 	count = 1
 }`
+
+	// When
 	s, err := Parse(input)
+
+	// Then
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -370,12 +452,17 @@ func doThing() {
 }
 
 func TestShortVarDeclNotStateAssignment(t *testing.T) {
+	// Given
 	input := `count := $state(0)
 
 func doThing() {
 	count := 5
 }`
+
+	// When
 	s, err := Parse(input)
+
+	// Then
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}

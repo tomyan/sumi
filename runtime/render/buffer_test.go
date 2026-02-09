@@ -3,7 +3,10 @@ package render
 import "testing"
 
 func TestNewBufferDimensions(t *testing.T) {
+	// When
 	b := NewBuffer(80, 24)
+
+	// Then
 	if b.Width() != 80 {
 		t.Errorf("Width() = %d, want 80", b.Width())
 	}
@@ -13,26 +16,40 @@ func TestNewBufferDimensions(t *testing.T) {
 }
 
 func TestDefaultCellIsZeroValue(t *testing.T) {
+	// Given
 	b := NewBuffer(10, 5)
+
+	// When
 	c := b.Cell(0, 0)
+
+	// Then
 	if c.Ch != 0 {
 		t.Errorf("default Cell.Ch = %d, want 0", c.Ch)
 	}
 }
 
 func TestSetCellGetCellRoundTrip(t *testing.T) {
+	// Given
 	b := NewBuffer(10, 5)
+
+	// When
 	b.SetCell(2, 3, 'X')
 	c := b.Cell(2, 3)
+
+	// Then
 	if c.Ch != 'X' {
 		t.Errorf("Cell.Ch = %c, want X", c.Ch)
 	}
 }
 
 func TestWriteTextWritesAcrossColumns(t *testing.T) {
+	// Given
 	b := NewBuffer(20, 5)
+
+	// When
 	b.WriteText(1, 2, "Hello")
 
+	// Then
 	expected := []rune{'H', 'e', 'l', 'l', 'o'}
 	for i, want := range expected {
 		got := b.Cell(1, 2+i)
@@ -43,8 +60,10 @@ func TestWriteTextWritesAcrossColumns(t *testing.T) {
 }
 
 func TestSetCellOutOfBoundsIsNoOp(t *testing.T) {
+	// Given
 	b := NewBuffer(5, 5)
-	// These should not panic
+
+	// When/Then — These should not panic
 	b.SetCell(-1, 0, 'A')
 	b.SetCell(0, -1, 'A')
 	b.SetCell(5, 0, 'A')
@@ -53,6 +72,7 @@ func TestSetCellOutOfBoundsIsNoOp(t *testing.T) {
 }
 
 func TestCellOutOfBoundsReturnsZeroCell(t *testing.T) {
+	// Given
 	b := NewBuffer(5, 5)
 	tests := []struct {
 		row, col int
@@ -64,7 +84,10 @@ func TestCellOutOfBoundsReturnsZeroCell(t *testing.T) {
 		{100, 100},
 	}
 	for _, tt := range tests {
+		// When
 		c := b.Cell(tt.row, tt.col)
+
+		// Then
 		if c.Ch != 0 {
 			t.Errorf("Cell(%d, %d).Ch = %d, want 0", tt.row, tt.col, c.Ch)
 		}
@@ -72,9 +95,13 @@ func TestCellOutOfBoundsReturnsZeroCell(t *testing.T) {
 }
 
 func TestWriteTextTruncatedAtBufferWidth(t *testing.T) {
+	// Given
 	b := NewBuffer(5, 3)
-	b.WriteText(0, 3, "Hello") // starts at col 3, only 2 cols remain
 
+	// When — starts at col 3, only 2 cols remain
+	b.WriteText(0, 3, "Hello")
+
+	// Then
 	// 'H' at col 3, 'e' at col 4 should be written
 	if c := b.Cell(0, 3); c.Ch != 'H' {
 		t.Errorf("Cell(0, 3).Ch = %c, want H", c.Ch)

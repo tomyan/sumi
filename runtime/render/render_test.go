@@ -7,22 +7,29 @@ import (
 )
 
 func TestEmptyBufferRendersNothing(t *testing.T) {
+	// Given
 	b := NewBuffer(10, 5)
 	var buf bytes.Buffer
+
+	// When
 	b.RenderTo(&buf)
 
+	// Then
 	if buf.Len() != 0 {
 		t.Errorf("empty buffer rendered %d bytes, want 0", buf.Len())
 	}
 }
 
 func TestRenderSingleCell(t *testing.T) {
+	// Given
 	b := NewBuffer(10, 5)
 	b.SetCell(0, 0, 'A')
-
 	var buf bytes.Buffer
+
+	// When
 	b.RenderTo(&buf)
 
+	// Then
 	got := buf.String()
 	// Should contain cursor move to row 1, col 1 (1-indexed) and the char 'A'
 	if !strings.Contains(got, "\x1b[1;1H") {
@@ -34,12 +41,15 @@ func TestRenderSingleCell(t *testing.T) {
 }
 
 func TestRenderTextHi(t *testing.T) {
+	// Given
 	b := NewBuffer(10, 5)
 	b.WriteText(0, 0, "Hi")
-
 	var buf bytes.Buffer
+
+	// When
 	b.RenderTo(&buf)
 
+	// Then
 	got := buf.String()
 	// Should contain cursor moves and both characters
 	if !strings.Contains(got, "\x1b[1;1H") {
@@ -54,14 +64,17 @@ func TestRenderTextHi(t *testing.T) {
 }
 
 func TestRenderSparseBuffer(t *testing.T) {
+	// Given
 	b := NewBuffer(80, 24)
 	b.SetCell(0, 0, 'A')
 	b.SetCell(10, 40, 'B')
 	b.SetCell(23, 79, 'C')
-
 	var buf bytes.Buffer
+
+	// When
 	b.RenderTo(&buf)
 
+	// Then
 	got := buf.String()
 
 	// Should contain cursor moves for all three cells (1-indexed)

@@ -9,17 +9,20 @@ import (
 )
 
 func TestGenerateFileCreatesGoFile(t *testing.T) {
+	// Given
 	dir := t.TempDir()
 	sumiFile := filepath.Join(dir, "hello.sumi")
 	if err := os.WriteFile(sumiFile, []byte(`<text>Hello, Sumi!</text>`), 0644); err != nil {
 		t.Fatal(err)
 	}
 
+	// When
 	err := generateFile(sumiFile)
+
+	// Then
 	if err != nil {
 		t.Fatalf("generateFile: %v", err)
 	}
-
 	goFile := filepath.Join(dir, "hello_sumi.go")
 	if _, err := os.Stat(goFile); os.IsNotExist(err) {
 		t.Fatalf("expected %s to exist", goFile)
@@ -27,22 +30,25 @@ func TestGenerateFileCreatesGoFile(t *testing.T) {
 }
 
 func TestGenerateFileProducesValidGo(t *testing.T) {
+	// Given
 	dir := t.TempDir()
 	sumiFile := filepath.Join(dir, "hello.sumi")
 	if err := os.WriteFile(sumiFile, []byte(`<text>Hello, Sumi!</text>`), 0644); err != nil {
 		t.Fatal(err)
 	}
 
-	if err := generateFile(sumiFile); err != nil {
+	// When
+	err := generateFile(sumiFile)
+
+	// Then
+	if err != nil {
 		t.Fatalf("generateFile: %v", err)
 	}
-
 	goFile := filepath.Join(dir, "hello_sumi.go")
 	src, err := os.ReadFile(goFile)
 	if err != nil {
 		t.Fatalf("reading generated file: %v", err)
 	}
-
 	fset := token.NewFileSet()
 	_, parseErr := parser.ParseFile(fset, goFile, src, parser.AllErrors)
 	if parseErr != nil {
@@ -51,8 +57,8 @@ func TestGenerateFileProducesValidGo(t *testing.T) {
 }
 
 func TestGenerateFileUsesDirectoryAsPackageName(t *testing.T) {
+	// Given
 	dir := t.TempDir()
-	// Create a subdirectory with a known name
 	subdir := filepath.Join(dir, "myapp")
 	if err := os.MkdirAll(subdir, 0755); err != nil {
 		t.Fatal(err)
@@ -62,22 +68,25 @@ func TestGenerateFileUsesDirectoryAsPackageName(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if err := generateFile(sumiFile); err != nil {
+	// When
+	err := generateFile(sumiFile)
+
+	// Then
+	if err != nil {
 		t.Fatalf("generateFile: %v", err)
 	}
-
 	goFile := filepath.Join(subdir, "hello_sumi.go")
 	src, err := os.ReadFile(goFile)
 	if err != nil {
 		t.Fatalf("reading generated file: %v", err)
 	}
-
 	if got := string(src); !contains(got, "package myapp") {
 		t.Errorf("expected 'package myapp' in output:\n%s", got)
 	}
 }
 
 func TestGenerateDirectoryProcessesAllSumiFiles(t *testing.T) {
+	// Given
 	dir := t.TempDir()
 	for _, name := range []string{"foo.sumi", "bar.sumi"} {
 		if err := os.WriteFile(filepath.Join(dir, name), []byte(`<text>Hello</text>`), 0644); err != nil {
@@ -89,10 +98,13 @@ func TestGenerateDirectoryProcessesAllSumiFiles(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if err := generateDir(dir); err != nil {
+	// When
+	err := generateDir(dir)
+
+	// Then
+	if err != nil {
 		t.Fatalf("generateDir: %v", err)
 	}
-
 	for _, name := range []string{"foo_sumi.go", "bar_sumi.go"} {
 		goFile := filepath.Join(dir, name)
 		if _, err := os.Stat(goFile); os.IsNotExist(err) {
@@ -102,13 +114,12 @@ func TestGenerateDirectoryProcessesAllSumiFiles(t *testing.T) {
 }
 
 func TestGenerateDirectoryDefaultsToCurrentDir(t *testing.T) {
+	// Given
 	dir := t.TempDir()
 	sumiFile := filepath.Join(dir, "app.sumi")
 	if err := os.WriteFile(sumiFile, []byte(`<text>Hello</text>`), 0644); err != nil {
 		t.Fatal(err)
 	}
-
-	// Save and restore working directory
 	orig, err := os.Getwd()
 	if err != nil {
 		t.Fatal(err)
@@ -116,10 +127,13 @@ func TestGenerateDirectoryDefaultsToCurrentDir(t *testing.T) {
 	defer os.Chdir(orig)
 	os.Chdir(dir)
 
-	if err := generateDir("."); err != nil {
+	// When
+	err = generateDir(".")
+
+	// Then
+	if err != nil {
 		t.Fatalf("generateDir: %v", err)
 	}
-
 	goFile := filepath.Join(dir, "app_sumi.go")
 	if _, err := os.Stat(goFile); os.IsNotExist(err) {
 		t.Errorf("expected %s to exist", goFile)
@@ -127,32 +141,40 @@ func TestGenerateDirectoryDefaultsToCurrentDir(t *testing.T) {
 }
 
 func TestGenerateFileReportsParseError(t *testing.T) {
+	// Given
 	dir := t.TempDir()
 	sumiFile := filepath.Join(dir, "bad.sumi")
-	// Missing closing tag — template parser should error
 	if err := os.WriteFile(sumiFile, []byte(`<text>Hello`), 0644); err != nil {
 		t.Fatal(err)
 	}
 
+	// When
 	err := generateFile(sumiFile)
+
+	// Then
 	if err == nil {
 		t.Fatal("expected error for malformed .sumi file, got nil")
 	}
 }
 
 func TestGenerateDirectoryWithNoSumiFilesIsNoOp(t *testing.T) {
+	// Given
 	dir := t.TempDir()
 	if err := os.WriteFile(filepath.Join(dir, "readme.txt"), []byte("nothing"), 0644); err != nil {
 		t.Fatal(err)
 	}
 
+	// When
 	err := generateDir(dir)
+
+	// Then
 	if err != nil {
 		t.Fatalf("expected no error for dir with no .sumi files, got: %v", err)
 	}
 }
 
 func TestGenerateBoxWithBorderAndPadding(t *testing.T) {
+	// Given
 	dir := t.TempDir()
 	sumiFile := filepath.Join(dir, "boxed.sumi")
 	input := `<box border="single" padding="1">
@@ -163,22 +185,23 @@ func TestGenerateBoxWithBorderAndPadding(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if err := generateFile(sumiFile); err != nil {
+	// When
+	err := generateFile(sumiFile)
+
+	// Then
+	if err != nil {
 		t.Fatalf("generateFile: %v", err)
 	}
-
 	goFile := filepath.Join(dir, "boxed_sumi.go")
 	src, err := os.ReadFile(goFile)
 	if err != nil {
 		t.Fatalf("reading generated file: %v", err)
 	}
-
 	fset := token.NewFileSet()
 	_, parseErr := parser.ParseFile(fset, goFile, src, parser.AllErrors)
 	if parseErr != nil {
 		t.Fatalf("generated code is not valid Go:\n%s\n\nerror: %v", string(src), parseErr)
 	}
-
 	code := string(src)
 	if !contains(code, "layout.KindBox") {
 		t.Errorf("expected layout.KindBox in generated code:\n%s", code)
@@ -198,6 +221,7 @@ func TestGenerateBoxWithBorderAndPadding(t *testing.T) {
 }
 
 func TestGenerateNestedBoxes(t *testing.T) {
+	// Given
 	dir := t.TempDir()
 	sumiFile := filepath.Join(dir, "nested.sumi")
 	input := `<box><box border="single"><text>Nested</text></box></box>`
@@ -205,22 +229,23 @@ func TestGenerateNestedBoxes(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if err := generateFile(sumiFile); err != nil {
+	// When
+	err := generateFile(sumiFile)
+
+	// Then
+	if err != nil {
 		t.Fatalf("generateFile: %v", err)
 	}
-
 	goFile := filepath.Join(dir, "nested_sumi.go")
 	src, err := os.ReadFile(goFile)
 	if err != nil {
 		t.Fatalf("reading generated file: %v", err)
 	}
-
 	fset := token.NewFileSet()
 	_, parseErr := parser.ParseFile(fset, goFile, src, parser.AllErrors)
 	if parseErr != nil {
 		t.Fatalf("generated code is not valid Go:\n%s\n\nerror: %v", string(src), parseErr)
 	}
-
 	code := string(src)
 	if !contains(code, `Content: "Nested"`) {
 		t.Errorf("expected Content: \"Nested\" in generated code:\n%s", code)
@@ -231,6 +256,7 @@ func TestGenerateNestedBoxes(t *testing.T) {
 }
 
 func TestGenerateBoxWithDirectionAndSize(t *testing.T) {
+	// Given
 	dir := t.TempDir()
 	sumiFile := filepath.Join(dir, "sized.sumi")
 	input := `<box direction="column" width="40" height="10">
@@ -240,22 +266,23 @@ func TestGenerateBoxWithDirectionAndSize(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if err := generateFile(sumiFile); err != nil {
+	// When
+	err := generateFile(sumiFile)
+
+	// Then
+	if err != nil {
 		t.Fatalf("generateFile: %v", err)
 	}
-
 	goFile := filepath.Join(dir, "sized_sumi.go")
 	src, err := os.ReadFile(goFile)
 	if err != nil {
 		t.Fatalf("reading generated file: %v", err)
 	}
-
 	fset := token.NewFileSet()
 	_, parseErr := parser.ParseFile(fset, goFile, src, parser.AllErrors)
 	if parseErr != nil {
 		t.Fatalf("generated code is not valid Go:\n%s\n\nerror: %v", string(src), parseErr)
 	}
-
 	code := string(src)
 	if !contains(code, `Direction: "column"`) {
 		t.Errorf("expected Direction: \"column\" in generated code:\n%s", code)
@@ -269,6 +296,7 @@ func TestGenerateBoxWithDirectionAndSize(t *testing.T) {
 }
 
 func TestGenerateMixedBoxesAndText(t *testing.T) {
+	// Given
 	dir := t.TempDir()
 	sumiFile := filepath.Join(dir, "mixed.sumi")
 	input := `<text>Top-level text</text>
@@ -280,22 +308,23 @@ func TestGenerateMixedBoxesAndText(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if err := generateFile(sumiFile); err != nil {
+	// When
+	err := generateFile(sumiFile)
+
+	// Then
+	if err != nil {
 		t.Fatalf("generateFile: %v", err)
 	}
-
 	goFile := filepath.Join(dir, "mixed_sumi.go")
 	src, err := os.ReadFile(goFile)
 	if err != nil {
 		t.Fatalf("reading generated file: %v", err)
 	}
-
 	fset := token.NewFileSet()
 	_, parseErr := parser.ParseFile(fset, goFile, src, parser.AllErrors)
 	if parseErr != nil {
 		t.Fatalf("generated code is not valid Go:\n%s\n\nerror: %v", string(src), parseErr)
 	}
-
 	code := string(src)
 	if !contains(code, `Content: "Top-level text"`) {
 		t.Errorf("expected top-level text content in generated code:\n%s", code)
@@ -312,6 +341,7 @@ func TestGenerateMixedBoxesAndText(t *testing.T) {
 }
 
 func TestGenerateFileWithStyleBlock(t *testing.T) {
+	// Given
 	dir := t.TempDir()
 	sumiFile := filepath.Join(dir, "styled.sumi")
 	input := `<style>
@@ -325,22 +355,23 @@ func TestGenerateFileWithStyleBlock(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if err := generateFile(sumiFile); err != nil {
+	// When
+	err := generateFile(sumiFile)
+
+	// Then
+	if err != nil {
 		t.Fatalf("generateFile: %v", err)
 	}
-
 	goFile := filepath.Join(dir, "styled_sumi.go")
 	src, err := os.ReadFile(goFile)
 	if err != nil {
 		t.Fatalf("reading generated file: %v", err)
 	}
-
 	fset := token.NewFileSet()
 	_, parseErr := parser.ParseFile(fset, goFile, src, parser.AllErrors)
 	if parseErr != nil {
 		t.Fatalf("generated code is not valid Go:\n%s\n\nerror: %v", string(src), parseErr)
 	}
-
 	code := string(src)
 	if !contains(code, "render.Style{") {
 		t.Errorf("expected render.Style literal in generated code:\n%s", code)
