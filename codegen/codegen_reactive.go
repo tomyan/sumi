@@ -114,19 +114,14 @@ func buildStateLinesSet(assignments []script.StateAssignment) map[string]bool {
 
 // writeRenderClosure writes the doRender closure.
 func writeRenderClosure(buf *bytes.Buffer, doc *template.Document, stylesheet *style.Stylesheet, instances []componentInstance) {
-	buf.WriteString("\tvar prevBuf *render.Buffer\n")
 	buf.WriteString("\tdoRender := func() {\n")
 	buf.WriteString("\t\ttermW, termH := term.GetSize(int(os.Stdin.Fd()))\n")
 	writeLayoutTree(buf, doc, stylesheet, true, instances)
 	buf.WriteString("\t\ttree := layout.Layout(root, termW, termH)\n")
 	buf.WriteString("\t\tbuf := render.NewBuffer(termW, termH)\n")
 	buf.WriteString("\t\trenderTree(buf, tree)\n")
-	buf.WriteString("\t\tif prevBuf != nil {\n")
-	buf.WriteString("\t\t\tbuf.RenderTo(os.Stdout)\n")
-	buf.WriteString("\t\t} else {\n")
-	buf.WriteString("\t\t\tbuf.RenderTo(os.Stdout)\n")
-	buf.WriteString("\t\t}\n")
-	buf.WriteString("\t\tprevBuf = buf\n")
+	buf.WriteString("\t\trender.ClearScreen(os.Stdout)\n")
+	buf.WriteString("\t\tbuf.RenderTo(os.Stdout)\n")
 	buf.WriteString("\t\tdirty = false\n")
 	buf.WriteString("\t}\n\n")
 }

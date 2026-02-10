@@ -15,7 +15,6 @@ func Run() {
 
 	dirty := true
 
-	var prevBuf *render.Buffer
 	doRender := func() {
 		termW, termH := term.GetSize(int(os.Stdin.Fd()))
 		root := &layout.Input{
@@ -52,12 +51,8 @@ func Run() {
 		tree := layout.Layout(root, termW, termH)
 		buf := render.NewBuffer(termW, termH)
 		renderTree(buf, tree)
-		if prevBuf != nil {
-			buf.RenderTo(os.Stdout)
-		} else {
-			buf.RenderTo(os.Stdout)
-		}
-		prevBuf = buf
+		render.ClearScreen(os.Stdout)
+		buf.RenderTo(os.Stdout)
 		dirty = false
 	}
 

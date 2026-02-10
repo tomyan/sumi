@@ -11,3 +11,8 @@ func EnterAlternateScreen(w io.Writer) {
 func ExitAlternateScreen(w io.Writer) {
 	io.WriteString(w, "\x1b[?25h\x1b[?1049l")
 }
+
+// ClearScreen erases all content and moves the cursor to the top-left.
+func ClearScreen(w io.Writer) {
+	io.WriteString(w, "\x1b[2J\x1b[H")
+}
