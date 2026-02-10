@@ -89,6 +89,25 @@ func prevTreePath(treePath string) string {
 	return treePath
 }
 
+// writeMouseScrollDispatch writes the EventMouse handler for scroll wheel events.
+func writeMouseScrollDispatch(buf *bytes.Buffer, scrollBoxes []scrollableBox) {
+	if len(scrollBoxes) == 0 {
+		return
+	}
+	name := scrollVarName(scrollBoxes[0].Index)
+	path := prevTreePath(scrollBoxes[0].TreePath)
+	buf.WriteString("\t\t\tif evt.Kind == input.EventMouse && evt.Mouse.Action == input.MouseScroll && prevTree != nil {\n")
+	buf.WriteString("\t\t\t\tswitch evt.Mouse.Button {\n")
+	buf.WriteString("\t\t\t\tcase input.ScrollDown:\n")
+	fmt.Fprintf(buf, "\t\t\t\t\t%s.ScrollDown(%s.ContentHeight, %s.Height)\n", name, path, path)
+	buf.WriteString("\t\t\t\t\tdirty = true\n")
+	buf.WriteString("\t\t\t\tcase input.ScrollUp:\n")
+	fmt.Fprintf(buf, "\t\t\t\t\t%s.ScrollUp()\n", name)
+	buf.WriteString("\t\t\t\t\tdirty = true\n")
+	buf.WriteString("\t\t\t\t}\n")
+	buf.WriteString("\t\t\t}\n")
+}
+
 // writeScrollDispatch writes the EventSpecial handler for scroll keys.
 func writeScrollDispatch(buf *bytes.Buffer, scrollBoxes []scrollableBox) {
 	if len(scrollBoxes) == 0 {

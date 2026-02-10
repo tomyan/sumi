@@ -182,6 +182,7 @@ func writeEventLoop(buf *bytes.Buffer, doc *template.Document, sc *script.Script
 	buf.WriteString("\t\t\t}\n")
 	writeEventKeyHandler(buf, doc, instances)
 	writeScrollDispatch(buf, scrollBoxes)
+	writeMouseScrollDispatch(buf, scrollBoxes)
 	buf.WriteString("\t\tcase <-resizeCh:\n")
 	writeEnvUpdate(buf, sc)
 	buf.WriteString("\t\t\tdirty = true\n")

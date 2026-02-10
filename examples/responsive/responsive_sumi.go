@@ -139,6 +139,16 @@ func Run() {
 					dirty = true
 				}
 			}
+			if evt.Kind == input.EventMouse && evt.Mouse.Action == input.MouseScroll && prevTree != nil {
+				switch evt.Mouse.Button {
+				case input.ScrollDown:
+					scroll0.ScrollDown(prevTree.ContentHeight, prevTree.Height)
+					dirty = true
+				case input.ScrollUp:
+					scroll0.ScrollUp()
+					dirty = true
+				}
+			}
 		case <-resizeCh:
 			width, height = term.GetSize(int(os.Stdin.Fd()))
 			dirty = true
