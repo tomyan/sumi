@@ -211,8 +211,7 @@ func layoutNode(input *Input, availW, availH int) *Box {
 	} else {
 		box.Width = contentW + insetW
 	}
-	// When scroll overflow is active and content exceeds available width,
-	// cap the box to available width (content scrolls inside).
+	// When scroll overflow is active, cap width to available (content scrolls horizontally)
 	if isScrollOverflow(input.Overflow) && box.Width > availW {
 		box.Width = availW
 	}
@@ -222,6 +221,10 @@ func layoutNode(input *Input, availW, availH int) *Box {
 		box.Height = availH
 	} else {
 		box.Height = contentH + insetH
+	}
+	// Scroll viewport fills available height when no fixed height is set
+	if isScrollOverflow(input.Overflow) && input.FixedHeight == 0 {
+		box.Height = availH
 	}
 
 	if input.Overflow != "" {
