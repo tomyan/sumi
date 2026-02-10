@@ -51,8 +51,9 @@ type Box struct {
 	Lines               []string     // wrapped lines (nil = single line, use Content)
 	Border              string       // border style
 	Style               render.Style // visual style
-	NeedsScrollbar      bool         // true when a scrollbar should be drawn
-	Clip                *render.Clip // clipping region (set when overflow is non-empty)
+	NeedsScrollbar           bool         // true when a vertical scrollbar should be drawn
+	NeedsHorizontalScrollbar bool         // true when a horizontal scrollbar should be drawn
+	Clip                     *render.Clip // clipping region (set when overflow is non-empty)
 }
 
 // ParsePadding parses a CSS-like padding shorthand string.
@@ -210,6 +211,11 @@ func layoutNode(input *Input, availW, availH int) *Box {
 	} else {
 		box.Width = contentW + insetW
 	}
+	// When scroll overflow is active and content exceeds available width,
+	// cap the box to available width (content scrolls inside).
+	if isScrollOverflow(input.Overflow) && box.Width > availW {
+		box.Width = availW
+	}
 	if input.FixedHeight > 0 {
 		box.Height = input.FixedHeight
 	} else if hasFlexChildren && input.Direction != "row" && contentAvailH > 0 {
@@ -225,6 +231,8 @@ func layoutNode(input *Input, availW, availH int) *Box {
 		box.ContentWidth = contentW
 		box.ContentHeight = contentH
 		box.NeedsScrollbar = needsScrollbar(input.Overflow, contentH, contentAvailH)
+		viewportW := box.Width - insetW
+		box.NeedsHorizontalScrollbar = needsHorizontalScrollbar(input.Overflow, contentW, viewportW)
 	}
 
 	return box

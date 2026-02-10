@@ -24,6 +24,21 @@ func ThumbPosition(scrollY, contentHeight, viewportHeight int) int {
 	return scrollY * trackSpace / maxScroll
 }
 
+// DrawHorizontalScrollbar draws a horizontal scrollbar at row y, from column x to x+width-1.
+// Uses ░ for the track and █ for the thumb.
+func DrawHorizontalScrollbar(buf *Buffer, x, y, width, contentWidth, scrollX int, style Style) {
+	thumbSize := ThumbSize(contentWidth, width)
+	thumbPos := ThumbPosition(scrollX, contentWidth, width)
+
+	for col := 0; col < width; col++ {
+		if col >= thumbPos && col < thumbPos+thumbSize {
+			buf.SetStyledCell(y, x+col, '█', style)
+		} else {
+			buf.SetStyledCell(y, x+col, '░', style)
+		}
+	}
+}
+
 // DrawScrollbar draws a vertical scrollbar at column x, from row y to y+height-1.
 // Uses ░ for the track and █ for the thumb.
 func DrawScrollbar(buf *Buffer, x, y, height, contentHeight, scrollY int, style Style) {

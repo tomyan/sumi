@@ -33,6 +33,10 @@ func renderScrollbarsAndChildren(buf *render.Buffer, box *Box, clip *render.Clip
 		drawVerticalScrollbar(buf, box)
 		childClip = narrowClipForVerticalScrollbar(childClip)
 	}
+	if box.NeedsHorizontalScrollbar && box.Clip != nil {
+		drawHorizontalScrollbar(buf, box)
+		childClip = narrowClipForHorizontalScrollbar(childClip)
+	}
 	for _, child := range box.Children {
 		renderChildWithScroll(buf, child, box.ScrollY, childClip)
 	}
@@ -54,6 +58,25 @@ func narrowClipForVerticalScrollbar(clip *render.Clip) *render.Clip {
 		Left:   clip.Left,
 		Bottom: clip.Bottom,
 		Right:  clip.Right - 1,
+	}
+}
+
+// drawHorizontalScrollbar draws the horizontal scrollbar at the bottom edge of the clip.
+func drawHorizontalScrollbar(buf *render.Buffer, box *Box) {
+	viewportW := box.Clip.Right - box.Clip.Left + 1
+	render.DrawHorizontalScrollbar(buf, box.Clip.Left, box.Clip.Bottom, viewportW, box.ContentWidth, box.ScrollX, box.Style)
+}
+
+// narrowClipForHorizontalScrollbar reduces the bottom edge by 1 to make room for the scrollbar.
+func narrowClipForHorizontalScrollbar(clip *render.Clip) *render.Clip {
+	if clip == nil {
+		return nil
+	}
+	return &render.Clip{
+		Top:    clip.Top,
+		Left:   clip.Left,
+		Bottom: clip.Bottom - 1,
+		Right:  clip.Right,
 	}
 }
 

@@ -129,3 +129,58 @@ func TestDrawScrollbarThumbAtBottom(t *testing.T) {
 		t.Errorf("Cell(9, 19).Ch = %c, want '█' (thumb at bottom)", ch.Ch)
 	}
 }
+
+func TestDrawHorizontalScrollbar(t *testing.T) {
+	// Given
+	buf := NewBuffer(20, 10)
+	style := Style{}
+
+	// When — draw horizontal scrollbar at row 9, cols 0-19, content=40, scroll=0
+	DrawHorizontalScrollbar(buf, 0, 9, 20, 40, 0, style)
+
+	// Then — track and thumb characters should be present along the row
+	trackFound := false
+	thumbFound := false
+	for col := 0; col < 20; col++ {
+		ch := buf.Cell(9, col).Ch
+		if ch == '░' {
+			trackFound = true
+		}
+		if ch == '█' {
+			thumbFound = true
+		}
+	}
+	if !trackFound {
+		t.Error("expected track characters (░) in horizontal scrollbar")
+	}
+	if !thumbFound {
+		t.Error("expected thumb characters (█) in horizontal scrollbar")
+	}
+}
+
+func TestDrawHorizontalScrollbarThumbAtLeft(t *testing.T) {
+	// Given — scrollX=0
+	buf := NewBuffer(20, 10)
+
+	// When
+	DrawHorizontalScrollbar(buf, 0, 9, 20, 40, 0, Style{})
+
+	// Then — thumb should start at the left
+	if ch := buf.Cell(9, 0); ch.Ch != '█' {
+		t.Errorf("Cell(9, 0).Ch = %c, want '█' (thumb at left)", ch.Ch)
+	}
+}
+
+func TestDrawHorizontalScrollbarThumbAtRight(t *testing.T) {
+	// Given — scrolled to rightmost position
+	buf := NewBuffer(20, 10)
+	maxScroll := 20 // content=40, viewport=20
+
+	// When
+	DrawHorizontalScrollbar(buf, 0, 9, 20, 40, maxScroll, Style{})
+
+	// Then — last cell should be thumb
+	if ch := buf.Cell(9, 19); ch.Ch != '█' {
+		t.Errorf("Cell(9, 19).Ch = %c, want '█' (thumb at right)", ch.Ch)
+	}
+}

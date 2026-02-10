@@ -16,6 +16,15 @@ func needsScrollbar(overflow string, contentHeight, viewportHeight int) bool {
 	return contentHeight > viewportHeight
 }
 
+// needsHorizontalScrollbar returns true if a horizontal scrollbar should be shown.
+// "scroll" always shows; "auto" only when content overflows horizontally.
+func needsHorizontalScrollbar(overflow string, contentWidth, viewportWidth int) bool {
+	if overflow == "scroll" {
+		return true
+	}
+	return contentWidth > viewportWidth
+}
+
 // computeClip returns the clip region for a box with overflow set.
 // The clip covers the content area inside border and padding.
 func computeClip(box *Box, borderWidth int, pad Padding) *render.Clip {
