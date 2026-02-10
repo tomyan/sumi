@@ -144,3 +144,94 @@ func TestScrollStatePageUpClamped(t *testing.T) {
 		t.Errorf("ScrollY = %d, want 0 (clamped)", ss.ScrollY)
 	}
 }
+
+func TestScrollStateClampXClampsToZero(t *testing.T) {
+	// Given
+	ss := &ScrollState{ScrollX: -5}
+
+	// When
+	ss.ClampX(20, 10)
+
+	// Then
+	if ss.ScrollX != 0 {
+		t.Errorf("ScrollX = %d, want 0 (clamped to min)", ss.ScrollX)
+	}
+}
+
+func TestScrollStateClampXClampsToMax(t *testing.T) {
+	// Given — contentWidth=20, viewportWidth=10, max scroll = 10
+	ss := &ScrollState{ScrollX: 100}
+
+	// When
+	ss.ClampX(20, 10)
+
+	// Then
+	if ss.ScrollX != 10 {
+		t.Errorf("ScrollX = %d, want 10 (clamped to max)", ss.ScrollX)
+	}
+}
+
+func TestScrollStateClampXNoScrollNeeded(t *testing.T) {
+	// Given — content fits in viewport
+	ss := &ScrollState{ScrollX: 3}
+
+	// When
+	ss.ClampX(5, 10)
+
+	// Then — content fits, so scroll = 0
+	if ss.ScrollX != 0 {
+		t.Errorf("ScrollX = %d, want 0 (content fits)", ss.ScrollX)
+	}
+}
+
+func TestScrollStateScrollRight(t *testing.T) {
+	// Given
+	ss := &ScrollState{ScrollX: 0}
+
+	// When
+	ss.ScrollRight(20, 10)
+
+	// Then
+	if ss.ScrollX != 1 {
+		t.Errorf("ScrollX = %d, want 1", ss.ScrollX)
+	}
+}
+
+func TestScrollStateScrollRightClamped(t *testing.T) {
+	// Given — already at max
+	ss := &ScrollState{ScrollX: 10}
+
+	// When
+	ss.ScrollRight(20, 10)
+
+	// Then — should stay at max
+	if ss.ScrollX != 10 {
+		t.Errorf("ScrollX = %d, want 10 (clamped)", ss.ScrollX)
+	}
+}
+
+func TestScrollStateScrollLeft(t *testing.T) {
+	// Given
+	ss := &ScrollState{ScrollX: 5}
+
+	// When
+	ss.ScrollLeft()
+
+	// Then
+	if ss.ScrollX != 4 {
+		t.Errorf("ScrollX = %d, want 4", ss.ScrollX)
+	}
+}
+
+func TestScrollStateScrollLeftClamped(t *testing.T) {
+	// Given
+	ss := &ScrollState{ScrollX: 0}
+
+	// When
+	ss.ScrollLeft()
+
+	// Then
+	if ss.ScrollX != 0 {
+		t.Errorf("ScrollX = %d, want 0 (clamped)", ss.ScrollX)
+	}
+}

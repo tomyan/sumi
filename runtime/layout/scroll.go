@@ -47,3 +47,31 @@ func (s *ScrollState) PageUp(viewportHeight int) {
 		s.ScrollY = 0
 	}
 }
+
+// ClampX ensures ScrollX is within [0, contentWidth - viewportWidth].
+func (s *ScrollState) ClampX(contentWidth, viewportWidth int) {
+	maxScroll := contentWidth - viewportWidth
+	if maxScroll < 0 {
+		maxScroll = 0
+	}
+	if s.ScrollX < 0 {
+		s.ScrollX = 0
+	}
+	if s.ScrollX > maxScroll {
+		s.ScrollX = maxScroll
+	}
+}
+
+// ScrollRight moves the scroll position right by one column.
+func (s *ScrollState) ScrollRight(contentWidth, viewportWidth int) {
+	s.ScrollX++
+	s.ClampX(contentWidth, viewportWidth)
+}
+
+// ScrollLeft moves the scroll position left by one column.
+func (s *ScrollState) ScrollLeft() {
+	s.ScrollX--
+	if s.ScrollX < 0 {
+		s.ScrollX = 0
+	}
+}
