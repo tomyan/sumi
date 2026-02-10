@@ -59,6 +59,23 @@ func DrawBorderAt(w io.Writer, row, col, width, height int, borderStyle string, 
 	}
 }
 
+// DrawBorderTitleAt draws a border title directly to a writer using cursor positioning.
+func DrawBorderTitleAt(w io.Writer, row, col, width int, title string, style Style) {
+	if title == "" || width < 6 {
+		return
+	}
+	maxLen := width - 4
+	runes := []rune(title)
+	if len(runes) > maxLen {
+		runes = runes[:maxLen]
+	}
+	writeCharAt(w, row, col+2, ' ', style)
+	for i, ch := range runes {
+		writeCharAt(w, row, col+3+i, ch, style)
+	}
+	writeCharAt(w, row, col+3+len(runes), ' ', style)
+}
+
 // writeCharAt writes a single character at (row, col) with style.
 func writeCharAt(w io.Writer, row, col int, ch rune, style Style) {
 	fmt.Fprintf(w, "\x1b[%d;%dH", row+1, col+1)

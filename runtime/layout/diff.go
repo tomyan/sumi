@@ -72,6 +72,9 @@ func nodeChanged(old, new *Box) bool {
 	if old.Border != new.Border {
 		return true
 	}
+	if old.BorderTitle != new.BorderTitle {
+		return true
+	}
 	if old.Style != new.Style {
 		return true
 	}

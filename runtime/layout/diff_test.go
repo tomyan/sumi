@@ -210,6 +210,20 @@ func TestDiffDetectsScrollbarChange(t *testing.T) {
 	}
 }
 
+func TestDiffDetectsBorderTitleChange(t *testing.T) {
+	// Given
+	old := &Box{X: 0, Y: 0, Width: 20, Height: 5, Border: "single", BorderTitle: "Old"}
+	new := &Box{X: 0, Y: 0, Width: 20, Height: 5, Border: "single", BorderTitle: "New"}
+
+	// When
+	changes := DiffTrees(old, new)
+
+	// Then
+	if len(changes) != 1 {
+		t.Fatalf("len(changes) = %d, want 1", len(changes))
+	}
+}
+
 func TestDiffTreesNilOldIsFullRedraw(t *testing.T) {
 	// Given
 	new := &Box{

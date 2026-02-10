@@ -29,6 +29,9 @@ func ApplyChanges(w io.Writer, changes []Change) {
 func renderNodeDirect(w io.Writer, box *Box) {
 	if box.Border != "" && box.Border != "none" {
 		render.DrawBorderAt(w, box.Y, box.X, box.Width, box.Height, box.Border, box.Style)
+		if box.BorderTitle != "" {
+			render.DrawBorderTitleAt(w, box.Y, box.X, box.Width, box.BorderTitle, box.Style)
+		}
 	}
 	if box.Lines != nil {
 		for i, line := range box.Lines {
