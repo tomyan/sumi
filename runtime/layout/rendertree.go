@@ -81,17 +81,24 @@ func narrowClipForHorizontalScrollbar(clip *render.Clip) *render.Clip {
 }
 
 // renderChildWithScroll renders a child box, translating by the parent's scroll offsets.
+// Shifts the entire subtree so all descendants render at the correct scrolled position.
 func renderChildWithScroll(buf *render.Buffer, child *Box, scrollX, scrollY int, clip *render.Clip) {
 	if scrollX == 0 && scrollY == 0 {
 		RenderTree(buf, child, clip)
 		return
 	}
-	// Translate child position by -scrollX/-scrollY for rendering
-	child.X -= scrollX
-	child.Y -= scrollY
+	shiftTree(child, -scrollX, -scrollY)
 	RenderTree(buf, child, clip)
-	child.X += scrollX // restore
-	child.Y += scrollY // restore
+	shiftTree(child, scrollX, scrollY) // restore
+}
+
+// shiftTree recursively shifts a box and all its descendants by dx, dy.
+func shiftTree(box *Box, dx, dy int) {
+	box.X += dx
+	box.Y += dy
+	for _, child := range box.Children {
+		shiftTree(child, dx, dy)
+	}
 }
 
 // mergeClip combines a parent clip with a box's own clip using intersection.
