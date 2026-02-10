@@ -50,6 +50,7 @@ type Box struct {
 	Lines               []string     // wrapped lines (nil = single line, use Content)
 	Border              string       // border style
 	Style               render.Style // visual style
+	NeedsScrollbar      bool         // true when a scrollbar should be drawn
 	Clip                *render.Clip // clipping region (set when overflow is non-empty)
 }
 
@@ -217,6 +218,7 @@ func layoutNode(input *Input, availW, availH int) *Box {
 	if isScrollOverflow(input.Overflow) {
 		box.ContentWidth = contentW
 		box.ContentHeight = contentH
+		box.NeedsScrollbar = needsScrollbar(input.Overflow, contentH, contentAvailH)
 	}
 
 	return box
