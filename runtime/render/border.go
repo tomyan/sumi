@@ -39,3 +39,30 @@ func (b *Buffer) DrawStyledBorder(row, col, width, height int, borderStyle strin
 		b.SetStyledCell(r, right, '│', style)
 	}
 }
+
+// DrawBorderTitle renders a title string on the top edge of a border.
+// The pattern is: ┌─ Title ───┐ (title starts at col+3, preceded by "─ " and followed by " ─…").
+// Titles longer than width-4 are truncated. Empty title or width < 6 is a no-op.
+func (b *Buffer) DrawBorderTitle(row, col, width int, title string) {
+	b.DrawStyledBorderTitle(row, col, width, title, Style{})
+}
+
+// DrawStyledBorderTitle renders a styled title string on the top edge of a border.
+func (b *Buffer) DrawStyledBorderTitle(row, col, width int, title string, style Style) {
+	if title == "" || width < 6 {
+		return
+	}
+	maxLen := width - 4 // "─ " before + " " after + corners
+	runes := []rune(title)
+	if len(runes) > maxLen {
+		runes = runes[:maxLen]
+	}
+	// Write space before title at col+2
+	b.SetStyledCell(row, col+2, ' ', style)
+	// Write title characters starting at col+3
+	for i, ch := range runes {
+		b.SetStyledCell(row, col+3+i, ch, style)
+	}
+	// Write space after title
+	b.SetStyledCell(row, col+3+len(runes), ' ', style)
+}

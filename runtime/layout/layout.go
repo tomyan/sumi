@@ -29,9 +29,10 @@ type Input struct {
 	Overflow    string       // "hidden", "scroll", "auto", or "" (visible)
 	MinWidth    int          // minimum content width (0 = no minimum)
 	Padding     Padding
-	Border      string       // "single", "none", or ""
-	Style       render.Style // resolved style for this node
-	Children    []*Input
+	Border        string       // "single", "none", or ""
+	BorderTitle   string       // text to display in the top border edge
+	Style         render.Style // resolved style for this node
+	Children      []*Input
 }
 
 // Padding holds inset values for each side.
@@ -50,6 +51,7 @@ type Box struct {
 	Content             string       // text content if text node
 	Lines               []string     // wrapped lines (nil = single line, use Content)
 	Border              string       // border style
+	BorderTitle         string       // text to display in the top border edge
 	Style               render.Style // visual style
 	NeedsScrollbar           bool         // true when a vertical scrollbar should be drawn
 	NeedsHorizontalScrollbar bool         // true when a horizontal scrollbar should be drawn
@@ -126,8 +128,9 @@ func absolutePositions(box *Box) {
 
 func layoutNode(input *Input, availW, availH int) *Box {
 	box := &Box{
-		Border: input.Border,
-		Style:  input.Style,
+		Border:      input.Border,
+		BorderTitle: input.BorderTitle,
+		Style:       input.Style,
 	}
 
 	if input.Kind == KindText {
