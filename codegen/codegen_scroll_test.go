@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/tomyan/sumi/parser/script"
+	"github.com/tomyan/sumi/parser/style"
 	"github.com/tomyan/sumi/parser/template"
 )
 
@@ -154,5 +155,105 @@ func TestGenerateNoScrollStateWithoutOverflow(t *testing.T) {
 	src := string(out)
 	if strings.Contains(src, "ScrollState") {
 		t.Errorf("expected no ScrollState in output without overflow:\n%s", src)
+	}
+}
+
+func TestGenerateRootSelectorAppliesOverflow(t *testing.T) {
+	// Given — a root selector with overflow and min-width
+	doc := &template.Document{
+		Children: []template.Node{textNode("Hello")},
+	}
+	sc := &script.Script{
+		StateDecls: []script.StateDecl{
+			{Name: "x", InitExpr: "0"},
+		},
+	}
+	ss := &style.Stylesheet{
+		Rules: []style.Rule{
+			{Selector: "root", Properties: map[string]string{
+				"overflow":  "auto",
+				"min-width": "48",
+			}},
+		},
+	}
+
+	// When
+	out, err := Generate(doc, sc, ss, Options{PackageName: "main"})
+
+	// Then — root container should have overflow and min-width
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	src := string(out)
+	if !strings.Contains(src, `Overflow:  "auto"`) {
+		t.Errorf("expected Overflow on root container:\n%s", src)
+	}
+	if !strings.Contains(src, "MinWidth:  48") {
+		t.Errorf("expected MinWidth: 48 on root container:\n%s", src)
+	}
+}
+
+func TestGenerateRootSelectorIsValidGo(t *testing.T) {
+	// Given — root selector with overflow
+	doc := &template.Document{
+		Children: []template.Node{textNode("Hello")},
+	}
+	sc := &script.Script{
+		StateDecls: []script.StateDecl{
+			{Name: "x", InitExpr: "0"},
+		},
+	}
+	ss := &style.Stylesheet{
+		Rules: []style.Rule{
+			{Selector: "root", Properties: map[string]string{
+				"overflow":  "auto",
+				"min-width": "48",
+			}},
+		},
+	}
+
+	// When
+	out, err := Generate(doc, sc, ss, Options{PackageName: "main"})
+
+	// Then
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	fset := token.NewFileSet()
+	_, parseErr := parser.ParseFile(fset, "generated.go", out, parser.AllErrors)
+	if parseErr != nil {
+		t.Fatalf("generated code is not valid Go:\n%s\n\nerror: %v", string(out), parseErr)
+	}
+}
+
+func TestGenerateRootSelectorCreatesScrollState(t *testing.T) {
+	// Given — root selector with overflow=auto triggers scroll state for root
+	doc := &template.Document{
+		Children: []template.Node{textNode("Hello")},
+	}
+	sc := &script.Script{
+		StateDecls: []script.StateDecl{
+			{Name: "x", InitExpr: "0"},
+		},
+	}
+	ss := &style.Stylesheet{
+		Rules: []style.Rule{
+			{Selector: "root", Properties: map[string]string{
+				"overflow":  "auto",
+				"min-width": "48",
+			}},
+		},
+	}
+
+	// When
+	out, err := Generate(doc, sc, ss, Options{PackageName: "main"})
+
+	// Then — scroll state should exist for the root container
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	src := string(out)
+	if !strings.Contains(src, "var scroll0 layout.ScrollState") {
+		t.Errorf("expected scroll state for root container:\n%s", src)
 	}
 }

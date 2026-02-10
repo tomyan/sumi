@@ -12,7 +12,7 @@ import (
 
 // writeReactiveBody generates the reactive function body with event loop.
 func writeReactiveBody(buf *bytes.Buffer, doc *template.Document, sc *script.Script, stylesheet *style.Stylesheet, instances []componentInstance) {
-	scrollBoxes := findScrollableBoxes(doc)
+	scrollBoxes := findAllScrollableBoxes(doc, stylesheet)
 	writeComponentInits(buf, instances)
 	writeStateOrDirtyOnly(buf, sc)
 	writeScrollStateDecls(buf, scrollBoxes)

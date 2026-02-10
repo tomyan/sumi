@@ -63,7 +63,7 @@ func Run() {
 		tree := layout.Layout(root, termW, termH)
 		if prevTree == nil || termW != prevW || termH != prevH {
 			buf := render.NewBuffer(termW, termH)
-			renderTree(buf, tree, nil)
+			layout.RenderTree(buf, tree, nil)
 			render.ClearScreen(os.Stdout)
 			buf.RenderTo(os.Stdout)
 		} else {
@@ -81,15 +81,15 @@ func Run() {
 	render.EnterAlternateScreen(os.Stdout)
 	defer render.ExitAlternateScreen(os.Stdout)
 
-	keyCh := make(chan rune)
+	eventCh := make(chan input.Event)
 	go func() {
 		for {
-			key, err := input.ReadKey(os.Stdin)
+			evt, err := input.ReadEvent(os.Stdin)
 			if err != nil {
-				close(keyCh)
+				close(eventCh)
 				return
 			}
-			keyCh <- key
+			eventCh <- evt
 		}
 	}()
 
@@ -100,40 +100,21 @@ func Run() {
 
 	for {
 		select {
-		case key, ok := <-keyCh:
-			if !ok || key == 'q' || key == 3 {
+		case evt, ok := <-eventCh:
+			if !ok {
 				return
 			}
-			increment()
+			if evt.Kind == input.EventKey {
+				if evt.Rune == 'q' || evt.Rune == 3 {
+					return
+				}
+				increment()
+			}
 		case <-resizeCh:
 			dirty = true
 		}
 		if dirty {
 			doRender()
 		}
-	}
-}
-
-func renderTree(buf *render.Buffer, box *layout.Box, clip *render.Clip) {
-	if box.Border != "" && box.Border != "none" {
-		buf.DrawStyledBorder(box.Y, box.X, box.Width, box.Height, box.Border, box.Style)
-	}
-	if box.Lines != nil {
-		for i, line := range box.Lines {
-			buf.WriteStyledTextClipped(box.Y+i, box.X, line, box.Style, clip)
-		}
-	} else if box.Content != "" {
-		buf.WriteStyledTextClipped(box.Y, box.X, box.Content, box.Style, clip)
-	}
-	childClip := clip
-	if box.Clip != nil {
-		if clip != nil {
-			childClip = clip.Intersect(box.Clip)
-		} else {
-			childClip = box.Clip
-		}
-	}
-	for _, child := range box.Children {
-		renderTree(buf, child, childClip)
 	}
 }

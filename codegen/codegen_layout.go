@@ -19,11 +19,16 @@ func writeLayoutTree(buf *bytes.Buffer, doc *template.Document, stylesheet *styl
 	}
 	tabs := indentStr(baseIndent)
 	tracker := newInstanceTracker(instances)
+	rootProps := resolveProps(stylesheet, "root", nil)
 
 	fmt.Fprintf(buf, "%sroot := &layout.Input{\n", tabs)
-	fmt.Fprintf(buf, "%s\tKind:      layout.KindBox,\n", tabs)
-	fmt.Fprintf(buf, "%s\tDirection: \"column\",\n", tabs)
-	fmt.Fprintf(buf, "%s\tChildren:  []*layout.Input{\n", tabs)
+	fmt.Fprintf(buf, "%s\tKind: layout.KindBox,\n", tabs)
+	rootAttrs := map[string]string{"direction": "column"}
+	writeBoxAttributes(buf, tabs, rootAttrs, rootProps)
+	if rootProps != nil {
+		writeStyleLiteral(buf, tabs, rootProps)
+	}
+	fmt.Fprintf(buf, "%s\tChildren: []*layout.Input{\n", tabs)
 	for _, child := range doc.Children {
 		writeInputNode(buf, child, stylesheet, baseIndent+2, tracker)
 	}

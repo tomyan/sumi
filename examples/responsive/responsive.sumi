@@ -4,6 +4,7 @@ height := $env(height)
 </script>
 
 <style>
+root { overflow: auto; min-width: 48; }
 .header { border: single; padding: 1 2; border-color: cyan; }
 .title { color: green; bold: true; }
 .dims { color: yellow; bold: true; }

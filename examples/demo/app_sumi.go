@@ -46,32 +46,8 @@ func Run() {
 	tree := layout.Layout(root, termW, termH)
 	buf := render.NewBuffer(termW, termH)
 	render.EnterAlternateScreen(os.Stdout)
-	renderTree(buf, tree, nil)
+	layout.RenderTree(buf, tree, nil)
 	buf.RenderTo(os.Stdout)
 	bufio.NewScanner(os.Stdin).Scan()
 	render.ExitAlternateScreen(os.Stdout)
-}
-
-func renderTree(buf *render.Buffer, box *layout.Box, clip *render.Clip) {
-	if box.Border != "" && box.Border != "none" {
-		buf.DrawStyledBorder(box.Y, box.X, box.Width, box.Height, box.Border, box.Style)
-	}
-	if box.Lines != nil {
-		for i, line := range box.Lines {
-			buf.WriteStyledTextClipped(box.Y+i, box.X, line, box.Style, clip)
-		}
-	} else if box.Content != "" {
-		buf.WriteStyledTextClipped(box.Y, box.X, box.Content, box.Style, clip)
-	}
-	childClip := clip
-	if box.Clip != nil {
-		if clip != nil {
-			childClip = clip.Intersect(box.Clip)
-		} else {
-			childClip = box.Clip
-		}
-	}
-	for _, child := range box.Children {
-		renderTree(buf, child, childClip)
-	}
 }

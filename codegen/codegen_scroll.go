@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 
+	"github.com/tomyan/sumi/parser/style"
 	"github.com/tomyan/sumi/parser/template"
 )
 
@@ -13,13 +14,29 @@ type scrollableBox struct {
 	TreePath string // path expression to reach this box in the layout tree (e.g. "tree.Children[0]")
 }
 
-// findScrollableBoxes finds all boxes with overflow="scroll" or overflow="auto" in the document.
-func findScrollableBoxes(doc *template.Document) []scrollableBox {
+// findAllScrollableBoxes finds scrollable boxes including the implicit root container.
+func findAllScrollableBoxes(doc *template.Document, stylesheet *style.Stylesheet) []scrollableBox {
 	var boxes []scrollableBox
+	if rootHasOverflow(stylesheet) {
+		boxes = append(boxes, scrollableBox{Index: 0, TreePath: "tree"})
+	}
 	for i, child := range doc.Children {
 		findScrollableInNode(child, fmt.Sprintf("tree.Children[%d]", i), &boxes)
 	}
+	for i := range boxes {
+		boxes[i].Index = i
+	}
 	return boxes
+}
+
+// rootHasOverflow checks if the root selector in the stylesheet has a scroll overflow.
+func rootHasOverflow(stylesheet *style.Stylesheet) bool {
+	props := resolveProps(stylesheet, "root", nil)
+	if props == nil {
+		return false
+	}
+	overflow := props["overflow"]
+	return overflow == "scroll" || overflow == "auto"
 }
 
 // findScrollableInNode recursively searches for scrollable boxes.
@@ -64,9 +81,9 @@ func writeScrollTreeWiring(buf *bytes.Buffer, scrollBoxes []scrollableBox) {
 	}
 }
 
-// prevTreePath converts a tree path like "tree.Children[0]" to use prevTree.
+// prevTreePath converts a tree path like "tree" or "tree.Children[0]" to use prevTree.
 func prevTreePath(treePath string) string {
-	if len(treePath) > 4 && treePath[:4] == "tree" {
+	if len(treePath) >= 4 && treePath[:4] == "tree" {
 		return "prevTree" + treePath[4:]
 	}
 	return treePath
