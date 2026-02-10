@@ -34,7 +34,7 @@ func writeStaticBody(buf *bytes.Buffer, doc *template.Document, stylesheet *styl
 	buf.WriteString("\ttree := layout.Layout(root, termW, termH)\n")
 	buf.WriteString("\tbuf := render.NewBuffer(termW, termH)\n")
 	buf.WriteString("\trender.EnterAlternateScreen(os.Stdout)\n")
-	buf.WriteString("\trenderTree(buf, tree)\n")
+	buf.WriteString("\trenderTree(buf, tree, nil)\n")
 	buf.WriteString("\tbuf.RenderTo(os.Stdout)\n")
 	buf.WriteString("\tbufio.NewScanner(os.Stdin).Scan()\n")
 	buf.WriteString("\trender.ExitAlternateScreen(os.Stdout)\n")

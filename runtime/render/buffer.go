@@ -73,3 +73,34 @@ func (b *Buffer) WriteStyledText(row, col int, text string, style Style) {
 		col++
 	}
 }
+
+// SetStyledCellClipped sets a cell only if it falls within the clip region.
+// A nil clip means no clipping (equivalent to SetStyledCell).
+func (b *Buffer) SetStyledCellClipped(row, col int, ch rune, style Style, clip *Clip) {
+	if clip != nil && !clip.Contains(row, col) {
+		return
+	}
+	b.SetStyledCell(row, col, ch, style)
+}
+
+// WriteStyledTextClipped writes a styled string, skipping characters outside the clip region.
+// A nil clip means no clipping (equivalent to WriteStyledText).
+func (b *Buffer) WriteStyledTextClipped(row, col int, text string, style Style, clip *Clip) {
+	if clip != nil && (row < clip.Top || row > clip.Bottom) {
+		return
+	}
+	for _, ch := range text {
+		if col >= b.width {
+			break
+		}
+		if clip != nil && col > clip.Right {
+			break
+		}
+		if clip != nil && col < clip.Left {
+			col++
+			continue
+		}
+		b.SetStyledCell(row, col, ch, style)
+		col++
+	}
+}

@@ -257,8 +257,8 @@ func TestGenerateContainsRenderTree(t *testing.T) {
 	if !strings.Contains(src, "renderTree(") {
 		t.Errorf("expected renderTree call in output:\n%s", src)
 	}
-	if !strings.Contains(src, "func renderTree(") {
-		t.Errorf("expected renderTree function definition in output:\n%s", src)
+	if !strings.Contains(src, "func renderTree(buf *render.Buffer, box *layout.Box, clip *render.Clip)") {
+		t.Errorf("expected renderTree function definition with clip parameter in output:\n%s", src)
 	}
 }
 
@@ -304,7 +304,7 @@ func TestGenerateRenderTreeDrawsBorders(t *testing.T) {
 	if !strings.Contains(src, "DrawStyledBorder(") {
 		t.Errorf("expected DrawStyledBorder call in renderTree in output:\n%s", src)
 	}
-	if !strings.Contains(src, "WriteStyledText(") {
-		t.Errorf("expected WriteStyledText call in renderTree in output:\n%s", src)
+	if !strings.Contains(src, "WriteStyledTextClipped(") {
+		t.Errorf("expected WriteStyledTextClipped call in renderTree in output:\n%s", src)
 	}
 }

@@ -63,7 +63,7 @@ func Run() {
 		tree := layout.Layout(root, termW, termH)
 		if prevTree == nil || termW != prevW || termH != prevH {
 			buf := render.NewBuffer(termW, termH)
-			renderTree(buf, tree)
+			renderTree(buf, tree, nil)
 			render.ClearScreen(os.Stdout)
 			buf.RenderTo(os.Stdout)
 		} else {
@@ -114,18 +114,26 @@ func Run() {
 	}
 }
 
-func renderTree(buf *render.Buffer, box *layout.Box) {
+func renderTree(buf *render.Buffer, box *layout.Box, clip *render.Clip) {
 	if box.Border != "" && box.Border != "none" {
 		buf.DrawStyledBorder(box.Y, box.X, box.Width, box.Height, box.Border, box.Style)
 	}
 	if box.Lines != nil {
 		for i, line := range box.Lines {
-			buf.WriteStyledText(box.Y+i, box.X, line, box.Style)
+			buf.WriteStyledTextClipped(box.Y+i, box.X, line, box.Style, clip)
 		}
 	} else if box.Content != "" {
-		buf.WriteStyledText(box.Y, box.X, box.Content, box.Style)
+		buf.WriteStyledTextClipped(box.Y, box.X, box.Content, box.Style, clip)
+	}
+	childClip := clip
+	if box.Clip != nil {
+		if clip != nil {
+			childClip = clip.Intersect(box.Clip)
+		} else {
+			childClip = box.Clip
+		}
 	}
 	for _, child := range box.Children {
-		renderTree(buf, child)
+		renderTree(buf, child, childClip)
 	}
 }

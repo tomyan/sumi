@@ -26,6 +26,7 @@ type Input struct {
 	FlexGrow    int          // flex-grow factor (0 = no grow)
 	Justify     string       // main-axis alignment: start, end, center, space-between
 	Align       string       // cross-axis alignment: start, end, center, stretch
+	Overflow    string       // "hidden", "scroll", "auto", or "" (visible)
 	Padding     Padding
 	Border      string       // "single", "none", or ""
 	Style       render.Style // resolved style for this node
@@ -45,6 +46,7 @@ type Box struct {
 	Lines               []string     // wrapped lines (nil = single line, use Content)
 	Border              string       // border style
 	Style               render.Style // visual style
+	Clip                *render.Clip // clipping region (set when overflow is non-empty)
 }
 
 // ParsePadding parses a CSS-like padding shorthand string.
@@ -197,6 +199,10 @@ func layoutNode(input *Input, availW, availH int) *Box {
 		box.Height = availH
 	} else {
 		box.Height = contentH + insetH
+	}
+
+	if input.Overflow != "" {
+		box.Clip = computeClip(box, b, pad)
 	}
 
 	return box

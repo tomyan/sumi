@@ -29,9 +29,9 @@ func TestGenerateWithNilStylesheetBackwardCompat(t *testing.T) {
 		t.Fatalf("generated code is not valid Go:\n%s\n\nerror: %v", string(out), parseErr)
 	}
 	src := string(out)
-	// Should use WriteStyledText and DrawStyledBorder (always use styled versions)
-	if !strings.Contains(src, "WriteStyledText(") {
-		t.Errorf("expected WriteStyledText in output:\n%s", src)
+	// Should use WriteStyledTextClipped and DrawStyledBorder (always use styled versions)
+	if !strings.Contains(src, "WriteStyledTextClipped(") {
+		t.Errorf("expected WriteStyledTextClipped in output:\n%s", src)
 	}
 }
 
@@ -207,8 +207,8 @@ func TestGenerateRenderTreeUsesStyledMethods(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 	src := string(out)
-	if !strings.Contains(src, "WriteStyledText(") {
-		t.Errorf("expected WriteStyledText in renderTree:\n%s", src)
+	if !strings.Contains(src, "WriteStyledTextClipped(") {
+		t.Errorf("expected WriteStyledTextClipped in renderTree:\n%s", src)
 	}
 	if !strings.Contains(src, "DrawStyledBorder(") {
 		t.Errorf("expected DrawStyledBorder in renderTree:\n%s", src)

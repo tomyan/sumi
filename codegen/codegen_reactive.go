@@ -124,7 +124,7 @@ func writeRenderClosure(buf *bytes.Buffer, doc *template.Document, stylesheet *s
 	buf.WriteString("\t\ttree := layout.Layout(root, termW, termH)\n")
 	buf.WriteString("\t\tif prevTree == nil || termW != prevW || termH != prevH {\n")
 	buf.WriteString("\t\t\tbuf := render.NewBuffer(termW, termH)\n")
-	buf.WriteString("\t\t\trenderTree(buf, tree)\n")
+	buf.WriteString("\t\t\trenderTree(buf, tree, nil)\n")
 	buf.WriteString("\t\t\trender.ClearScreen(os.Stdout)\n")
 	buf.WriteString("\t\t\tbuf.RenderTo(os.Stdout)\n")
 	buf.WriteString("\t\t} else {\n")

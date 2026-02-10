@@ -104,6 +104,9 @@ func writeBoxAttributes(buf *bytes.Buffer, tabs string, attrs map[string]string,
 	if b, ok := mergedAttr(attrs, props, "border"); ok {
 		fmt.Fprintf(buf, "%s\tBorder: %q,\n", tabs, b)
 	}
+	if o, ok := mergedAttr(attrs, props, "overflow"); ok {
+		fmt.Fprintf(buf, "%s\tOverflow: %q,\n", tabs, o)
+	}
 }
 
 // writeIntAttr writes an integer attribute field if present and parseable.
@@ -132,21 +135,29 @@ func writeBoxChildren(buf *bytes.Buffer, children []template.Node, stylesheet *s
 }
 
 // writeRenderTreeFunc generates the renderTree helper function.
-// Handles both single-line text (Content) and wrapped text (Lines).
+// Handles clipping, single-line text (Content), and wrapped text (Lines).
 func writeRenderTreeFunc(buf *bytes.Buffer) {
-	buf.WriteString("func renderTree(buf *render.Buffer, box *layout.Box) {\n")
+	buf.WriteString("func renderTree(buf *render.Buffer, box *layout.Box, clip *render.Clip) {\n")
 	buf.WriteString("\tif box.Border != \"\" && box.Border != \"none\" {\n")
 	buf.WriteString("\t\tbuf.DrawStyledBorder(box.Y, box.X, box.Width, box.Height, box.Border, box.Style)\n")
 	buf.WriteString("\t}\n")
 	buf.WriteString("\tif box.Lines != nil {\n")
 	buf.WriteString("\t\tfor i, line := range box.Lines {\n")
-	buf.WriteString("\t\t\tbuf.WriteStyledText(box.Y+i, box.X, line, box.Style)\n")
+	buf.WriteString("\t\t\tbuf.WriteStyledTextClipped(box.Y+i, box.X, line, box.Style, clip)\n")
 	buf.WriteString("\t\t}\n")
 	buf.WriteString("\t} else if box.Content != \"\" {\n")
-	buf.WriteString("\t\tbuf.WriteStyledText(box.Y, box.X, box.Content, box.Style)\n")
+	buf.WriteString("\t\tbuf.WriteStyledTextClipped(box.Y, box.X, box.Content, box.Style, clip)\n")
+	buf.WriteString("\t}\n")
+	buf.WriteString("\tchildClip := clip\n")
+	buf.WriteString("\tif box.Clip != nil {\n")
+	buf.WriteString("\t\tif clip != nil {\n")
+	buf.WriteString("\t\t\tchildClip = clip.Intersect(box.Clip)\n")
+	buf.WriteString("\t\t} else {\n")
+	buf.WriteString("\t\t\tchildClip = box.Clip\n")
+	buf.WriteString("\t\t}\n")
 	buf.WriteString("\t}\n")
 	buf.WriteString("\tfor _, child := range box.Children {\n")
-	buf.WriteString("\t\trenderTree(buf, child)\n")
+	buf.WriteString("\t\trenderTree(buf, child, childClip)\n")
 	buf.WriteString("\t}\n")
 	buf.WriteString("}\n")
 }
