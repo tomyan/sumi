@@ -41,6 +41,8 @@ type Padding struct {
 // Box is a laid-out node with computed position and size.
 type Box struct {
 	X, Y, Width, Height int
+	ContentWidth        int          // full content width (set when overflow != "")
+	ContentHeight       int          // full content height (set when overflow != "")
 	Children            []*Box
 	Content             string       // text content if text node
 	Lines               []string     // wrapped lines (nil = single line, use Content)
@@ -143,19 +145,25 @@ func layoutNode(input *Input, availW, availH int) *Box {
 		contentAvailH = input.FixedHeight - insetH
 	}
 
+	// For scroll/auto overflow, give children unbounded space
+	childAvailH := contentAvailH
+	if isScrollOverflow(input.Overflow) {
+		childAvailH = 1000000
+	}
+
 	hasFlexChildren := hasFlexGrow(input.Children)
 
 	if input.Direction == "row" {
 		if hasFlexChildren {
-			box.Children = layoutRowFlex(input.Children, offsetX, offsetY, input.Gap, contentAvailW, contentAvailH)
+			box.Children = layoutRowFlex(input.Children, offsetX, offsetY, input.Gap, contentAvailW, childAvailH)
 		} else {
-			box.Children = layoutRow(input.Children, offsetX, offsetY, input.Gap, contentAvailW, contentAvailH)
+			box.Children = layoutRow(input.Children, offsetX, offsetY, input.Gap, contentAvailW, childAvailH)
 		}
 	} else {
 		if hasFlexChildren {
-			box.Children = layoutColumnFlex(input.Children, offsetX, offsetY, input.Gap, contentAvailW, contentAvailH)
+			box.Children = layoutColumnFlex(input.Children, offsetX, offsetY, input.Gap, contentAvailW, childAvailH)
 		} else {
-			box.Children = layoutColumn(input.Children, offsetX, offsetY, input.Gap, contentAvailW, contentAvailH)
+			box.Children = layoutColumn(input.Children, offsetX, offsetY, input.Gap, contentAvailW, childAvailH)
 		}
 	}
 
@@ -203,6 +211,10 @@ func layoutNode(input *Input, availW, availH int) *Box {
 
 	if input.Overflow != "" {
 		box.Clip = computeClip(box, b, pad)
+	}
+	if isScrollOverflow(input.Overflow) {
+		box.ContentWidth = contentW
+		box.ContentHeight = contentH
 	}
 
 	return box

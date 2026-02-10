@@ -2,6 +2,11 @@ package layout
 
 import "github.com/tomyan/sumi/runtime/render"
 
+// isScrollOverflow returns true if the overflow value enables scrolling.
+func isScrollOverflow(overflow string) bool {
+	return overflow == "scroll" || overflow == "auto"
+}
+
 // computeClip returns the clip region for a box with overflow set.
 // The clip covers the content area inside border and padding.
 func computeClip(box *Box, borderWidth int, pad Padding) *render.Clip {
