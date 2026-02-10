@@ -158,6 +158,11 @@ func layoutNode(input *Input, availW, availH int) *Box {
 	b := borderSize(input.Border)
 	pad := input.Padding
 
+	// When border-collapse is active, children fill the entire parent area
+	if input.BorderCollapse {
+		b = 0
+	}
+
 	// Inset from the edge to the content area
 	offsetX := b + pad.Left
 	offsetY := b + pad.Top
@@ -187,17 +192,32 @@ func layoutNode(input *Input, availW, availH int) *Box {
 
 	hasFlexChildren := hasFlexGrow(input.Children)
 
+	// Border-collapse forces gap to 0
+	gap := input.Gap
+	if input.BorderCollapse {
+		gap = 0
+	}
+
 	if input.Direction == "row" {
 		if hasFlexChildren {
-			box.Children = layoutRowFlex(input.Children, offsetX, offsetY, input.Gap, contentAvailW, childAvailH)
+			box.Children = layoutRowFlex(input.Children, offsetX, offsetY, gap, contentAvailW, childAvailH)
 		} else {
-			box.Children = layoutRow(input.Children, offsetX, offsetY, input.Gap, contentAvailW, childAvailH)
+			box.Children = layoutRow(input.Children, offsetX, offsetY, gap, contentAvailW, childAvailH)
 		}
 	} else {
 		if hasFlexChildren {
-			box.Children = layoutColumnFlex(input.Children, offsetX, offsetY, input.Gap, contentAvailW, childAvailH)
+			box.Children = layoutColumnFlex(input.Children, offsetX, offsetY, gap, contentAvailW, childAvailH)
 		} else {
-			box.Children = layoutColumn(input.Children, offsetX, offsetY, input.Gap, contentAvailW, childAvailH)
+			box.Children = layoutColumn(input.Children, offsetX, offsetY, gap, contentAvailW, childAvailH)
+		}
+	}
+
+	// Apply border-collapse: overlap adjacent bordered children
+	if input.BorderCollapse {
+		if input.Direction == "row" {
+			applyRowCollapse(box.Children, input.Children)
+		} else {
+			applyColumnCollapse(box.Children, input.Children)
 		}
 	}
 
