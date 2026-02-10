@@ -296,6 +296,90 @@ func TestGenerateReactiveEventLoopUsesSelect(t *testing.T) {
 	}
 }
 
+func TestGenerateWithEnvDeclsIsReactive(t *testing.T) {
+	// Given: only env decls, no state — should still be reactive
+	doc := &template.Document{
+		Children: []template.Node{
+			&template.TextElement{
+				Parts: []template.Part{
+					&template.StringPart{Value: "Terminal: "},
+					&template.ExprPart{Expr: "width"},
+					&template.StringPart{Value: "x"},
+					&template.ExprPart{Expr: "height"},
+				},
+			},
+		},
+	}
+	sc := &script.Script{
+		EnvDecls: []script.EnvDecl{
+			{Name: "width", Key: "width"},
+			{Name: "height", Key: "height"},
+		},
+	}
+
+	// When
+	out, err := Generate(doc, sc, nil, Options{PackageName: "main"})
+
+	// Then
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	fset := token.NewFileSet()
+	_, parseErr := parser.ParseFile(fset, "generated.go", out, parser.AllErrors)
+	if parseErr != nil {
+		t.Fatalf("generated code is not valid Go:\n%s\n\nerror: %v", string(out), parseErr)
+	}
+	src := string(out)
+	// Should be reactive (has select-based event loop)
+	if !strings.Contains(src, "select {") {
+		t.Errorf("expected select-based event loop:\n%s", src)
+	}
+	// Env vars should be initialized
+	if !strings.Contains(src, "width, height := term.GetSize") {
+		t.Errorf("expected width, height := term.GetSize in output:\n%s", src)
+	}
+	// On resize: env vars should be updated
+	if !strings.Contains(src, "width, height = term.GetSize") {
+		t.Errorf("expected width, height = term.GetSize on resize:\n%s", src)
+	}
+}
+
+func TestGenerateWithEnvWidthOnly(t *testing.T) {
+	// Given: only width env decl
+	doc := &template.Document{
+		Children: []template.Node{
+			&template.TextElement{
+				Parts: []template.Part{
+					&template.StringPart{Value: "W: "},
+					&template.ExprPart{Expr: "w"},
+				},
+			},
+		},
+	}
+	sc := &script.Script{
+		EnvDecls: []script.EnvDecl{
+			{Name: "w", Key: "width"},
+		},
+	}
+
+	// When
+	out, err := Generate(doc, sc, nil, Options{PackageName: "main"})
+
+	// Then
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	fset := token.NewFileSet()
+	_, parseErr := parser.ParseFile(fset, "generated.go", out, parser.AllErrors)
+	if parseErr != nil {
+		t.Fatalf("generated code is not valid Go:\n%s\n\nerror: %v", string(out), parseErr)
+	}
+	src := string(out)
+	if !strings.Contains(src, "w, _ := term.GetSize") {
+		t.Errorf("expected w, _ := term.GetSize in output:\n%s", src)
+	}
+}
+
 func TestGenerateMultipleStateVarsAndFunctions(t *testing.T) {
 	// Given
 	doc := &template.Document{

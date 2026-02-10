@@ -18,13 +18,16 @@ func writeReactiveBody(buf *bytes.Buffer, doc *template.Document, sc *script.Scr
 	writeRenderClosure(buf, doc, stylesheet, instances)
 	writeSuppressUnusedFuncs(buf, doc, sc)
 	writeTerminalSetup(buf)
-	writeEventLoop(buf, doc, instances)
+	writeEventLoop(buf, doc, sc, instances)
 }
 
-// writeStateOrDirtyOnly writes state decls if present, otherwise just the dirty flag.
+// writeStateOrDirtyOnly writes state decls and env decls if present, then the dirty flag.
 func writeStateOrDirtyOnly(buf *bytes.Buffer, sc *script.Script) {
 	if sc != nil && len(sc.StateDecls) > 0 {
 		writeStateDecls(buf, sc.StateDecls)
+	}
+	if sc != nil && len(sc.EnvDecls) > 0 {
+		writeEnvDecls(buf, sc.EnvDecls)
 	}
 	buf.WriteString("\tdirty := true\n")
 }
@@ -61,6 +64,28 @@ func writeStateDecls(buf *bytes.Buffer, stateDecls []script.StateDecl) {
 		fmt.Fprintf(buf, "\t%s := %s\n", stateDecl.Name, stateDecl.InitExpr)
 	}
 	buf.WriteString("\n")
+}
+
+// writeEnvDecls writes env variable initialization from term.GetSize.
+func writeEnvDecls(buf *bytes.Buffer, envDecls []script.EnvDecl) {
+	wName, hName := envVarNames(envDecls)
+	fmt.Fprintf(buf, "\t%s, %s := term.GetSize(int(os.Stdin.Fd()))\n", wName, hName)
+}
+
+// envVarNames returns the variable names for width and height from env decls.
+// If a key is not declared, returns "_" for that position.
+func envVarNames(envDecls []script.EnvDecl) (widthName, heightName string) {
+	widthName = "_"
+	heightName = "_"
+	for _, e := range envDecls {
+		switch e.Key {
+		case "width":
+			widthName = e.Name
+		case "height":
+			heightName = e.Name
+		}
+	}
+	return
 }
 
 // writeReactiveFuncBody writes a function body, adding dirty=true after each state assignment.
@@ -129,7 +154,7 @@ func writeTerminalSetup(buf *bytes.Buffer) {
 }
 
 // writeEventLoop writes the main select-based event loop.
-func writeEventLoop(buf *bytes.Buffer, doc *template.Document, instances []componentInstance) {
+func writeEventLoop(buf *bytes.Buffer, doc *template.Document, sc *script.Script, instances []componentInstance) {
 	buf.WriteString("\tfor {\n")
 	buf.WriteString("\t\tselect {\n")
 	buf.WriteString("\t\tcase key, ok := <-keyCh:\n")
@@ -139,10 +164,20 @@ func writeEventLoop(buf *bytes.Buffer, doc *template.Document, instances []compo
 	writeOnkeyDispatchIndented(buf, doc)
 	writeChildHandleKeyIndented(buf, instances)
 	buf.WriteString("\t\tcase <-resizeCh:\n")
+	writeEnvUpdate(buf, sc)
 	buf.WriteString("\t\t\tdirty = true\n")
 	buf.WriteString("\t\t}\n")
 	writeDirtyCheck(buf, instances)
 	buf.WriteString("\t}\n")
+}
+
+// writeEnvUpdate writes env variable updates on resize.
+func writeEnvUpdate(buf *bytes.Buffer, sc *script.Script) {
+	if sc == nil || len(sc.EnvDecls) == 0 {
+		return
+	}
+	wName, hName := envVarNames(sc.EnvDecls)
+	fmt.Fprintf(buf, "\t\t\t%s, %s = term.GetSize(int(os.Stdin.Fd()))\n", wName, hName)
 }
 
 // writeOnkeyDispatch writes the root onkey handler call if present.
