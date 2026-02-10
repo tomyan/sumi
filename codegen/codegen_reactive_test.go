@@ -264,6 +264,38 @@ func TestGenerateStaticUsesTermGetSize(t *testing.T) {
 	}
 }
 
+func TestGenerateReactiveEventLoopUsesSelect(t *testing.T) {
+	// Given a reactive document
+	doc := &template.Document{
+		Children: []template.Node{textNode("Hello")},
+	}
+	sc := &script.Script{
+		StateDecls: []script.StateDecl{
+			{Name: "count", InitExpr: "0"},
+		},
+	}
+
+	// When
+	out, err := Generate(doc, sc, nil, Options{PackageName: "main"})
+
+	// Then generated code should use select-based event loop with resize channel
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	fset := token.NewFileSet()
+	_, parseErr := parser.ParseFile(fset, "generated.go", out, parser.AllErrors)
+	if parseErr != nil {
+		t.Fatalf("generated code is not valid Go:\n%s\n\nerror: %v", string(out), parseErr)
+	}
+	src := string(out)
+	if !strings.Contains(src, "term.WatchResize") {
+		t.Errorf("expected term.WatchResize in output:\n%s", src)
+	}
+	if !strings.Contains(src, "select {") {
+		t.Errorf("expected select statement in event loop:\n%s", src)
+	}
+}
+
 func TestGenerateMultipleStateVarsAndFunctions(t *testing.T) {
 	// Given
 	doc := &template.Document{

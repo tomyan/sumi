@@ -66,15 +66,34 @@ func Run() {
 	render.EnterAlternateScreen(os.Stdout)
 	defer render.ExitAlternateScreen(os.Stdout)
 
+	keyCh := make(chan rune)
+	go func() {
+		for {
+			key, err := input.ReadKey(os.Stdin)
+			if err != nil {
+				close(keyCh)
+				return
+			}
+			keyCh <- key
+		}
+	}()
+
+	resizeCh, stopResize := term.WatchResize()
+	defer stopResize()
+
 	doRender()
 
 	for {
-		key, err := input.ReadKey(os.Stdin)
-		if err != nil || key == 'q' {
-			break
+		select {
+		case key, ok := <-keyCh:
+			if !ok || key == 'q' {
+				return
+			}
+			counter0.HandleKey(key)
+			counter1.HandleKey(key)
+		case <-resizeCh:
+			dirty = true
 		}
-		counter0.HandleKey(key)
-		counter1.HandleKey(key)
 		if dirty || counter0.Dirty() || counter1.Dirty() {
 			doRender()
 		}

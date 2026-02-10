@@ -6,6 +6,7 @@ import (
 
 	"github.com/tomyan/sumi/runtime/layout"
 	"github.com/tomyan/sumi/runtime/render"
+	"github.com/tomyan/sumi/runtime/term"
 )
 
 func Run() {
@@ -41,8 +42,9 @@ func Run() {
 			},
 		},
 	}
-	tree := layout.Layout(root, 80, 24)
-	buf := render.NewBuffer(80, 24)
+	termW, termH := term.GetSize(int(os.Stdin.Fd()))
+	tree := layout.Layout(root, termW, termH)
+	buf := render.NewBuffer(termW, termH)
 	render.EnterAlternateScreen(os.Stdout)
 	renderTree(buf, tree)
 	buf.RenderTo(os.Stdout)
@@ -52,10 +54,10 @@ func Run() {
 
 func renderTree(buf *render.Buffer, box *layout.Box) {
 	if box.Border != "" && box.Border != "none" {
-		buf.DrawBorder(box.Y, box.X, box.Width, box.Height, box.Border)
+		buf.DrawStyledBorder(box.Y, box.X, box.Width, box.Height, box.Border, box.Style)
 	}
 	if box.Content != "" {
-		buf.WriteText(box.Y, box.X, box.Content)
+		buf.WriteStyledText(box.Y, box.X, box.Content, box.Style)
 	}
 	for _, child := range box.Children {
 		renderTree(buf, child)

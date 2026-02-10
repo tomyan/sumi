@@ -106,24 +106,41 @@ func writeRenderClosure(buf *bytes.Buffer, doc *template.Document, stylesheet *s
 	buf.WriteString("\t}\n\n")
 }
 
-// writeTerminalSetup writes raw mode and alternate screen setup.
+// writeTerminalSetup writes raw mode, alternate screen, key channel, and resize watcher setup.
 func writeTerminalSetup(buf *bytes.Buffer) {
 	buf.WriteString("\trestore, _ := input.EnableRawMode(int(os.Stdin.Fd()))\n")
 	buf.WriteString("\tdefer restore()\n")
 	buf.WriteString("\trender.EnterAlternateScreen(os.Stdout)\n")
 	buf.WriteString("\tdefer render.ExitAlternateScreen(os.Stdout)\n\n")
+	buf.WriteString("\tkeyCh := make(chan rune)\n")
+	buf.WriteString("\tgo func() {\n")
+	buf.WriteString("\t\tfor {\n")
+	buf.WriteString("\t\t\tkey, err := input.ReadKey(os.Stdin)\n")
+	buf.WriteString("\t\t\tif err != nil {\n")
+	buf.WriteString("\t\t\t\tclose(keyCh)\n")
+	buf.WriteString("\t\t\t\treturn\n")
+	buf.WriteString("\t\t\t}\n")
+	buf.WriteString("\t\t\tkeyCh <- key\n")
+	buf.WriteString("\t\t}\n")
+	buf.WriteString("\t}()\n\n")
+	buf.WriteString("\tresizeCh, stopResize := term.WatchResize()\n")
+	buf.WriteString("\tdefer stopResize()\n\n")
 	buf.WriteString("\tdoRender()\n\n")
 }
 
-// writeEventLoop writes the main event loop.
+// writeEventLoop writes the main select-based event loop.
 func writeEventLoop(buf *bytes.Buffer, doc *template.Document, instances []componentInstance) {
 	buf.WriteString("\tfor {\n")
-	buf.WriteString("\t\tkey, err := input.ReadKey(os.Stdin)\n")
-	buf.WriteString("\t\tif err != nil || key == 'q' {\n")
-	buf.WriteString("\t\t\tbreak\n")
+	buf.WriteString("\t\tselect {\n")
+	buf.WriteString("\t\tcase key, ok := <-keyCh:\n")
+	buf.WriteString("\t\t\tif !ok || key == 'q' {\n")
+	buf.WriteString("\t\t\t\treturn\n")
+	buf.WriteString("\t\t\t}\n")
+	writeOnkeyDispatchIndented(buf, doc)
+	writeChildHandleKeyIndented(buf, instances)
+	buf.WriteString("\t\tcase <-resizeCh:\n")
+	buf.WriteString("\t\t\tdirty = true\n")
 	buf.WriteString("\t\t}\n")
-	writeOnkeyDispatch(buf, doc)
-	writeChildHandleKey(buf, instances)
 	writeDirtyCheck(buf, instances)
 	buf.WriteString("\t}\n")
 }
@@ -136,11 +153,28 @@ func writeOnkeyDispatch(buf *bytes.Buffer, doc *template.Document) {
 	}
 }
 
+// writeOnkeyDispatchIndented writes the root onkey handler call indented for select case.
+func writeOnkeyDispatchIndented(buf *bytes.Buffer, doc *template.Document) {
+	onkeyFunc := findRootOnkey(doc)
+	if onkeyFunc != "" {
+		fmt.Fprintf(buf, "\t\t\t%s()\n", onkeyFunc)
+	}
+}
+
 // writeChildHandleKey writes HandleKey dispatch to stateful child components.
 func writeChildHandleKey(buf *bytes.Buffer, instances []componentInstance) {
 	for _, inst := range instances {
 		if inst.Info.HasState {
 			fmt.Fprintf(buf, "\t\t%s.HandleKey(key)\n", inst.VarName)
+		}
+	}
+}
+
+// writeChildHandleKeyIndented writes HandleKey dispatch indented for select case.
+func writeChildHandleKeyIndented(buf *bytes.Buffer, instances []componentInstance) {
+	for _, inst := range instances {
+		if inst.Info.HasState {
+			fmt.Fprintf(buf, "\t\t\t%s.HandleKey(key)\n", inst.VarName)
 		}
 	}
 }
