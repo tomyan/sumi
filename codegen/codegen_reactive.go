@@ -12,13 +12,15 @@ import (
 
 // writeReactiveBody generates the reactive function body with event loop.
 func writeReactiveBody(buf *bytes.Buffer, doc *template.Document, sc *script.Script, stylesheet *style.Stylesheet, instances []componentInstance) {
+	scrollBoxes := findScrollableBoxes(doc)
 	writeComponentInits(buf, instances)
 	writeStateOrDirtyOnly(buf, sc)
+	writeScrollStateDecls(buf, scrollBoxes)
 	writeFuncClosures(buf, sc)
-	writeRenderClosure(buf, doc, stylesheet, instances)
+	writeRenderClosure(buf, doc, stylesheet, instances, scrollBoxes)
 	writeSuppressUnusedFuncs(buf, doc, sc)
 	writeTerminalSetup(buf)
-	writeEventLoop(buf, doc, sc, instances)
+	writeEventLoop(buf, doc, sc, instances, scrollBoxes)
 }
 
 // writeStateOrDirtyOnly writes state decls and env decls if present, then the dirty flag.
@@ -115,13 +117,14 @@ func buildStateLinesSet(assignments []script.StateAssignment) map[string]bool {
 // writeRenderClosure writes the doRender closure with surgical rendering.
 // First render (or resize) does a full redraw via buffer; subsequent state
 // changes diff the layout tree and only write changed nodes.
-func writeRenderClosure(buf *bytes.Buffer, doc *template.Document, stylesheet *style.Stylesheet, instances []componentInstance) {
+func writeRenderClosure(buf *bytes.Buffer, doc *template.Document, stylesheet *style.Stylesheet, instances []componentInstance, scrollBoxes []scrollableBox) {
 	buf.WriteString("\tvar prevTree *layout.Box\n")
 	buf.WriteString("\tvar prevW, prevH int\n")
 	buf.WriteString("\tdoRender := func() {\n")
 	buf.WriteString("\t\ttermW, termH := term.GetSize(int(os.Stdin.Fd()))\n")
 	writeLayoutTree(buf, doc, stylesheet, true, instances)
 	buf.WriteString("\t\ttree := layout.Layout(root, termW, termH)\n")
+	writeScrollTreeWiring(buf, scrollBoxes)
 	buf.WriteString("\t\tif prevTree == nil || termW != prevW || termH != prevH {\n")
 	buf.WriteString("\t\t\tbuf := render.NewBuffer(termW, termH)\n")
 	buf.WriteString("\t\t\tlayout.RenderTree(buf, tree, nil)\n")
@@ -161,7 +164,7 @@ func writeTerminalSetup(buf *bytes.Buffer) {
 }
 
 // writeEventLoop writes the main select-based event loop.
-func writeEventLoop(buf *bytes.Buffer, doc *template.Document, sc *script.Script, instances []componentInstance) {
+func writeEventLoop(buf *bytes.Buffer, doc *template.Document, sc *script.Script, instances []componentInstance, scrollBoxes []scrollableBox) {
 	buf.WriteString("\tfor {\n")
 	buf.WriteString("\t\tselect {\n")
 	buf.WriteString("\t\tcase evt, ok := <-eventCh:\n")
@@ -169,6 +172,7 @@ func writeEventLoop(buf *bytes.Buffer, doc *template.Document, sc *script.Script
 	buf.WriteString("\t\t\t\treturn\n")
 	buf.WriteString("\t\t\t}\n")
 	writeEventKeyHandler(buf, doc, instances)
+	writeScrollDispatch(buf, scrollBoxes)
 	buf.WriteString("\t\tcase <-resizeCh:\n")
 	writeEnvUpdate(buf, sc)
 	buf.WriteString("\t\t\tdirty = true\n")
