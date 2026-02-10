@@ -48,7 +48,8 @@ func generateRunFunc(doc *template.Document, sc *script.Script, stylesheet *styl
 	var buf bytes.Buffer
 	fmt.Fprintf(&buf, "package %s\n\n", opts.PackageName)
 	hasTitle := findTitleElement(doc) != nil
-	writeImports(&buf, reactive, docHasExprs(doc) || hasTitle)
+	hasScroll := len(findAllScrollableBoxes(doc, stylesheet)) > 0
+	writeImports(&buf, reactive, docHasExprs(doc) || hasTitle || hasScroll)
 	buf.WriteString("func Run() {\n")
 	if reactive {
 		writeReactiveBody(&buf, doc, sc, stylesheet, instances)

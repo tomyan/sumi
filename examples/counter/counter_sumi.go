@@ -61,7 +61,7 @@ func Run() {
 			},
 		}
 		tree := layout.Layout(root, termW, termH)
-		if prevTree == nil || termW != prevW || termH != prevH {
+		if prevTree == nil || termW != prevW || termH != prevH || layout.HasScrollChanged(prevTree, tree) {
 			buf := render.NewBuffer(termW, termH)
 			layout.RenderTree(buf, tree, nil)
 			render.ClearScreen(os.Stdout)

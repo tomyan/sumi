@@ -64,7 +64,7 @@ func Run() {
 		tree := layout.Layout(root, termW, termH)
 		tree.ScrollY = scroll0.ScrollY
 		tree.ScrollX = scroll0.ScrollX
-		if prevTree == nil || termW != prevW || termH != prevH {
+		if prevTree == nil || termW != prevW || termH != prevH || layout.HasScrollChanged(prevTree, tree) {
 			buf := render.NewBuffer(termW, termH)
 			layout.RenderTree(buf, tree, nil)
 			render.ClearScreen(os.Stdout)
@@ -85,6 +85,8 @@ func Run() {
 	defer restore()
 	render.EnterAlternateScreen(os.Stdout)
 	defer render.ExitAlternateScreen(os.Stdout)
+	fmt.Fprint(os.Stdout, input.MouseEnableSeq)
+	defer fmt.Fprint(os.Stdout, input.MouseDisableSeq)
 	defer fmt.Fprint(os.Stdout, "\033[23;2t")
 
 	eventCh := make(chan input.Event)

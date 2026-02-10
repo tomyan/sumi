@@ -20,7 +20,7 @@ func writeReactiveBody(buf *bytes.Buffer, doc *template.Document, sc *script.Scr
 	writeFuncClosures(buf, sc)
 	writeRenderClosure(buf, doc, stylesheet, instances, scrollBoxes, title)
 	writeSuppressUnusedFuncs(buf, doc, sc)
-	writeTerminalSetup(buf, title)
+	writeTerminalSetup(buf, title, len(scrollBoxes) > 0)
 	writeEventLoop(buf, doc, sc, instances, scrollBoxes)
 }
 
@@ -126,7 +126,7 @@ func writeRenderClosure(buf *bytes.Buffer, doc *template.Document, stylesheet *s
 	writeLayoutTree(buf, doc, stylesheet, true, instances)
 	buf.WriteString("\t\ttree := layout.Layout(root, termW, termH)\n")
 	writeScrollTreeWiring(buf, scrollBoxes)
-	buf.WriteString("\t\tif prevTree == nil || termW != prevW || termH != prevH {\n")
+	buf.WriteString("\t\tif prevTree == nil || termW != prevW || termH != prevH || layout.HasScrollChanged(prevTree, tree) {\n")
 	buf.WriteString("\t\t\tbuf := render.NewBuffer(termW, termH)\n")
 	buf.WriteString("\t\t\tlayout.RenderTree(buf, tree, nil)\n")
 	buf.WriteString("\t\t\trender.ClearScreen(os.Stdout)\n")
@@ -144,12 +144,16 @@ func writeRenderClosure(buf *bytes.Buffer, doc *template.Document, stylesheet *s
 }
 
 // writeTerminalSetup writes raw mode, alternate screen, event channel, and resize watcher setup.
-func writeTerminalSetup(buf *bytes.Buffer, title *template.TitleElement) {
+func writeTerminalSetup(buf *bytes.Buffer, title *template.TitleElement, hasScroll bool) {
 	writeTitleSave(buf, title)
 	buf.WriteString("\trestore, _ := input.EnableRawMode(int(os.Stdin.Fd()))\n")
 	buf.WriteString("\tdefer restore()\n")
 	buf.WriteString("\trender.EnterAlternateScreen(os.Stdout)\n")
 	buf.WriteString("\tdefer render.ExitAlternateScreen(os.Stdout)\n")
+	if hasScroll {
+		buf.WriteString("\tfmt.Fprint(os.Stdout, input.MouseEnableSeq)\n")
+		buf.WriteString("\tdefer fmt.Fprint(os.Stdout, input.MouseDisableSeq)\n")
+	}
 	writeTitleRestore(buf, title)
 	buf.WriteString("\n")
 	buf.WriteString("\teventCh := make(chan input.Event)\n")

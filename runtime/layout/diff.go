@@ -90,6 +90,22 @@ func nodeChanged(old, new *Box) bool {
 	return false
 }
 
+// HasScrollChanged returns true if any node's scroll offset differs between old and new trees.
+func HasScrollChanged(old, new *Box) bool {
+	if old == nil || new == nil {
+		return false
+	}
+	if old.ScrollX != new.ScrollX || old.ScrollY != new.ScrollY {
+		return true
+	}
+	for i := 0; i < len(old.Children) && i < len(new.Children); i++ {
+		if HasScrollChanged(old.Children[i], new.Children[i]) {
+			return true
+		}
+	}
+	return false
+}
+
 // linesEqual compares two string slices for equality.
 func linesEqual(a, b []string) bool {
 	if len(a) != len(b) {
