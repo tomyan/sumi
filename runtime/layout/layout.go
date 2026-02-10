@@ -42,6 +42,7 @@ type Box struct {
 	X, Y, Width, Height int
 	Children            []*Box
 	Content             string       // text content if text node
+	Lines               []string     // wrapped lines (nil = single line, use Content)
 	Border              string       // border style
 	Style               render.Style // visual style
 }
@@ -103,8 +104,15 @@ func layoutNode(input *Input, availW, availH int) *Box {
 
 	if input.Kind == KindText {
 		box.Content = input.Content
-		box.Width = len(input.Content)
-		box.Height = 1
+		if availW > 0 && len(input.Content) > availW {
+			lines := wrapText(input.Content, availW)
+			box.Lines = lines
+			box.Width = availW
+			box.Height = len(lines)
+		} else {
+			box.Width = len(input.Content)
+			box.Height = 1
+		}
 		if input.FixedWidth > 0 {
 			box.Width = input.FixedWidth
 		}
