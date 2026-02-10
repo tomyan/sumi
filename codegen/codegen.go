@@ -54,8 +54,7 @@ func generateRunFunc(doc *template.Document, sc *script.Script, stylesheet *styl
 	} else {
 		writeStaticBody(&buf, doc, stylesheet)
 	}
-	buf.WriteString("}\n\n")
-	writeRenderTreeFunc(&buf)
+	buf.WriteString("}\n")
 	return format.Source(buf.Bytes())
 }
 

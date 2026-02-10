@@ -240,7 +240,7 @@ func TestGenerateNestedBoxesIsValidGo(t *testing.T) {
 	}
 }
 
-func TestGenerateContainsRenderTree(t *testing.T) {
+func TestGenerateCallsLayoutRenderTreeFromLayoutTest(t *testing.T) {
 	// Given
 	doc := &template.Document{
 		Children: []template.Node{textNode("Hello")},
@@ -254,57 +254,7 @@ func TestGenerateContainsRenderTree(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 	src := string(out)
-	if !strings.Contains(src, "renderTree(") {
-		t.Errorf("expected renderTree call in output:\n%s", src)
-	}
-	if !strings.Contains(src, "func renderTree(buf *render.Buffer, box *layout.Box, clip *render.Clip)") {
-		t.Errorf("expected renderTree function definition with clip parameter in output:\n%s", src)
-	}
-}
-
-func TestGenerateRenderTreeHandlesWrappedText(t *testing.T) {
-	// Given
-	doc := &template.Document{
-		Children: []template.Node{textNode("Hello")},
-	}
-
-	// When
-	out, err := Generate(doc, nil, nil, Options{PackageName: "main"})
-
-	// Then
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-	src := string(out)
-	// renderTree should check for Lines and render each line
-	if !strings.Contains(src, "box.Lines") {
-		t.Errorf("expected box.Lines check in renderTree:\n%s", src)
-	}
-}
-
-func TestGenerateRenderTreeDrawsBorders(t *testing.T) {
-	// Given
-	doc := &template.Document{
-		Children: []template.Node{
-			&template.BoxElement{
-				Attributes: map[string]string{"border": "single"},
-				Children:   []template.Node{textNode("Hello")},
-			},
-		},
-	}
-
-	// When
-	out, err := Generate(doc, nil, nil, Options{PackageName: "main"})
-
-	// Then
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-	src := string(out)
-	if !strings.Contains(src, "DrawStyledBorder(") {
-		t.Errorf("expected DrawStyledBorder call in renderTree in output:\n%s", src)
-	}
-	if !strings.Contains(src, "WriteStyledTextClipped(") {
-		t.Errorf("expected WriteStyledTextClipped call in renderTree in output:\n%s", src)
+	if !strings.Contains(src, "layout.RenderTree(") {
+		t.Errorf("expected layout.RenderTree call in output:\n%s", src)
 	}
 }

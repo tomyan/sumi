@@ -63,7 +63,7 @@ func TestGenerateBoxWithOverflowIsValidGo(t *testing.T) {
 	}
 }
 
-func TestGenerateRenderTreeWithClipping(t *testing.T) {
+func TestGenerateCallsLayoutRenderTree(t *testing.T) {
 	// Given
 	doc := &template.Document{
 		Children: []template.Node{textNode("Hello")},
@@ -77,11 +77,12 @@ func TestGenerateRenderTreeWithClipping(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 	src := string(out)
-	// renderTree should accept a clip parameter and pass it to clipped write methods
-	if !strings.Contains(src, "func renderTree(buf *render.Buffer, box *layout.Box, clip *render.Clip)") {
-		t.Errorf("expected renderTree to accept clip parameter:\n%s", src)
+	// Should call layout.RenderTree instead of defining a local renderTree function
+	if !strings.Contains(src, "layout.RenderTree(") {
+		t.Errorf("expected layout.RenderTree call in output:\n%s", src)
 	}
-	if !strings.Contains(src, "WriteStyledTextClipped(") {
-		t.Errorf("expected WriteStyledTextClipped call in renderTree:\n%s", src)
+	// Should NOT define a local renderTree function
+	if strings.Contains(src, "func renderTree(") {
+		t.Errorf("should not define local renderTree function:\n%s", src)
 	}
 }

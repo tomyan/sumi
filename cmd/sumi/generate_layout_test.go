@@ -50,8 +50,8 @@ func TestGenerateBoxWithBorderAndPadding(t *testing.T) {
 	if !contains(code, "layout.Layout(") {
 		t.Errorf("expected layout.Layout call in generated code:\n%s", code)
 	}
-	if !contains(code, "renderTree(") {
-		t.Errorf("expected renderTree call in generated code:\n%s", code)
+	if !contains(code, "layout.RenderTree(") {
+		t.Errorf("expected layout.RenderTree call in generated code:\n%s", code)
 	}
 }
 
