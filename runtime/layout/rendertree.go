@@ -6,7 +6,7 @@ import "github.com/tomyan/sumi/runtime/render"
 func RenderTree(buf *render.Buffer, box *Box, clip *render.Clip) {
 	renderBorder(buf, box)
 	renderContent(buf, box, clip)
-	renderChildren(buf, box, clip)
+	renderScrollbarsAndChildren(buf, box, clip)
 }
 
 func renderBorder(buf *render.Buffer, box *Box) {
@@ -25,10 +25,35 @@ func renderContent(buf *render.Buffer, box *Box, clip *render.Clip) {
 	}
 }
 
-func renderChildren(buf *render.Buffer, box *Box, clip *render.Clip) {
+// renderScrollbarsAndChildren draws scrollbars (if needed) then renders children
+// with the content clip narrowed to avoid overlap with scrollbars.
+func renderScrollbarsAndChildren(buf *render.Buffer, box *Box, clip *render.Clip) {
 	childClip := mergeClip(clip, box.Clip)
+	if box.NeedsScrollbar && box.Clip != nil {
+		drawVerticalScrollbar(buf, box)
+		childClip = narrowClipForVerticalScrollbar(childClip)
+	}
 	for _, child := range box.Children {
 		renderChildWithScroll(buf, child, box.ScrollY, childClip)
+	}
+}
+
+// drawVerticalScrollbar draws the vertical scrollbar at the right edge of the clip.
+func drawVerticalScrollbar(buf *render.Buffer, box *Box) {
+	viewportH := box.Clip.Bottom - box.Clip.Top + 1
+	render.DrawScrollbar(buf, box.Clip.Right, box.Clip.Top, viewportH, box.ContentHeight, box.ScrollY, box.Style)
+}
+
+// narrowClipForVerticalScrollbar reduces the right edge by 1 to make room for the scrollbar.
+func narrowClipForVerticalScrollbar(clip *render.Clip) *render.Clip {
+	if clip == nil {
+		return nil
+	}
+	return &render.Clip{
+		Top:    clip.Top,
+		Left:   clip.Left,
+		Bottom: clip.Bottom,
+		Right:  clip.Right - 1,
 	}
 }
 
