@@ -156,8 +156,8 @@ func TestGenerateParentDispatchesHandleKey(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 	src := string(out)
-	if !strings.Contains(src, "counter0.HandleKey(key)") {
-		t.Errorf("expected counter0.HandleKey(key) in event loop:\n%s", src)
+	if !strings.Contains(src, "counter0.HandleKey(evt.Rune)") {
+		t.Errorf("expected counter0.HandleKey(evt.Rune) in event loop:\n%s", src)
 	}
 }
 
@@ -242,8 +242,8 @@ func TestGenerateParentWithoutScriptUsesReactive(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 	src := string(out)
-	if !strings.Contains(src, "input.ReadKey") {
-		t.Errorf("expected input.ReadKey (reactive mode) in output:\n%s", src)
+	if !strings.Contains(src, "input.ReadEvent") {
+		t.Errorf("expected input.ReadEvent (reactive mode) in output:\n%s", src)
 	}
 	if strings.Contains(src, "bufio.NewScanner") {
 		t.Errorf("expected no bufio.NewScanner (static mode) in output:\n%s", src)
@@ -348,8 +348,8 @@ func TestGenerateParentWithStatefulScriptAndChild(t *testing.T) {
 	if !strings.Contains(src, "NewCounterComponent") {
 		t.Errorf("expected NewCounterComponent call:\n%s", src)
 	}
-	if !strings.Contains(src, "counter0.HandleKey(key)") {
-		t.Errorf("expected counter0.HandleKey(key):\n%s", src)
+	if !strings.Contains(src, "counter0.HandleKey(evt.Rune)") {
+		t.Errorf("expected counter0.HandleKey(evt.Rune):\n%s", src)
 	}
 	if !strings.Contains(src, "counter0.Dirty()") {
 		t.Errorf("expected counter0.Dirty() in dirty check:\n%s", src)

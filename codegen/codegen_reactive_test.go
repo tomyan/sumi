@@ -29,8 +29,8 @@ func TestGenerateWithNilScriptIsBackwardsCompatible(t *testing.T) {
 		t.Errorf("expected bufio.NewScanner in static mode output:\n%s", src)
 	}
 	// Should NOT contain event loop or input package
-	if strings.Contains(src, "input.ReadKey") {
-		t.Errorf("unexpected input.ReadKey in static mode output:\n%s", src)
+	if strings.Contains(src, "input.ReadEvent") {
+		t.Errorf("unexpected input.ReadEvent in static mode output:\n%s", src)
 	}
 }
 
@@ -104,7 +104,7 @@ func TestGenerateWithExpressionUsesFmtSprintf(t *testing.T) {
 	}
 }
 
-func TestGenerateWithStateContainsEventLoop(t *testing.T) {
+func TestGenerateUsesReadEvent(t *testing.T) {
 	// Given
 	doc := &template.Document{
 		Children: []template.Node{textNode("Hello")},
@@ -123,14 +123,76 @@ func TestGenerateWithStateContainsEventLoop(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 	src := string(out)
-	if !strings.Contains(src, "input.ReadKey") {
-		t.Errorf("expected input.ReadKey in reactive mode output:\n%s", src)
+	if !strings.Contains(src, "input.ReadEvent") {
+		t.Errorf("expected input.ReadEvent in reactive mode output:\n%s", src)
 	}
 	if !strings.Contains(src, "input.EnableRawMode") {
 		t.Errorf("expected input.EnableRawMode in reactive mode output:\n%s", src)
 	}
 	if !strings.Contains(src, `"github.com/tomyan/sumi/runtime/input"`) {
 		t.Errorf("expected runtime/input import in output:\n%s", src)
+	}
+}
+
+func TestGenerateEventChannelType(t *testing.T) {
+	// Given
+	doc := &template.Document{
+		Children: []template.Node{textNode("Hello")},
+	}
+	sc := &script.Script{
+		StateDecls: []script.StateDecl{
+			{Name: "count", InitExpr: "0"},
+		},
+	}
+
+	// When
+	out, err := Generate(doc, sc, nil, Options{PackageName: "main"})
+
+	// Then
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	src := string(out)
+	if !strings.Contains(src, "chan input.Event") {
+		t.Errorf("expected chan input.Event in output:\n%s", src)
+	}
+}
+
+func TestGenerateOnkeyStillFiresOnEventKey(t *testing.T) {
+	// Given
+	doc := &template.Document{
+		Children: []template.Node{
+			&template.BoxElement{
+				Attributes: map[string]string{"onkey": "handleKey"},
+				Children:   []template.Node{textNode("Hello")},
+			},
+		},
+	}
+	sc := &script.Script{
+		StateDecls: []script.StateDecl{
+			{Name: "count", InitExpr: "0"},
+		},
+		FuncDecls: []script.FuncDecl{
+			{Name: "handleKey", Params: "", Body: "\n\tcount = count + 1\n",
+				StateAssignments: []script.StateAssignment{{VarName: "count", Line: "count = count + 1"}}},
+		},
+	}
+
+	// When
+	out, err := Generate(doc, sc, nil, Options{PackageName: "main"})
+
+	// Then
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	fset := token.NewFileSet()
+	_, parseErr := parser.ParseFile(fset, "generated.go", out, parser.AllErrors)
+	if parseErr != nil {
+		t.Fatalf("generated code is not valid Go:\n%s\n\nerror: %v", string(out), parseErr)
+	}
+	src := string(out)
+	if !strings.Contains(src, "handleKey()") {
+		t.Errorf("expected handleKey() call in event handler:\n%s", src)
 	}
 }
 
