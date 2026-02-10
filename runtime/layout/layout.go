@@ -27,6 +27,7 @@ type Input struct {
 	Justify     string       // main-axis alignment: start, end, center, space-between
 	Align       string       // cross-axis alignment: start, end, center, stretch
 	Overflow    string       // "hidden", "scroll", "auto", or "" (visible)
+	MinWidth    int          // minimum content width (0 = no minimum)
 	Padding     Padding
 	Border      string       // "single", "none", or ""
 	Style       render.Style // resolved style for this node
@@ -152,6 +153,11 @@ func layoutNode(input *Input, availW, availH int) *Box {
 	childAvailH := contentAvailH
 	if isScrollOverflow(input.Overflow) {
 		childAvailH = 1000000
+	}
+
+	// Apply min-width: if available width is below min-width, use min-width for content
+	if input.MinWidth > 0 && contentAvailW < input.MinWidth {
+		contentAvailW = input.MinWidth
 	}
 
 	hasFlexChildren := hasFlexGrow(input.Children)
