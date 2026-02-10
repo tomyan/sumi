@@ -25,6 +25,7 @@ type Input struct {
 	Gap         int          // space between children (cells)
 	FlexGrow    int          // flex-grow factor (0 = no grow)
 	Justify     string       // main-axis alignment: start, end, center, space-between
+	Align       string       // cross-axis alignment: start, end, center, stretch
 	Padding     Padding
 	Border      string       // "single", "none", or ""
 	Style       render.Style // resolved style for this node
@@ -154,6 +155,15 @@ func layoutNode(input *Input, availW, availH int) *Box {
 			applyJustifyRow(box.Children, offsetX, contentAvailW, input.Justify)
 		} else {
 			applyJustifyColumn(box.Children, offsetY, contentAvailH, input.Justify)
+		}
+	}
+
+	// Apply align (shift/stretch children along cross axis)
+	if input.Align != "" && input.Align != "start" {
+		if input.Direction == "row" {
+			applyAlignRow(box.Children, offsetY, contentAvailH, input.Align)
+		} else {
+			applyAlignColumn(box.Children, offsetX, contentAvailW, input.Align)
 		}
 	}
 
@@ -386,6 +396,36 @@ func applyJustify(boxes []*Box, remaining int, justify string, isRow bool, offse
 			} else {
 				b.Y += shift
 			}
+		}
+	}
+}
+
+// applyAlignRow aligns children along the Y axis (cross axis for row layout).
+func applyAlignRow(boxes []*Box, offsetY, availH int, align string) {
+	for _, b := range boxes {
+		switch align {
+		case "end":
+			b.Y = offsetY + availH - b.Height
+		case "center":
+			b.Y = offsetY + (availH-b.Height)/2
+		case "stretch":
+			b.Y = offsetY
+			b.Height = availH
+		}
+	}
+}
+
+// applyAlignColumn aligns children along the X axis (cross axis for column layout).
+func applyAlignColumn(boxes []*Box, offsetX, availW int, align string) {
+	for _, b := range boxes {
+		switch align {
+		case "end":
+			b.X = offsetX + availW - b.Width
+		case "center":
+			b.X = offsetX + (availW-b.Width)/2
+		case "stretch":
+			b.X = offsetX
+			b.Width = availW
 		}
 	}
 }

@@ -95,6 +95,9 @@ func writeBoxAttributes(buf *bytes.Buffer, tabs string, attrs map[string]string,
 	if j, ok := mergedAttr(attrs, props, "justify"); ok {
 		fmt.Fprintf(buf, "%s\tJustify: %q,\n", tabs, j)
 	}
+	if a, ok := mergedAttr(attrs, props, "align"); ok {
+		fmt.Fprintf(buf, "%s\tAlign: %q,\n", tabs, a)
+	}
 	if p, ok := mergedAttr(attrs, props, "padding"); ok {
 		fmt.Fprintf(buf, "%s\tPadding: layout.ParsePadding(%q),\n", tabs, p)
 	}
