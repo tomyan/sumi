@@ -109,6 +109,9 @@ func writeBoxAttributes(buf *bytes.Buffer, tabs string, attrs map[string]string,
 	if b, ok := mergedAttr(attrs, props, "border"); ok {
 		fmt.Fprintf(buf, "%s\tBorder: %q,\n", tabs, b)
 	}
+	if bt, ok := mergedAttr(attrs, props, "border-title"); ok {
+		fmt.Fprintf(buf, "%s\tBorderTitle: %q,\n", tabs, bt)
+	}
 	if o, ok := mergedAttr(attrs, props, "overflow"); ok {
 		fmt.Fprintf(buf, "%s\tOverflow: %q,\n", tabs, o)
 	}
