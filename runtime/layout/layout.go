@@ -19,9 +19,10 @@ const (
 type Input struct {
 	Kind        NodeKind
 	Content     string       // text content (KindText only)
-	Direction   string       // "column" (default) or "row" (future)
+	Direction   string       // "column" (default) or "row"
 	FixedWidth  int          // 0 = auto
 	FixedHeight int          // 0 = auto
+	Gap         int          // space between children (cells)
 	Padding     Padding
 	Border      string       // "single", "none", or ""
 	Style       render.Style // resolved style for this node
@@ -118,9 +119,9 @@ func layoutNode(input *Input) *Box {
 	offsetY := b + pad.Top
 
 	if input.Direction == "row" {
-		box.Children = layoutRow(input.Children, offsetX, offsetY)
+		box.Children = layoutRow(input.Children, offsetX, offsetY, input.Gap)
 	} else {
-		box.Children = layoutColumn(input.Children, offsetX, offsetY)
+		box.Children = layoutColumn(input.Children, offsetX, offsetY, input.Gap)
 	}
 
 	// Compute size
@@ -140,10 +141,13 @@ func layoutNode(input *Input) *Box {
 }
 
 // layoutColumn places children vertically, advancing Y after each child.
-func layoutColumn(children []*Input, offsetX, offsetY int) []*Box {
+func layoutColumn(children []*Input, offsetX, offsetY, gap int) []*Box {
 	var boxes []*Box
 	cursorY := 0
-	for _, child := range children {
+	for i, child := range children {
+		if i > 0 && gap > 0 {
+			cursorY += gap
+		}
 		childBox := layoutNode(child)
 		childBox.X = offsetX
 		childBox.Y = offsetY + cursorY
@@ -154,10 +158,13 @@ func layoutColumn(children []*Input, offsetX, offsetY int) []*Box {
 }
 
 // layoutRow places children horizontally, advancing X after each child.
-func layoutRow(children []*Input, offsetX, offsetY int) []*Box {
+func layoutRow(children []*Input, offsetX, offsetY, gap int) []*Box {
 	var boxes []*Box
 	cursorX := 0
-	for _, child := range children {
+	for i, child := range children {
+		if i > 0 && gap > 0 {
+			cursorX += gap
+		}
 		childBox := layoutNode(child)
 		childBox.X = offsetX + cursorX
 		childBox.Y = offsetY

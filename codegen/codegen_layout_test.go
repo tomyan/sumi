@@ -157,6 +157,30 @@ func TestGenerateBoxWithWidthAndHeight(t *testing.T) {
 	}
 }
 
+func TestGenerateBoxWithGap(t *testing.T) {
+	// Given a box with gap attribute
+	doc := &template.Document{
+		Children: []template.Node{
+			&template.BoxElement{
+				Attributes: map[string]string{"gap": "2"},
+				Children:   []template.Node{textNode("Hello"), textNode("World")},
+			},
+		},
+	}
+
+	// When
+	out, err := Generate(doc, nil, nil, Options{PackageName: "main"})
+
+	// Then
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	src := string(out)
+	if !strings.Contains(src, "Gap:  2") {
+		t.Errorf("expected Gap: 2 in output:\n%s", src)
+	}
+}
+
 func TestGenerateNestedBoxesIsValidGo(t *testing.T) {
 	// Given
 	doc := &template.Document{
