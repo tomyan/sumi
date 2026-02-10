@@ -262,6 +262,26 @@ func TestGenerateContainsRenderTree(t *testing.T) {
 	}
 }
 
+func TestGenerateRenderTreeHandlesWrappedText(t *testing.T) {
+	// Given
+	doc := &template.Document{
+		Children: []template.Node{textNode("Hello")},
+	}
+
+	// When
+	out, err := Generate(doc, nil, nil, Options{PackageName: "main"})
+
+	// Then
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	src := string(out)
+	// renderTree should check for Lines and render each line
+	if !strings.Contains(src, "box.Lines") {
+		t.Errorf("expected box.Lines check in renderTree:\n%s", src)
+	}
+}
+
 func TestGenerateRenderTreeDrawsBorders(t *testing.T) {
 	// Given
 	doc := &template.Document{

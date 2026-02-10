@@ -132,12 +132,17 @@ func writeBoxChildren(buf *bytes.Buffer, children []template.Node, stylesheet *s
 }
 
 // writeRenderTreeFunc generates the renderTree helper function.
+// Handles both single-line text (Content) and wrapped text (Lines).
 func writeRenderTreeFunc(buf *bytes.Buffer) {
 	buf.WriteString("func renderTree(buf *render.Buffer, box *layout.Box) {\n")
 	buf.WriteString("\tif box.Border != \"\" && box.Border != \"none\" {\n")
 	buf.WriteString("\t\tbuf.DrawStyledBorder(box.Y, box.X, box.Width, box.Height, box.Border, box.Style)\n")
 	buf.WriteString("\t}\n")
-	buf.WriteString("\tif box.Content != \"\" {\n")
+	buf.WriteString("\tif box.Lines != nil {\n")
+	buf.WriteString("\t\tfor i, line := range box.Lines {\n")
+	buf.WriteString("\t\t\tbuf.WriteStyledText(box.Y+i, box.X, line, box.Style)\n")
+	buf.WriteString("\t\t}\n")
+	buf.WriteString("\t} else if box.Content != \"\" {\n")
 	buf.WriteString("\t\tbuf.WriteStyledText(box.Y, box.X, box.Content, box.Style)\n")
 	buf.WriteString("\t}\n")
 	buf.WriteString("\tfor _, child := range box.Children {\n")

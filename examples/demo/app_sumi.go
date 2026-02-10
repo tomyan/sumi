@@ -56,7 +56,11 @@ func renderTree(buf *render.Buffer, box *layout.Box) {
 	if box.Border != "" && box.Border != "none" {
 		buf.DrawStyledBorder(box.Y, box.X, box.Width, box.Height, box.Border, box.Style)
 	}
-	if box.Content != "" {
+	if box.Lines != nil {
+		for i, line := range box.Lines {
+			buf.WriteStyledText(box.Y+i, box.X, line, box.Style)
+		}
+	} else if box.Content != "" {
 		buf.WriteStyledText(box.Y, box.X, box.Content, box.Style)
 	}
 	for _, child := range box.Children {

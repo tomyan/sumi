@@ -15,6 +15,8 @@ func Run() {
 
 	dirty := true
 
+	var prevTree *layout.Box
+	var prevW, prevH int
 	doRender := func() {
 		termW, termH := term.GetSize(int(os.Stdin.Fd()))
 		root := &layout.Input{
@@ -49,10 +51,18 @@ func Run() {
 			},
 		}
 		tree := layout.Layout(root, termW, termH)
-		buf := render.NewBuffer(termW, termH)
-		renderTree(buf, tree)
-		render.ClearScreen(os.Stdout)
-		buf.RenderTo(os.Stdout)
+		if prevTree == nil || termW != prevW || termH != prevH {
+			buf := render.NewBuffer(termW, termH)
+			renderTree(buf, tree)
+			render.ClearScreen(os.Stdout)
+			buf.RenderTo(os.Stdout)
+		} else {
+			changes := layout.DiffTrees(prevTree, tree)
+			layout.ApplyChanges(os.Stdout, changes)
+		}
+		prevTree = tree
+		prevW = termW
+		prevH = termH
 		dirty = false
 	}
 
@@ -99,7 +109,11 @@ func renderTree(buf *render.Buffer, box *layout.Box) {
 	if box.Border != "" && box.Border != "none" {
 		buf.DrawStyledBorder(box.Y, box.X, box.Width, box.Height, box.Border, box.Style)
 	}
-	if box.Content != "" {
+	if box.Lines != nil {
+		for i, line := range box.Lines {
+			buf.WriteStyledText(box.Y+i, box.X, line, box.Style)
+		}
+	} else if box.Content != "" {
 		buf.WriteStyledText(box.Y, box.X, box.Content, box.Style)
 	}
 	for _, child := range box.Children {
