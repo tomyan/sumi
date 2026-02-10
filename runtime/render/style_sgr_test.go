@@ -196,6 +196,37 @@ func TestRenderTrailingReset(t *testing.T) {
 	}
 }
 
+func TestRenderResetsStyleBeforeUnstyledCell(t *testing.T) {
+	// Given a styled cell followed by an unstyled cell,
+	// the unstyled cell should be preceded by a reset to prevent
+	// the styled color from leaking to it.
+	b := NewBuffer(10, 1)
+	b.SetStyledCell(0, 0, 'G', Style{FG: Color{Name: "green"}})
+	b.SetCell(0, 1, '|') // unstyled border character
+	var buf bytes.Buffer
+
+	// When
+	b.RenderTo(&buf)
+
+	// Then: the '|' should be preceded by a reset
+	got := buf.String()
+	// Find the position of '|' — it should have a reset before it
+	pipeIdx := strings.LastIndex(got, "|")
+	if pipeIdx < 0 {
+		t.Fatal("output missing '|' character")
+	}
+	// The reset \x1b[0m should appear between the green 'G' and the '|'
+	beforePipe := got[:pipeIdx]
+	greenIdx := strings.Index(beforePipe, "G")
+	if greenIdx < 0 {
+		t.Fatal("output missing 'G' character")
+	}
+	between := got[greenIdx+1 : pipeIdx]
+	if !strings.Contains(between, "\x1b[0m") {
+		t.Errorf("expected reset between styled 'G' and unstyled '|', got %q", got)
+	}
+}
+
 func TestRenderNoTrailingResetForUnstyled(t *testing.T) {
 	// Given
 	b := NewBuffer(10, 5)

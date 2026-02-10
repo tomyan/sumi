@@ -10,7 +10,7 @@ import (
 // Only non-empty cells (Ch != 0) are rendered. Styled cells emit ANSI SGR
 // sequences before the character.
 func (b *Buffer) RenderTo(w io.Writer) {
-	hasStyled := false
+	inStyled := false
 	for row := 0; row < b.height; row++ {
 		for col := 0; col < b.width; col++ {
 			c := b.cells[row][col]
@@ -19,13 +19,16 @@ func (b *Buffer) RenderTo(w io.Writer) {
 			}
 			fmt.Fprintf(w, "\x1b[%d;%dH", row+1, col+1)
 			if sgr := buildSGR(c.Style); sgr != "" {
-				hasStyled = true
+				inStyled = true
 				fmt.Fprint(w, sgr)
+			} else if inStyled {
+				fmt.Fprint(w, "\x1b[0m")
+				inStyled = false
 			}
 			fmt.Fprintf(w, "%c", c.Ch)
 		}
 	}
-	if hasStyled {
+	if inStyled {
 		fmt.Fprint(w, "\x1b[0m")
 	}
 }

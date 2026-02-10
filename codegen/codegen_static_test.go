@@ -104,8 +104,8 @@ func TestGenerateContainsCorrectImports(t *testing.T) {
 	if !strings.Contains(src, `"os"`) {
 		t.Errorf("expected os import in output:\n%s", src)
 	}
-	if !strings.Contains(src, `"bufio"`) {
-		t.Errorf("expected bufio import in output:\n%s", src)
+	if !strings.Contains(src, `"github.com/tomyan/sumi/runtime/input"`) {
+		t.Errorf("expected runtime/input import in output:\n%s", src)
 	}
 }
 
@@ -131,6 +131,69 @@ func TestGenerateReferencesRuntimeRender(t *testing.T) {
 	}
 	if !strings.Contains(src, "render.ExitAlternateScreen(") {
 		t.Errorf("expected render.ExitAlternateScreen call in output:\n%s", src)
+	}
+}
+
+func TestStaticCodeHandlesResize(t *testing.T) {
+	// Given
+	doc := &template.Document{
+		Children: []template.Node{textNode("Hello")},
+	}
+
+	// When
+	out, err := Generate(doc, nil, nil, Options{PackageName: "main"})
+
+	// Then
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	src := string(out)
+	if !strings.Contains(src, "term.WatchResize") {
+		t.Errorf("expected term.WatchResize in static output:\n%s", src)
+	}
+}
+
+func TestStaticCodeUsesEventLoop(t *testing.T) {
+	// Given
+	doc := &template.Document{
+		Children: []template.Node{textNode("Hello")},
+	}
+
+	// When
+	out, err := Generate(doc, nil, nil, Options{PackageName: "main"})
+
+	// Then
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	src := string(out)
+	if !strings.Contains(src, "input.ReadEvent") {
+		t.Errorf("expected input.ReadEvent in static output:\n%s", src)
+	}
+	if !strings.Contains(src, "input.EnableRawMode") {
+		t.Errorf("expected input.EnableRawMode in static output:\n%s", src)
+	}
+}
+
+func TestStaticCodeQuitsOnQOrCtrlC(t *testing.T) {
+	// Given
+	doc := &template.Document{
+		Children: []template.Node{textNode("Hello")},
+	}
+
+	// When
+	out, err := Generate(doc, nil, nil, Options{PackageName: "main"})
+
+	// Then
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	src := string(out)
+	if !strings.Contains(src, "evt.Rune == 'q'") {
+		t.Errorf("expected quit on 'q' in static output:\n%s", src)
+	}
+	if !strings.Contains(src, "evt.Rune == 3") {
+		t.Errorf("expected quit on Ctrl+C in static output:\n%s", src)
 	}
 }
 

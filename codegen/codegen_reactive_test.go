@@ -10,7 +10,7 @@ import (
 	"github.com/tomyan/sumi/parser/template"
 )
 
-func TestGenerateWithNilScriptIsBackwardsCompatible(t *testing.T) {
+func TestGenerateWithNilScriptUsesEventLoop(t *testing.T) {
 	// Given
 	doc := &template.Document{
 		Children: []template.Node{textNode("Hello")},
@@ -24,13 +24,12 @@ func TestGenerateWithNilScriptIsBackwardsCompatible(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 	src := string(out)
-	// Static mode: uses bufio.Scanner to wait for Enter
-	if !strings.Contains(src, "bufio.NewScanner") {
-		t.Errorf("expected bufio.NewScanner in static mode output:\n%s", src)
+	// Static mode now uses event loop for resize + quit support
+	if !strings.Contains(src, "input.ReadEvent") {
+		t.Errorf("expected input.ReadEvent in static mode output:\n%s", src)
 	}
-	// Should NOT contain event loop or input package
-	if strings.Contains(src, "input.ReadEvent") {
-		t.Errorf("unexpected input.ReadEvent in static mode output:\n%s", src)
+	if !strings.Contains(src, "term.WatchResize") {
+		t.Errorf("expected term.WatchResize in static mode output:\n%s", src)
 	}
 }
 

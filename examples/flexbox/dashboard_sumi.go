@@ -1,9 +1,9 @@
 package main
 
 import (
-	"bufio"
 	"os"
 
+	"github.com/tomyan/sumi/runtime/input"
 	"github.com/tomyan/sumi/runtime/layout"
 	"github.com/tomyan/sumi/runtime/render"
 	"github.com/tomyan/sumi/runtime/term"
@@ -124,13 +124,50 @@ func Run() {
 			},
 		},
 	}
-	termW, termH := term.GetSize(int(os.Stdin.Fd()))
-	tree := layout.Layout(root, termW, termH)
-	buf := render.NewBuffer(termW, termH)
+	doRender := func() {
+		termW, termH := term.GetSize(int(os.Stdin.Fd()))
+		tree := layout.Layout(root, termW, termH)
+		buf := render.NewBuffer(termW, termH)
+		layout.RenderTree(buf, tree, nil)
+		render.ClearScreen(os.Stdout)
+		buf.RenderTo(os.Stdout)
+	}
+
+	restore, _ := input.EnableRawMode(int(os.Stdin.Fd()))
+	defer restore()
 	render.EnterAlternateScreen(os.Stdout)
-	render.ClearScreen(os.Stdout)
-	layout.RenderTree(buf, tree, nil)
-	buf.RenderTo(os.Stdout)
-	bufio.NewScanner(os.Stdin).Scan()
-	render.ExitAlternateScreen(os.Stdout)
+	defer render.ExitAlternateScreen(os.Stdout)
+
+	eventCh := make(chan input.Event)
+	go func() {
+		for {
+			evt, err := input.ReadEvent(os.Stdin)
+			if err != nil {
+				close(eventCh)
+				return
+			}
+			eventCh <- evt
+		}
+	}()
+
+	resizeCh, stopResize := term.WatchResize()
+	defer stopResize()
+
+	doRender()
+
+	for {
+		select {
+		case evt, ok := <-eventCh:
+			if !ok {
+				return
+			}
+			if evt.Kind == input.EventKey {
+				if evt.Rune == 'q' || evt.Rune == 3 {
+					return
+				}
+			}
+		case <-resizeCh:
+			doRender()
+		}
+	}
 }
