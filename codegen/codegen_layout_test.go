@@ -181,6 +181,35 @@ func TestGenerateBoxWithGap(t *testing.T) {
 	}
 }
 
+func TestGenerateBoxWithFlexGrow(t *testing.T) {
+	// Given a box with flex-grow attribute
+	doc := &template.Document{
+		Children: []template.Node{
+			&template.BoxElement{
+				Attributes: map[string]string{"direction": "row"},
+				Children: []template.Node{
+					&template.BoxElement{
+						Attributes: map[string]string{"flex-grow": "1"},
+						Children:   []template.Node{textNode("Grow")},
+					},
+				},
+			},
+		},
+	}
+
+	// When
+	out, err := Generate(doc, nil, nil, Options{PackageName: "main"})
+
+	// Then
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	src := string(out)
+	if !strings.Contains(src, "FlexGrow:") {
+		t.Errorf("expected FlexGrow in output:\n%s", src)
+	}
+}
+
 func TestGenerateNestedBoxesIsValidGo(t *testing.T) {
 	// Given
 	doc := &template.Document{

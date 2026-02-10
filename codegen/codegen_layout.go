@@ -91,6 +91,7 @@ func writeBoxAttributes(buf *bytes.Buffer, tabs string, attrs map[string]string,
 	writeIntAttr(buf, tabs, attrs, props, "width", "FixedWidth")
 	writeIntAttr(buf, tabs, attrs, props, "height", "FixedHeight")
 	writeIntAttr(buf, tabs, attrs, props, "gap", "Gap")
+	writeIntAttr(buf, tabs, attrs, props, "flex-grow", "FlexGrow")
 	if p, ok := mergedAttr(attrs, props, "padding"); ok {
 		fmt.Fprintf(buf, "%s\tPadding: layout.ParsePadding(%q),\n", tabs, p)
 	}

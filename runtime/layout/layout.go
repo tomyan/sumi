@@ -23,6 +23,7 @@ type Input struct {
 	FixedWidth  int          // 0 = auto
 	FixedHeight int          // 0 = auto
 	Gap         int          // space between children (cells)
+	FlexGrow    int          // flex-grow factor (0 = no grow)
 	Padding     Padding
 	Border      string       // "single", "none", or ""
 	Style       render.Style // resolved style for this node
@@ -89,10 +90,10 @@ func borderSize(border string) int {
 
 // Layout computes positions and sizes for a tree of Input nodes.
 func Layout(input *Input, availWidth, availHeight int) *Box {
-	return layoutNode(input)
+	return layoutNode(input, availWidth, availHeight)
 }
 
-func layoutNode(input *Input) *Box {
+func layoutNode(input *Input, availW, availH int) *Box {
 	box := &Box{
 		Border: input.Border,
 		Style:  input.Style,
@@ -117,38 +118,76 @@ func layoutNode(input *Input) *Box {
 	// Inset from the edge to the content area
 	offsetX := b + pad.Left
 	offsetY := b + pad.Top
+	insetW := pad.Left + pad.Right + 2*b
+	insetH := pad.Top + pad.Bottom + 2*b
+
+	// Determine the content area dimensions available
+	contentAvailW := availW - insetW
+	contentAvailH := availH - insetH
+	if input.FixedWidth > 0 {
+		contentAvailW = input.FixedWidth - insetW
+	}
+	if input.FixedHeight > 0 {
+		contentAvailH = input.FixedHeight - insetH
+	}
+
+	hasFlexChildren := hasFlexGrow(input.Children)
 
 	if input.Direction == "row" {
-		box.Children = layoutRow(input.Children, offsetX, offsetY, input.Gap)
+		if hasFlexChildren {
+			box.Children = layoutRowFlex(input.Children, offsetX, offsetY, input.Gap, contentAvailW, contentAvailH)
+		} else {
+			box.Children = layoutRow(input.Children, offsetX, offsetY, input.Gap, contentAvailW, contentAvailH)
+		}
 	} else {
-		box.Children = layoutColumn(input.Children, offsetX, offsetY, input.Gap)
+		if hasFlexChildren {
+			box.Children = layoutColumnFlex(input.Children, offsetX, offsetY, input.Gap, contentAvailW, contentAvailH)
+		} else {
+			box.Children = layoutColumn(input.Children, offsetX, offsetY, input.Gap, contentAvailW, contentAvailH)
+		}
 	}
 
 	// Compute size
 	contentW, contentH := childrenExtent(box.Children, offsetX, offsetY)
+
 	if input.FixedWidth > 0 {
 		box.Width = input.FixedWidth
+	} else if hasFlexChildren && contentAvailW > 0 {
+		// If children use flex-grow, parent expands to available width
+		box.Width = availW
 	} else {
-		box.Width = contentW + pad.Left + pad.Right + 2*b
+		box.Width = contentW + insetW
 	}
 	if input.FixedHeight > 0 {
 		box.Height = input.FixedHeight
+	} else if hasFlexChildren && input.Direction != "row" && contentAvailH > 0 {
+		box.Height = availH
 	} else {
-		box.Height = contentH + pad.Top + pad.Bottom + 2*b
+		box.Height = contentH + insetH
 	}
 
 	return box
 }
 
+// hasFlexGrow returns true if any child has FlexGrow > 0.
+func hasFlexGrow(children []*Input) bool {
+	for _, c := range children {
+		if c.FlexGrow > 0 {
+			return true
+		}
+	}
+	return false
+}
+
 // layoutColumn places children vertically, advancing Y after each child.
-func layoutColumn(children []*Input, offsetX, offsetY, gap int) []*Box {
+func layoutColumn(children []*Input, offsetX, offsetY, gap, availW, availH int) []*Box {
 	var boxes []*Box
 	cursorY := 0
 	for i, child := range children {
 		if i > 0 && gap > 0 {
 			cursorY += gap
 		}
-		childBox := layoutNode(child)
+		childBox := layoutNode(child, availW, availH)
 		childBox.X = offsetX
 		childBox.Y = offsetY + cursorY
 		cursorY += childBox.Height
@@ -158,14 +197,14 @@ func layoutColumn(children []*Input, offsetX, offsetY, gap int) []*Box {
 }
 
 // layoutRow places children horizontally, advancing X after each child.
-func layoutRow(children []*Input, offsetX, offsetY, gap int) []*Box {
+func layoutRow(children []*Input, offsetX, offsetY, gap, availW, availH int) []*Box {
 	var boxes []*Box
 	cursorX := 0
 	for i, child := range children {
 		if i > 0 && gap > 0 {
 			cursorX += gap
 		}
-		childBox := layoutNode(child)
+		childBox := layoutNode(child, availW, availH)
 		childBox.X = offsetX + cursorX
 		childBox.Y = offsetY
 		cursorX += childBox.Width
@@ -174,9 +213,103 @@ func layoutRow(children []*Input, offsetX, offsetY, gap int) []*Box {
 	return boxes
 }
 
+// layoutRowFlex is a two-pass row layout that distributes extra space to flex-grow children.
+func layoutRowFlex(children []*Input, offsetX, offsetY, gap, availW, availH int) []*Box {
+	// Pass 1: lay out non-flex children to get their natural width
+	naturalWidths := make([]int, len(children))
+	totalFixed := 0
+	totalGaps := 0
+	totalFlex := 0
+	for i, child := range children {
+		if i > 0 {
+			totalGaps += gap
+		}
+		if child.FlexGrow > 0 {
+			totalFlex += child.FlexGrow
+		} else {
+			childBox := layoutNode(child, availW, availH)
+			naturalWidths[i] = childBox.Width
+			totalFixed += childBox.Width
+		}
+	}
+
+	// Pass 2: distribute remaining space among flex children
+	remaining := availW - totalFixed - totalGaps
+	if remaining < 0 {
+		remaining = 0
+	}
+
+	boxes := make([]*Box, len(children))
+	cursorX := 0
+	for i, child := range children {
+		if i > 0 {
+			cursorX += gap
+		}
+		var childBox *Box
+		if child.FlexGrow > 0 {
+			flexWidth := remaining * child.FlexGrow / totalFlex
+			childBox = layoutNode(child, flexWidth, availH)
+			childBox.Width = flexWidth
+		} else {
+			childBox = layoutNode(child, naturalWidths[i], availH)
+		}
+		childBox.X = offsetX + cursorX
+		childBox.Y = offsetY
+		cursorX += childBox.Width
+		boxes[i] = childBox
+	}
+	return boxes
+}
+
+// layoutColumnFlex is a two-pass column layout that distributes extra space to flex-grow children.
+func layoutColumnFlex(children []*Input, offsetX, offsetY, gap, availW, availH int) []*Box {
+	// Pass 1: lay out non-flex children to get their natural height
+	naturalHeights := make([]int, len(children))
+	totalFixed := 0
+	totalGaps := 0
+	totalFlex := 0
+	for i, child := range children {
+		if i > 0 {
+			totalGaps += gap
+		}
+		if child.FlexGrow > 0 {
+			totalFlex += child.FlexGrow
+		} else {
+			childBox := layoutNode(child, availW, availH)
+			naturalHeights[i] = childBox.Height
+			totalFixed += childBox.Height
+		}
+	}
+
+	// Pass 2: distribute remaining space among flex children
+	remaining := availH - totalFixed - totalGaps
+	if remaining < 0 {
+		remaining = 0
+	}
+
+	boxes := make([]*Box, len(children))
+	cursorY := 0
+	for i, child := range children {
+		if i > 0 {
+			cursorY += gap
+		}
+		var childBox *Box
+		if child.FlexGrow > 0 {
+			flexHeight := remaining * child.FlexGrow / totalFlex
+			childBox = layoutNode(child, availW, flexHeight)
+			childBox.Height = flexHeight
+		} else {
+			childBox = layoutNode(child, availW, availH)
+		}
+		childBox.X = offsetX
+		childBox.Y = offsetY + cursorY
+		cursorY += childBox.Height
+		boxes[i] = childBox
+	}
+	return boxes
+}
+
 // childrenExtent returns the content width and height occupied by children.
-// For column: width = max child width, height = sum of child heights.
-// For row: width = sum of child widths, height = max child height.
 // Works generically by computing the bounding box of children relative to offset.
 func childrenExtent(boxes []*Box, offsetX, offsetY int) (int, int) {
 	maxW := 0
