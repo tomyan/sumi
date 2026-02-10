@@ -27,7 +27,7 @@ func Run() {
 					Padding: layout.ParsePadding("1 2"),
 					Border:  "single",
 					Style: render.Style{
-						FG: render.Color{Name: "white"},
+						FG: render.Color{Name: "cyan"},
 					},
 					Children: []*layout.Input{
 						{
