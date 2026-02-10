@@ -43,6 +43,8 @@ type Box struct {
 	X, Y, Width, Height int
 	ContentWidth        int          // full content width (set when overflow != "")
 	ContentHeight       int          // full content height (set when overflow != "")
+	ScrollY             int          // vertical scroll offset (applied during render)
+	ScrollX             int          // horizontal scroll offset (applied during render)
 	Children            []*Box
 	Content             string       // text content if text node
 	Lines               []string     // wrapped lines (nil = single line, use Content)
