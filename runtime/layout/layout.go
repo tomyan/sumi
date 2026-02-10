@@ -24,6 +24,7 @@ type Input struct {
 	FixedHeight int          // 0 = auto
 	Gap         int          // space between children (cells)
 	FlexGrow    int          // flex-grow factor (0 = no grow)
+	Justify     string       // main-axis alignment: start, end, center, space-between
 	Padding     Padding
 	Border      string       // "single", "none", or ""
 	Style       render.Style // resolved style for this node
@@ -144,6 +145,15 @@ func layoutNode(input *Input, availW, availH int) *Box {
 			box.Children = layoutColumnFlex(input.Children, offsetX, offsetY, input.Gap, contentAvailW, contentAvailH)
 		} else {
 			box.Children = layoutColumn(input.Children, offsetX, offsetY, input.Gap, contentAvailW, contentAvailH)
+		}
+	}
+
+	// Apply justify (shift children along main axis)
+	if input.Justify != "" && input.Justify != "start" {
+		if input.Direction == "row" {
+			applyJustifyRow(box.Children, offsetX, contentAvailW, input.Justify)
+		} else {
+			applyJustifyColumn(box.Children, offsetY, contentAvailH, input.Justify)
 		}
 	}
 
@@ -307,6 +317,77 @@ func layoutColumnFlex(children []*Input, offsetX, offsetY, gap, availW, availH i
 		boxes[i] = childBox
 	}
 	return boxes
+}
+
+// applyJustifyRow shifts children along the X axis within the available width.
+func applyJustifyRow(boxes []*Box, offsetX, availW int, justify string) {
+	if len(boxes) == 0 {
+		return
+	}
+	totalChildWidth := 0
+	for _, b := range boxes {
+		totalChildWidth += b.Width
+	}
+	// Include gaps that are already in the positions
+	lastChild := boxes[len(boxes)-1]
+	usedWidth := (lastChild.X - offsetX) + lastChild.Width
+	remaining := availW - usedWidth
+	if remaining <= 0 {
+		return
+	}
+	applyJustify(boxes, remaining, justify, true, offsetX)
+}
+
+// applyJustifyColumn shifts children along the Y axis within the available height.
+func applyJustifyColumn(boxes []*Box, offsetY, availH int, justify string) {
+	if len(boxes) == 0 {
+		return
+	}
+	lastChild := boxes[len(boxes)-1]
+	usedHeight := (lastChild.Y - offsetY) + lastChild.Height
+	remaining := availH - usedHeight
+	if remaining <= 0 {
+		return
+	}
+	applyJustify(boxes, remaining, justify, false, offsetY)
+}
+
+// applyJustify shifts boxes along an axis. isRow=true shifts X, isRow=false shifts Y.
+func applyJustify(boxes []*Box, remaining int, justify string, isRow bool, offset int) {
+	n := len(boxes)
+	switch justify {
+	case "end":
+		for _, b := range boxes {
+			if isRow {
+				b.X += remaining
+			} else {
+				b.Y += remaining
+			}
+		}
+	case "center":
+		shift := remaining / 2
+		for _, b := range boxes {
+			if isRow {
+				b.X += shift
+			} else {
+				b.Y += shift
+			}
+		}
+	case "space-between":
+		if n <= 1 {
+			return
+		}
+		gaps := n - 1
+		for i, b := range boxes {
+			// Distribute remaining space evenly among gaps
+			shift := remaining * i / gaps
+			if isRow {
+				b.X += shift
+			} else {
+				b.Y += shift
+			}
+		}
+	}
 }
 
 // childrenExtent returns the content width and height occupied by children.
