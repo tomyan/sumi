@@ -13,13 +13,14 @@ import (
 // writeReactiveBody generates the reactive function body with event loop.
 func writeReactiveBody(buf *bytes.Buffer, doc *template.Document, sc *script.Script, stylesheet *style.Stylesheet, instances []componentInstance) {
 	scrollBoxes := findAllScrollableBoxes(doc, stylesheet)
+	title := findTitleElement(doc)
 	writeComponentInits(buf, instances)
 	writeStateOrDirtyOnly(buf, sc)
 	writeScrollStateDecls(buf, scrollBoxes)
 	writeFuncClosures(buf, sc)
-	writeRenderClosure(buf, doc, stylesheet, instances, scrollBoxes)
+	writeRenderClosure(buf, doc, stylesheet, instances, scrollBoxes, title)
 	writeSuppressUnusedFuncs(buf, doc, sc)
-	writeTerminalSetup(buf)
+	writeTerminalSetup(buf, title)
 	writeEventLoop(buf, doc, sc, instances, scrollBoxes)
 }
 
@@ -117,7 +118,7 @@ func buildStateLinesSet(assignments []script.StateAssignment) map[string]bool {
 // writeRenderClosure writes the doRender closure with surgical rendering.
 // First render (or resize) does a full redraw via buffer; subsequent state
 // changes diff the layout tree and only write changed nodes.
-func writeRenderClosure(buf *bytes.Buffer, doc *template.Document, stylesheet *style.Stylesheet, instances []componentInstance, scrollBoxes []scrollableBox) {
+func writeRenderClosure(buf *bytes.Buffer, doc *template.Document, stylesheet *style.Stylesheet, instances []componentInstance, scrollBoxes []scrollableBox, title *template.TitleElement) {
 	buf.WriteString("\tvar prevTree *layout.Box\n")
 	buf.WriteString("\tvar prevW, prevH int\n")
 	buf.WriteString("\tdoRender := func() {\n")
@@ -134,6 +135,7 @@ func writeRenderClosure(buf *bytes.Buffer, doc *template.Document, stylesheet *s
 	buf.WriteString("\t\t\tchanges := layout.DiffTrees(prevTree, tree)\n")
 	buf.WriteString("\t\t\tlayout.ApplyChanges(os.Stdout, changes)\n")
 	buf.WriteString("\t\t}\n")
+	writeTitleSet(buf, title)
 	buf.WriteString("\t\tprevTree = tree\n")
 	buf.WriteString("\t\tprevW = termW\n")
 	buf.WriteString("\t\tprevH = termH\n")
@@ -142,11 +144,14 @@ func writeRenderClosure(buf *bytes.Buffer, doc *template.Document, stylesheet *s
 }
 
 // writeTerminalSetup writes raw mode, alternate screen, event channel, and resize watcher setup.
-func writeTerminalSetup(buf *bytes.Buffer) {
+func writeTerminalSetup(buf *bytes.Buffer, title *template.TitleElement) {
+	writeTitleSave(buf, title)
 	buf.WriteString("\trestore, _ := input.EnableRawMode(int(os.Stdin.Fd()))\n")
 	buf.WriteString("\tdefer restore()\n")
 	buf.WriteString("\trender.EnterAlternateScreen(os.Stdout)\n")
-	buf.WriteString("\tdefer render.ExitAlternateScreen(os.Stdout)\n\n")
+	buf.WriteString("\tdefer render.ExitAlternateScreen(os.Stdout)\n")
+	writeTitleRestore(buf, title)
+	buf.WriteString("\n")
 	buf.WriteString("\teventCh := make(chan input.Event)\n")
 	buf.WriteString("\tgo func() {\n")
 	buf.WriteString("\t\tfor {\n")
