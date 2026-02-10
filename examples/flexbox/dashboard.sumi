@@ -1,0 +1,64 @@
+<style>
+.header {
+    border: single;
+    padding: 0 2;
+    justify: center;
+}
+.title {
+    color: green;
+    bold: true;
+}
+.hint {
+    color: cyan;
+    dim: true;
+}
+.panels {
+    direction: row;
+    gap: 1;
+}
+.panel {
+    flex-grow: 1;
+    border: single;
+    padding: 0 1;
+}
+.panel-title {
+    color: yellow;
+    bold: true;
+}
+.footer {
+    border: single;
+    padding: 0 2;
+    direction: row;
+    justify: space-between;
+}
+.status {
+    color: green;
+}
+.version {
+    color: cyan;
+    dim: true;
+}
+</style>
+
+<box>
+    <box class="header">
+        <text class="title">Sumi Flexbox Dashboard</text>
+    </box>
+    <text class="hint">Press q to quit</text>
+    <box class="panels">
+        <box class="panel">
+            <text class="panel-title">Left Panel</text>
+            <text>This panel uses flex-grow</text>
+            <text>to fill available space.</text>
+        </box>
+        <box class="panel">
+            <text class="panel-title">Right Panel</text>
+            <text>Both panels share the</text>
+            <text>width equally.</text>
+        </box>
+    </box>
+    <box class="footer">
+        <text class="status">Ready</text>
+        <text class="version">sumi v0.1</text>
+    </box>
+</box>
