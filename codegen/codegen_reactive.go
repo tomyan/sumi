@@ -165,7 +165,7 @@ func writeEventLoop(buf *bytes.Buffer, doc *template.Document, sc *script.Script
 	buf.WriteString("\tfor {\n")
 	buf.WriteString("\t\tselect {\n")
 	buf.WriteString("\t\tcase key, ok := <-keyCh:\n")
-	buf.WriteString("\t\t\tif !ok || key == 'q' {\n")
+	buf.WriteString("\t\t\tif !ok || key == 'q' || key == 3 {\n")
 	buf.WriteString("\t\t\t\treturn\n")
 	buf.WriteString("\t\t\t}\n")
 	writeOnkeyDispatchIndented(buf, doc)

@@ -101,7 +101,7 @@ func Run() {
 	for {
 		select {
 		case key, ok := <-keyCh:
-			if !ok || key == 'q' {
+			if !ok || key == 'q' || key == 3 {
 				return
 			}
 			increment()
