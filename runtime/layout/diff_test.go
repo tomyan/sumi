@@ -168,6 +168,48 @@ func TestDiffTreesNestedChanges(t *testing.T) {
 	}
 }
 
+func TestDiffDetectsScrollYChange(t *testing.T) {
+	// Given
+	old := &Box{X: 0, Y: 0, Width: 10, Height: 5, ScrollY: 0}
+	new := &Box{X: 0, Y: 0, Width: 10, Height: 5, ScrollY: 3}
+
+	// When
+	changes := DiffTrees(old, new)
+
+	// Then
+	if len(changes) != 1 {
+		t.Fatalf("len(changes) = %d, want 1", len(changes))
+	}
+}
+
+func TestDiffDetectsScrollXChange(t *testing.T) {
+	// Given
+	old := &Box{X: 0, Y: 0, Width: 10, Height: 5, ScrollX: 0}
+	new := &Box{X: 0, Y: 0, Width: 10, Height: 5, ScrollX: 5}
+
+	// When
+	changes := DiffTrees(old, new)
+
+	// Then
+	if len(changes) != 1 {
+		t.Fatalf("len(changes) = %d, want 1", len(changes))
+	}
+}
+
+func TestDiffDetectsScrollbarChange(t *testing.T) {
+	// Given
+	old := &Box{X: 0, Y: 0, Width: 10, Height: 5, NeedsScrollbar: false}
+	new := &Box{X: 0, Y: 0, Width: 10, Height: 5, NeedsScrollbar: true}
+
+	// When
+	changes := DiffTrees(old, new)
+
+	// Then
+	if len(changes) != 1 {
+		t.Fatalf("len(changes) = %d, want 1", len(changes))
+	}
+}
+
 func TestDiffTreesNilOldIsFullRedraw(t *testing.T) {
 	// Given
 	new := &Box{

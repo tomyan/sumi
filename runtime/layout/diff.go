@@ -78,6 +78,15 @@ func nodeChanged(old, new *Box) bool {
 	if !linesEqual(old.Lines, new.Lines) {
 		return true
 	}
+	if old.ScrollY != new.ScrollY || old.ScrollX != new.ScrollX {
+		return true
+	}
+	if old.NeedsScrollbar != new.NeedsScrollbar {
+		return true
+	}
+	if old.NeedsHorizontalScrollbar != new.NeedsHorizontalScrollbar {
+		return true
+	}
 	return false
 }
 
