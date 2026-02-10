@@ -54,3 +54,10 @@ type ComponentElement struct {
 }
 
 func (c *ComponentElement) nodeType() string { return "component" }
+
+// TitleElement represents a <title>content</title> element for setting the terminal title.
+type TitleElement struct {
+	Parts []Part
+}
+
+func (t *TitleElement) nodeType() string { return "title" }

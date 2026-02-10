@@ -32,7 +32,24 @@ func (p *parser) parse() (*Document, error) {
 		}
 		doc.Children = append(doc.Children, node)
 	}
+	if err := validateSingleTitle(doc); err != nil {
+		return nil, err
+	}
 	return doc, nil
+}
+
+// validateSingleTitle ensures at most one <title> element exists in the document.
+func validateSingleTitle(doc *Document) error {
+	count := 0
+	for _, child := range doc.Children {
+		if _, ok := child.(*TitleElement); ok {
+			count++
+		}
+	}
+	if count > 1 {
+		return fmt.Errorf("only one <title> element is allowed, found %d", count)
+	}
+	return nil
 }
 
 func (p *parser) parseElement() (Node, error) {
@@ -46,6 +63,8 @@ func (p *parser) parseElement() (Node, error) {
 		return p.parseTextTag()
 	case "box":
 		return p.parseBoxElement()
+	case "title":
+		return p.parseTitleElement()
 	default:
 		return p.parseComponentElement(tagName)
 	}
@@ -68,6 +87,21 @@ func (p *parser) parseTextTag() (Node, error) {
 		return nil, err
 	}
 	return p.parseTextElement(attrs)
+}
+
+func (p *parser) parseTitleElement() (Node, error) {
+	if err := p.expectClose("title"); err != nil {
+		return nil, err
+	}
+	closingTag := "</title>"
+	closeIdx := strings.Index(p.input[p.pos:], closingTag)
+	if closeIdx == -1 {
+		return nil, fmt.Errorf("missing closing </title> tag")
+	}
+	content := p.input[p.pos : p.pos+closeIdx]
+	p.pos += closeIdx + len(closingTag)
+	parts := parseTextParts(content)
+	return &TitleElement{Parts: parts}, nil
 }
 
 func (p *parser) parseBoxElement() (Node, error) {
