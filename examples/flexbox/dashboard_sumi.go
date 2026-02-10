@@ -6,6 +6,7 @@ import (
 
 	"github.com/tomyan/sumi/runtime/layout"
 	"github.com/tomyan/sumi/runtime/render"
+	"github.com/tomyan/sumi/runtime/term"
 )
 
 func Run() {
@@ -123,8 +124,9 @@ func Run() {
 			},
 		},
 	}
-	tree := layout.Layout(root, 80, 24)
-	buf := render.NewBuffer(80, 24)
+	termW, termH := term.GetSize(int(os.Stdin.Fd()))
+	tree := layout.Layout(root, termW, termH)
+	buf := render.NewBuffer(termW, termH)
 	render.EnterAlternateScreen(os.Stdout)
 	renderTree(buf, tree)
 	buf.RenderTo(os.Stdout)

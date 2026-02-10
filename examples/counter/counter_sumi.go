@@ -7,6 +7,7 @@ import (
 	"github.com/tomyan/sumi/runtime/input"
 	"github.com/tomyan/sumi/runtime/layout"
 	"github.com/tomyan/sumi/runtime/render"
+	"github.com/tomyan/sumi/runtime/term"
 )
 
 func Run() {
@@ -20,6 +21,7 @@ func Run() {
 
 	var prevBuf *render.Buffer
 	doRender := func() {
+		termW, termH := term.GetSize(int(os.Stdin.Fd()))
 		root := &layout.Input{
 			Kind:      layout.KindBox,
 			Direction: "column",
@@ -57,8 +59,8 @@ func Run() {
 				},
 			},
 		}
-		tree := layout.Layout(root, 80, 24)
-		buf := render.NewBuffer(80, 24)
+		tree := layout.Layout(root, termW, termH)
+		buf := render.NewBuffer(termW, termH)
 		renderTree(buf, tree)
 		if prevBuf != nil {
 			buf.RenderTo(os.Stdout)

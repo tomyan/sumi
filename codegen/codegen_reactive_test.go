@@ -212,6 +212,58 @@ func TestGenerateWithFunctionSetsDirecty(t *testing.T) {
 	}
 }
 
+func TestGenerateUsesTermGetSize(t *testing.T) {
+	// Given a reactive document
+	doc := &template.Document{
+		Children: []template.Node{textNode("Hello")},
+	}
+	sc := &script.Script{
+		StateDecls: []script.StateDecl{
+			{Name: "count", InitExpr: "0"},
+		},
+	}
+
+	// When
+	out, err := Generate(doc, sc, nil, Options{PackageName: "main"})
+
+	// Then generated code should use term.GetSize instead of hardcoded 80, 24
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	src := string(out)
+	if !strings.Contains(src, "term.GetSize") {
+		t.Errorf("expected term.GetSize in output:\n%s", src)
+	}
+	if strings.Contains(src, "layout.Layout(root, 80, 24)") {
+		t.Errorf("should not hardcode 80, 24 in layout call:\n%s", src)
+	}
+	if !strings.Contains(src, `"github.com/tomyan/sumi/runtime/term"`) {
+		t.Errorf("expected runtime/term import in output:\n%s", src)
+	}
+}
+
+func TestGenerateStaticUsesTermGetSize(t *testing.T) {
+	// Given a static document (no script)
+	doc := &template.Document{
+		Children: []template.Node{textNode("Hello")},
+	}
+
+	// When
+	out, err := Generate(doc, nil, nil, Options{PackageName: "main"})
+
+	// Then generated code should use term.GetSize
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	src := string(out)
+	if !strings.Contains(src, "term.GetSize") {
+		t.Errorf("expected term.GetSize in output:\n%s", src)
+	}
+	if strings.Contains(src, "layout.Layout(root, 80, 24)") {
+		t.Errorf("should not hardcode 80, 24:\n%s", src)
+	}
+}
+
 func TestGenerateMultipleStateVarsAndFunctions(t *testing.T) {
 	// Given
 	doc := &template.Document{

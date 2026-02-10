@@ -22,6 +22,7 @@ func writeImports(buf *bytes.Buffer, reactive, hasExprs bool) {
 	}
 	buf.WriteString("\t\"github.com/tomyan/sumi/runtime/layout\"\n")
 	buf.WriteString("\t\"github.com/tomyan/sumi/runtime/render\"\n")
+	buf.WriteString("\t\"github.com/tomyan/sumi/runtime/term\"\n")
 	buf.WriteString(")\n\n")
 }
 
@@ -29,8 +30,9 @@ func writeImports(buf *bytes.Buffer, reactive, hasExprs bool) {
 func writeStaticBody(buf *bytes.Buffer, doc *template.Document, stylesheet *style.Stylesheet) {
 	writeLayoutTree(buf, doc, stylesheet, false, nil)
 
-	buf.WriteString("\ttree := layout.Layout(root, 80, 24)\n")
-	buf.WriteString("\tbuf := render.NewBuffer(80, 24)\n")
+	buf.WriteString("\ttermW, termH := term.GetSize(int(os.Stdin.Fd()))\n")
+	buf.WriteString("\ttree := layout.Layout(root, termW, termH)\n")
+	buf.WriteString("\tbuf := render.NewBuffer(termW, termH)\n")
 	buf.WriteString("\trender.EnterAlternateScreen(os.Stdout)\n")
 	buf.WriteString("\trenderTree(buf, tree)\n")
 	buf.WriteString("\tbuf.RenderTo(os.Stdout)\n")

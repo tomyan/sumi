@@ -91,9 +91,10 @@ func buildStateLinesSet(assignments []script.StateAssignment) map[string]bool {
 func writeRenderClosure(buf *bytes.Buffer, doc *template.Document, stylesheet *style.Stylesheet, instances []componentInstance) {
 	buf.WriteString("\tvar prevBuf *render.Buffer\n")
 	buf.WriteString("\tdoRender := func() {\n")
+	buf.WriteString("\t\ttermW, termH := term.GetSize(int(os.Stdin.Fd()))\n")
 	writeLayoutTree(buf, doc, stylesheet, true, instances)
-	buf.WriteString("\t\ttree := layout.Layout(root, 80, 24)\n")
-	buf.WriteString("\t\tbuf := render.NewBuffer(80, 24)\n")
+	buf.WriteString("\t\ttree := layout.Layout(root, termW, termH)\n")
+	buf.WriteString("\t\tbuf := render.NewBuffer(termW, termH)\n")
 	buf.WriteString("\t\trenderTree(buf, tree)\n")
 	buf.WriteString("\t\tif prevBuf != nil {\n")
 	buf.WriteString("\t\t\tbuf.RenderTo(os.Stdout)\n")
