@@ -1,0 +1,17 @@
+<script>
+width := $env(width)
+height := $env(height)
+</script>
+
+<style>
+.header { border: single; padding: 1 2; }
+.title { color: green; bold: true; }
+.dims { color: yellow; bold: true; }
+.hint { color: cyan; dim: true; }
+</style>
+
+<box class="header">
+    <text class="title">Sumi Responsive Demo</text>
+    <text class="dims">Terminal: {width}x{height}</text>
+    <text class="hint">Resize your terminal to see this update! Press q to quit.</text>
+</box>
