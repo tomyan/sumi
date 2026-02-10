@@ -50,9 +50,10 @@ type Box struct {
 	Children            []*Box
 	Content             string       // text content if text node
 	Lines               []string     // wrapped lines (nil = single line, use Content)
-	Border              string       // border style
-	BorderTitle         string       // text to display in the top border edge
-	Style               render.Style // visual style
+	Border              string              // border style
+	BorderTitle         string              // text to display in the top border edge
+	Collapsed           render.CollapsedEdges // edges shared with adjacent borders
+	Style               render.Style        // visual style
 	NeedsScrollbar           bool         // true when a vertical scrollbar should be drawn
 	NeedsHorizontalScrollbar bool         // true when a horizontal scrollbar should be drawn
 	Clip                     *render.Clip // clipping region (set when overflow is non-empty)
