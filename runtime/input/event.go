@@ -8,6 +8,7 @@ type EventKind int
 const (
 	EventKey     EventKind = iota // regular character key
 	EventSpecial                  // special key (arrow, pgup, etc.)
+	EventMouse                    // mouse event
 )
 
 // SpecialKey identifies a special key.
@@ -31,6 +32,7 @@ type Event struct {
 	Kind    EventKind
 	Rune    rune       // set for EventKey
 	Special SpecialKey // set for EventSpecial
+	Mouse   MouseEvent // set for EventMouse
 }
 
 // ReadEvent reads a single input event from the reader.
@@ -73,6 +75,11 @@ func parseCSISequence(r io.Reader) (Event, error) {
 	b, err := readByte(r)
 	if err != nil {
 		return Event{Kind: EventKey, Rune: 0x1b}, nil
+	}
+
+	// SGR mouse: ESC[<...
+	if b == '<' {
+		return parseSGRMouse(func() (byte, error) { return readByte(r) }, "")
 	}
 
 	// Single letter final byte: arrow keys, Home, End
