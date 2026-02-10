@@ -29,10 +29,11 @@ type Input struct {
 	Overflow    string       // "hidden", "scroll", "auto", or "" (visible)
 	MinWidth    int          // minimum content width (0 = no minimum)
 	Padding     Padding
-	Border        string       // "single", "none", or ""
-	BorderTitle   string       // text to display in the top border edge
-	Style         render.Style // resolved style for this node
-	Children      []*Input
+	Border         string       // "single", "none", or ""
+	BorderTitle    string       // text to display in the top border edge
+	BorderCollapse bool        // when true, children share borders
+	Style          render.Style // resolved style for this node
+	Children       []*Input
 }
 
 // Padding holds inset values for each side.
