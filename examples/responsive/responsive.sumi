@@ -11,6 +11,8 @@ root { overflow: auto; min-width: 48; }
 .hint { color: cyan; dim: true; }
 </style>
 
+<title>Sumi {width}x{height}</title>
+
 <box class="header">
     <text class="title">Sumi Responsive Demo</text>
     <text class="dims">Terminal: {width}x{height}</text>

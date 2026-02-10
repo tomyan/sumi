@@ -73,16 +73,19 @@ func Run() {
 			changes := layout.DiffTrees(prevTree, tree)
 			layout.ApplyChanges(os.Stdout, changes)
 		}
+		fmt.Fprintf(os.Stdout, "\033]2;Sumi %vx%v\007", width, height)
 		prevTree = tree
 		prevW = termW
 		prevH = termH
 		dirty = false
 	}
 
+	fmt.Fprint(os.Stdout, "\033[22;2t")
 	restore, _ := input.EnableRawMode(int(os.Stdin.Fd()))
 	defer restore()
 	render.EnterAlternateScreen(os.Stdout)
 	defer render.ExitAlternateScreen(os.Stdout)
+	defer fmt.Fprint(os.Stdout, "\033[23;2t")
 
 	eventCh := make(chan input.Event)
 	go func() {
