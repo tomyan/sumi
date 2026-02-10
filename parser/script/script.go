@@ -4,6 +4,7 @@ package script
 type Script struct {
 	StateDecls []StateDecl
 	PropDecls  []PropDecl
+	EnvDecls   []EnvDecl
 	FuncDecls  []FuncDecl
 }
 
@@ -17,6 +18,12 @@ type StateDecl struct {
 type PropDecl struct {
 	Name        string // variable name
 	DefaultExpr string // default value expression
+}
+
+// EnvDecl represents an environment variable declaration: name := $env(key)
+type EnvDecl struct {
+	Name string // variable name
+	Key  string // environment key, e.g. "width", "height"
 }
 
 // FuncDecl represents a function declaration within the script block.
@@ -64,6 +71,13 @@ func (p *parser) parse() (*Script, error) {
 			return nil, err
 		} else if ok {
 			s.PropDecls = append(s.PropDecls, pdecl)
+			continue
+		}
+
+		if edecl, ok, err := p.tryParseEnvDecl(); err != nil {
+			return nil, err
+		} else if ok {
+			s.EnvDecls = append(s.EnvDecls, edecl)
 			continue
 		}
 
