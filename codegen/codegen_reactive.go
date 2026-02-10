@@ -112,16 +112,28 @@ func buildStateLinesSet(assignments []script.StateAssignment) map[string]bool {
 	return set
 }
 
-// writeRenderClosure writes the doRender closure.
+// writeRenderClosure writes the doRender closure with surgical rendering.
+// First render (or resize) does a full redraw via buffer; subsequent state
+// changes diff the layout tree and only write changed nodes.
 func writeRenderClosure(buf *bytes.Buffer, doc *template.Document, stylesheet *style.Stylesheet, instances []componentInstance) {
+	buf.WriteString("\tvar prevTree *layout.Box\n")
+	buf.WriteString("\tvar prevW, prevH int\n")
 	buf.WriteString("\tdoRender := func() {\n")
 	buf.WriteString("\t\ttermW, termH := term.GetSize(int(os.Stdin.Fd()))\n")
 	writeLayoutTree(buf, doc, stylesheet, true, instances)
 	buf.WriteString("\t\ttree := layout.Layout(root, termW, termH)\n")
-	buf.WriteString("\t\tbuf := render.NewBuffer(termW, termH)\n")
-	buf.WriteString("\t\trenderTree(buf, tree)\n")
-	buf.WriteString("\t\trender.ClearScreen(os.Stdout)\n")
-	buf.WriteString("\t\tbuf.RenderTo(os.Stdout)\n")
+	buf.WriteString("\t\tif prevTree == nil || termW != prevW || termH != prevH {\n")
+	buf.WriteString("\t\t\tbuf := render.NewBuffer(termW, termH)\n")
+	buf.WriteString("\t\t\trenderTree(buf, tree)\n")
+	buf.WriteString("\t\t\trender.ClearScreen(os.Stdout)\n")
+	buf.WriteString("\t\t\tbuf.RenderTo(os.Stdout)\n")
+	buf.WriteString("\t\t} else {\n")
+	buf.WriteString("\t\t\tchanges := layout.DiffTrees(prevTree, tree)\n")
+	buf.WriteString("\t\t\tlayout.ApplyChanges(os.Stdout, changes)\n")
+	buf.WriteString("\t\t}\n")
+	buf.WriteString("\t\tprevTree = tree\n")
+	buf.WriteString("\t\tprevW = termW\n")
+	buf.WriteString("\t\tprevH = termH\n")
 	buf.WriteString("\t\tdirty = false\n")
 	buf.WriteString("\t}\n\n")
 }
