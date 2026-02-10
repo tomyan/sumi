@@ -101,8 +101,27 @@ func borderSize(border string) int {
 }
 
 // Layout computes positions and sizes for a tree of Input nodes.
+// All positions in the returned tree are absolute (buffer coordinates).
 func Layout(input *Input, availWidth, availHeight int) *Box {
-	return layoutNode(input, availWidth, availHeight)
+	box := layoutNode(input, availWidth, availHeight)
+	absolutePositions(box)
+	return box
+}
+
+// absolutePositions converts relative positions to absolute by accumulating
+// parent offsets down the tree. Also adjusts clip regions to absolute coordinates.
+func absolutePositions(box *Box) {
+	for _, child := range box.Children {
+		child.X += box.X
+		child.Y += box.Y
+		if child.Clip != nil {
+			child.Clip.Left += child.X
+			child.Clip.Right += child.X
+			child.Clip.Top += child.Y
+			child.Clip.Bottom += child.Y
+		}
+		absolutePositions(child)
+	}
 }
 
 func layoutNode(input *Input, availW, availH int) *Box {
@@ -177,11 +196,12 @@ func layoutNode(input *Input, availW, availH int) *Box {
 		}
 	}
 
-	// Apply justify (shift children along main axis)
+	// Apply justify (shift children along main axis).
+	// Skip when the container auto-sizes on the main axis — no free space to distribute.
 	if input.Justify != "" && input.Justify != "start" {
 		if input.Direction == "row" {
 			applyJustifyRow(box.Children, offsetX, contentAvailW, input.Justify)
-		} else {
+		} else if input.FixedHeight > 0 {
 			applyJustifyColumn(box.Children, offsetY, contentAvailH, input.Justify)
 		}
 	}
@@ -194,7 +214,8 @@ func layoutNode(input *Input, availW, availH int) *Box {
 	}
 	if align != "start" {
 		if input.Direction == "row" {
-			applyAlignRow(box.Children, input.Children, offsetY, contentAvailH, align)
+			crossSize := rowCrossSize(contentAvailH, input.FixedHeight, box.Children)
+			applyAlignRow(box.Children, input.Children, offsetY, crossSize, align)
 		} else {
 			applyAlignColumn(box.Children, input.Children, offsetX, contentAvailW, align)
 		}
@@ -486,6 +507,23 @@ func applyAlignColumn(boxes []*Box, inputs []*Input, offsetX, availW int, align 
 			b.Width = availW
 		}
 	}
+}
+
+// rowCrossSize returns the cross-axis height for row alignment.
+// When the row has a fixed height, the content area height is used.
+// When auto-height, the tallest child determines the stretch target,
+// matching CSS flexbox behavior where auto-height rows size to content.
+func rowCrossSize(contentAvailH, fixedHeight int, children []*Box) int {
+	if fixedHeight > 0 {
+		return contentAvailH
+	}
+	maxH := 0
+	for _, child := range children {
+		if child.Height > maxH {
+			maxH = child.Height
+		}
+	}
+	return maxH
 }
 
 // canStretch returns whether a child can be stretched on the cross axis.

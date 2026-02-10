@@ -200,16 +200,17 @@ func TestLayoutNestedBoxes(t *testing.T) {
 		t.Errorf("inner Height = %d, want 3", inner.Height)
 	}
 
-	// Inner box's child (text) is offset by border
+	// Inner box's child (text) has absolute position:
+	// inner.X + border = 1 + 1 = 2, inner.Y + border = 1 + 1 = 2
 	if len(inner.Children) != 1 {
 		t.Fatalf("inner.Children = %d, want 1", len(inner.Children))
 	}
 	text := inner.Children[0]
-	if text.X != 1 {
-		t.Errorf("text X = %d, want 1 (inner border)", text.X)
+	if text.X != 2 {
+		t.Errorf("text X = %d, want 2 (inner.X=1 + border=1)", text.X)
 	}
-	if text.Y != 1 {
-		t.Errorf("text Y = %d, want 1 (inner border)", text.Y)
+	if text.Y != 2 {
+		t.Errorf("text Y = %d, want 2 (inner.Y=1 + border=1)", text.Y)
 	}
 
 	// Outer box: inner stretched to 78 + padding(1+1) = 80, inner(3) + padding(1+1) = 5

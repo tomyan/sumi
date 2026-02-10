@@ -224,3 +224,57 @@ func TestLayoutJustifySingleChildSpaceBetween(t *testing.T) {
 		t.Errorf("child X = %d, want 0 (single child, space-between = start)", box.Children[0].X)
 	}
 }
+
+func TestLayoutJustifyCenterColumnAutoHeight(t *testing.T) {
+	// Given a column with justify=center but NO fixed height,
+	// the container auto-sizes to its content — no free space to distribute.
+	// Justify should have no effect (CSS: auto main-size means zero free space).
+	input := &Input{
+		Kind:    KindBox,
+		Justify: "center",
+		Border:  "single",
+		Padding: Padding{0, 2, 0, 2},
+		Children: []*Input{
+			{Kind: KindText, Content: "Centered Title"},
+		},
+	}
+
+	// When laid out in 80x50 terminal
+	box := Layout(input, 80, 50)
+
+	// Then the text stays at the top of the content area (offsetY=1 for border)
+	if box.Children[0].Y != 1 {
+		t.Errorf("child Y = %d, want 1 (no centering for auto-height column)", box.Children[0].Y)
+	}
+	// The box auto-sizes to content: 1 text + 2 border = 3
+	if box.Height != 3 {
+		t.Errorf("box Height = %d, want 3 (auto-sized, not inflated by justify)", box.Height)
+	}
+}
+
+func TestLayoutJustifyEndColumnAutoHeight(t *testing.T) {
+	// Given a column with justify=end but NO fixed height,
+	// justify should have no effect — auto-sized container has no free space.
+	input := &Input{
+		Kind:    KindBox,
+		Justify: "end",
+		Children: []*Input{
+			{Kind: KindText, Content: "hello"},
+			{Kind: KindText, Content: "world"},
+		},
+	}
+
+	// When
+	box := Layout(input, 80, 40)
+
+	// Then children stay at their natural positions
+	if box.Children[0].Y != 0 {
+		t.Errorf("child[0].Y = %d, want 0", box.Children[0].Y)
+	}
+	if box.Children[1].Y != 1 {
+		t.Errorf("child[1].Y = %d, want 1", box.Children[1].Y)
+	}
+	if box.Height != 2 {
+		t.Errorf("box Height = %d, want 2 (auto-sized)", box.Height)
+	}
+}

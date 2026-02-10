@@ -46,6 +46,7 @@ func Run() {
 	tree := layout.Layout(root, termW, termH)
 	buf := render.NewBuffer(termW, termH)
 	render.EnterAlternateScreen(os.Stdout)
+	render.ClearScreen(os.Stdout)
 	layout.RenderTree(buf, tree, nil)
 	buf.RenderTo(os.Stdout)
 	bufio.NewScanner(os.Stdin).Scan()

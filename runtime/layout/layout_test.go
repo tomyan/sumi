@@ -217,6 +217,87 @@ func TestLayoutColumnThreeChildren(t *testing.T) {
 	}
 }
 
+func TestLayoutNestedPositionsAreAbsolute(t *testing.T) {
+	// Given a column with a bordered box, containing a row with two children.
+	// All positions in the resulting tree should be absolute (buffer coordinates).
+	input := &Input{
+		Kind: KindBox,
+		Children: []*Input{
+			{Kind: KindText, Content: "header"},
+			{
+				Kind:      KindBox,
+				Direction: "row",
+				Children: []*Input{
+					{Kind: KindText, Content: "left"},
+					{Kind: KindText, Content: "right"},
+				},
+			},
+		},
+	}
+
+	// When
+	box := Layout(input, 80, 24)
+
+	// Then
+	// header is at Y=0
+	if box.Children[0].Y != 0 {
+		t.Errorf("header Y = %d, want 0", box.Children[0].Y)
+	}
+	// row is at Y=1 (after header)
+	row := box.Children[1]
+	if row.Y != 1 {
+		t.Errorf("row Y = %d, want 1", row.Y)
+	}
+	// row's children should have ABSOLUTE Y positions (Y=1, not Y=0)
+	if row.Children[0].Y != 1 {
+		t.Errorf("left Y = %d, want 1 (absolute, same as row)", row.Children[0].Y)
+	}
+	if row.Children[1].Y != 1 {
+		t.Errorf("right Y = %d, want 1 (absolute, same as row)", row.Children[1].Y)
+	}
+	// right's X should be absolute
+	if row.Children[1].X != 4 {
+		t.Errorf("right X = %d, want 4 (after 'left')", row.Children[1].X)
+	}
+}
+
+func TestLayoutDeeplyNestedPositionsAreAbsolute(t *testing.T) {
+	// Given a 3-level deep nesting: column > bordered box > text
+	input := &Input{
+		Kind: KindBox,
+		Children: []*Input{
+			{Kind: KindText, Content: "above"},
+			{
+				Kind:   KindBox,
+				Border: "single",
+				Children: []*Input{
+					{Kind: KindText, Content: "nested"},
+				},
+			},
+		},
+	}
+
+	// When
+	box := Layout(input, 80, 24)
+
+	// Then
+	innerBox := box.Children[1]
+	// Inner box is at Y=1 (below "above" text)
+	if innerBox.Y != 1 {
+		t.Errorf("innerBox Y = %d, want 1", innerBox.Y)
+	}
+	// Text inside inner box: border=1, so offsetY=1 relative to inner box
+	// Absolute Y = innerBox.Y + 1 = 2
+	text := innerBox.Children[0]
+	if text.Y != 2 {
+		t.Errorf("nested text Y = %d, want 2 (absolute: innerBox.Y=1 + border=1)", text.Y)
+	}
+	// Absolute X = innerBox.X + border = 0 + 1 = 1
+	if text.X != 1 {
+		t.Errorf("nested text X = %d, want 1 (absolute: innerBox.X=0 + border=1)", text.X)
+	}
+}
+
 func TestLayoutTextNodeFixedSize(t *testing.T) {
 	// Given
 	input := &Input{
