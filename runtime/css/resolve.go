@@ -41,6 +41,9 @@ func ToRenderStyle(props map[string]string) render.Style {
 	if v, ok := props["color"]; ok {
 		s.FG = render.Color{Name: v}
 	}
+	if v, ok := props["border-color"]; ok {
+		s.FG = render.Color{Name: v}
+	}
 	if v, ok := props["background"]; ok {
 		s.BG = render.Color{Name: v}
 	}

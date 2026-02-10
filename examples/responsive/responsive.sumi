@@ -4,7 +4,7 @@ height := $env(height)
 </script>
 
 <style>
-.header { border: single; padding: 1 2; }
+.header { border: single; padding: 1 2; color: white; }
 .title { color: green; bold: true; }
 .dims { color: yellow; bold: true; }
 .hint { color: cyan; dim: true; }

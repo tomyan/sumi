@@ -254,5 +254,29 @@ func TestToRenderStyleEmptyProperties(t *testing.T) {
 	}
 }
 
+func TestToRenderStyleBorderColor(t *testing.T) {
+	// When
+	s := ToRenderStyle(map[string]string{"border-color": "cyan"})
+
+	// Then
+	if s.FG.Name != "cyan" {
+		t.Errorf("FG.Name = %q, want %q", s.FG.Name, "cyan")
+	}
+}
+
+func TestToRenderStyleBorderColorOverridesColor(t *testing.T) {
+	// Given — both color and border-color are set
+	// When
+	s := ToRenderStyle(map[string]string{
+		"color":        "red",
+		"border-color": "cyan",
+	})
+
+	// Then — border-color wins for FG
+	if s.FG.Name != "cyan" {
+		t.Errorf("FG.Name = %q, want %q (border-color should override color)", s.FG.Name, "cyan")
+	}
+}
+
 // Ensure render.Style is used (compile-time check)
 var _ render.Style
