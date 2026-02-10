@@ -81,6 +81,88 @@ func TestCollapseColumnEdgeFlags(t *testing.T) {
 	}
 }
 
+func TestCollapseRowTwoChildren(t *testing.T) {
+	// Given — row container with border-collapse and two bordered children
+	input := &Input{
+		Kind:           KindBox,
+		Direction:      "row",
+		BorderCollapse: true,
+		FixedWidth:     20,
+		FixedHeight:    10,
+		Children: []*Input{
+			{Kind: KindBox, Border: "single", FlexGrow: 1},
+			{Kind: KindBox, Border: "single", FlexGrow: 1},
+		},
+	}
+
+	// When
+	box := Layout(input, 20, 10)
+
+	// Then — child[1].X should equal child[0].X + child[0].Width - 1 (overlap by 1)
+	c0 := box.Children[0]
+	c1 := box.Children[1]
+	wantX := c0.X + c0.Width - 1
+	if c1.X != wantX {
+		t.Errorf("child[1].X = %d, want %d (child[0].X=%d + Width=%d - 1)", c1.X, wantX, c0.X, c0.Width)
+	}
+}
+
+func TestCollapseRowParentSize(t *testing.T) {
+	// Given — two bordered children, each 10 wide
+	input := &Input{
+		Kind:           KindBox,
+		Direction:      "row",
+		BorderCollapse: true,
+		Children: []*Input{
+			{Kind: KindBox, Border: "single", FixedWidth: 10, FixedHeight: 5},
+			{Kind: KindBox, Border: "single", FixedWidth: 10, FixedHeight: 5},
+		},
+	}
+
+	// When
+	box := Layout(input, 40, 20)
+
+	// Then — parent width = 10 + 10 - 1 (one overlap) = 19
+	if box.Width != 19 {
+		t.Errorf("parent Width = %d, want 19", box.Width)
+	}
+}
+
+func TestCollapseRowEdgeFlags(t *testing.T) {
+	// Given
+	input := &Input{
+		Kind:           KindBox,
+		Direction:      "row",
+		BorderCollapse: true,
+		FixedWidth:     20,
+		FixedHeight:    10,
+		Children: []*Input{
+			{Kind: KindBox, Border: "single", FlexGrow: 1},
+			{Kind: KindBox, Border: "single", FlexGrow: 1},
+		},
+	}
+
+	// When
+	box := Layout(input, 20, 10)
+
+	// Then — child[0] right collapsed, child[1] left collapsed
+	c0 := box.Children[0]
+	c1 := box.Children[1]
+	if !c0.Collapsed.Right {
+		t.Error("child[0].Collapsed.Right should be true")
+	}
+	if !c1.Collapsed.Left {
+		t.Error("child[1].Collapsed.Left should be true")
+	}
+	// Left of first child and right of last child should NOT be collapsed
+	if c0.Collapsed.Left {
+		t.Error("child[0].Collapsed.Left should be false")
+	}
+	if c1.Collapsed.Right {
+		t.Error("child[1].Collapsed.Right should be false")
+	}
+}
+
 func TestCollapseColumnNoParentBorderInset(t *testing.T) {
 	// Given — parent with border + collapse: children should use the full parent area (inset=0)
 	input := &Input{
