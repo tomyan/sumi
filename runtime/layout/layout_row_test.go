@@ -213,9 +213,9 @@ func TestLayoutRowNestedInColumn(t *testing.T) {
 	if right.X != 4 {
 		t.Errorf("right.X = %d, want 4 (after 'left')", right.X)
 	}
-	// Row width = sum of children = 4 + 5 = 9
-	if row.Width != 9 {
-		t.Errorf("row Width = %d, want 9", row.Width)
+	// Row stretches to fill parent width (default align=stretch)
+	if row.Width != 80 {
+		t.Errorf("row Width = %d, want 80 (stretched to fill parent)", row.Width)
 	}
 }
 

@@ -191,9 +191,10 @@ func TestLayoutNestedBoxes(t *testing.T) {
 		t.Errorf("inner Y = %d, want 1 (outer padding top)", inner.Y)
 	}
 
-	// Inner box: "inner" (5) + border (2) = 7 wide, 1 + border (2) = 3 tall
-	if inner.Width != 7 {
-		t.Errorf("inner Width = %d, want 7", inner.Width)
+	// Inner box stretches to fill outer's content area (default align=stretch)
+	// Outer avail = 80, padding = 1+1 = 2, so content area = 78
+	if inner.Width != 78 {
+		t.Errorf("inner Width = %d, want 78 (stretched to fill parent)", inner.Width)
 	}
 	if inner.Height != 3 {
 		t.Errorf("inner Height = %d, want 3", inner.Height)
@@ -211,9 +212,9 @@ func TestLayoutNestedBoxes(t *testing.T) {
 		t.Errorf("text Y = %d, want 1 (inner border)", text.Y)
 	}
 
-	// Outer box: inner(7) + padding(1+1) = 9 wide, inner(3) + padding(1+1) = 5 tall
-	if box.Width != 9 {
-		t.Errorf("outer Width = %d, want 9", box.Width)
+	// Outer box: inner stretched to 78 + padding(1+1) = 80, inner(3) + padding(1+1) = 5
+	if box.Width != 80 {
+		t.Errorf("outer Width = %d, want 80 (child stretched)", box.Width)
 	}
 	if box.Height != 5 {
 		t.Errorf("outer Height = %d, want 5", box.Height)

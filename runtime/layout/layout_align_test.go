@@ -4,13 +4,65 @@ import (
 	"testing"
 )
 
-func TestLayoutAlignStartIsDefault(t *testing.T) {
-	// Given a row with children of different heights, default align = start
+func TestLayoutAlignStretchIsDefault(t *testing.T) {
+	// Given a row with children of different heights, default align = stretch (CSS flexbox default)
 	input := &Input{
-		Kind:       KindBox,
-		Direction:  "row",
-		FixedWidth: 40,
+		Kind:        KindBox,
+		Direction:   "row",
+		FixedWidth:  40,
 		FixedHeight: 10,
+		Children: []*Input{
+			{Kind: KindBox, FixedWidth: 5, FixedHeight: 3},
+			{Kind: KindBox, FixedWidth: 5},
+		},
+	}
+
+	// When
+	box := Layout(input, 80, 24)
+
+	// Then children stretch to fill cross axis (height=10)
+	// Child with FixedHeight keeps its height (explicit size overrides stretch)
+	if box.Children[0].Height != 3 {
+		t.Errorf("child[0].Height = %d, want 3 (fixed height overrides stretch)", box.Children[0].Height)
+	}
+	if box.Children[1].Height != 10 {
+		t.Errorf("child[1].Height = %d, want 10 (stretched)", box.Children[1].Height)
+	}
+}
+
+func TestLayoutAlignStretchDefaultColumn(t *testing.T) {
+	// Given a column (default), children should stretch to fill width
+	input := &Input{
+		Kind:        KindBox,
+		Direction:   "column",
+		FixedWidth:  40,
+		FixedHeight: 10,
+		Children: []*Input{
+			{Kind: KindBox, FixedHeight: 3},
+			{Kind: KindBox, FixedHeight: 3, FixedWidth: 10},
+		},
+	}
+
+	// When
+	box := Layout(input, 80, 24)
+
+	// Then child without fixed width stretches, child with fixed width keeps it
+	if box.Children[0].Width != 40 {
+		t.Errorf("child[0].Width = %d, want 40 (stretched)", box.Children[0].Width)
+	}
+	if box.Children[1].Width != 10 {
+		t.Errorf("child[1].Width = %d, want 10 (fixed width overrides stretch)", box.Children[1].Width)
+	}
+}
+
+func TestLayoutAlignStartExplicit(t *testing.T) {
+	// Given explicit align=start, children should NOT stretch
+	input := &Input{
+		Kind:        KindBox,
+		Direction:   "row",
+		FixedWidth:  40,
+		FixedHeight: 10,
+		Align:       "start",
 		Children: []*Input{
 			{Kind: KindBox, FixedWidth: 5, FixedHeight: 3},
 			{Kind: KindBox, FixedWidth: 5, FixedHeight: 5},
@@ -20,12 +72,12 @@ func TestLayoutAlignStartIsDefault(t *testing.T) {
 	// When
 	box := Layout(input, 80, 24)
 
-	// Then children are at Y=0 (top-aligned)
-	if box.Children[0].Y != 0 {
-		t.Errorf("child[0].Y = %d, want 0 (start)", box.Children[0].Y)
+	// Then children keep their natural height
+	if box.Children[0].Height != 3 {
+		t.Errorf("child[0].Height = %d, want 3", box.Children[0].Height)
 	}
-	if box.Children[1].Y != 0 {
-		t.Errorf("child[1].Y = %d, want 0 (start)", box.Children[1].Y)
+	if box.Children[1].Height != 5 {
+		t.Errorf("child[1].Height = %d, want 5", box.Children[1].Height)
 	}
 }
 

@@ -159,11 +159,16 @@ func layoutNode(input *Input, availW, availH int) *Box {
 	}
 
 	// Apply align (shift/stretch children along cross axis)
-	if input.Align != "" && input.Align != "start" {
+	// Default is "stretch" to match CSS flexbox behavior
+	align := input.Align
+	if align == "" {
+		align = "stretch"
+	}
+	if align != "start" {
 		if input.Direction == "row" {
-			applyAlignRow(box.Children, offsetY, contentAvailH, input.Align)
+			applyAlignRow(box.Children, input.Children, offsetY, contentAvailH, align)
 		} else {
-			applyAlignColumn(box.Children, offsetX, contentAvailW, input.Align)
+			applyAlignColumn(box.Children, input.Children, offsetX, contentAvailW, align)
 		}
 	}
 
@@ -401,14 +406,17 @@ func applyJustify(boxes []*Box, remaining int, justify string, isRow bool, offse
 }
 
 // applyAlignRow aligns children along the Y axis (cross axis for row layout).
-func applyAlignRow(boxes []*Box, offsetY, availH int, align string) {
-	for _, b := range boxes {
+func applyAlignRow(boxes []*Box, inputs []*Input, offsetY, availH int, align string) {
+	for i, b := range boxes {
 		switch align {
 		case "end":
 			b.Y = offsetY + availH - b.Height
 		case "center":
 			b.Y = offsetY + (availH-b.Height)/2
 		case "stretch":
+			if i < len(inputs) && !canStretch(inputs[i], false) {
+				continue
+			}
 			b.Y = offsetY
 			b.Height = availH
 		}
@@ -416,18 +424,37 @@ func applyAlignRow(boxes []*Box, offsetY, availH int, align string) {
 }
 
 // applyAlignColumn aligns children along the X axis (cross axis for column layout).
-func applyAlignColumn(boxes []*Box, offsetX, availW int, align string) {
-	for _, b := range boxes {
+func applyAlignColumn(boxes []*Box, inputs []*Input, offsetX, availW int, align string) {
+	for i, b := range boxes {
 		switch align {
 		case "end":
 			b.X = offsetX + availW - b.Width
 		case "center":
 			b.X = offsetX + (availW-b.Width)/2
 		case "stretch":
+			if i < len(inputs) && !canStretch(inputs[i], true) {
+				continue
+			}
 			b.X = offsetX
 			b.Width = availW
 		}
 	}
+}
+
+// canStretch returns whether a child can be stretched on the cross axis.
+// Text nodes have intrinsic size and are never stretched.
+// Children with explicit fixed cross-axis size are not stretched.
+func canStretch(input *Input, isWidth bool) bool {
+	if input.Kind == KindText {
+		return false
+	}
+	if isWidth && input.FixedWidth > 0 {
+		return false
+	}
+	if !isWidth && input.FixedHeight > 0 {
+		return false
+	}
+	return true
 }
 
 // childrenExtent returns the content width and height occupied by children.
