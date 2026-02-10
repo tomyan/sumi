@@ -38,7 +38,7 @@ func renderScrollbarsAndChildren(buf *render.Buffer, box *Box, clip *render.Clip
 		childClip = narrowClipForHorizontalScrollbar(childClip)
 	}
 	for _, child := range box.Children {
-		renderChildWithScroll(buf, child, box.ScrollY, childClip)
+		renderChildWithScroll(buf, child, box.ScrollX, box.ScrollY, childClip)
 	}
 }
 
@@ -80,15 +80,17 @@ func narrowClipForHorizontalScrollbar(clip *render.Clip) *render.Clip {
 	}
 }
 
-// renderChildWithScroll renders a child box, translating by the parent's scroll offset.
-func renderChildWithScroll(buf *render.Buffer, child *Box, scrollY int, clip *render.Clip) {
-	if scrollY == 0 {
+// renderChildWithScroll renders a child box, translating by the parent's scroll offsets.
+func renderChildWithScroll(buf *render.Buffer, child *Box, scrollX, scrollY int, clip *render.Clip) {
+	if scrollX == 0 && scrollY == 0 {
 		RenderTree(buf, child, clip)
 		return
 	}
-	// Translate child position by -scrollY for rendering
+	// Translate child position by -scrollX/-scrollY for rendering
+	child.X -= scrollX
 	child.Y -= scrollY
 	RenderTree(buf, child, clip)
+	child.X += scrollX // restore
 	child.Y += scrollY // restore
 }
 

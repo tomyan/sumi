@@ -67,6 +67,49 @@ func TestRenderTreeNoScrollbarWhenNotNeeded(t *testing.T) {
 	}
 }
 
+func TestRenderTreeAppliesScrollXOffset(t *testing.T) {
+	// Given — a box with ScrollX=5, child at X=2
+	box := &Box{
+		X: 0, Y: 0, Width: 10, Height: 3,
+		ScrollX: 5,
+		Clip:    &render.Clip{Top: 0, Left: 0, Bottom: 2, Right: 9},
+		Children: []*Box{
+			{X: 7, Y: 0, Width: 5, Height: 1, Content: "ABCDE"},
+		},
+	}
+	buf := render.NewBuffer(10, 3)
+
+	// When
+	RenderTree(buf, box, nil)
+
+	// Then — child at X=7 shifted left by 5 → visible at X=2
+	if ch := buf.Cell(0, 2).Ch; ch != 'A' {
+		t.Errorf("Cell(0, 2).Ch = %c, want 'A' (child shifted by ScrollX)", ch)
+	}
+}
+
+func TestRenderTreeAppliesBothScrollOffsets(t *testing.T) {
+	// Given — a box with ScrollX=3 and ScrollY=2, child at X=5, Y=4
+	box := &Box{
+		X: 0, Y: 0, Width: 10, Height: 5,
+		ScrollX: 3,
+		ScrollY: 2,
+		Clip:    &render.Clip{Top: 0, Left: 0, Bottom: 4, Right: 9},
+		Children: []*Box{
+			{X: 5, Y: 4, Width: 3, Height: 1, Content: "Hi!"},
+		},
+	}
+	buf := render.NewBuffer(10, 5)
+
+	// When
+	RenderTree(buf, box, nil)
+
+	// Then — child shifted: X=5-3=2, Y=4-2=2
+	if ch := buf.Cell(2, 2).Ch; ch != 'H' {
+		t.Errorf("Cell(2, 2).Ch = %c, want 'H' (shifted by ScrollX+ScrollY)", ch)
+	}
+}
+
 func TestRenderTreeScrollbarNarrowsContentClip(t *testing.T) {
 	// Given — a box that needs a scrollbar with a child spanning full width
 	box := &Box{
