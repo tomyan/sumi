@@ -68,6 +68,7 @@ func writeScrollStateDecls(buf *bytes.Buffer, scrollBoxes []scrollableBox) {
 		fmt.Fprintf(buf, "\tvar %s layout.ScrollState\n", scrollVarName(sb.Index))
 	}
 	if len(scrollBoxes) > 0 {
+		buf.WriteString("\tdraggingHScroll := false\n")
 		buf.WriteString("\n")
 	}
 }
@@ -89,13 +90,15 @@ func prevTreePath(treePath string) string {
 	return treePath
 }
 
-// writeMouseScrollDispatch writes the EventMouse handler for scroll wheel events.
+// writeMouseScrollDispatch writes the EventMouse handler for scroll wheel and drag events.
 func writeMouseScrollDispatch(buf *bytes.Buffer, scrollBoxes []scrollableBox) {
 	if len(scrollBoxes) == 0 {
 		return
 	}
 	name := scrollVarName(scrollBoxes[0].Index)
 	path := prevTreePath(scrollBoxes[0].TreePath)
+
+	// Scroll wheel
 	buf.WriteString("\t\t\tif evt.Kind == input.EventMouse && evt.Mouse.Action == input.MouseScroll && prevTree != nil {\n")
 	buf.WriteString("\t\t\t\tswitch evt.Mouse.Button {\n")
 	buf.WriteString("\t\t\t\tcase input.ScrollDown:\n")
@@ -104,6 +107,24 @@ func writeMouseScrollDispatch(buf *bytes.Buffer, scrollBoxes []scrollableBox) {
 	buf.WriteString("\t\t\t\tcase input.ScrollUp:\n")
 	fmt.Fprintf(buf, "\t\t\t\t\t%s.ScrollUp()\n", name)
 	buf.WriteString("\t\t\t\t\tdirty = true\n")
+	buf.WriteString("\t\t\t\t}\n")
+	buf.WriteString("\t\t\t}\n")
+
+	// Drag: press on scrollbar starts drag, motion updates, release stops
+	buf.WriteString("\t\t\tif evt.Kind == input.EventMouse && prevTree != nil {\n")
+	buf.WriteString("\t\t\t\tif evt.Mouse.Action == input.MousePress {\n")
+	fmt.Fprintf(buf, "\t\t\t\t\tif %s.NeedsHorizontalScrollbar && %s.Clip != nil && evt.Mouse.Y == %s.Clip.Bottom {\n", path, path, path)
+	buf.WriteString("\t\t\t\t\t\tdraggingHScroll = true\n")
+	fmt.Fprintf(buf, "\t\t\t\t\t\t%s.ScrollX = layout.ScrollXFromDrag(evt.Mouse.X-%s.Clip.Left, %s.ContentWidth, %s.Clip.Right-%s.Clip.Left+1)\n", name, path, path, path, path)
+	buf.WriteString("\t\t\t\t\t\tdirty = true\n")
+	buf.WriteString("\t\t\t\t\t}\n")
+	buf.WriteString("\t\t\t\t}\n")
+	buf.WriteString("\t\t\t\tif evt.Mouse.Action == input.MouseMotion && draggingHScroll {\n")
+	fmt.Fprintf(buf, "\t\t\t\t\t%s.ScrollX = layout.ScrollXFromDrag(evt.Mouse.X-%s.Clip.Left, %s.ContentWidth, %s.Clip.Right-%s.Clip.Left+1)\n", name, path, path, path, path)
+	buf.WriteString("\t\t\t\t\tdirty = true\n")
+	buf.WriteString("\t\t\t\t}\n")
+	buf.WriteString("\t\t\t\tif evt.Mouse.Action == input.MouseRelease {\n")
+	buf.WriteString("\t\t\t\t\tdraggingHScroll = false\n")
 	buf.WriteString("\t\t\t\t}\n")
 	buf.WriteString("\t\t\t}\n")
 }

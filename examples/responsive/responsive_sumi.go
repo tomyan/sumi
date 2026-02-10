@@ -14,6 +14,7 @@ func Run() {
 	width, height := term.GetSize(int(os.Stdin.Fd()))
 	dirty := true
 	var scroll0 layout.ScrollState
+	draggingHScroll := false
 
 	var prevTree *layout.Box
 	var prevW, prevH int
@@ -147,6 +148,22 @@ func Run() {
 				case input.ScrollUp:
 					scroll0.ScrollUp()
 					dirty = true
+				}
+			}
+			if evt.Kind == input.EventMouse && prevTree != nil {
+				if evt.Mouse.Action == input.MousePress {
+					if prevTree.NeedsHorizontalScrollbar && prevTree.Clip != nil && evt.Mouse.Y == prevTree.Clip.Bottom {
+						draggingHScroll = true
+						scroll0.ScrollX = layout.ScrollXFromDrag(evt.Mouse.X-prevTree.Clip.Left, prevTree.ContentWidth, prevTree.Clip.Right-prevTree.Clip.Left+1)
+						dirty = true
+					}
+				}
+				if evt.Mouse.Action == input.MouseMotion && draggingHScroll {
+					scroll0.ScrollX = layout.ScrollXFromDrag(evt.Mouse.X-prevTree.Clip.Left, prevTree.ContentWidth, prevTree.Clip.Right-prevTree.Clip.Left+1)
+					dirty = true
+				}
+				if evt.Mouse.Action == input.MouseRelease {
+					draggingHScroll = false
 				}
 			}
 		case <-resizeCh:
