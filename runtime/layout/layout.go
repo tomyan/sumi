@@ -110,7 +110,6 @@ func layoutNode(input *Input) *Box {
 		return box
 	}
 
-	// KindBox: lay out children in column direction
 	b := borderSize(input.Border)
 	pad := input.Padding
 
@@ -118,32 +117,72 @@ func layoutNode(input *Input) *Box {
 	offsetX := b + pad.Left
 	offsetY := b + pad.Top
 
-	// Lay out children vertically within the content area
+	if input.Direction == "row" {
+		box.Children = layoutRow(input.Children, offsetX, offsetY)
+	} else {
+		box.Children = layoutColumn(input.Children, offsetX, offsetY)
+	}
+
+	// Compute size
+	contentW, contentH := childrenExtent(box.Children, offsetX, offsetY)
+	if input.FixedWidth > 0 {
+		box.Width = input.FixedWidth
+	} else {
+		box.Width = contentW + pad.Left + pad.Right + 2*b
+	}
+	if input.FixedHeight > 0 {
+		box.Height = input.FixedHeight
+	} else {
+		box.Height = contentH + pad.Top + pad.Bottom + 2*b
+	}
+
+	return box
+}
+
+// layoutColumn places children vertically, advancing Y after each child.
+func layoutColumn(children []*Input, offsetX, offsetY int) []*Box {
+	var boxes []*Box
 	cursorY := 0
-	maxChildWidth := 0
-	for _, child := range input.Children {
+	for _, child := range children {
 		childBox := layoutNode(child)
 		childBox.X = offsetX
 		childBox.Y = offsetY + cursorY
 		cursorY += childBox.Height
-		if childBox.Width > maxChildWidth {
-			maxChildWidth = childBox.Width
+		boxes = append(boxes, childBox)
+	}
+	return boxes
+}
+
+// layoutRow places children horizontally, advancing X after each child.
+func layoutRow(children []*Input, offsetX, offsetY int) []*Box {
+	var boxes []*Box
+	cursorX := 0
+	for _, child := range children {
+		childBox := layoutNode(child)
+		childBox.X = offsetX + cursorX
+		childBox.Y = offsetY
+		cursorX += childBox.Width
+		boxes = append(boxes, childBox)
+	}
+	return boxes
+}
+
+// childrenExtent returns the content width and height occupied by children.
+// For column: width = max child width, height = sum of child heights.
+// For row: width = sum of child widths, height = max child height.
+// Works generically by computing the bounding box of children relative to offset.
+func childrenExtent(boxes []*Box, offsetX, offsetY int) (int, int) {
+	maxW := 0
+	maxH := 0
+	for _, b := range boxes {
+		right := (b.X - offsetX) + b.Width
+		bottom := (b.Y - offsetY) + b.Height
+		if right > maxW {
+			maxW = right
 		}
-		box.Children = append(box.Children, childBox)
+		if bottom > maxH {
+			maxH = bottom
+		}
 	}
-
-	// Compute size
-	if input.FixedWidth > 0 {
-		box.Width = input.FixedWidth
-	} else {
-		box.Width = maxChildWidth + pad.Left + pad.Right + 2*b
-	}
-
-	if input.FixedHeight > 0 {
-		box.Height = input.FixedHeight
-	} else {
-		box.Height = cursorY + pad.Top + pad.Bottom + 2*b
-	}
-
-	return box
+	return maxW, maxH
 }
