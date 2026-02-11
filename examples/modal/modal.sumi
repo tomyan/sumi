@@ -15,6 +15,7 @@
     border: single;
     border-color: yellow;
     padding: 1 2;
+    background: black;
 }
 .modal-title {
     color: yellow;

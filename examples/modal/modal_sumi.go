@@ -67,6 +67,7 @@ func Run() {
 						ZIndex:      2,
 						Style: render.Style{
 							FG: render.Color{Name: "yellow"},
+							BG: render.Color{Name: "black"},
 						},
 						Children: []*layout.Input{
 							{

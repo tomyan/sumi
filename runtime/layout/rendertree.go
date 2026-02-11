@@ -8,9 +8,24 @@ import (
 
 // RenderTree renders a layout tree to a buffer, applying clip regions and scroll offsets.
 func RenderTree(buf *render.Buffer, box *Box, clip *render.Clip) {
+	renderBackground(buf, box, clip)
 	renderBorder(buf, box)
 	renderContent(buf, box, clip)
 	renderScrollbarsAndChildren(buf, box, clip)
+}
+
+// renderBackground fills the box area with spaces using the box's BG color.
+// Only fills when a background color is set. Fills inside border if present.
+func renderBackground(buf *render.Buffer, box *Box, clip *render.Clip) {
+	if box.Style.BG.Name == "" {
+		return
+	}
+	b := borderSize(box.Border)
+	for row := box.Y + b; row < box.Y+box.Height-b; row++ {
+		for col := box.X + b; col < box.X+box.Width-b; col++ {
+			buf.SetStyledCellClipped(row, col, ' ', box.Style, clip)
+		}
+	}
 }
 
 func renderBorder(buf *render.Buffer, box *Box) {
