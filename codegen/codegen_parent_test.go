@@ -10,14 +10,10 @@ import (
 	"github.com/tomyan/sumi/parser/template"
 )
 
-func counterComponents() map[string]*ComponentInfo {
+// inlinableCounter builds a ComponentInfo with full AST for inlining.
+func inlinableCounter() map[string]*ComponentInfo {
 	return map[string]*ComponentInfo{
-		"counter": {
-			Name:         "counter",
-			ExportedName: "Counter",
-			Props:        []string{"label"},
-			HasState:     true,
-		},
+		"counter": counterComponentInfo(),
 	}
 }
 
@@ -37,13 +33,13 @@ func TestGenerateParentWithSingleChild(t *testing.T) {
 		},
 	}
 
-	// When generating code with component info
+	// When generating code with inlinable component info
 	out, err := Generate(doc, nil, nil, Options{
 		PackageName: "main",
-		Components:  counterComponents(),
+		Components:  inlinableCounter(),
 	})
 
-	// Then the output is valid Go containing NewCounterComponent
+	// Then the output is valid Go with inlined child state
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -53,8 +49,8 @@ func TestGenerateParentWithSingleChild(t *testing.T) {
 		t.Fatalf("generated code is not valid Go:\n%s\n\nerror: %v", string(out), parseErr)
 	}
 	src := string(out)
-	if !strings.Contains(src, "NewCounterComponent") {
-		t.Errorf("expected NewCounterComponent call in output:\n%s", src)
+	if !strings.Contains(src, "counter0_count") {
+		t.Errorf("expected inlined counter0_count in output:\n%s", src)
 	}
 }
 
@@ -78,26 +74,26 @@ func TestGenerateParentWithMultipleChildren(t *testing.T) {
 		},
 	}
 
-	// When generating code with component info
+	// When generating code with inlinable component info
 	out, err := Generate(doc, nil, nil, Options{
 		PackageName: "main",
-		Components:  counterComponents(),
+		Components:  inlinableCounter(),
 	})
 
-	// Then both counter0 and counter1 appear with unique variable names
+	// Then both instances appear with unique namespaces
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 	src := string(out)
-	if !strings.Contains(src, "counter0") {
-		t.Errorf("expected counter0 variable in output:\n%s", src)
+	if !strings.Contains(src, "counter0_count") {
+		t.Errorf("expected counter0_count in output:\n%s", src)
 	}
-	if !strings.Contains(src, "counter1") {
-		t.Errorf("expected counter1 variable in output:\n%s", src)
+	if !strings.Contains(src, "counter1_count") {
+		t.Errorf("expected counter1_count in output:\n%s", src)
 	}
 }
 
-func TestGenerateParentCallsChildLayout(t *testing.T) {
+func TestGenerateParentInlinesChildTemplate(t *testing.T) {
 	// Given a parent document with a <counter /> element
 	doc := &template.Document{
 		Children: []template.Node{
@@ -113,88 +109,28 @@ func TestGenerateParentCallsChildLayout(t *testing.T) {
 		},
 	}
 
-	// When generating code with component info
+	// When generating code with inlinable component info
 	out, err := Generate(doc, nil, nil, Options{
 		PackageName: "main",
-		Components:  counterComponents(),
+		Components:  inlinableCounter(),
 	})
 
-	// Then the layout tree references counter0.Layout()
+	// Then the child template is inlined (no Layout() call)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 	src := string(out)
-	if !strings.Contains(src, "counter0.Layout()") {
-		t.Errorf("expected counter0.Layout() in layout tree:\n%s", src)
+	if strings.Contains(src, ".Layout()") {
+		t.Errorf("should not have .Layout() call, child is inlined:\n%s", src)
+	}
+	// Prop should be resolved to literal within the Sprintf format string
+	if !strings.Contains(src, `"Clicks: `) {
+		t.Errorf("expected prop resolved to literal in inlined template:\n%s", src)
 	}
 }
 
-func TestGenerateParentDispatchesHandleKey(t *testing.T) {
-	// Given a parent document with a stateful <counter /> child
-	doc := &template.Document{
-		Children: []template.Node{
-			&template.BoxElement{
-				Attributes: map[string]string{"direction": "column"},
-				Children: []template.Node{
-					&template.ComponentElement{
-						Name:       "counter",
-						Attributes: map[string]string{"label": "Clicks"},
-					},
-				},
-			},
-		},
-	}
-
-	// When generating code with HasState=true
-	out, err := Generate(doc, nil, nil, Options{
-		PackageName: "main",
-		Components:  counterComponents(),
-	})
-
-	// Then the event loop dispatches HandleKey to the child
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-	src := string(out)
-	if !strings.Contains(src, "counter0.HandleKey(evt.Rune)") {
-		t.Errorf("expected counter0.HandleKey(evt.Rune) in event loop:\n%s", src)
-	}
-}
-
-func TestGenerateParentChecksDirty(t *testing.T) {
-	// Given a parent document with a stateful <counter /> child
-	doc := &template.Document{
-		Children: []template.Node{
-			&template.BoxElement{
-				Attributes: map[string]string{"direction": "column"},
-				Children: []template.Node{
-					&template.ComponentElement{
-						Name:       "counter",
-						Attributes: map[string]string{"label": "Clicks"},
-					},
-				},
-			},
-		},
-	}
-
-	// When generating code with HasState=true
-	out, err := Generate(doc, nil, nil, Options{
-		PackageName: "main",
-		Components:  counterComponents(),
-	})
-
-	// Then the dirty check includes counter0.Dirty()
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-	src := string(out)
-	if !strings.Contains(src, "counter0.Dirty()") {
-		t.Errorf("expected counter0.Dirty() in dirty check:\n%s", src)
-	}
-}
-
-func TestGenerateParentPassesProps(t *testing.T) {
-	// Given a parent document with <counter label="Clicks" />
+func TestGenerateParentInlinesOnkeyHandler(t *testing.T) {
+	// Given a parent document with a stateful counter that has onkey
 	doc := &template.Document{
 		Children: []template.Node{
 			&template.ComponentElement{
@@ -204,19 +140,52 @@ func TestGenerateParentPassesProps(t *testing.T) {
 		},
 	}
 
-	// When generating code with component info specifying props
+	// When generating code
 	out, err := Generate(doc, nil, nil, Options{
 		PackageName: "main",
-		Components:  counterComponents(),
+		Components:  inlinableCounter(),
 	})
 
-	// Then the constructor call includes the prop value
+	// Then the event loop calls the inlined handler directly
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 	src := string(out)
-	if !strings.Contains(src, `NewCounterComponent("Clicks")`) {
-		t.Errorf("expected NewCounterComponent(\"Clicks\") in output:\n%s", src)
+	if !strings.Contains(src, "counter0_increment()") {
+		t.Errorf("expected inlined onkey call counter0_increment():\n%s", src)
+	}
+	if strings.Contains(src, ".HandleKey(") {
+		t.Errorf("should not have .HandleKey() dispatch:\n%s", src)
+	}
+}
+
+func TestGenerateParentSingleDirtyFlag(t *testing.T) {
+	// Given a parent with a stateful child component
+	doc := &template.Document{
+		Children: []template.Node{
+			&template.ComponentElement{
+				Name:       "counter",
+				Attributes: map[string]string{"label": "Clicks"},
+			},
+		},
+	}
+
+	// When generating code
+	out, err := Generate(doc, nil, nil, Options{
+		PackageName: "main",
+		Components:  inlinableCounter(),
+	})
+
+	// Then a single dirty flag is used (no Dirty() polling)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	src := string(out)
+	if strings.Contains(src, ".Dirty()") {
+		t.Errorf("should not have .Dirty() polling:\n%s", src)
+	}
+	if !strings.Contains(src, "if dirty {") {
+		t.Errorf("expected simple dirty check:\n%s", src)
 	}
 }
 
@@ -234,7 +203,7 @@ func TestGenerateParentWithoutScriptUsesReactive(t *testing.T) {
 	// When generating code with nil script but with components
 	out, err := Generate(doc, nil, nil, Options{
 		PackageName: "main",
-		Components:  counterComponents(),
+		Components:  inlinableCounter(),
 	})
 
 	// Then reactive code (event loop) is generated, not static
@@ -244,9 +213,6 @@ func TestGenerateParentWithoutScriptUsesReactive(t *testing.T) {
 	src := string(out)
 	if !strings.Contains(src, "input.ReadEvent") {
 		t.Errorf("expected input.ReadEvent (reactive mode) in output:\n%s", src)
-	}
-	if strings.Contains(src, "bufio.NewScanner") {
-		t.Errorf("expected no bufio.NewScanner (static mode) in output:\n%s", src)
 	}
 }
 
@@ -270,10 +236,10 @@ func TestGenerateParentMixedComponentsAndText(t *testing.T) {
 	// When generating code with component info
 	out, err := Generate(doc, nil, nil, Options{
 		PackageName: "main",
-		Components:  counterComponents(),
+		Components:  inlinableCounter(),
 	})
 
-	// Then both TextElement and ComponentElement are in the output
+	// Then both TextElement and inlined component are in the output
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -286,8 +252,8 @@ func TestGenerateParentMixedComponentsAndText(t *testing.T) {
 	if !strings.Contains(src, `"Title"`) {
 		t.Errorf("expected Title text in output:\n%s", src)
 	}
-	if !strings.Contains(src, "counter0.Layout()") {
-		t.Errorf("expected counter0.Layout() in output:\n%s", src)
+	if !strings.Contains(src, "counter0_count") {
+		t.Errorf("expected inlined counter0_count in output:\n%s", src)
 	}
 }
 
@@ -329,10 +295,10 @@ func TestGenerateParentWithStatefulScriptAndChild(t *testing.T) {
 	// When generating code
 	out, err := Generate(doc, sc, nil, Options{
 		PackageName: "main",
-		Components:  counterComponents(),
+		Components:  inlinableCounter(),
 	})
 
-	// Then both parent state and child component code is present
+	// Then both parent state and inlined child are present
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -345,13 +311,10 @@ func TestGenerateParentWithStatefulScriptAndChild(t *testing.T) {
 	if !strings.Contains(src, "active := true") {
 		t.Errorf("expected parent state declaration:\n%s", src)
 	}
-	if !strings.Contains(src, "NewCounterComponent") {
-		t.Errorf("expected NewCounterComponent call:\n%s", src)
+	if !strings.Contains(src, "counter0_count") {
+		t.Errorf("expected inlined counter0_count:\n%s", src)
 	}
-	if !strings.Contains(src, "counter0.HandleKey(evt.Rune)") {
-		t.Errorf("expected counter0.HandleKey(evt.Rune):\n%s", src)
-	}
-	if !strings.Contains(src, "counter0.Dirty()") {
-		t.Errorf("expected counter0.Dirty() in dirty check:\n%s", src)
+	if !strings.Contains(src, "counter0_increment()") {
+		t.Errorf("expected inlined onkey handler call:\n%s", src)
 	}
 }

@@ -241,14 +241,10 @@ func generateComponent(comp *parsedComponent, registry map[string]*codegen.Compo
 
 // buildCodegenOptions builds codegen.Options for a component.
 func buildCodegenOptions(comp *parsedComponent, registry map[string]*codegen.ComponentInfo) codegen.Options {
-	opts := codegen.Options{
+	return codegen.Options{
 		PackageName: packageName(comp.path),
 		Components:  registry,
 	}
-	if isChildComponent(comp) {
-		opts.ComponentName = comp.exported
-	}
-	return opts
 }
 
 // writeOutput writes generated Go source to the output file.
