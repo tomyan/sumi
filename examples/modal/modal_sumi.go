@@ -96,7 +96,7 @@ func Run() {
 			}(),
 		}
 		tree := layout.Layout(root, termW, termH)
-		if prevTree == nil || termW != prevW || termH != prevH || layout.HasScrollChanged(prevTree, tree) || layout.HasOverlappingElements(tree) {
+		if prevTree == nil || termW != prevW || termH != prevH || layout.HasScrollChanged(prevTree, tree) || layout.HasOverlappingElements(tree) || layout.HasOverlappingElements(prevTree) {
 			buf := render.NewBuffer(termW, termH)
 			layout.RenderTree(buf, tree, nil)
 			render.ClearScreen(os.Stdout)
