@@ -173,3 +173,108 @@ func TestParseIfMissingClose(t *testing.T) {
 		t.Fatal("expected error for missing {/if}, got nil")
 	}
 }
+
+func TestParseForBasic(t *testing.T) {
+	// Given
+	input := `{for i := range items}<text>{i}</text>{/for}`
+
+	// When
+	doc, err := Parse(input)
+
+	// Then
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if len(doc.Children) != 1 {
+		t.Fatalf("got %d children, want 1", len(doc.Children))
+	}
+	forNode, ok := doc.Children[0].(*ForNode)
+	if !ok {
+		t.Fatalf("child is %T, want *ForNode", doc.Children[0])
+	}
+	if forNode.Clause != "i := range items" {
+		t.Errorf("Clause = %q, want %q", forNode.Clause, "i := range items")
+	}
+	if len(forNode.Children) != 1 {
+		t.Fatalf("ForNode has %d children, want 1", len(forNode.Children))
+	}
+}
+
+func TestParseForWithIndex(t *testing.T) {
+	// Given
+	input := `{for i, item := range items}<text>{i}: {item}</text>{/for}`
+
+	// When
+	doc, err := Parse(input)
+
+	// Then
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	forNode := doc.Children[0].(*ForNode)
+	if forNode.Clause != "i, item := range items" {
+		t.Errorf("Clause = %q, want %q", forNode.Clause, "i, item := range items")
+	}
+}
+
+func TestParseForInBox(t *testing.T) {
+	// Given
+	input := `<box>{for i := range items}<text>{i}</text>{/for}</box>`
+
+	// When
+	doc, err := Parse(input)
+
+	// Then
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	box := doc.Children[0].(*BoxElement)
+	if len(box.Children) != 1 {
+		t.Fatalf("box has %d children, want 1", len(box.Children))
+	}
+	forNode, ok := box.Children[0].(*ForNode)
+	if !ok {
+		t.Fatalf("box child is %T, want *ForNode", box.Children[0])
+	}
+	if forNode.Clause != "i := range items" {
+		t.Errorf("Clause = %q, want %q", forNode.Clause, "i := range items")
+	}
+}
+
+func TestParseForContainingIf(t *testing.T) {
+	// Given
+	input := `{for i := range items}{if i > 0}<text>sep</text>{/if}<text>{i}</text>{/for}`
+
+	// When
+	doc, err := Parse(input)
+
+	// Then
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	forNode := doc.Children[0].(*ForNode)
+	if len(forNode.Children) != 2 {
+		t.Fatalf("ForNode has %d children, want 2", len(forNode.Children))
+	}
+	_, ok := forNode.Children[0].(*IfNode)
+	if !ok {
+		t.Fatalf("child[0] is %T, want *IfNode", forNode.Children[0])
+	}
+	_, ok = forNode.Children[1].(*TextElement)
+	if !ok {
+		t.Fatalf("child[1] is %T, want *TextElement", forNode.Children[1])
+	}
+}
+
+func TestParseForMissingClose(t *testing.T) {
+	// Given
+	input := `{for i := range items}<text>{i}</text>`
+
+	// When
+	_, err := Parse(input)
+
+	// Then
+	if err == nil {
+		t.Fatal("expected error for missing {/for}, got nil")
+	}
+}
