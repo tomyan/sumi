@@ -95,9 +95,10 @@ func TestRenderTreeNestedCollapseJunctions(t *testing.T) {
 		t.Errorf("left shared-horiz = %c, want ├", c.Ch)
 	}
 
-	// Where both shared edges cross: ┼
-	if c := buf.Cell(sharedHorizRow, sharedVertCol); c.Ch != '┼' {
-		t.Errorf("cross junction = %c, want ┼", c.Ch)
+	// Where shared horizontal meets shared vertical: ┤
+	// The horizontal split only extends within the left column, not into right panel
+	if c := buf.Cell(sharedHorizRow, sharedVertCol); c.Ch != '┤' {
+		t.Errorf("cross junction = %c, want ┤", c.Ch)
 	}
 }
 

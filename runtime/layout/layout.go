@@ -108,7 +108,6 @@ func borderSize(border string) int {
 // All positions in the returned tree are absolute (buffer coordinates).
 func Layout(input *Input, availWidth, availHeight int) *Box {
 	box := layoutNode(input, availWidth, availHeight)
-	propagateCollapsedEdges(box)
 	absolutePositions(box)
 	return box
 }
