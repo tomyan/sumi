@@ -83,7 +83,7 @@ func writeAppendBox(buf *bytes.Buffer, n *template.BoxElement, stylesheet *style
 		if hasDynamicChildren(n.Children) {
 			writeDynamicChildren(buf, n.Children, stylesheet, indent, tabs, tracker)
 		} else {
-			writeBoxChildren(buf, n.Children, stylesheet, indent, tabs, tracker)
+			writeBoxChildren(buf, n.Children, stylesheet, indent, tabs, tracker, nil)
 		}
 	}
 	fmt.Fprintf(buf, "%s})\n", tabs)

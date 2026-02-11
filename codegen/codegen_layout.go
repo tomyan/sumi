@@ -12,7 +12,8 @@ import (
 
 // writeLayoutTree writes the layout.Input tree construction code.
 // When inClosure is true, adds an extra tab of indentation.
-func writeLayoutTree(buf *bytes.Buffer, doc *template.Document, stylesheet *style.Stylesheet, inClosure bool, instances []componentInstance) {
+// When ext is non-nil, expression text nodes are extracted as named variables.
+func writeLayoutTree(buf *bytes.Buffer, doc *template.Document, stylesheet *style.Stylesheet, inClosure bool, instances []componentInstance, ext *extractionCtx) {
 	baseIndent := 1
 	if inClosure {
 		baseIndent = 2
@@ -33,7 +34,7 @@ func writeLayoutTree(buf *bytes.Buffer, doc *template.Document, stylesheet *styl
 	} else {
 		fmt.Fprintf(buf, "%s\tChildren: []*layout.Input{\n", tabs)
 		for _, child := range doc.Children {
-			writeInputNode(buf, child, stylesheet, baseIndent+2, tracker)
+			writeInputNode(buf, child, stylesheet, baseIndent+2, tracker, ext)
 		}
 		fmt.Fprintf(buf, "%s\t},\n", tabs)
 	}
@@ -41,25 +42,32 @@ func writeLayoutTree(buf *bytes.Buffer, doc *template.Document, stylesheet *styl
 }
 
 // writeInputNode writes a layout.Input literal for a template AST node.
-func writeInputNode(buf *bytes.Buffer, node template.Node, stylesheet *style.Stylesheet, indent int, tracker *instanceTracker) {
+func writeInputNode(buf *bytes.Buffer, node template.Node, stylesheet *style.Stylesheet, indent int, tracker *instanceTracker, ext *extractionCtx) {
 	switch n := node.(type) {
 	case *template.TextElement:
-		writeTextInput(buf, n, stylesheet, indent)
+		writeTextInput(buf, n, stylesheet, indent, ext)
 	case *template.BoxElement:
-		writeBoxInput(buf, n, stylesheet, indent, tracker)
+		writeBoxInput(buf, n, stylesheet, indent, tracker, ext)
 	case *template.ComponentElement:
 		writeComponentRef(buf, indent, tracker)
 	}
 }
 
 // writeTextInput writes a layout.Input literal for a text element.
-func writeTextInput(buf *bytes.Buffer, n *template.TextElement, stylesheet *style.Stylesheet, indent int) {
+// When ext is non-nil and the text has expressions, the node is extracted
+// as a named variable for sync patching.
+func writeTextInput(buf *bytes.Buffer, n *template.TextElement, stylesheet *style.Stylesheet, indent int, ext *extractionCtx) {
 	tabs := indentStr(indent)
 	attrs := n.Attributes
 	if attrs == nil {
 		attrs = map[string]string{}
 	}
 	props := resolveProps(stylesheet, "text", attrs)
+
+	if ext != nil && hasExprParts(n.Parts) {
+		writeExtractedTextNode(buf, &ext.declBuf, n, props, tabs, ext)
+		return
+	}
 
 	fmt.Fprintf(buf, "%s{\n", tabs)
 	fmt.Fprintf(buf, "%s\tKind:    layout.KindText,\n", tabs)
@@ -70,8 +78,43 @@ func writeTextInput(buf *bytes.Buffer, n *template.TextElement, stylesheet *styl
 	fmt.Fprintf(buf, "%s},\n", tabs)
 }
 
+// writeExtractedTextNode extracts an expression text node as a named variable.
+// The declaration goes to declBuf; a variable reference goes to the tree buf.
+func writeExtractedTextNode(treeBuf, declBuf *bytes.Buffer, n *template.TextElement, props map[string]string, tabs string, ext *extractionCtx) {
+	name := ext.nextName()
+	expr := contentExpr(n.Parts)
+
+	// Write declaration to declBuf (at function scope indent)
+	fmt.Fprintf(declBuf, "\t%s := &layout.Input{\n", name)
+	fmt.Fprintf(declBuf, "\t\tKind:    layout.KindText,\n")
+	fmt.Fprintf(declBuf, "\t\tContent: %s,\n", expr)
+	if props != nil {
+		writeStyleLiteral(declBuf, "\t", props)
+	}
+	fmt.Fprintf(declBuf, "\t}\n")
+
+	// Record sync entry
+	ext.nodes = append(ext.nodes, extractedNode{
+		varName:  name,
+		syncExpr: expr,
+	})
+
+	// Write reference in tree
+	fmt.Fprintf(treeBuf, "%s%s,\n", tabs, name)
+}
+
+// hasExprParts returns true if any part is an ExprPart.
+func hasExprParts(parts []template.Part) bool {
+	for _, p := range parts {
+		if _, ok := p.(*template.ExprPart); ok {
+			return true
+		}
+	}
+	return false
+}
+
 // writeBoxInput writes a layout.Input literal for a box element.
-func writeBoxInput(buf *bytes.Buffer, n *template.BoxElement, stylesheet *style.Stylesheet, indent int, tracker *instanceTracker) {
+func writeBoxInput(buf *bytes.Buffer, n *template.BoxElement, stylesheet *style.Stylesheet, indent int, tracker *instanceTracker, ext *extractionCtx) {
 	tabs := indentStr(indent)
 	props := resolveProps(stylesheet, "box", n.Attributes)
 
@@ -81,7 +124,7 @@ func writeBoxInput(buf *bytes.Buffer, n *template.BoxElement, stylesheet *style.
 	if props != nil {
 		writeStyleLiteral(buf, tabs, props)
 	}
-	writeBoxChildren(buf, n.Children, stylesheet, indent, tabs, tracker)
+	writeBoxChildren(buf, n.Children, stylesheet, indent, tabs, tracker, ext)
 	fmt.Fprintf(buf, "%s},\n", tabs)
 }
 
@@ -150,7 +193,7 @@ func writeIntAttr(buf *bytes.Buffer, tabs string, attrs, props map[string]string
 }
 
 // writeBoxChildren writes the Children field of a box input if there are children.
-func writeBoxChildren(buf *bytes.Buffer, children []template.Node, stylesheet *style.Stylesheet, indent int, tabs string, tracker *instanceTracker) {
+func writeBoxChildren(buf *bytes.Buffer, children []template.Node, stylesheet *style.Stylesheet, indent int, tabs string, tracker *instanceTracker, ext *extractionCtx) {
 	if len(children) == 0 {
 		return
 	}
@@ -160,7 +203,7 @@ func writeBoxChildren(buf *bytes.Buffer, children []template.Node, stylesheet *s
 	}
 	fmt.Fprintf(buf, "%s\tChildren: []*layout.Input{\n", tabs)
 	for _, child := range children {
-		writeInputNode(buf, child, stylesheet, indent+2, tracker)
+		writeInputNode(buf, child, stylesheet, indent+2, tracker, ext)
 	}
 	fmt.Fprintf(buf, "%s\t},\n", tabs)
 }

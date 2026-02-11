@@ -115,15 +115,45 @@ func buildStateLinesSet(assignments []script.StateAssignment) map[string]bool {
 	return set
 }
 
+// writeTreeAndSync writes the build-once layout tree and sync function at function scope.
+// Expression text nodes are extracted as named variables; sync patches their Content.
+func writeTreeAndSync(buf *bytes.Buffer, doc *template.Document, stylesheet *style.Stylesheet, instances []componentInstance) *extractionCtx {
+	ext := newExtractionCtx("")
+
+	// Write tree to temp buffer (discovers extractions)
+	var treeBuf bytes.Buffer
+	writeLayoutTree(&treeBuf, doc, stylesheet, false, instances, ext)
+
+	// Emit extracted node declarations before tree
+	buf.Write(ext.declBuf.Bytes())
+
+	// Emit tree at function scope
+	buf.Write(treeBuf.Bytes())
+
+	// Emit sync function
+	writeSyncFunc(buf, ext)
+
+	return ext
+}
+
+// writeSyncFunc writes the sync closure that patches expression nodes.
+func writeSyncFunc(buf *bytes.Buffer, ext *extractionCtx) {
+	buf.WriteString("\tsync := func() {\n")
+	for _, n := range ext.nodes {
+		fmt.Fprintf(buf, "\t\t%s.Content = %s\n", n.varName, n.syncExpr)
+	}
+	buf.WriteString("\t}\n\n")
+}
+
 // writeRenderClosure writes the doRender closure with surgical rendering.
-// First render (or resize) does a full redraw via buffer; subsequent state
-// changes diff the layout tree and only write changed nodes.
+// The tree is built once at function scope; doRender calls sync() then re-layouts.
 func writeRenderClosure(buf *bytes.Buffer, doc *template.Document, stylesheet *style.Stylesheet, instances []componentInstance, scrollBoxes []scrollableBox, title *template.TitleElement) {
+	writeTreeAndSync(buf, doc, stylesheet, instances)
 	buf.WriteString("\tvar prevTree *layout.Box\n")
 	buf.WriteString("\tvar prevW, prevH int\n")
 	buf.WriteString("\tdoRender := func() {\n")
+	buf.WriteString("\t\tsync()\n")
 	buf.WriteString("\t\ttermW, termH := term.GetSize(int(os.Stdin.Fd()))\n")
-	writeLayoutTree(buf, doc, stylesheet, true, instances)
 	buf.WriteString("\t\ttree := layout.Layout(root, termW, termH)\n")
 	writeScrollTreeWiring(buf, scrollBoxes)
 	buf.WriteString("\t\tif prevTree == nil || termW != prevW || termH != prevH || layout.HasScrollChanged(prevTree, tree) || layout.HasOverlappingElements(tree) || layout.HasOverlappingElements(prevTree) {\n")

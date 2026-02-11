@@ -24,7 +24,7 @@ func writeImports(buf *bytes.Buffer, hasExprs bool) {
 // writeStaticBody generates the static (non-reactive) function body.
 // Static apps have no state but still handle terminal resize and quit keys.
 func writeStaticBody(buf *bytes.Buffer, doc *template.Document, stylesheet *style.Stylesheet) {
-	writeLayoutTree(buf, doc, stylesheet, false, nil)
+	writeLayoutTree(buf, doc, stylesheet, false, nil, nil)
 	writeStaticRenderFunc(buf)
 	writeStaticTerminalSetup(buf)
 	writeStaticEventLoop(buf)

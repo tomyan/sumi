@@ -19,49 +19,55 @@ func Run() {
 		dirty = true
 	}
 
+	node0 := &layout.Input{
+		Kind:    layout.KindText,
+		Content: fmt.Sprintf("Count: %v", count),
+		Style: render.Style{
+			FG:   render.Color{Name: "yellow"},
+			Bold: true,
+		},
+	}
+	root := &layout.Input{
+		Kind:      layout.KindBox,
+		Direction: "column",
+		Children: []*layout.Input{
+			{
+				Kind:    layout.KindBox,
+				Padding: layout.ParsePadding("1 2"),
+				Border:  "single",
+				Children: []*layout.Input{
+					{
+						Kind:    layout.KindText,
+						Content: "Sumi Counter",
+						Style: render.Style{
+							FG:   render.Color{Name: "green"},
+							Bold: true,
+						},
+					},
+					{
+						Kind:    layout.KindText,
+						Content: "Press any key to increment, q to quit",
+						Style: render.Style{
+							FG:  render.Color{Name: "cyan"},
+							Dim: true,
+						},
+					},
+					node0,
+				},
+			},
+		},
+	}
+	sync := func() {
+		node0.Content = fmt.Sprintf("Count: %v", count)
+	}
+
 	var prevTree *layout.Box
 	var prevW, prevH int
 	doRender := func() {
+		sync()
 		termW, termH := term.GetSize(int(os.Stdin.Fd()))
-		root := &layout.Input{
-			Kind:      layout.KindBox,
-			Direction: "column",
-			Children: []*layout.Input{
-				{
-					Kind:    layout.KindBox,
-					Padding: layout.ParsePadding("1 2"),
-					Border:  "single",
-					Children: []*layout.Input{
-						{
-							Kind:    layout.KindText,
-							Content: "Sumi Counter",
-							Style: render.Style{
-								FG:   render.Color{Name: "green"},
-								Bold: true,
-							},
-						},
-						{
-							Kind:    layout.KindText,
-							Content: "Press any key to increment, q to quit",
-							Style: render.Style{
-								FG:  render.Color{Name: "cyan"},
-								Dim: true,
-							},
-						},
-						{
-							Kind:    layout.KindText,
-							Content: fmt.Sprintf("Count: %v", count),
-							Style: render.Style{
-								FG:   render.Color{Name: "yellow"},
-								Bold: true,
-							},
-						},
-					},
-				},
-			},
-		}
 		tree := layout.Layout(root, termW, termH)
-		if prevTree == nil || termW != prevW || termH != prevH || layout.HasScrollChanged(prevTree, tree) {
+		if prevTree == nil || termW != prevW || termH != prevH || layout.HasScrollChanged(prevTree, tree) || layout.HasOverlappingElements(tree) || layout.HasOverlappingElements(prevTree) {
 			buf := render.NewBuffer(termW, termH)
 			layout.RenderTree(buf, tree, nil)
 			render.ClearScreen(os.Stdout)
