@@ -43,3 +43,12 @@ var junctionTable = map[uint8]rune{
 	2 | 8:         '─', // right+left
 	1 | 4:         '│', // up+down
 }
+
+// reverseJunctionTable maps box-drawing character back to direction bitmask.
+var reverseJunctionTable = func() map[rune]uint8 {
+	m := make(map[rune]uint8, len(junctionTable))
+	for k, v := range junctionTable {
+		m[v] = k
+	}
+	return m
+}()

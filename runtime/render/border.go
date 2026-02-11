@@ -127,10 +127,8 @@ func (b *Buffer) mergeJunction(row, col int, up, right, down, left bool, style S
 
 // junctionDirs returns the directional connections of a box-drawing character.
 func junctionDirs(ch rune) (up, right, down, left bool) {
-	for key, c := range junctionTable {
-		if c == ch {
-			return key&1 != 0, key&2 != 0, key&4 != 0, key&8 != 0
-		}
+	if key, ok := reverseJunctionTable[ch]; ok {
+		return key&1 != 0, key&2 != 0, key&4 != 0, key&8 != 0
 	}
 	return false, false, false, false
 }

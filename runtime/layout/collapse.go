@@ -46,29 +46,6 @@ func applyRowCollapse(boxes []*Box, inputs []*Input, parentW int) {
 	}
 }
 
-// collapseInset returns the border inset to use when border-collapse is active.
-// When collapsing, the parent border inset is 0 — children's outer edges form the frame.
-func collapseInset(collapse bool) int {
-	if collapse {
-		return 0
-	}
-	return -1 // sentinel: use normal inset
-}
-
-// collapsedParentSize computes the adjusted parent size for collapsed children.
-func collapsedParentSize(boxes []*Box, inputs []*Input, isRow bool) int {
-	overlaps := countOverlaps(inputs)
-	total := 0
-	for _, b := range boxes {
-		if isRow {
-			total += b.Width
-		} else {
-			total += b.Height
-		}
-	}
-	return total - overlaps
-}
-
 // countOverlaps counts how many adjacent bordered pairs exist.
 func countOverlaps(inputs []*Input) int {
 	count := 0
