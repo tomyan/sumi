@@ -201,11 +201,15 @@ func writeComponentLayoutTree(buf *bytes.Buffer, doc *template.Document, stylesh
 	fmt.Fprintf(buf, "%sroot := &layout.Input{\n", tabs)
 	fmt.Fprintf(buf, "%s\tKind:      layout.KindBox,\n", tabs)
 	fmt.Fprintf(buf, "%s\tDirection: \"column\",\n", tabs)
-	fmt.Fprintf(buf, "%s\tChildren:  []*layout.Input{\n", tabs)
-	for _, child := range doc.Children {
-		writeComponentInputNode(buf, child, stylesheet, 3, varNames)
+	if hasDynamicChildren(doc.Children) {
+		writeComponentDynamicChildren(buf, doc.Children, stylesheet, 1, tabs, varNames)
+	} else {
+		fmt.Fprintf(buf, "%s\tChildren:  []*layout.Input{\n", tabs)
+		for _, child := range doc.Children {
+			writeComponentInputNode(buf, child, stylesheet, 3, varNames)
+		}
+		fmt.Fprintf(buf, "%s\t},\n", tabs)
 	}
-	fmt.Fprintf(buf, "%s\t},\n", tabs)
 	fmt.Fprintf(buf, "%s}\n", tabs)
 }
 
@@ -253,6 +257,10 @@ func writeComponentBoxInput(buf *bytes.Buffer, n *template.BoxElement, styleshee
 // writeComponentBoxChildren writes children of a box with receiver-prefixed expressions.
 func writeComponentBoxChildren(buf *bytes.Buffer, children []template.Node, stylesheet *style.Stylesheet, indent int, tabs string, varNames map[string]bool) {
 	if len(children) == 0 {
+		return
+	}
+	if hasDynamicChildren(children) {
+		writeComponentDynamicChildren(buf, children, stylesheet, indent, tabs, varNames)
 		return
 	}
 	fmt.Fprintf(buf, "%s\tChildren: []*layout.Input{\n", tabs)
