@@ -16,56 +16,62 @@ func Run() {
 	var scroll0 layout.ScrollState
 	draggingHScroll := false
 
-	var prevTree *layout.Box
-	var prevW, prevH int
-	doRender := func() {
-		termW, termH := term.GetSize(int(os.Stdin.Fd()))
-		root := &layout.Input{
-			Kind:      layout.KindBox,
-			Direction: "column",
-			Overflow:  "auto",
-			MinWidth:  48,
-			Children: []*layout.Input{
-				{
-					Kind:    layout.KindBox,
-					Padding: layout.ParsePadding("1 2"),
-					Border:  "single",
-					Style: render.Style{
-						FG: render.Color{Name: "cyan"},
+	node0 := &layout.Input{
+		Kind:    layout.KindText,
+		Content: fmt.Sprintf("Terminal: %vx%v", width, height),
+		Style: render.Style{
+			FG:   render.Color{Name: "yellow"},
+			Bold: true,
+		},
+	}
+	root := &layout.Input{
+		Kind:      layout.KindBox,
+		Direction: "column",
+		Overflow:  "auto",
+		MinWidth:  48,
+		Children: []*layout.Input{
+			{
+				Kind:    layout.KindBox,
+				Padding: layout.ParsePadding("1 2"),
+				Border:  "single",
+				Style: render.Style{
+					FG: render.Color{Name: "cyan"},
+				},
+				Children: []*layout.Input{
+					{
+						Kind:    layout.KindText,
+						Content: "Sumi Responsive Demo",
+						Style: render.Style{
+							FG:   render.Color{Name: "green"},
+							Bold: true,
+						},
 					},
-					Children: []*layout.Input{
-						{
-							Kind:    layout.KindText,
-							Content: "Sumi Responsive Demo",
-							Style: render.Style{
-								FG:   render.Color{Name: "green"},
-								Bold: true,
-							},
-						},
-						{
-							Kind:    layout.KindText,
-							Content: fmt.Sprintf("Terminal: %vx%v", width, height),
-							Style: render.Style{
-								FG:   render.Color{Name: "yellow"},
-								Bold: true,
-							},
-						},
-						{
-							Kind:    layout.KindText,
-							Content: "Resize your terminal to see this update! Press q to quit.",
-							Style: render.Style{
-								FG:  render.Color{Name: "cyan"},
-								Dim: true,
-							},
+					node0,
+					{
+						Kind:    layout.KindText,
+						Content: "Resize your terminal to see this update! Press q to quit.",
+						Style: render.Style{
+							FG:  render.Color{Name: "cyan"},
+							Dim: true,
 						},
 					},
 				},
 			},
-		}
+		},
+	}
+	sync := func() {
+		node0.Content = fmt.Sprintf("Terminal: %vx%v", width, height)
+	}
+
+	var prevTree *layout.Box
+	var prevW, prevH int
+	doRender := func() {
+		sync()
+		termW, termH := term.GetSize(int(os.Stdin.Fd()))
 		tree := layout.Layout(root, termW, termH)
 		tree.ScrollY = scroll0.ScrollY
 		tree.ScrollX = scroll0.ScrollX
-		if prevTree == nil || termW != prevW || termH != prevH || layout.HasScrollChanged(prevTree, tree) {
+		if prevTree == nil || termW != prevW || termH != prevH || layout.HasScrollChanged(prevTree, tree) || layout.HasOverlappingElements(tree) || layout.HasOverlappingElements(prevTree) {
 			buf := render.NewBuffer(termW, termH)
 			layout.RenderTree(buf, tree, nil)
 			render.ClearScreen(os.Stdout)
