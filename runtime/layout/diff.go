@@ -41,20 +41,11 @@ func diffNode(old, new *Box, changes *[]Change) {
 		*changes = append(*changes, Change{Old: old, New: new})
 	}
 
-	// Walk children in lockstep
-	maxChildren := len(old.Children)
-	if len(new.Children) > maxChildren {
-		maxChildren = len(new.Children)
-	}
-	for i := 0; i < maxChildren; i++ {
-		var oldChild, newChild *Box
-		if i < len(old.Children) {
-			oldChild = old.Children[i]
-		}
-		if i < len(new.Children) {
-			newChild = new.Children[i]
-		}
-		diffNode(oldChild, newChild, changes)
+	// Walk children: use keyed diffing when keys are present, positional otherwise
+	if hasKeyedChildren(old.Children) || hasKeyedChildren(new.Children) {
+		diffKeyedChildren(old.Children, new.Children, changes)
+	} else {
+		diffPositionalChildren(old.Children, new.Children, changes)
 	}
 }
 
@@ -110,6 +101,81 @@ func HasScrollChanged(old, new *Box) bool {
 		}
 	}
 	return false
+}
+
+// diffPositionalChildren walks old and new children in lockstep by index.
+func diffPositionalChildren(oldChildren, newChildren []*Box, changes *[]Change) {
+	maxChildren := len(oldChildren)
+	if len(newChildren) > maxChildren {
+		maxChildren = len(newChildren)
+	}
+	for i := 0; i < maxChildren; i++ {
+		var oldChild, newChild *Box
+		if i < len(oldChildren) {
+			oldChild = oldChildren[i]
+		}
+		if i < len(newChildren) {
+			newChild = newChildren[i]
+		}
+		diffNode(oldChild, newChild, changes)
+	}
+}
+
+// hasKeyedChildren returns true if any child has a non-empty Key.
+func hasKeyedChildren(children []*Box) bool {
+	for _, c := range children {
+		if c.Key != "" {
+			return true
+		}
+	}
+	return false
+}
+
+// diffKeyedChildren matches old and new children by Key for efficient diffing.
+// Keyed children are matched by key; unkeyed children are matched positionally
+// against other unkeyed children. Unmatched children are reported as additions/removals.
+func diffKeyedChildren(oldChildren, newChildren []*Box, changes *[]Change) {
+	oldByKey := make(map[string]*Box, len(oldChildren))
+	var oldUnkeyed []*Box
+	for _, c := range oldChildren {
+		if c.Key != "" {
+			oldByKey[c.Key] = c
+		} else {
+			oldUnkeyed = append(oldUnkeyed, c)
+		}
+	}
+
+	matched := make(map[string]bool, len(newChildren))
+	unkeyedIdx := 0
+	for _, newChild := range newChildren {
+		if newChild.Key == "" {
+			// Match unkeyed children positionally
+			var oldChild *Box
+			if unkeyedIdx < len(oldUnkeyed) {
+				oldChild = oldUnkeyed[unkeyedIdx]
+				unkeyedIdx++
+			}
+			diffNode(oldChild, newChild, changes)
+			continue
+		}
+		if oldChild, ok := oldByKey[newChild.Key]; ok {
+			matched[newChild.Key] = true
+			diffNode(oldChild, newChild, changes)
+		} else {
+			diffNode(nil, newChild, changes)
+		}
+	}
+
+	// Report unmatched keyed old children as removals
+	for _, oldChild := range oldChildren {
+		if oldChild.Key != "" && !matched[oldChild.Key] {
+			diffNode(oldChild, nil, changes)
+		}
+	}
+	// Report excess unkeyed old children as removals
+	for i := unkeyedIdx; i < len(oldUnkeyed); i++ {
+		diffNode(oldUnkeyed[i], nil, changes)
+	}
 }
 
 // linesEqual compares two string slices for equality.
