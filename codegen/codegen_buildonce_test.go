@@ -170,6 +170,146 @@ func TestBuildOnceMultipleExpressionNodes(t *testing.T) {
 	}
 }
 
+func TestBuildOnceDynamicChildrenInBoxSync(t *testing.T) {
+	// Given — box with dynamic children ({if}) should have Children rebuilt in sync
+	doc := &template.Document{
+		Children: []template.Node{
+			&template.BoxElement{
+				Attributes: map[string]string{"border": "single"},
+				Children: []template.Node{
+					textNode("Title"),
+					&template.IfNode{
+						Condition: "showModal",
+						Then:      []template.Node{textNode("Modal content")},
+					},
+				},
+			},
+		},
+	}
+	sc := &script.Script{
+		StateDecls: []script.StateDecl{
+			{Name: "showModal", InitExpr: "false"},
+		},
+	}
+
+	// When
+	out, err := Generate(doc, sc, nil, Options{PackageName: "main"})
+
+	// Then
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	src := string(out)
+
+	// Box with dynamic children should be extracted as a named variable
+	if !strings.Contains(src, "box0 := &layout.Input{") {
+		t.Errorf("expected extracted box0 variable:\n%s", src)
+	}
+
+	// Sync should rebuild box0.Children via IIFE
+	if !strings.Contains(src, "box0.Children = func() []*layout.Input {") {
+		t.Errorf("expected sync to rebuild box0.Children:\n%s", src)
+	}
+
+	// Generated code should be valid Go
+	fset := token.NewFileSet()
+	_, parseErr := parser.ParseFile(fset, "generated.go", out, parser.AllErrors)
+	if parseErr != nil {
+		t.Fatalf("generated code is not valid Go:\n%s\n\nerror: %v", string(out), parseErr)
+	}
+}
+
+func TestBuildOnceDynamicChildrenAtRoot(t *testing.T) {
+	// Given — root has dynamic children ({if} at root level)
+	doc := &template.Document{
+		Children: []template.Node{
+			textNode("Background"),
+			&template.IfNode{
+				Condition: "showModal",
+				Then:      []template.Node{textNode("Modal")},
+			},
+		},
+	}
+	sc := &script.Script{
+		StateDecls: []script.StateDecl{
+			{Name: "showModal", InitExpr: "false"},
+		},
+	}
+
+	// When
+	out, err := Generate(doc, sc, nil, Options{PackageName: "main"})
+
+	// Then
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	src := string(out)
+
+	// Sync should rebuild root.Children
+	if !strings.Contains(src, "root.Children = func() []*layout.Input {") {
+		t.Errorf("expected sync to rebuild root.Children:\n%s", src)
+	}
+
+	// Generated code should be valid Go
+	fset := token.NewFileSet()
+	_, parseErr := parser.ParseFile(fset, "generated.go", out, parser.AllErrors)
+	if parseErr != nil {
+		t.Fatalf("generated code is not valid Go:\n%s\n\nerror: %v", string(out), parseErr)
+	}
+}
+
+func TestBuildOnceForLoopInSync(t *testing.T) {
+	// Given — {for} loop should also be rebuilt in sync
+	doc := &template.Document{
+		Children: []template.Node{
+			&template.BoxElement{
+				Children: []template.Node{
+					textNode("Title"),
+					&template.ForNode{
+						Clause:   "i, item := range items",
+						Key:      "item",
+						Children: []template.Node{textNode("item")},
+					},
+				},
+			},
+		},
+	}
+	sc := &script.Script{
+		StateDecls: []script.StateDecl{
+			{Name: "items", InitExpr: `[]string{"a", "b"}`},
+		},
+	}
+
+	// When
+	out, err := Generate(doc, sc, nil, Options{PackageName: "main"})
+
+	// Then
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	src := string(out)
+
+	// Box with for loop should be extracted
+	if !strings.Contains(src, "box0 := &layout.Input{") {
+		t.Errorf("expected extracted box0:\n%s", src)
+	}
+
+	// Sync should rebuild Children with for loop
+	if !strings.Contains(src, "box0.Children = func() []*layout.Input {") {
+		t.Errorf("expected sync to rebuild box0.Children:\n%s", src)
+	}
+	if !strings.Contains(src, "for i, item := range items") {
+		t.Errorf("expected for loop in sync:\n%s", src)
+	}
+
+	// Generated code should be valid Go
+	fset := token.NewFileSet()
+	_, parseErr := parser.ParseFile(fset, "generated.go", out, parser.AllErrors)
+	if parseErr != nil {
+		t.Fatalf("generated code is not valid Go:\n%s\n\nerror: %v", string(out), parseErr)
+	}
+}
+
 func TestBuildOnceTreeNotInsideDoRender(t *testing.T) {
 	// Given
 	doc := &template.Document{

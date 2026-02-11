@@ -18,84 +18,88 @@ func Run() {
 		dirty = true
 	}
 
-	var prevTree *layout.Box
-	var prevW, prevH int
-	doRender := func() {
-		termW, termH := term.GetSize(int(os.Stdin.Fd()))
-		root := &layout.Input{
-			Kind:      layout.KindBox,
-			Direction: "column",
-			Children: func() []*layout.Input {
-				var cs []*layout.Input
+	root := &layout.Input{
+		Kind:      layout.KindBox,
+		Direction: "column",
+	}
+	sync := func() {
+		root.Children = func() []*layout.Input {
+			var cs []*layout.Input
+			cs = append(cs, &layout.Input{
+				Kind:    layout.KindBox,
+				Padding: layout.ParsePadding("1 2"),
+				Border:  "single",
+				Children: []*layout.Input{
+					{
+						Kind:    layout.KindText,
+						Content: "Modal Demo",
+						Style: render.Style{
+							FG:   render.Color{Name: "green"},
+							Bold: true,
+						},
+					},
+					{
+						Kind:    layout.KindText,
+						Content: "Press any key to toggle modal, q to quit",
+						Style: render.Style{
+							FG:  render.Color{Name: "cyan"},
+							Dim: true,
+						},
+					},
+					{
+						Kind:    layout.KindText,
+						Content: "Background content here",
+					},
+				},
+			})
+			if showModal {
 				cs = append(cs, &layout.Input{
-					Kind:    layout.KindBox,
-					Padding: layout.ParsePadding("1 2"),
-					Border:  "single",
+					Kind:        layout.KindBox,
+					FixedWidth:  40,
+					FixedHeight: 8,
+					Padding:     layout.ParsePadding("1 2"),
+					Border:      "single",
+					Position:    "fixed",
+					Top:         5,
+					Left:        10,
+					ZIndex:      2,
+					Style: render.Style{
+						FG: render.Color{Name: "yellow"},
+						BG: render.Color{Name: "black"},
+					},
 					Children: []*layout.Input{
 						{
 							Kind:    layout.KindText,
-							Content: "Modal Demo",
+							Content: "Modal Dialog",
 							Style: render.Style{
-								FG:   render.Color{Name: "green"},
+								FG:   render.Color{Name: "yellow"},
 								Bold: true,
 							},
 						},
 						{
 							Kind:    layout.KindText,
-							Content: "Press any key to toggle modal, q to quit",
+							Content: "This is a fixed-position modal overlay.",
+						},
+						{
+							Kind:    layout.KindText,
+							Content: "Press any key to close",
 							Style: render.Style{
 								FG:  render.Color{Name: "cyan"},
 								Dim: true,
 							},
 						},
-						{
-							Kind:    layout.KindText,
-							Content: "Background content here",
-						},
 					},
 				})
-				if showModal {
-					cs = append(cs, &layout.Input{
-						Kind:        layout.KindBox,
-						FixedWidth:  40,
-						FixedHeight: 8,
-						Padding:     layout.ParsePadding("1 2"),
-						Border:      "single",
-						Position:    "fixed",
-						Top:         5,
-						Left:        10,
-						ZIndex:      2,
-						Style: render.Style{
-							FG: render.Color{Name: "yellow"},
-							BG: render.Color{Name: "black"},
-						},
-						Children: []*layout.Input{
-							{
-								Kind:    layout.KindText,
-								Content: "Modal Dialog",
-								Style: render.Style{
-									FG:   render.Color{Name: "yellow"},
-									Bold: true,
-								},
-							},
-							{
-								Kind:    layout.KindText,
-								Content: "This is a fixed-position modal overlay.",
-							},
-							{
-								Kind:    layout.KindText,
-								Content: "Press any key to close",
-								Style: render.Style{
-									FG:  render.Color{Name: "cyan"},
-									Dim: true,
-								},
-							},
-						},
-					})
-				}
-				return cs
-			}(),
-		}
+			}
+			return cs
+		}()
+	}
+
+	var prevTree *layout.Box
+	var prevW, prevH int
+	doRender := func() {
+		sync()
+		termW, termH := term.GetSize(int(os.Stdin.Fd()))
 		tree := layout.Layout(root, termW, termH)
 		if prevTree == nil || termW != prevW || termH != prevH || layout.HasScrollChanged(prevTree, tree) || layout.HasOverlappingElements(tree) || layout.HasOverlappingElements(prevTree) {
 			buf := render.NewBuffer(termW, termH)

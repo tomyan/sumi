@@ -136,12 +136,14 @@ func writeTreeAndSync(buf *bytes.Buffer, doc *template.Document, stylesheet *sty
 	return ext
 }
 
-// writeSyncFunc writes the sync closure that patches expression nodes.
+// writeSyncFunc writes the sync closure that patches expression nodes
+// and rebuilds dynamic children.
 func writeSyncFunc(buf *bytes.Buffer, ext *extractionCtx) {
 	buf.WriteString("\tsync := func() {\n")
 	for _, n := range ext.nodes {
 		fmt.Fprintf(buf, "\t\t%s.Content = %s\n", n.varName, n.syncExpr)
 	}
+	buf.Write(ext.syncBuf.Bytes())
 	buf.WriteString("\t}\n\n")
 }
 

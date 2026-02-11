@@ -19,6 +19,18 @@ func hasDynamicChildren(children []template.Node) bool {
 	return false
 }
 
+// writeDynamicChildrenSync writes a sync assignment: varName.Children = func() []*layout.Input{...}().
+// Used by the build-once pattern to rebuild dynamic children in the sync function.
+func writeDynamicChildrenSync(buf *bytes.Buffer, varName string, children []template.Node, stylesheet *style.Stylesheet, tracker *instanceTracker) {
+	fmt.Fprintf(buf, "\t\t%s.Children = func() []*layout.Input {\n", varName)
+	fmt.Fprintf(buf, "\t\t\tvar cs []*layout.Input\n")
+	for _, child := range children {
+		writeDynamicChild(buf, child, stylesheet, 3, "\t\t\t", tracker)
+	}
+	fmt.Fprintf(buf, "\t\t\treturn cs\n")
+	fmt.Fprintf(buf, "\t\t}()\n")
+}
+
 // writeDynamicChildren emits an IIFE that builds the children slice dynamically.
 func writeDynamicChildren(buf *bytes.Buffer, children []template.Node, stylesheet *style.Stylesheet, indent int, tabs string, tracker *instanceTracker) {
 	fmt.Fprintf(buf, "%s\tChildren: func() []*layout.Input {\n", tabs)

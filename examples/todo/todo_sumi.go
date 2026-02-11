@@ -20,61 +20,66 @@ func Run() {
 		dirty = true
 	}
 
+	box0 := &layout.Input{
+		Kind:    layout.KindBox,
+		Padding: layout.ParsePadding("1 2"),
+		Border:  "single",
+	}
+	root := &layout.Input{
+		Kind:      layout.KindBox,
+		Direction: "column",
+		Children: []*layout.Input{
+			box0,
+		},
+	}
+	sync := func() {
+		box0.Children = func() []*layout.Input {
+			var cs []*layout.Input
+			cs = append(cs, &layout.Input{
+				Kind:    layout.KindText,
+				Content: "Todo List",
+				Style: render.Style{
+					FG:   render.Color{Name: "green"},
+					Bold: true,
+				},
+			})
+			cs = append(cs, &layout.Input{
+				Kind:    layout.KindText,
+				Content: "Press any key to cycle, q to quit",
+				Style: render.Style{
+					FG:  render.Color{Name: "cyan"},
+					Dim: true,
+				},
+			})
+			for i, item := range items {
+				if i == selected {
+					cs = append(cs, &layout.Input{
+						Kind:    layout.KindText,
+						Content: fmt.Sprintf("> %v", item),
+						Style: render.Style{
+							FG:   render.Color{Name: "yellow"},
+							Bold: true,
+						},
+					})
+				} else {
+					cs = append(cs, &layout.Input{
+						Kind:    layout.KindText,
+						Content: fmt.Sprintf("  %v", item),
+					})
+				}
+				cs[len(cs)-1].Key = fmt.Sprint(item)
+			}
+			return cs
+		}()
+	}
+
 	var prevTree *layout.Box
 	var prevW, prevH int
 	doRender := func() {
+		sync()
 		termW, termH := term.GetSize(int(os.Stdin.Fd()))
-		root := &layout.Input{
-			Kind:      layout.KindBox,
-			Direction: "column",
-			Children: []*layout.Input{
-				{
-					Kind:    layout.KindBox,
-					Padding: layout.ParsePadding("1 2"),
-					Border:  "single",
-					Children: func() []*layout.Input {
-						var cs []*layout.Input
-						cs = append(cs, &layout.Input{
-							Kind:    layout.KindText,
-							Content: "Todo List",
-							Style: render.Style{
-								FG:   render.Color{Name: "green"},
-								Bold: true,
-							},
-						})
-						cs = append(cs, &layout.Input{
-							Kind:    layout.KindText,
-							Content: "Press any key to cycle, q to quit",
-							Style: render.Style{
-								FG:  render.Color{Name: "cyan"},
-								Dim: true,
-							},
-						})
-						for i, item := range items {
-							if i == selected {
-								cs = append(cs, &layout.Input{
-									Kind:    layout.KindText,
-									Content: fmt.Sprintf("> %v", item),
-									Style: render.Style{
-										FG:   render.Color{Name: "yellow"},
-										Bold: true,
-									},
-								})
-							} else {
-								cs = append(cs, &layout.Input{
-									Kind:    layout.KindText,
-									Content: fmt.Sprintf("  %v", item),
-								})
-							}
-							cs[len(cs)-1].Key = fmt.Sprint(item)
-						}
-						return cs
-					}(),
-				},
-			},
-		}
 		tree := layout.Layout(root, termW, termH)
-		if prevTree == nil || termW != prevW || termH != prevH || layout.HasScrollChanged(prevTree, tree) {
+		if prevTree == nil || termW != prevW || termH != prevH || layout.HasScrollChanged(prevTree, tree) || layout.HasOverlappingElements(tree) || layout.HasOverlappingElements(prevTree) {
 			buf := render.NewBuffer(termW, termH)
 			layout.RenderTree(buf, tree, nil)
 			render.ClearScreen(os.Stdout)

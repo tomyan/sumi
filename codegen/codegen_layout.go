@@ -30,6 +30,12 @@ func writeLayoutTree(buf *bytes.Buffer, doc *template.Document, stylesheet *styl
 		writeStyleLiteral(buf, tabs, rootProps)
 	}
 	if hasDynamicChildren(doc.Children) {
+		if ext != nil {
+			// Build-once: root.Children rebuilt in sync
+			fmt.Fprintf(buf, "%s}\n", tabs)
+			writeDynamicChildrenSync(&ext.syncBuf, "root", doc.Children, stylesheet, tracker)
+			return
+		}
 		writeDynamicChildren(buf, doc.Children, stylesheet, baseIndent, tabs, tracker)
 	} else {
 		fmt.Fprintf(buf, "%s\tChildren: []*layout.Input{\n", tabs)
@@ -81,7 +87,7 @@ func writeTextInput(buf *bytes.Buffer, n *template.TextElement, stylesheet *styl
 // writeExtractedTextNode extracts an expression text node as a named variable.
 // The declaration goes to declBuf; a variable reference goes to the tree buf.
 func writeExtractedTextNode(treeBuf, declBuf *bytes.Buffer, n *template.TextElement, props map[string]string, tabs string, ext *extractionCtx) {
-	name := ext.nextName()
+	name := ext.nextNodeName()
 	expr := contentExpr(n.Parts)
 
 	// Write declaration to declBuf (at function scope indent)
@@ -114,7 +120,13 @@ func hasExprParts(parts []template.Part) bool {
 }
 
 // writeBoxInput writes a layout.Input literal for a box element.
+// When ext is non-nil and the box has dynamic children, the box is extracted
+// as a named variable and its Children are rebuilt in sync.
 func writeBoxInput(buf *bytes.Buffer, n *template.BoxElement, stylesheet *style.Stylesheet, indent int, tracker *instanceTracker, ext *extractionCtx) {
+	if ext != nil && hasDynamicChildren(n.Children) {
+		writeExtractedDynamicBox(buf, n, stylesheet, indent, tracker, ext)
+		return
+	}
 	tabs := indentStr(indent)
 	props := resolveProps(stylesheet, "box", n.Attributes)
 
@@ -126,6 +138,29 @@ func writeBoxInput(buf *bytes.Buffer, n *template.BoxElement, stylesheet *style.
 	}
 	writeBoxChildren(buf, n.Children, stylesheet, indent, tabs, tracker, ext)
 	fmt.Fprintf(buf, "%s},\n", tabs)
+}
+
+// writeExtractedDynamicBox extracts a box with dynamic children as a named variable.
+// The box declaration (without Children) goes to declBuf; Children are rebuilt in syncBuf.
+func writeExtractedDynamicBox(treeBuf *bytes.Buffer, n *template.BoxElement, stylesheet *style.Stylesheet, indent int, tracker *instanceTracker, ext *extractionCtx) {
+	tabs := indentStr(indent)
+	name := ext.nextBoxName()
+	props := resolveProps(stylesheet, "box", n.Attributes)
+
+	// Write declaration to declBuf (at function scope, no Children)
+	fmt.Fprintf(&ext.declBuf, "\t%s := &layout.Input{\n", name)
+	fmt.Fprintf(&ext.declBuf, "\t\tKind: layout.KindBox,\n")
+	writeBoxAttributes(&ext.declBuf, "\t", n.Attributes, props)
+	if props != nil {
+		writeStyleLiteral(&ext.declBuf, "\t", props)
+	}
+	fmt.Fprintf(&ext.declBuf, "\t}\n")
+
+	// Write dynamic children rebuild to syncBuf
+	writeDynamicChildrenSync(&ext.syncBuf, name, n.Children, stylesheet, tracker)
+
+	// Write reference in tree
+	fmt.Fprintf(treeBuf, "%s%s,\n", tabs, name)
 }
 
 // writeComponentRef writes a component Layout() call as a layout tree entry.
