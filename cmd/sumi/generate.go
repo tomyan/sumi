@@ -200,6 +200,13 @@ func walkValidateNode(path string, node template.Node, registry map[string]*code
 		}
 	case *template.BoxElement:
 		return walkValidateNodes(path, n.Children, registry)
+	case *template.IfNode:
+		if err := walkValidateNodes(path, n.Then, registry); err != nil {
+			return err
+		}
+		return walkValidateNodes(path, n.Else, registry)
+	case *template.ForNode:
+		return walkValidateNodes(path, n.Children, registry)
 	}
 	return nil
 }
