@@ -1,16 +1,20 @@
 package layout
 
+import "math"
+
 // HitTestScroll finds the deepest scrollable box containing the point (x, y).
+// When multiple scrollable boxes overlap, the one with the highest z-index wins.
 // Returns the index into a flat list of scrollable boxes (depth-first order),
 // or -1 if no scrollable box contains the point.
 func HitTestScroll(tree *Box, x, y int) int {
 	idx := -1
+	bestZ := math.MinInt
 	counter := 0
-	hitTestScrollRecursive(tree, x, y, &idx, &counter)
+	hitTestScrollRecursive(tree, x, y, &idx, &bestZ, &counter)
 	return idx
 }
 
-func hitTestScrollRecursive(box *Box, x, y int, bestIdx *int, counter *int) {
+func hitTestScrollRecursive(box *Box, x, y int, bestIdx *int, bestZ *int, counter *int) {
 	for _, child := range box.Children {
 		if child == nil {
 			continue
@@ -20,10 +24,13 @@ func hitTestScrollRecursive(box *Box, x, y int, bestIdx *int, counter *int) {
 			continue
 		}
 		if isScrollable(child) {
-			*bestIdx = *counter
+			if child.ZIndex >= *bestZ {
+				*bestIdx = *counter
+				*bestZ = child.ZIndex
+			}
 			*counter++
 		}
-		hitTestScrollRecursive(child, x, y, bestIdx, counter)
+		hitTestScrollRecursive(child, x, y, bestIdx, bestZ, counter)
 	}
 }
 
