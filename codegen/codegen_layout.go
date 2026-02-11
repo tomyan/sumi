@@ -133,6 +133,7 @@ func writeBoxAttributes(buf *bytes.Buffer, tabs string, attrs map[string]string,
 	writeIntAttr(buf, tabs, attrs, props, "left", "Left")
 	writeIntAttr(buf, tabs, attrs, props, "right", "Right")
 	writeIntAttr(buf, tabs, attrs, props, "bottom", "Bottom")
+	writeIntAttr(buf, tabs, attrs, props, "z-index", "ZIndex")
 }
 
 // writeIntAttr writes an integer attribute field if present and parseable.

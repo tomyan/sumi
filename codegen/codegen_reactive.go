@@ -126,7 +126,7 @@ func writeRenderClosure(buf *bytes.Buffer, doc *template.Document, stylesheet *s
 	writeLayoutTree(buf, doc, stylesheet, true, instances)
 	buf.WriteString("\t\ttree := layout.Layout(root, termW, termH)\n")
 	writeScrollTreeWiring(buf, scrollBoxes)
-	buf.WriteString("\t\tif prevTree == nil || termW != prevW || termH != prevH || layout.HasScrollChanged(prevTree, tree) {\n")
+	buf.WriteString("\t\tif prevTree == nil || termW != prevW || termH != prevH || layout.HasScrollChanged(prevTree, tree) || layout.HasOverlappingElements(tree) {\n")
 	buf.WriteString("\t\t\tbuf := render.NewBuffer(termW, termH)\n")
 	buf.WriteString("\t\t\tlayout.RenderTree(buf, tree, nil)\n")
 	buf.WriteString("\t\t\trender.ClearScreen(os.Stdout)\n")

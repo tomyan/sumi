@@ -1,6 +1,10 @@
 package layout
 
-import "github.com/tomyan/sumi/runtime/render"
+import (
+	"sort"
+
+	"github.com/tomyan/sumi/runtime/render"
+)
 
 // RenderTree renders a layout tree to a buffer, applying clip regions and scroll offsets.
 func RenderTree(buf *render.Buffer, box *Box, clip *render.Clip) {
@@ -44,10 +48,9 @@ func renderScrollbarsAndChildren(buf *render.Buffer, box *Box, clip *render.Clip
 		drawHorizontalScrollbar(buf, box)
 		childClip = narrowClipForHorizontalScrollbar(childClip)
 	}
-	for _, child := range box.Children {
-		if child == nil {
-			continue
-		}
+	// Sort children by z-index for paint order (stable sort preserves document order)
+	sorted := zSortChildren(box.Children)
+	for _, child := range sorted {
 		// Fixed children escape parent scroll offsets and clipping
 		if child.Position == "fixed" {
 			RenderTree(buf, child, nil)
@@ -117,6 +120,21 @@ func shiftTree(box *Box, dx, dy int) {
 		}
 		shiftTree(child, dx, dy)
 	}
+}
+
+// zSortChildren returns a copy of children sorted by ZIndex ascending.
+// Nil children are filtered out. Stable sort preserves document order for equal z-index.
+func zSortChildren(children []*Box) []*Box {
+	var sorted []*Box
+	for _, c := range children {
+		if c != nil {
+			sorted = append(sorted, c)
+		}
+	}
+	sort.SliceStable(sorted, func(i, j int) bool {
+		return sorted[i].ZIndex < sorted[j].ZIndex
+	})
+	return sorted
 }
 
 // mergeClip combines a parent clip with a box's own clip using intersection.

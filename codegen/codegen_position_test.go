@@ -47,6 +47,34 @@ func TestCodegenPositionRelative(t *testing.T) {
 	}
 }
 
+func TestCodegenZIndex(t *testing.T) {
+	// Given
+	doc := &template.Document{
+		Children: []template.Node{
+			&template.BoxElement{
+				Attributes: map[string]string{"z-index": "5"},
+				Children:   []template.Node{textNode("Overlay")},
+			},
+		},
+	}
+
+	// When
+	out, err := Generate(doc, nil, nil, Options{PackageName: "main"})
+
+	// Then
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	src := string(out)
+	if !strings.Contains(src, "ZIndex:") {
+		t.Errorf("expected ZIndex field in output:\n%s", src)
+	}
+	fset := token.NewFileSet()
+	if _, parseErr := parser.ParseFile(fset, "gen.go", out, parser.AllErrors); parseErr != nil {
+		t.Fatalf("generated code is not valid Go:\n%s\n\nerror: %v", src, parseErr)
+	}
+}
+
 func TestCodegenPositionAbsolute(t *testing.T) {
 	// Given
 	doc := &template.Document{

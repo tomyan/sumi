@@ -31,6 +31,7 @@ type Input struct {
 	MinWidth    int          // minimum content width (0 = no minimum)
 	Display     string       // "" (default) or "none" (hidden from layout)
 	Position    string       // "" (static), "relative", "absolute", "fixed", "sticky"
+	ZIndex      int          // paint order (higher renders on top)
 	Top         int          // offset from top (for positioned elements)
 	Left        int          // offset from left (for positioned elements)
 	Right       int          // offset from right (for positioned elements)
@@ -57,6 +58,7 @@ type Box struct {
 	ScrollX             int          // horizontal scroll offset (applied during render)
 	Key                 string       // identity key for diffing (propagated from Input)
 	Position            string       // positioning mode (propagated from Input)
+	ZIndex              int          // paint order (propagated from Input)
 	Top                 int          // offset from top (propagated from Input)
 	Left                int          // offset from left (propagated from Input)
 	Right               int          // offset from right (propagated from Input)
@@ -160,6 +162,7 @@ func layoutNode(input *Input, availW, availH int) *Box {
 		BorderTitle: input.BorderTitle,
 		Key:         input.Key,
 		Position:    input.Position,
+		ZIndex:      input.ZIndex,
 		Top:         input.Top,
 		Left:        input.Left,
 		Right:       input.Right,
