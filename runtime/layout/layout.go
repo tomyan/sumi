@@ -19,6 +19,7 @@ const (
 type Input struct {
 	Kind        NodeKind
 	Content     string       // text content (KindText only)
+	Key         string       // identity key for diffing (set by keyed {for} loops)
 	Direction   string       // "column" (default) or "row"
 	FixedWidth  int          // 0 = auto
 	FixedHeight int          // 0 = auto
@@ -48,6 +49,7 @@ type Box struct {
 	ContentHeight       int          // full content height (set when overflow != "")
 	ScrollY             int          // vertical scroll offset (applied during render)
 	ScrollX             int          // horizontal scroll offset (applied during render)
+	Key                 string       // identity key for diffing (propagated from Input)
 	Children            []*Box
 	Content             string       // text content if text node
 	Lines               []string     // wrapped lines (nil = single line, use Content)
@@ -136,6 +138,7 @@ func layoutNode(input *Input, availW, availH int) *Box {
 	box := &Box{
 		Border:      border,
 		BorderTitle: input.BorderTitle,
+		Key:         input.Key,
 		Style:       input.Style,
 	}
 
