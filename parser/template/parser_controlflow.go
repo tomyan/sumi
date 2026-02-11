@@ -54,11 +54,13 @@ func (p *parser) parseIfNode() (Node, error) {
 // parseForNode parses the clause and body of a {for ...}...{/for} block.
 func (p *parser) parseForNode() (Node, error) {
 	p.skipWhitespace()
-	clause := strings.TrimSpace(p.readUntil('}'))
+	raw := strings.TrimSpace(p.readUntil('}'))
 	if p.pos >= len(p.input) {
 		return nil, fmt.Errorf("unterminated {for} tag")
 	}
 	p.pos++ // consume '}'
+
+	clause, key := splitForKey(raw)
 
 	children, _, err := p.parseControlFlowChildren("for")
 	if err != nil {
@@ -67,8 +69,20 @@ func (p *parser) parseForNode() (Node, error) {
 
 	return &ForNode{
 		Clause:   clause,
+		Key:      key,
 		Children: children,
 	}, nil
+}
+
+// splitForKey splits a for clause on the last " key=" to separate the Go
+// for-clause from the key expression. Uses the last occurrence to avoid
+// conflicts with variable names containing "key".
+func splitForKey(raw string) (clause, key string) {
+	idx := strings.LastIndex(raw, " key=")
+	if idx < 0 {
+		return raw, ""
+	}
+	return strings.TrimSpace(raw[:idx]), strings.TrimSpace(raw[idx+5:])
 }
 
 // parseControlFlowChildren parses children until {/keyword} or {else} is found.

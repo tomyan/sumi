@@ -74,6 +74,7 @@ func (n *IfNode) nodeType() string { return "if" }
 // ForNode represents a {for clause}...{/for} loop block.
 type ForNode struct {
 	Clause   string // raw Go clause: "i, item := range items"
+	Key      string // key expression for diffing: "item.ID" (empty if no key)
 	Children []Node
 }
 

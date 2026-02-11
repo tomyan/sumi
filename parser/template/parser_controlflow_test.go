@@ -266,6 +266,66 @@ func TestParseForContainingIf(t *testing.T) {
 	}
 }
 
+func TestParseForWithKey(t *testing.T) {
+	// Given
+	input := `{for i, item := range items key=item.ID}<text>{item}</text>{/for}`
+
+	// When
+	doc, err := Parse(input)
+
+	// Then
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	forNode := doc.Children[0].(*ForNode)
+	if forNode.Clause != "i, item := range items" {
+		t.Errorf("Clause = %q, want %q", forNode.Clause, "i, item := range items")
+	}
+	if forNode.Key != "item.ID" {
+		t.Errorf("Key = %q, want %q", forNode.Key, "item.ID")
+	}
+}
+
+func TestParseForWithoutKey(t *testing.T) {
+	// Given
+	input := `{for i := range items}<text>{i}</text>{/for}`
+
+	// When
+	doc, err := Parse(input)
+
+	// Then
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	forNode := doc.Children[0].(*ForNode)
+	if forNode.Clause != "i := range items" {
+		t.Errorf("Clause = %q, want %q", forNode.Clause, "i := range items")
+	}
+	if forNode.Key != "" {
+		t.Errorf("Key = %q, want empty string", forNode.Key)
+	}
+}
+
+func TestParseForKeyWithComplexExpr(t *testing.T) {
+	// Given
+	input := `{for i, item := range items key=fmt.Sprint(i)}<text>{item}</text>{/for}`
+
+	// When
+	doc, err := Parse(input)
+
+	// Then
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	forNode := doc.Children[0].(*ForNode)
+	if forNode.Clause != "i, item := range items" {
+		t.Errorf("Clause = %q, want %q", forNode.Clause, "i, item := range items")
+	}
+	if forNode.Key != "fmt.Sprint(i)" {
+		t.Errorf("Key = %q, want %q", forNode.Key, "fmt.Sprint(i)")
+	}
+}
+
 func TestParseForMissingClose(t *testing.T) {
 	// Given
 	input := `{for i := range items}<text>{i}</text>`
