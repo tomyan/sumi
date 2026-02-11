@@ -101,6 +101,48 @@ func TestRenderTreeNestedCollapseJunctions(t *testing.T) {
 	}
 }
 
+func TestRenderTreeCollapsedBorderWithTitle(t *testing.T) {
+	// Given — two collapsed boxes with border titles
+	input := &Input{
+		Kind:           KindBox,
+		BorderCollapse: true,
+		FixedWidth:     20,
+		FixedHeight:    8,
+		Children: []*Input{
+			{Kind: KindBox, Border: "single", BorderTitle: "Top", FlexGrow: 1},
+			{Kind: KindBox, Border: "single", BorderTitle: "Bot", FlexGrow: 1},
+		},
+	}
+
+	// When
+	box := Layout(input, 20, 8)
+	buf := render.NewBuffer(20, 8)
+	RenderTree(buf, box, nil)
+
+	// Then — first child's title on row 0
+	// ┌─ Top ─────────────┐
+	title1 := "Top"
+	for i, ch := range title1 {
+		if c := buf.Cell(0, 3+i); c.Ch != ch {
+			t.Errorf("title1 Cell(0,%d) = %c, want %c", 3+i, c.Ch, ch)
+		}
+	}
+
+	// Second child's title on the shared row (panel2.Y)
+	sharedRow := box.Children[1].Y
+	title2 := "Bot"
+	for i, ch := range title2 {
+		if c := buf.Cell(sharedRow, 3+i); c.Ch != ch {
+			t.Errorf("title2 Cell(%d,%d) = %c, want %c", sharedRow, 3+i, c.Ch, ch)
+		}
+	}
+
+	// Shared row corners should still be junction chars (├ on left)
+	if c := buf.Cell(sharedRow, 0); c.Ch != '├' {
+		t.Errorf("shared left = %c, want ├", c.Ch)
+	}
+}
+
 func TestRenderTreeCollapsedRowBorders(t *testing.T) {
 	// Given — two side-by-side boxes with shared vertical border
 	input := &Input{
