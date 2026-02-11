@@ -17,7 +17,7 @@ func generateComponent(doc *template.Document, sc *script.Script, stylesheet *st
 	name := opts.ComponentName
 	fmt.Fprintf(&buf, "package %s\n\n", opts.PackageName)
 	hasStyles := docHasStyles(doc, stylesheet)
-	writeComponentImports(&buf, docHasExprs(doc), hasStyles)
+	writeComponentImports(&buf, docHasExprs(doc) || docHasForKey(doc), hasStyles)
 	writeComponentStruct(&buf, name, sc)
 	writeComponentConstructor(&buf, name, sc)
 	writeComponentLayoutMethod(&buf, name, doc, sc, stylesheet)

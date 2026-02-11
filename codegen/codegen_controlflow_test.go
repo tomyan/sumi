@@ -250,6 +250,81 @@ func TestGenerateIfAtRootWithBoxChildren(t *testing.T) {
 	}
 }
 
+func TestGenerateForWithKeyProducesValidGo(t *testing.T) {
+	// Given
+	doc := &template.Document{
+		Children: []template.Node{
+			&template.ForNode{
+				Clause:   "i, item := range items",
+				Key:      "item.ID",
+				Children: []template.Node{textNode("item")},
+			},
+		},
+	}
+
+	// When
+	out, err := Generate(doc, nil, nil, Options{PackageName: "main"})
+
+	// Then
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	fset := token.NewFileSet()
+	_, parseErr := parser.ParseFile(fset, "generated.go", out, parser.AllErrors)
+	if parseErr != nil {
+		t.Fatalf("generated code is not valid Go:\n%s\n\nerror: %v", string(out), parseErr)
+	}
+}
+
+func TestGenerateForWithKeyContainsKeyAssignment(t *testing.T) {
+	// Given
+	doc := &template.Document{
+		Children: []template.Node{
+			&template.ForNode{
+				Clause:   "i, item := range items",
+				Key:      "item.ID",
+				Children: []template.Node{textNode("item")},
+			},
+		},
+	}
+
+	// When
+	out, err := Generate(doc, nil, nil, Options{PackageName: "main"})
+
+	// Then
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	src := string(out)
+	if !strings.Contains(src, "cs[len(cs)-1].Key = fmt.Sprint(") {
+		t.Errorf("expected Key assignment in output:\n%s", src)
+	}
+}
+
+func TestGenerateForWithoutKeyUnchanged(t *testing.T) {
+	// Given
+	doc := &template.Document{
+		Children: []template.Node{
+			&template.ForNode{
+				Clause:   "i, item := range items",
+				Children: []template.Node{textNode("item")},
+			},
+		},
+	}
+
+	// When
+	out, err := Generate(doc, nil, nil, Options{PackageName: "main"})
+
+	// Then
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	src := string(out)
+	if strings.Contains(src, "Key =") {
+		t.Errorf("expected no Key assignment when Key is empty:\n%s", src)
+	}
+}
+
 func TestGenerateStaticChildrenUnchanged(t *testing.T) {
 	// Given - no control flow, just static children
 	doc := &template.Document{

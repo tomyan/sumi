@@ -65,6 +65,49 @@ func docHasExprs(doc *template.Document) bool {
 	return false
 }
 
+// docHasForKey checks if any ForNode in the document has a Key expression.
+func docHasForKey(doc *template.Document) bool {
+	for _, child := range doc.Children {
+		if nodeHasForKey(child) {
+			return true
+		}
+	}
+	return false
+}
+
+// nodeHasForKey checks if a single node (or its children) contains a keyed ForNode.
+func nodeHasForKey(node template.Node) bool {
+	switch n := node.(type) {
+	case *template.BoxElement:
+		for _, child := range n.Children {
+			if nodeHasForKey(child) {
+				return true
+			}
+		}
+	case *template.IfNode:
+		for _, child := range n.Then {
+			if nodeHasForKey(child) {
+				return true
+			}
+		}
+		for _, child := range n.Else {
+			if nodeHasForKey(child) {
+				return true
+			}
+		}
+	case *template.ForNode:
+		if n.Key != "" {
+			return true
+		}
+		for _, child := range n.Children {
+			if nodeHasForKey(child) {
+				return true
+			}
+		}
+	}
+	return false
+}
+
 // nodeHasExprs checks if a single node (or its children) contains ExprParts.
 func nodeHasExprs(node template.Node) bool {
 	switch n := node.(type) {

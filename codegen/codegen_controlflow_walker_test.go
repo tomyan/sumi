@@ -161,3 +161,41 @@ func TestGenerateComponentWithForProducesValidGo(t *testing.T) {
 		t.Errorf("expected 'for i, item := range c.items {' in output:\n%s", src)
 	}
 }
+
+func TestGenerateComponentForWithKey(t *testing.T) {
+	// Given
+	doc := &template.Document{
+		Children: []template.Node{
+			&template.ForNode{
+				Clause:   "i, item := range items",
+				Key:      "item.ID",
+				Children: []template.Node{textNode("item")},
+			},
+		},
+	}
+	sc := &script.Script{
+		StateDecls: []script.StateDecl{
+			{Name: "items", InitExpr: `[]string{"a", "b"}`},
+		},
+	}
+
+	// When
+	out, err := generateComponent(doc, sc, nil, Options{
+		PackageName:   "main",
+		ComponentName: "Test",
+	})
+
+	// Then
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	fset := token.NewFileSet()
+	_, parseErr := parser.ParseFile(fset, "generated.go", out, parser.AllErrors)
+	if parseErr != nil {
+		t.Fatalf("generated code is not valid Go:\n%s\n\nerror: %v", string(out), parseErr)
+	}
+	src := string(out)
+	if !strings.Contains(src, "cs[len(cs)-1].Key = fmt.Sprint(") {
+		t.Errorf("expected Key assignment in component output:\n%s", src)
+	}
+}

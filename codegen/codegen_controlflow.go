@@ -116,6 +116,9 @@ func writeForBlock(buf *bytes.Buffer, n *template.ForNode, stylesheet *style.Sty
 	for _, child := range n.Children {
 		writeDynamicChild(buf, child, stylesheet, indent+1, tabs+"\t", tracker)
 	}
+	if n.Key != "" {
+		fmt.Fprintf(buf, "%s\tcs[len(cs)-1].Key = fmt.Sprint(%s)\n", tabs, n.Key)
+	}
 	fmt.Fprintf(buf, "%s}\n", tabs)
 }
 
@@ -209,6 +212,9 @@ func writeComponentForBlock(buf *bytes.Buffer, n *template.ForNode, stylesheet *
 	fmt.Fprintf(buf, "%sfor %s {\n", tabs, prefixConditionExpr(n.Clause, varNames))
 	for _, child := range n.Children {
 		writeComponentDynamicChild(buf, child, stylesheet, indent+1, tabs+"\t", varNames)
+	}
+	if n.Key != "" {
+		fmt.Fprintf(buf, "%s\tcs[len(cs)-1].Key = fmt.Sprint(%s)\n", tabs, prefixConditionExpr(n.Key, varNames))
 	}
 	fmt.Fprintf(buf, "%s}\n", tabs)
 }
