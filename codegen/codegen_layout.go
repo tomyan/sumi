@@ -126,6 +126,13 @@ func writeBoxAttributes(buf *bytes.Buffer, tabs string, attrs map[string]string,
 	if d, ok := mergedAttr(attrs, props, "display"); ok && d == "none" {
 		fmt.Fprintf(buf, "%s\tDisplay: %q,\n", tabs, d)
 	}
+	if p, ok := mergedAttr(attrs, props, "position"); ok {
+		fmt.Fprintf(buf, "%s\tPosition: %q,\n", tabs, p)
+	}
+	writeIntAttr(buf, tabs, attrs, props, "top", "Top")
+	writeIntAttr(buf, tabs, attrs, props, "left", "Left")
+	writeIntAttr(buf, tabs, attrs, props, "right", "Right")
+	writeIntAttr(buf, tabs, attrs, props, "bottom", "Bottom")
 }
 
 // writeIntAttr writes an integer attribute field if present and parseable.

@@ -72,6 +72,12 @@ func nodeChanged(old, new *Box) bool {
 	if old.Style != new.Style {
 		return true
 	}
+	if old.Position != new.Position {
+		return true
+	}
+	if old.Top != new.Top || old.Left != new.Left || old.Right != new.Right || old.Bottom != new.Bottom {
+		return true
+	}
 	if !linesEqual(old.Lines, new.Lines) {
 		return true
 	}

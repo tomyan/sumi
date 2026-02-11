@@ -23,3 +23,25 @@ func spliceChildren(total int, visibleBoxes []*Box, indices []int) []*Box {
 	}
 	return result
 }
+
+// applyRelativeOffsets shifts relatively-positioned boxes by their offsets.
+// The parent's size is computed from flow positions before this is called,
+// matching CSS behavior where relative offsets are purely visual.
+func applyRelativeOffsets(boxes []*Box) {
+	for _, b := range boxes {
+		if b == nil || b.Position != "relative" {
+			continue
+		}
+		// Top wins over Bottom; Left wins over Right
+		if b.Top != 0 {
+			b.Y += b.Top
+		} else if b.Bottom != 0 {
+			b.Y -= b.Bottom
+		}
+		if b.Left != 0 {
+			b.X += b.Left
+		} else if b.Right != 0 {
+			b.X -= b.Right
+		}
+	}
+}

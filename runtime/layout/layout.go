@@ -30,6 +30,11 @@ type Input struct {
 	Overflow    string       // "hidden", "scroll", "auto", or "" (visible)
 	MinWidth    int          // minimum content width (0 = no minimum)
 	Display     string       // "" (default) or "none" (hidden from layout)
+	Position    string       // "" (static), "relative", "absolute", "fixed", "sticky"
+	Top         int          // offset from top (for positioned elements)
+	Left        int          // offset from left (for positioned elements)
+	Right       int          // offset from right (for positioned elements)
+	Bottom      int          // offset from bottom (for positioned elements)
 	Padding     Padding
 	Border         string       // "single", "none", or ""
 	BorderTitle    string       // text to display in the top border edge
@@ -51,6 +56,11 @@ type Box struct {
 	ScrollY             int          // vertical scroll offset (applied during render)
 	ScrollX             int          // horizontal scroll offset (applied during render)
 	Key                 string       // identity key for diffing (propagated from Input)
+	Position            string       // positioning mode (propagated from Input)
+	Top                 int          // offset from top (propagated from Input)
+	Left                int          // offset from left (propagated from Input)
+	Right               int          // offset from right (propagated from Input)
+	Bottom              int          // offset from bottom (propagated from Input)
 	Children            []*Box
 	Content             string       // text content if text node
 	Lines               []string     // wrapped lines (nil = single line, use Content)
@@ -143,6 +153,11 @@ func layoutNode(input *Input, availW, availH int) *Box {
 		Border:      border,
 		BorderTitle: input.BorderTitle,
 		Key:         input.Key,
+		Position:    input.Position,
+		Top:         input.Top,
+		Left:        input.Left,
+		Right:       input.Right,
+		Bottom:      input.Bottom,
 		Style:       input.Style,
 	}
 
@@ -317,6 +332,9 @@ func layoutNode(input *Input, availW, availH int) *Box {
 		viewportW := box.Width - insetW
 		box.NeedsHorizontalScrollbar = needsHorizontalScrollbar(input.Overflow, contentW, viewportW)
 	}
+
+	// Apply relative offsets after size is computed (visual shift only)
+	applyRelativeOffsets(box.Children)
 
 	return box
 }
