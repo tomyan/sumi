@@ -11,42 +11,53 @@ import (
 
 // writeInlinedComponent inlines a child component's template into the parent tree.
 // Props are resolved to literal values from the parent's element attributes.
+// For stateful components, state variable references are namespaced.
 func writeInlinedComponent(buf *bytes.Buffer, inst *componentInstance, indent int, tracker *instanceTracker, ext *extractionCtx) {
 	info := inst.Info
 	if info.Doc == nil {
-		// Fallback: no AST available, use old comp.Layout() pattern
 		writeComponentRefByName(buf, indent, inst.VarName)
 		return
 	}
 
 	propMap := buildPropMap(inst)
+	stateMap := buildStateNameMap(inst)
 
-	// The child template's root is a KindBox wrapper with "column" direction.
-	// Its children are the actual template nodes. We inline those children directly,
-	// since the child's root wrapper would add an unnecessary nesting level.
-	// If the child has exactly one box child (typical pattern), inline that box.
+	// Use a sub-extraction context with the instance's namespace prefix
+	// so extracted nodes get names like "counter0_node0"
+	var subExt *extractionCtx
+	if ext != nil && info.HasState {
+		subExt = newExtractionCtx(inst.VarName + "_")
+	} else {
+		subExt = ext
+	}
+
 	children := info.Doc.Children
 	if len(children) == 1 {
-		writeInlinedNode(buf, children[0], info.Stylesheet, indent, propMap, tracker, ext)
+		writeInlinedNode(buf, children[0], info.Stylesheet, indent, propMap, stateMap, tracker, subExt)
 	} else {
 		for _, child := range children {
-			writeInlinedNode(buf, child, info.Stylesheet, indent, propMap, tracker, ext)
+			writeInlinedNode(buf, child, info.Stylesheet, indent, propMap, stateMap, tracker, subExt)
 		}
+	}
+
+	// Merge sub-extraction context back into parent
+	if subExt != nil && subExt != ext && ext != nil {
+		mergeExtractionCtx(ext, subExt)
 	}
 }
 
 // writeInlinedNode writes a single inlined template node with prop substitution.
-func writeInlinedNode(buf *bytes.Buffer, node template.Node, stylesheet *style.Stylesheet, indent int, propMap map[string]string, tracker *instanceTracker, ext *extractionCtx) {
+func writeInlinedNode(buf *bytes.Buffer, node template.Node, stylesheet *style.Stylesheet, indent int, propMap, stateMap map[string]string, tracker *instanceTracker, ext *extractionCtx) {
 	switch n := node.(type) {
 	case *template.TextElement:
-		writeInlinedTextInput(buf, n, stylesheet, indent, propMap, ext)
+		writeInlinedTextInput(buf, n, stylesheet, indent, propMap, stateMap, ext)
 	case *template.BoxElement:
-		writeInlinedBoxInput(buf, n, stylesheet, indent, propMap, tracker, ext)
+		writeInlinedBoxInput(buf, n, stylesheet, indent, propMap, stateMap, tracker, ext)
 	}
 }
 
-// writeInlinedTextInput writes a text input with prop values substituted.
-func writeInlinedTextInput(buf *bytes.Buffer, n *template.TextElement, stylesheet *style.Stylesheet, indent int, propMap map[string]string, ext *extractionCtx) {
+// writeInlinedTextInput writes a text input with prop values substituted and state vars namespaced.
+func writeInlinedTextInput(buf *bytes.Buffer, n *template.TextElement, stylesheet *style.Stylesheet, indent int, propMap, stateMap map[string]string, ext *extractionCtx) {
 	tabs := indentStr(indent)
 	attrs := n.Attributes
 	if attrs == nil {
@@ -55,9 +66,9 @@ func writeInlinedTextInput(buf *bytes.Buffer, n *template.TextElement, styleshee
 	props := resolveProps(stylesheet, "text", attrs)
 
 	resolvedParts := resolveTextParts(n.Parts, propMap)
+	resolvedParts = namespaceExprParts(resolvedParts, stateMap)
 	expr := contentExpr(resolvedParts)
 
-	// If after prop substitution there are still expressions, extract
 	if ext != nil && hasExprParts(resolvedParts) {
 		writeExtractedTextNode(buf, &ext.declBuf, &template.TextElement{Parts: resolvedParts, Attributes: n.Attributes}, props, tabs, ext)
 		return
@@ -73,7 +84,7 @@ func writeInlinedTextInput(buf *bytes.Buffer, n *template.TextElement, styleshee
 }
 
 // writeInlinedBoxInput writes a box input from an inlined component template.
-func writeInlinedBoxInput(buf *bytes.Buffer, n *template.BoxElement, stylesheet *style.Stylesheet, indent int, propMap map[string]string, tracker *instanceTracker, ext *extractionCtx) {
+func writeInlinedBoxInput(buf *bytes.Buffer, n *template.BoxElement, stylesheet *style.Stylesheet, indent int, propMap, stateMap map[string]string, tracker *instanceTracker, ext *extractionCtx) {
 	tabs := indentStr(indent)
 	boxProps := resolveProps(stylesheet, "box", n.Attributes)
 
@@ -83,18 +94,18 @@ func writeInlinedBoxInput(buf *bytes.Buffer, n *template.BoxElement, stylesheet 
 	if boxProps != nil {
 		writeStyleLiteral(buf, tabs, boxProps)
 	}
-	writeInlinedBoxChildren(buf, n.Children, stylesheet, indent, tabs, propMap, tracker, ext)
+	writeInlinedBoxChildren(buf, n.Children, stylesheet, indent, tabs, propMap, stateMap, tracker, ext)
 	fmt.Fprintf(buf, "%s},\n", tabs)
 }
 
 // writeInlinedBoxChildren writes children of an inlined box.
-func writeInlinedBoxChildren(buf *bytes.Buffer, children []template.Node, stylesheet *style.Stylesheet, indent int, tabs string, propMap map[string]string, tracker *instanceTracker, ext *extractionCtx) {
+func writeInlinedBoxChildren(buf *bytes.Buffer, children []template.Node, stylesheet *style.Stylesheet, indent int, tabs string, propMap, stateMap map[string]string, tracker *instanceTracker, ext *extractionCtx) {
 	if len(children) == 0 {
 		return
 	}
 	fmt.Fprintf(buf, "%s\tChildren: []*layout.Input{\n", tabs)
 	for _, child := range children {
-		writeInlinedNode(buf, child, stylesheet, indent+2, propMap, tracker, ext)
+		writeInlinedNode(buf, child, stylesheet, indent+2, propMap, stateMap, tracker, ext)
 	}
 	fmt.Fprintf(buf, "%s\t},\n", tabs)
 }
@@ -108,6 +119,20 @@ func buildPropMap(inst *componentInstance) map[string]string {
 		}
 	}
 	return propMap
+}
+
+// buildStateNameMap creates a map from state variable name to its namespaced version.
+// e.g., "count" → "counter0_count" when the instance VarName is "counter0".
+func buildStateNameMap(inst *componentInstance) map[string]string {
+	if inst.Info.Script == nil || !inst.Info.HasState {
+		return nil
+	}
+	m := make(map[string]string)
+	prefix := inst.VarName + "_"
+	for _, sd := range inst.Info.Script.StateDecls {
+		m[sd.Name] = prefix + sd.Name
+	}
+	return m
 }
 
 // resolveTextParts substitutes prop references in text parts with literal string values.
@@ -127,6 +152,25 @@ func resolveTextParts(parts []template.Part, propMap map[string]string) []templa
 		}
 	}
 	return mergeAdjacentStrings(resolved)
+}
+
+// namespaceExprParts renames ExprPart expressions that match state variable names.
+// e.g., ExprPart{Expr: "count"} with stateMap["count"] = "counter0_count" → ExprPart{Expr: "counter0_count"}
+func namespaceExprParts(parts []template.Part, stateMap map[string]string) []template.Part {
+	if len(stateMap) == 0 {
+		return parts
+	}
+	result := make([]template.Part, len(parts))
+	for i, p := range parts {
+		if ep, ok := p.(*template.ExprPart); ok {
+			if newName, found := stateMap[ep.Expr]; found {
+				result[i] = &template.ExprPart{Expr: newName}
+				continue
+			}
+		}
+		result[i] = p
+	}
+	return result
 }
 
 // mergeAdjacentStrings combines consecutive StringParts into one.
@@ -151,6 +195,13 @@ func mergeAdjacentStrings(parts []template.Part) []template.Part {
 		merged = append(merged, &template.StringPart{Value: sb.String()})
 	}
 	return merged
+}
+
+// mergeExtractionCtx merges a sub-context's extractions back into the parent.
+func mergeExtractionCtx(parent, sub *extractionCtx) {
+	parent.declBuf.Write(sub.declBuf.Bytes())
+	parent.syncBuf.Write(sub.syncBuf.Bytes())
+	parent.nodes = append(parent.nodes, sub.nodes...)
 }
 
 // writeComponentRefByName writes a component.Layout() reference by variable name.

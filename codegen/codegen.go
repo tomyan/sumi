@@ -52,7 +52,7 @@ func generateRunFunc(doc *template.Document, sc *script.Script, stylesheet *styl
 	fmt.Fprintf(&buf, "package %s\n\n", opts.PackageName)
 	hasTitle := findTitleElement(doc) != nil
 	hasScroll := len(findAllScrollableBoxes(doc, stylesheet)) > 0
-	writeImports(&buf, docHasExprs(doc) || hasTitle || hasScroll || docHasForKey(doc))
+	writeImports(&buf, docHasExprs(doc) || hasTitle || hasScroll || docHasForKey(doc) || instancesHaveExprs(instances))
 	buf.WriteString("func Run() {\n")
 	if reactive {
 		writeReactiveBody(&buf, doc, sc, stylesheet, instances)
@@ -69,4 +69,14 @@ func hasReactiveContent(sc *script.Script, instances []componentInstance) bool {
 		return true
 	}
 	return len(instances) > 0
+}
+
+// instancesHaveExprs returns true if any inlined component has expression parts.
+func instancesHaveExprs(instances []componentInstance) bool {
+	for _, inst := range instances {
+		if inst.Info.Doc != nil && docHasExprs(inst.Info.Doc) {
+			return true
+		}
+	}
+	return false
 }

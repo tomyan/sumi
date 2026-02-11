@@ -14,14 +14,21 @@ import (
 func writeReactiveBody(buf *bytes.Buffer, doc *template.Document, sc *script.Script, stylesheet *style.Stylesheet, instances []componentInstance) {
 	scrollBoxes := findAllScrollableBoxes(doc, stylesheet)
 	title := findTitleElement(doc)
+	inlined := collectInlinedStateful(instances)
 	writeComponentInits(buf, instances)
 	writeStateOrDirtyOnly(buf, sc)
+	writeInlinedStateDecls(buf, inlined)
 	writeScrollStateDecls(buf, scrollBoxes)
 	writeFuncClosures(buf, sc)
+	writeInlinedFuncClosures(buf, inlined)
+	if len(inlined) > 0 {
+		buf.WriteString("\n")
+	}
 	writeRenderClosure(buf, doc, stylesheet, instances, scrollBoxes, title)
 	writeSuppressUnusedFuncs(buf, doc, sc)
+	writeSuppressInlinedFuncs(buf, inlined)
 	writeTerminalSetup(buf, title, len(scrollBoxes) > 0)
-	writeEventLoop(buf, doc, sc, instances, scrollBoxes)
+	writeEventLoop(buf, doc, sc, instances, scrollBoxes, inlined)
 }
 
 // writeStateOrDirtyOnly writes state decls and env decls if present, then the dirty flag.
@@ -205,14 +212,14 @@ func writeTerminalSetup(buf *bytes.Buffer, title *template.TitleElement, hasScro
 }
 
 // writeEventLoop writes the main select-based event loop.
-func writeEventLoop(buf *bytes.Buffer, doc *template.Document, sc *script.Script, instances []componentInstance, scrollBoxes []scrollableBox) {
+func writeEventLoop(buf *bytes.Buffer, doc *template.Document, sc *script.Script, instances []componentInstance, scrollBoxes []scrollableBox, inlined []inlinedStateful) {
 	buf.WriteString("\tfor {\n")
 	buf.WriteString("\t\tselect {\n")
 	buf.WriteString("\t\tcase evt, ok := <-eventCh:\n")
 	buf.WriteString("\t\t\tif !ok {\n")
 	buf.WriteString("\t\t\t\treturn\n")
 	buf.WriteString("\t\t\t}\n")
-	writeEventKeyHandler(buf, doc, instances)
+	writeEventKeyHandler(buf, doc, instances, inlined)
 	writeScrollDispatch(buf, scrollBoxes)
 	writeMouseScrollDispatch(buf, scrollBoxes)
 	buf.WriteString("\t\tcase <-resizeCh:\n")
@@ -224,13 +231,14 @@ func writeEventLoop(buf *bytes.Buffer, doc *template.Document, sc *script.Script
 }
 
 // writeEventKeyHandler writes the handler for EventKey events (quit, onkey, child HandleKey).
-func writeEventKeyHandler(buf *bytes.Buffer, doc *template.Document, instances []componentInstance) {
+func writeEventKeyHandler(buf *bytes.Buffer, doc *template.Document, instances []componentInstance, inlined []inlinedStateful) {
 	buf.WriteString("\t\t\tif evt.Kind == input.EventKey {\n")
 	buf.WriteString("\t\t\t\tif evt.Rune == 'q' || evt.Rune == 3 {\n")
 	buf.WriteString("\t\t\t\t\treturn\n")
 	buf.WriteString("\t\t\t\t}\n")
 	writeOnkeyDispatchEvent(buf, doc)
 	writeChildHandleKeyEvent(buf, instances)
+	writeInlinedOnkeyDispatch(buf, inlined)
 	buf.WriteString("\t\t\t}\n")
 }
 
