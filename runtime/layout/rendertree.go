@@ -45,6 +45,9 @@ func renderScrollbarsAndChildren(buf *render.Buffer, box *Box, clip *render.Clip
 		childClip = narrowClipForHorizontalScrollbar(childClip)
 	}
 	for _, child := range box.Children {
+		if child == nil {
+			continue
+		}
 		renderChildWithScroll(buf, child, box.ScrollX, box.ScrollY, childClip)
 	}
 }
@@ -104,6 +107,9 @@ func shiftTree(box *Box, dx, dy int) {
 	box.X += dx
 	box.Y += dy
 	for _, child := range box.Children {
+		if child == nil {
+			continue
+		}
 		shiftTree(child, dx, dy)
 	}
 }

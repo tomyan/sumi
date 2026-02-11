@@ -96,6 +96,9 @@ func HasScrollChanged(old, new *Box) bool {
 		return true
 	}
 	for i := 0; i < len(old.Children) && i < len(new.Children); i++ {
+		if old.Children[i] == nil || new.Children[i] == nil {
+			continue
+		}
 		if HasScrollChanged(old.Children[i], new.Children[i]) {
 			return true
 		}

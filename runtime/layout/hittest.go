@@ -12,6 +12,9 @@ func HitTestScroll(tree *Box, x, y int) int {
 
 func hitTestScrollRecursive(box *Box, x, y int, bestIdx *int, counter *int) {
 	for _, child := range box.Children {
+		if child == nil {
+			continue
+		}
 		if !containsPoint(child, x, y) {
 			countScrollable(child, counter)
 			continue
@@ -30,6 +33,9 @@ func countScrollable(box *Box, counter *int) {
 		*counter++
 	}
 	for _, child := range box.Children {
+		if child == nil {
+			continue
+		}
 		countScrollable(child, counter)
 	}
 }
