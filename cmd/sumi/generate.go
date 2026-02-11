@@ -152,6 +152,7 @@ func isChildComponent(comp *parsedComponent) bool {
 }
 
 // buildComponentInfo creates a ComponentInfo from a parsed component.
+// Includes the full parsed AST for template inlining.
 func buildComponentInfo(comp *parsedComponent) *codegen.ComponentInfo {
 	props := make([]string, len(comp.script.PropDecls))
 	for i, p := range comp.script.PropDecls {
@@ -163,6 +164,9 @@ func buildComponentInfo(comp *parsedComponent) *codegen.ComponentInfo {
 		ExportedName: comp.exported,
 		Props:        props,
 		HasState:     hasState,
+		Doc:          comp.doc,
+		Script:       comp.script,
+		Stylesheet:   comp.stylesheet,
 	}
 }
 
@@ -212,8 +216,12 @@ func walkValidateNode(path string, node template.Node, registry map[string]*code
 }
 
 // generateAllComponents generates Go code for all parsed components.
+// Child components are inlined into root templates and don't need separate output.
 func generateAllComponents(components []*parsedComponent, registry map[string]*codegen.ComponentInfo) error {
 	for _, comp := range components {
+		if isChildComponent(comp) {
+			continue // inlined at compile time, no separate output
+		}
 		if err := generateComponent(comp, registry); err != nil {
 			return err
 		}

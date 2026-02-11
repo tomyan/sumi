@@ -55,7 +55,17 @@ func writeInputNode(buf *bytes.Buffer, node template.Node, stylesheet *style.Sty
 	case *template.BoxElement:
 		writeBoxInput(buf, n, stylesheet, indent, tracker, ext)
 	case *template.ComponentElement:
-		writeComponentRef(buf, indent, tracker)
+		writeComponentElement(buf, indent, tracker, ext)
+	}
+}
+
+// writeComponentElement handles a component reference — either inlines or falls back.
+func writeComponentElement(buf *bytes.Buffer, indent int, tracker *instanceTracker, ext *extractionCtx) {
+	inst := tracker.nextInstance()
+	if inst != nil && inst.Info.Doc != nil {
+		writeInlinedComponent(buf, inst, indent, tracker, ext)
+	} else if inst != nil {
+		writeComponentRefByName(buf, indent, inst.VarName)
 	}
 }
 

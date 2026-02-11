@@ -16,6 +16,9 @@ type ComponentInfo struct {
 	ExportedName string   // Go exported name, e.g. "Counter"
 	Props        []string // prop names in order, e.g. ["label"]
 	HasState     bool     // whether component has state (affects if HandleKey exists)
+	Doc          *template.Document  // full parsed template (for inlining)
+	Script       *script.Script      // full parsed script (for inlining)
+	Stylesheet   *style.Stylesheet   // full parsed stylesheet (for inlining)
 }
 
 // Options configures code generation.

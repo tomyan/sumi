@@ -64,12 +64,18 @@ func addComponentInstance(n *template.ComponentElement, components map[string]*C
 }
 
 // writeComponentInits writes component instantiation statements.
+// Skips instances that will be inlined (have Doc available).
 func writeComponentInits(buf *bytes.Buffer, instances []componentInstance) {
+	wrote := false
 	for _, inst := range instances {
+		if inst.Info.Doc != nil {
+			continue // inlined, no constructor needed
+		}
 		args := buildComponentArgs(inst)
 		fmt.Fprintf(buf, "\t%s := New%sComponent(%s)\n", inst.VarName, inst.Info.ExportedName, args)
+		wrote = true
 	}
-	if len(instances) > 0 {
+	if wrote {
 		buf.WriteString("\n")
 	}
 }
@@ -103,4 +109,14 @@ func (t *instanceTracker) next() string {
 	name := t.instances[t.index].VarName
 	t.index++
 	return name
+}
+
+// nextInstance returns the full componentInstance for the next ComponentElement.
+func (t *instanceTracker) nextInstance() *componentInstance {
+	if t == nil || t.index >= len(t.instances) {
+		return nil
+	}
+	inst := &t.instances[t.index]
+	t.index++
+	return inst
 }

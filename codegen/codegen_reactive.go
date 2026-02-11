@@ -252,8 +252,12 @@ func writeOnkeyDispatchEvent(buf *bytes.Buffer, doc *template.Document) {
 }
 
 // writeChildHandleKeyEvent writes HandleKey dispatch using evt.Rune for event-based loop.
+// Skips instances that are inlined (have Doc available).
 func writeChildHandleKeyEvent(buf *bytes.Buffer, instances []componentInstance) {
 	for _, inst := range instances {
+		if inst.Info.Doc != nil {
+			continue // inlined, handled differently
+		}
 		if inst.Info.HasState {
 			fmt.Fprintf(buf, "\t\t\t\t%s.HandleKey(evt.Rune)\n", inst.VarName)
 		}
@@ -268,10 +272,13 @@ func writeDirtyCheck(buf *bytes.Buffer, instances []componentInstance) {
 	buf.WriteString("\t\t}\n")
 }
 
-// buildDirtyCondition builds the dirty check expression including children.
+// buildDirtyCondition builds the dirty check expression including non-inlined children.
 func buildDirtyCondition(instances []componentInstance) string {
 	parts := []string{"dirty"}
 	for _, inst := range instances {
+		if inst.Info.Doc != nil {
+			continue // inlined, no separate Dirty() needed
+		}
 		parts = append(parts, fmt.Sprintf("%s.Dirty()", inst.VarName))
 	}
 	return strings.Join(parts, " || ")

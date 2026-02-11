@@ -101,26 +101,27 @@ func increment() {
 	// When generating the directory
 	err := generateDir(dir)
 
-	// Then both Go files are generated and are valid Go
+	// Then only the root component generates a Go file (child is inlined)
 	if err != nil {
 		t.Fatalf("generateDir: %v", err)
 	}
-	assertValidGoFile(t, filepath.Join(dir, "counter_sumi.go"))
 	assertValidGoFile(t, filepath.Join(dir, "app_sumi.go"))
+
+	// Child component should NOT get its own file (it's inlined)
+	counterFile := filepath.Join(dir, "counter_sumi.go")
+	if _, err := os.Stat(counterFile); err == nil {
+		t.Errorf("child component should not generate a separate Go file: %s", counterFile)
+	}
 }
 
-func TestGenerateDirChildHasComponentStruct(t *testing.T) {
+func TestGenerateDirChildTemplateInlined(t *testing.T) {
 	// Given a directory with a child component that has $prop
 	dir := t.TempDir()
 	counterSrc := `<script>
 label := $prop("Count")
-count := $state(0)
-func increment() {
-    count = count + 1
-}
 </script>
-<box onkey="increment">
-    <text>{label}: {count}</text>
+<box>
+    <text>{label}: static text</text>
 </box>`
 	appSrc := `<box direction="column">
     <counter label="Clicks" />
@@ -131,48 +132,20 @@ func increment() {
 	// When generating the directory
 	err := generateDir(dir)
 
-	// Then the child component generates struct-based code
-	if err != nil {
-		t.Fatalf("generateDir: %v", err)
-	}
-	src := readTestFile(t, filepath.Join(dir, "counter_sumi.go"))
-	if !strings.Contains(src, "CounterComponent struct") {
-		t.Errorf("expected CounterComponent struct in child output:\n%s", src)
-	}
-	if !strings.Contains(src, "NewCounterComponent") {
-		t.Errorf("expected NewCounterComponent constructor in child output:\n%s", src)
-	}
-}
-
-func TestGenerateDirParentReferencesChild(t *testing.T) {
-	// Given a directory with parent referencing <counter />
-	dir := t.TempDir()
-	counterSrc := `<script>
-label := $prop("Count")
-count := $state(0)
-func increment() {
-    count = count + 1
-}
-</script>
-<box onkey="increment">
-    <text>{label}: {count}</text>
-</box>`
-	appSrc := `<box direction="column">
-    <counter label="Clicks" />
-</box>`
-	writeTestFile(t, dir, "counter.sumi", counterSrc)
-	writeTestFile(t, dir, "app.sumi", appSrc)
-
-	// When generating the directory
-	err := generateDir(dir)
-
-	// Then the parent's generated code calls NewCounterComponent
+	// Then the parent's generated code inlines the child template with resolved props
 	if err != nil {
 		t.Fatalf("generateDir: %v", err)
 	}
 	src := readTestFile(t, filepath.Join(dir, "app_sumi.go"))
-	if !strings.Contains(src, "NewCounterComponent") {
-		t.Errorf("expected NewCounterComponent call in parent output:\n%s", src)
+
+	// Prop should be resolved to literal
+	if !strings.Contains(src, `Content: "Clicks: static text"`) {
+		t.Errorf("expected inlined prop resolved to literal:\n%s", src)
+	}
+
+	// Should NOT have component struct references
+	if strings.Contains(src, "NewCounterComponent") {
+		t.Errorf("should not have component constructor:\n%s", src)
 	}
 }
 

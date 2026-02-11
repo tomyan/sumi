@@ -310,6 +310,160 @@ func TestBuildOnceForLoopInSync(t *testing.T) {
 	}
 }
 
+func TestBuildOnceInlinesStatelessComponent(t *testing.T) {
+	// Given — a stateless component (props only, no state)
+	headerDoc := &template.Document{
+		Children: []template.Node{
+			&template.BoxElement{
+				Children: []template.Node{
+					&template.TextElement{
+						Parts: []template.Part{
+							&template.ExprPart{Expr: "title"},
+						},
+					},
+					&template.TextElement{
+						Parts: []template.Part{
+							&template.ExprPart{Expr: "subtitle"},
+						},
+					},
+				},
+			},
+		},
+	}
+	headerScript := &script.Script{
+		PropDecls: []script.PropDecl{
+			{Name: "title", DefaultExpr: `"Default"`},
+			{Name: "subtitle", DefaultExpr: `""`},
+		},
+	}
+
+	// Root doc references the component
+	rootDoc := &template.Document{
+		Children: []template.Node{
+			&template.ComponentElement{
+				Name:       "header",
+				Attributes: map[string]string{"title": "My App", "subtitle": "v1.0"},
+			},
+		},
+	}
+	rootScript := &script.Script{
+		StateDecls: []script.StateDecl{
+			{Name: "count", InitExpr: "0"},
+		},
+	}
+
+	opts := Options{
+		PackageName: "main",
+		Components: map[string]*ComponentInfo{
+			"header": {
+				Name:         "header",
+				ExportedName: "Header",
+				Props:        []string{"title", "subtitle"},
+				Doc:          headerDoc,
+				Script:       headerScript,
+			},
+		},
+	}
+
+	// When
+	out, err := Generate(rootDoc, rootScript, nil, opts)
+
+	// Then
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	src := string(out)
+
+	// Props should be resolved to literal strings
+	if !strings.Contains(src, `Content: "My App"`) {
+		t.Errorf("expected title prop resolved to literal:\n%s", src)
+	}
+	if !strings.Contains(src, `Content: "v1.0"`) {
+		t.Errorf("expected subtitle prop resolved to literal:\n%s", src)
+	}
+
+	// Should NOT have component struct references
+	if strings.Contains(src, ".Layout()") {
+		t.Errorf("should not have component.Layout() call:\n%s", src)
+	}
+	if strings.Contains(src, "NewHeaderComponent") {
+		t.Errorf("should not have component constructor:\n%s", src)
+	}
+
+	// Generated code should be valid Go
+	fset := token.NewFileSet()
+	_, parseErr := parser.ParseFile(fset, "generated.go", out, parser.AllErrors)
+	if parseErr != nil {
+		t.Fatalf("generated code is not valid Go:\n%s\n\nerror: %v", string(out), parseErr)
+	}
+}
+
+func TestBuildOnceInlinedComponentWithMixedPropExpr(t *testing.T) {
+	// Given — component text has "{label}: clicks" (prop + static mixed)
+	childDoc := &template.Document{
+		Children: []template.Node{
+			&template.TextElement{
+				Parts: []template.Part{
+					&template.ExprPart{Expr: "label"},
+					&template.StringPart{Value: ": clicks"},
+				},
+			},
+		},
+	}
+	childScript := &script.Script{
+		PropDecls: []script.PropDecl{
+			{Name: "label", DefaultExpr: `"Count"`},
+		},
+	}
+
+	rootDoc := &template.Document{
+		Children: []template.Node{
+			&template.ComponentElement{
+				Name:       "badge",
+				Attributes: map[string]string{"label": "Score"},
+			},
+		},
+	}
+	rootScript := &script.Script{
+		StateDecls: []script.StateDecl{
+			{Name: "x", InitExpr: "0"},
+		},
+	}
+
+	opts := Options{
+		PackageName: "main",
+		Components: map[string]*ComponentInfo{
+			"badge": {
+				Name:         "badge",
+				ExportedName: "Badge",
+				Props:        []string{"label"},
+				Doc:          childDoc,
+				Script:       childScript,
+			},
+		},
+	}
+
+	// When
+	out, err := Generate(rootDoc, rootScript, nil, opts)
+
+	// Then
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	src := string(out)
+
+	// Mixed prop expression should resolve: "{label}: clicks" → "Score: clicks"
+	if !strings.Contains(src, `Content: "Score: clicks"`) {
+		t.Errorf("expected resolved mixed prop expression:\n%s", src)
+	}
+
+	fset := token.NewFileSet()
+	_, parseErr := parser.ParseFile(fset, "generated.go", out, parser.AllErrors)
+	if parseErr != nil {
+		t.Fatalf("generated code is not valid Go:\n%s\n\nerror: %v", string(out), parseErr)
+	}
+}
+
 func TestBuildOnceTreeNotInsideDoRender(t *testing.T) {
 	// Given
 	doc := &template.Document{
