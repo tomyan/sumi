@@ -100,14 +100,31 @@ func narrowClipForHorizontalScrollbar(clip *render.Clip) *render.Clip {
 
 // renderChildWithScroll renders a child box, translating by the parent's scroll offsets.
 // Shifts the entire subtree so all descendants render at the correct scrolled position.
+// Sticky children are clamped so they stay visible within the clip region.
 func renderChildWithScroll(buf *render.Buffer, child *Box, scrollX, scrollY int, clip *render.Clip) {
 	if scrollX == 0 && scrollY == 0 {
 		RenderTree(buf, child, clip)
 		return
 	}
 	shiftTree(child, -scrollX, -scrollY)
+	stickyDY := applyStickyClamp(child, clip)
 	RenderTree(buf, child, clip)
-	shiftTree(child, scrollX, scrollY) // restore
+	shiftTree(child, scrollX, scrollY-stickyDY) // restore (undo scroll + clamp)
+}
+
+// applyStickyClamp adjusts a sticky child's position so it stays visible.
+// Returns the extra Y shift applied (to be undone during restore).
+func applyStickyClamp(child *Box, clip *render.Clip) int {
+	if child.Position != "sticky" || clip == nil {
+		return 0
+	}
+	stickyMinY := clip.Top + child.Top
+	if child.Y < stickyMinY {
+		dy := stickyMinY - child.Y
+		shiftTree(child, 0, dy)
+		return dy
+	}
+	return 0
 }
 
 // shiftTree recursively shifts a box and all its descendants by dx, dy.
