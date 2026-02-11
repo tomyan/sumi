@@ -114,6 +114,42 @@ func layoutAbsolute(child *Input, offsetX, offsetY, parentW, parentH int) *Box {
 	return box
 }
 
+// repositionFixed walks the tree and repositions any fixed box to viewport-relative
+// coordinates using its stored offsets. Called as a post-pass after absolutePositions.
+func repositionFixed(box *Box, viewW, viewH int) {
+	for _, child := range box.Children {
+		if child == nil {
+			continue
+		}
+		if child.Position == "fixed" {
+			// Position: top/left take priority over bottom/right
+			if child.Left != 0 {
+				child.X = child.Left
+			} else if child.Right != 0 {
+				child.X = viewW - child.Right - child.Width
+			} else {
+				child.X = 0
+			}
+			if child.Top != 0 {
+				child.Y = child.Top
+			} else if child.Bottom != 0 {
+				child.Y = viewH - child.Bottom - child.Height
+			} else {
+				child.Y = 0
+			}
+			// Stretch when opposing offsets are both set
+			if child.Left != 0 && child.Right != 0 {
+				child.Width = viewW - child.Left - child.Right
+				// Re-check X in case stretch affects it
+			}
+			if child.Top != 0 && child.Bottom != 0 {
+				child.Height = viewH - child.Top - child.Bottom
+			}
+		}
+		repositionFixed(child, viewW, viewH)
+	}
+}
+
 // applyRelativeOffsets shifts relatively-positioned boxes by their offsets.
 // The parent's size is computed from flow positions before this is called,
 // matching CSS behavior where relative offsets are purely visual.

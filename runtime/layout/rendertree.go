@@ -48,6 +48,11 @@ func renderScrollbarsAndChildren(buf *render.Buffer, box *Box, clip *render.Clip
 		if child == nil {
 			continue
 		}
+		// Fixed children escape parent scroll offsets and clipping
+		if child.Position == "fixed" {
+			RenderTree(buf, child, nil)
+			continue
+		}
 		renderChildWithScroll(buf, child, box.ScrollX, box.ScrollY, childClip)
 	}
 }

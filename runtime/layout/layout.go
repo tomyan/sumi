@@ -122,6 +122,7 @@ func borderSize(border string) int {
 func Layout(input *Input, availWidth, availHeight int) *Box {
 	box := layoutNode(input, availWidth, availHeight)
 	absolutePositions(box)
+	repositionFixed(box, availWidth, availHeight)
 	return box
 }
 
@@ -130,6 +131,11 @@ func Layout(input *Input, availWidth, availHeight int) *Box {
 func absolutePositions(box *Box) {
 	for _, child := range box.Children {
 		if child == nil {
+			continue
+		}
+		// Fixed children are viewport-relative; skip parent offset accumulation
+		if child.Position == "fixed" {
+			absolutePositions(child)
 			continue
 		}
 		child.X += box.X
