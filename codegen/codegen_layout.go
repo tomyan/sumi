@@ -28,11 +28,15 @@ func writeLayoutTree(buf *bytes.Buffer, doc *template.Document, stylesheet *styl
 	if rootProps != nil {
 		writeStyleLiteral(buf, tabs, rootProps)
 	}
-	fmt.Fprintf(buf, "%s\tChildren: []*layout.Input{\n", tabs)
-	for _, child := range doc.Children {
-		writeInputNode(buf, child, stylesheet, baseIndent+2, tracker)
+	if hasDynamicChildren(doc.Children) {
+		writeDynamicChildren(buf, doc.Children, stylesheet, baseIndent, tabs, tracker)
+	} else {
+		fmt.Fprintf(buf, "%s\tChildren: []*layout.Input{\n", tabs)
+		for _, child := range doc.Children {
+			writeInputNode(buf, child, stylesheet, baseIndent+2, tracker)
+		}
+		fmt.Fprintf(buf, "%s\t},\n", tabs)
 	}
-	fmt.Fprintf(buf, "%s\t},\n", tabs)
 	fmt.Fprintf(buf, "%s}\n", tabs)
 }
 
@@ -137,6 +141,10 @@ func writeIntAttr(buf *bytes.Buffer, tabs string, attrs, props map[string]string
 // writeBoxChildren writes the Children field of a box input if there are children.
 func writeBoxChildren(buf *bytes.Buffer, children []template.Node, stylesheet *style.Stylesheet, indent int, tabs string, tracker *instanceTracker) {
 	if len(children) == 0 {
+		return
+	}
+	if hasDynamicChildren(children) {
+		writeDynamicChildren(buf, children, stylesheet, indent, tabs, tracker)
 		return
 	}
 	fmt.Fprintf(buf, "%s\tChildren: []*layout.Input{\n", tabs)
