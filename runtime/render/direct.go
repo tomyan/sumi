@@ -59,6 +59,33 @@ func DrawBorderAt(w io.Writer, row, col, width, height int, borderStyle string, 
 	}
 }
 
+// DrawCollapsedBorderAt draws a border with junction corners directly to a writer.
+func DrawCollapsedBorderAt(w io.Writer, row, col, width, height int, borderStyle string, style Style, collapsed CollapsedEdges) {
+	if borderStyle == "" || borderStyle == "none" {
+		return
+	}
+	if width < 2 || height < 2 {
+		return
+	}
+
+	right := col + width - 1
+	bottom := row + height - 1
+
+	writeCharAt(w, row, col, cornerChar(collapsed.Top, collapsed.Left, true, true), style)
+	writeCharAt(w, row, right, cornerChar(collapsed.Top, collapsed.Right, true, false), style)
+	writeCharAt(w, bottom, col, cornerChar(collapsed.Bottom, collapsed.Left, false, true), style)
+	writeCharAt(w, bottom, right, cornerChar(collapsed.Bottom, collapsed.Right, false, false), style)
+
+	for c := col + 1; c < right; c++ {
+		writeCharAt(w, row, c, '─', style)
+		writeCharAt(w, bottom, c, '─', style)
+	}
+	for r := row + 1; r < bottom; r++ {
+		writeCharAt(w, r, col, '│', style)
+		writeCharAt(w, r, right, '│', style)
+	}
+}
+
 // DrawBorderTitleAt draws a border title directly to a writer using cursor positioning.
 func DrawBorderTitleAt(w io.Writer, row, col, width int, title string, style Style) {
 	if title == "" || width < 6 {

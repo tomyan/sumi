@@ -11,7 +11,11 @@ func RenderTree(buf *render.Buffer, box *Box, clip *render.Clip) {
 
 func renderBorder(buf *render.Buffer, box *Box) {
 	if box.Border != "" && box.Border != "none" {
-		buf.DrawStyledBorder(box.Y, box.X, box.Width, box.Height, box.Border, box.Style)
+		if !box.Collapsed.IsZero() {
+			buf.DrawCollapsedBorder(box.Y, box.X, box.Width, box.Height, box.Border, box.Style, box.Collapsed)
+		} else {
+			buf.DrawStyledBorder(box.Y, box.X, box.Width, box.Height, box.Border, box.Style)
+		}
 		if box.BorderTitle != "" {
 			buf.DrawStyledBorderTitle(box.Y, box.X, box.Width, box.BorderTitle, box.Style)
 		}

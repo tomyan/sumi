@@ -210,6 +210,28 @@ func TestDiffDetectsScrollbarChange(t *testing.T) {
 	}
 }
 
+func TestDiffDetectsCollapsedChange(t *testing.T) {
+	// Given
+	old := &Box{
+		X: 0, Y: 0, Width: 10, Height: 5,
+		Border:    "single",
+		Collapsed: render.CollapsedEdges{},
+	}
+	new := &Box{
+		X: 0, Y: 0, Width: 10, Height: 5,
+		Border:    "single",
+		Collapsed: render.CollapsedEdges{Top: true},
+	}
+
+	// When
+	changes := DiffTrees(old, new)
+
+	// Then
+	if len(changes) != 1 {
+		t.Fatalf("len(changes) = %d, want 1", len(changes))
+	}
+}
+
 func TestDiffDetectsBorderTitleChange(t *testing.T) {
 	// Given
 	old := &Box{X: 0, Y: 0, Width: 20, Height: 5, Border: "single", BorderTitle: "Old"}

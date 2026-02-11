@@ -75,6 +75,9 @@ func nodeChanged(old, new *Box) bool {
 	if old.BorderTitle != new.BorderTitle {
 		return true
 	}
+	if old.Collapsed != new.Collapsed {
+		return true
+	}
 	if old.Style != new.Style {
 		return true
 	}

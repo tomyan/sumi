@@ -28,7 +28,11 @@ func ApplyChanges(w io.Writer, changes []Change) {
 // renderNodeDirect renders a single node directly to a writer.
 func renderNodeDirect(w io.Writer, box *Box) {
 	if box.Border != "" && box.Border != "none" {
-		render.DrawBorderAt(w, box.Y, box.X, box.Width, box.Height, box.Border, box.Style)
+		if !box.Collapsed.IsZero() {
+			render.DrawCollapsedBorderAt(w, box.Y, box.X, box.Width, box.Height, box.Border, box.Style, box.Collapsed)
+		} else {
+			render.DrawBorderAt(w, box.Y, box.X, box.Width, box.Height, box.Border, box.Style)
+		}
 		if box.BorderTitle != "" {
 			render.DrawBorderTitleAt(w, box.Y, box.X, box.Width, box.BorderTitle, box.Style)
 		}
