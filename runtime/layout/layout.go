@@ -108,6 +108,7 @@ func borderSize(border string) int {
 // All positions in the returned tree are absolute (buffer coordinates).
 func Layout(input *Input, availWidth, availHeight int) *Box {
 	box := layoutNode(input, availWidth, availHeight)
+	propagateCollapsedEdges(box)
 	absolutePositions(box)
 	return box
 }
@@ -129,8 +130,12 @@ func absolutePositions(box *Box) {
 }
 
 func layoutNode(input *Input, availW, availH int) *Box {
+	border := input.Border
+	if input.BorderCollapse {
+		border = "" // children's borders form the parent frame
+	}
 	box := &Box{
-		Border:      input.Border,
+		Border:      border,
 		BorderTitle: input.BorderTitle,
 		Style:       input.Style,
 	}
@@ -192,32 +197,48 @@ func layoutNode(input *Input, availW, availH int) *Box {
 
 	hasFlexChildren := hasFlexGrow(input.Children)
 
-	// Border-collapse forces gap to 0
+	// Border-collapse forces gap to 0 and inflates available space to compensate for overlaps
 	gap := input.Gap
+	flexAvailW := contentAvailW
+	flexAvailH := childAvailH
 	if input.BorderCollapse {
 		gap = 0
+		overlaps := countOverlaps(input.Children)
+		if input.Direction == "row" {
+			flexAvailW += overlaps
+		} else {
+			flexAvailH += overlaps
+		}
 	}
 
 	if input.Direction == "row" {
 		if hasFlexChildren {
-			box.Children = layoutRowFlex(input.Children, offsetX, offsetY, gap, contentAvailW, childAvailH)
+			box.Children = layoutRowFlex(input.Children, offsetX, offsetY, gap, flexAvailW, flexAvailH)
 		} else {
-			box.Children = layoutRow(input.Children, offsetX, offsetY, gap, contentAvailW, childAvailH)
+			box.Children = layoutRow(input.Children, offsetX, offsetY, gap, flexAvailW, flexAvailH)
 		}
 	} else {
 		if hasFlexChildren {
-			box.Children = layoutColumnFlex(input.Children, offsetX, offsetY, gap, contentAvailW, childAvailH)
+			box.Children = layoutColumnFlex(input.Children, offsetX, offsetY, gap, flexAvailW, flexAvailH)
 		} else {
-			box.Children = layoutColumn(input.Children, offsetX, offsetY, gap, contentAvailW, childAvailH)
+			box.Children = layoutColumn(input.Children, offsetX, offsetY, gap, flexAvailW, flexAvailH)
 		}
 	}
 
 	// Apply border-collapse: overlap adjacent bordered children
 	if input.BorderCollapse {
 		if input.Direction == "row" {
-			applyRowCollapse(box.Children, input.Children)
+			targetW := 0
+			if input.FixedWidth > 0 || hasFlexChildren {
+				targetW = contentAvailW
+			}
+			applyRowCollapse(box.Children, input.Children, targetW)
 		} else {
-			applyColumnCollapse(box.Children, input.Children)
+			targetH := 0
+			if input.FixedHeight > 0 || hasFlexChildren {
+				targetH = contentAvailH
+			}
+			applyColumnCollapse(box.Children, input.Children, targetH)
 		}
 	}
 

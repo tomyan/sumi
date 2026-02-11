@@ -100,15 +100,39 @@ func (b *Buffer) DrawCollapsedBorder(row, col, width, height int, borderStyle st
 
 	// Top and bottom horizontal edges
 	for c := col + 1; c < right; c++ {
-		b.SetStyledCell(row, c, '─', style)
-		b.SetStyledCell(bottom, c, '─', style)
+		b.mergeJunction(row, c, false, true, false, true, style)
+		b.mergeJunction(bottom, c, false, true, false, true, style)
 	}
 
 	// Left and right vertical edges
 	for r := row + 1; r < bottom; r++ {
-		b.SetStyledCell(r, col, '│', style)
-		b.SetStyledCell(r, right, '│', style)
+		b.mergeJunction(r, col, true, false, true, false, style)
+		b.mergeJunction(r, right, true, false, true, false, style)
 	}
+}
+
+// mergeJunction writes a border character at (row, col), merging with any existing
+// junction character. If the cell already has a box-drawing character, the
+// directions are OR'd together to produce the correct junction.
+func (b *Buffer) mergeJunction(row, col int, up, right, down, left bool, style Style) {
+	if existing := b.Cell(row, col); existing.Ch != 0 {
+		eu, er, ed, el := junctionDirs(existing.Ch)
+		up = up || eu
+		right = right || er
+		down = down || ed
+		left = left || el
+	}
+	b.SetStyledCell(row, col, JunctionChar(up, right, down, left), style)
+}
+
+// junctionDirs returns the directional connections of a box-drawing character.
+func junctionDirs(ch rune) (up, right, down, left bool) {
+	for key, c := range junctionTable {
+		if c == ch {
+			return key&1 != 0, key&2 != 0, key&4 != 0, key&8 != 0
+		}
+	}
+	return false, false, false, false
 }
 
 // cornerChar returns the junction character for a corner.

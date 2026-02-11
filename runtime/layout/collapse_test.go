@@ -163,6 +163,69 @@ func TestCollapseRowEdgeFlags(t *testing.T) {
 	}
 }
 
+func TestCollapseNestedLayout(t *testing.T) {
+	// Given — tmux-style 3-panel layout:
+	// Row container (collapse) with:
+	//   - Left column (collapse) with Panel 1 + Panel 2
+	//   - Right Panel 3
+	input := &Input{
+		Kind:           KindBox,
+		Direction:      "row",
+		BorderCollapse: true,
+		FixedWidth:     40,
+		FixedHeight:    12,
+		Children: []*Input{
+			{
+				Kind:           KindBox,
+				BorderCollapse: true,
+				Border:         "single",
+				FlexGrow:       1,
+				Children: []*Input{
+					{Kind: KindBox, Border: "single", FlexGrow: 1},
+					{Kind: KindBox, Border: "single", FlexGrow: 1},
+				},
+			},
+			{Kind: KindBox, Border: "single", FlexGrow: 1},
+		},
+	}
+
+	// When
+	box := Layout(input, 40, 12)
+
+	// Then — verify structure
+	leftCol := box.Children[0]
+	rightPanel := box.Children[1]
+
+	// Row collapse: left column and right panel share a vertical border
+	if !leftCol.Collapsed.Right {
+		t.Error("left column Collapsed.Right should be true")
+	}
+	if !rightPanel.Collapsed.Left {
+		t.Error("right panel Collapsed.Left should be true")
+	}
+
+	// Column collapse within left column: Panel 1 and Panel 2 share a horizontal border
+	panel1 := leftCol.Children[0]
+	panel2 := leftCol.Children[1]
+	if !panel1.Collapsed.Bottom {
+		t.Error("panel1 Collapsed.Bottom should be true")
+	}
+	if !panel2.Collapsed.Top {
+		t.Error("panel2 Collapsed.Top should be true")
+	}
+
+	// Right panel should span the full height of the parent
+	if rightPanel.Height != 12 {
+		t.Errorf("right panel Height = %d, want 12", rightPanel.Height)
+	}
+
+	// Left column + right panel should share border (overlap by 1)
+	wantX := leftCol.X + leftCol.Width - 1
+	if rightPanel.X != wantX {
+		t.Errorf("right panel X = %d, want %d", rightPanel.X, wantX)
+	}
+}
+
 func TestCollapseColumnNoParentBorderInset(t *testing.T) {
 	// Given — parent with border + collapse: children should use the full parent area (inset=0)
 	input := &Input{

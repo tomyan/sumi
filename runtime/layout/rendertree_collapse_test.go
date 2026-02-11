@@ -46,6 +46,61 @@ func TestRenderTreeCollapsedColumnBorders(t *testing.T) {
 	}
 }
 
+func TestRenderTreeNestedCollapseJunctions(t *testing.T) {
+	// Given — tmux-style 3-panel layout rendered
+	input := &Input{
+		Kind:           KindBox,
+		Direction:      "row",
+		BorderCollapse: true,
+		FixedWidth:     20,
+		FixedHeight:    8,
+		Children: []*Input{
+			{
+				Kind:           KindBox,
+				BorderCollapse: true,
+				Border:         "single",
+				FlexGrow:       1,
+				Children: []*Input{
+					{Kind: KindBox, Border: "single", FlexGrow: 1},
+					{Kind: KindBox, Border: "single", FlexGrow: 1},
+				},
+			},
+			{Kind: KindBox, Border: "single", FlexGrow: 1},
+		},
+	}
+
+	// When
+	box := Layout(input, 20, 8)
+	buf := render.NewBuffer(20, 8)
+	RenderTree(buf, box, nil)
+
+	// Then — verify junction characters
+	leftCol := box.Children[0]
+	sharedVertCol := leftCol.X + leftCol.Width - 1 // vertical border shared between columns
+	panel1 := leftCol.Children[0]
+	sharedHorizRow := panel1.Y + panel1.Height - 1 // horizontal border shared between panels
+
+	// Top-left of the whole layout: ┌
+	if c := buf.Cell(0, 0); c.Ch != '┌' {
+		t.Errorf("top-left = %c, want ┌", c.Ch)
+	}
+
+	// Where shared vertical meets top: ┬
+	if c := buf.Cell(0, sharedVertCol); c.Ch != '┬' {
+		t.Errorf("top shared-vert = %c, want ┬", c.Ch)
+	}
+
+	// Where shared horizontal meets left: ├
+	if c := buf.Cell(sharedHorizRow, 0); c.Ch != '├' {
+		t.Errorf("left shared-horiz = %c, want ├", c.Ch)
+	}
+
+	// Where both shared edges cross: ┼
+	if c := buf.Cell(sharedHorizRow, sharedVertCol); c.Ch != '┼' {
+		t.Errorf("cross junction = %c, want ┼", c.Ch)
+	}
+}
+
 func TestRenderTreeCollapsedRowBorders(t *testing.T) {
 	// Given — two side-by-side boxes with shared vertical border
 	input := &Input{

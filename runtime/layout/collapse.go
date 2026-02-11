@@ -1,27 +1,47 @@
 package layout
 
-import "github.com/tomyan/sumi/runtime/render"
-
 // applyColumnCollapse shifts children so adjacent bordered boxes overlap by 1 row,
 // and sets CollapsedEdges flags on the shared edges.
-func applyColumnCollapse(boxes []*Box, inputs []*Input) {
+// parentH is used to extend the last child to fill any remaining space.
+func applyColumnCollapse(boxes []*Box, inputs []*Input, parentH int) {
+	overlaps := 0
 	for i := 1; i < len(boxes); i++ {
 		if hasBorder(inputs[i-1].Border) && hasBorder(inputs[i].Border) {
-			boxes[i].Y -= i // shift by number of overlaps so far
+			overlaps++
+			boxes[i].Y -= overlaps
 			boxes[i-1].Collapsed.Bottom = true
 			boxes[i].Collapsed.Top = true
+		}
+	}
+	// Extend last child to fill remaining space (rounding from integer division)
+	if parentH > 0 && len(boxes) > 0 {
+		last := boxes[len(boxes)-1]
+		gap := parentH - (last.Y + last.Height)
+		if gap > 0 {
+			last.Height += gap
 		}
 	}
 }
 
 // applyRowCollapse shifts children so adjacent bordered boxes overlap by 1 column,
 // and sets CollapsedEdges flags on the shared edges.
-func applyRowCollapse(boxes []*Box, inputs []*Input) {
+// parentW is used to extend the last child to fill any remaining space.
+func applyRowCollapse(boxes []*Box, inputs []*Input, parentW int) {
+	overlaps := 0
 	for i := 1; i < len(boxes); i++ {
 		if hasBorder(inputs[i-1].Border) && hasBorder(inputs[i].Border) {
-			boxes[i].X -= i
+			overlaps++
+			boxes[i].X -= overlaps
 			boxes[i-1].Collapsed.Right = true
 			boxes[i].Collapsed.Left = true
+		}
+	}
+	// Extend last child to fill remaining space
+	if parentW > 0 && len(boxes) > 0 {
+		last := boxes[len(boxes)-1]
+		gap := parentW - (last.X + last.Width)
+		if gap > 0 {
+			last.Width += gap
 		}
 	}
 }
@@ -60,7 +80,25 @@ func countOverlaps(inputs []*Input) int {
 	return count
 }
 
-// hasCollapsedEdge returns true if any edge in the CollapsedEdges is set.
-func hasCollapsedEdge(c render.CollapsedEdges) bool {
-	return !c.IsZero()
+// propagateCollapsedEdges walks the tree and passes a parent's collapsed edges
+// down to boundary children. For example, if a parent has Collapsed.Right=true,
+// all children whose right edge aligns with the parent's right edge also get
+// Collapsed.Right=true. This ensures junction characters render correctly at
+// nested collapse boundaries.
+func propagateCollapsedEdges(box *Box) {
+	for _, child := range box.Children {
+		if box.Collapsed.Top && child.Y == 0 {
+			child.Collapsed.Top = true
+		}
+		if box.Collapsed.Bottom && child.Y+child.Height == box.Height {
+			child.Collapsed.Bottom = true
+		}
+		if box.Collapsed.Left && child.X == 0 {
+			child.Collapsed.Left = true
+		}
+		if box.Collapsed.Right && child.X+child.Width == box.Width {
+			child.Collapsed.Right = true
+		}
+		propagateCollapsedEdges(child)
+	}
 }
