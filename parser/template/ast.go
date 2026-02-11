@@ -61,3 +61,20 @@ type TitleElement struct {
 }
 
 func (t *TitleElement) nodeType() string { return "title" }
+
+// IfNode represents an {if condition}...{else}...{/if} block.
+type IfNode struct {
+	Condition string // raw Go expression: "count > 0"
+	Then      []Node // body when true
+	Else      []Node // body when false (nil if no {else})
+}
+
+func (n *IfNode) nodeType() string { return "if" }
+
+// ForNode represents a {for clause}...{/for} loop block.
+type ForNode struct {
+	Clause   string // raw Go clause: "i, item := range items"
+	Children []Node
+}
+
+func (n *ForNode) nodeType() string { return "for" }

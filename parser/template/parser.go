@@ -23,6 +23,14 @@ func (p *parser) parse() (*Document, error) {
 		if p.pos >= len(p.input) {
 			break
 		}
+		if p.input[p.pos] == '{' {
+			node, err := p.parseControlFlow()
+			if err != nil {
+				return nil, err
+			}
+			doc.Children = append(doc.Children, node)
+			continue
+		}
 		if p.input[p.pos] != '<' {
 			return nil, fmt.Errorf("unexpected character %q at position %d", p.input[p.pos], p.pos)
 		}
@@ -191,6 +199,10 @@ func (p *parser) parseNextChild(closingTag, tagName string) (Node, bool, error) 
 	if strings.HasPrefix(p.input[p.pos:], closingTag) {
 		p.pos += len(closingTag)
 		return nil, true, nil
+	}
+	if p.input[p.pos] == '{' {
+		child, err := p.parseControlFlow()
+		return child, false, err
 	}
 	if p.input[p.pos] != '<' {
 		return nil, false, fmt.Errorf("unexpected character %q inside <%s> at position %d", p.input[p.pos], tagName, p.pos)
