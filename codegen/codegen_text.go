@@ -80,6 +80,23 @@ func nodeHasExprs(node template.Node) bool {
 				return true
 			}
 		}
+	case *template.IfNode:
+		for _, child := range n.Then {
+			if nodeHasExprs(child) {
+				return true
+			}
+		}
+		for _, child := range n.Else {
+			if nodeHasExprs(child) {
+				return true
+			}
+		}
+	case *template.ForNode:
+		for _, child := range n.Children {
+			if nodeHasExprs(child) {
+				return true
+			}
+		}
 	}
 	return false
 }

@@ -40,6 +40,7 @@ func rootHasOverflow(stylesheet *style.Stylesheet) bool {
 }
 
 // findScrollableInNode recursively searches for scrollable boxes.
+// Skips IfNode/ForNode children since dynamic blocks can't use static tree paths.
 func findScrollableInNode(node template.Node, path string, boxes *[]scrollableBox) {
 	box, ok := node.(*template.BoxElement)
 	if !ok {

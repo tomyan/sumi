@@ -269,16 +269,32 @@ func docHasOnkey(doc *template.Document, funcName string) bool {
 
 // boxHasOnkey recursively checks if a node has an onkey attribute matching funcName.
 func boxHasOnkey(node template.Node, funcName string) bool {
-	box, ok := node.(*template.BoxElement)
-	if !ok {
-		return false
-	}
-	if handler, ok := box.Attributes["onkey"]; ok && handler == funcName {
-		return true
-	}
-	for _, child := range box.Children {
-		if boxHasOnkey(child, funcName) {
+	switch n := node.(type) {
+	case *template.BoxElement:
+		if handler, ok := n.Attributes["onkey"]; ok && handler == funcName {
 			return true
+		}
+		for _, child := range n.Children {
+			if boxHasOnkey(child, funcName) {
+				return true
+			}
+		}
+	case *template.IfNode:
+		for _, child := range n.Then {
+			if boxHasOnkey(child, funcName) {
+				return true
+			}
+		}
+		for _, child := range n.Else {
+			if boxHasOnkey(child, funcName) {
+				return true
+			}
+		}
+	case *template.ForNode:
+		for _, child := range n.Children {
+			if boxHasOnkey(child, funcName) {
+				return true
+			}
 		}
 	}
 	return false

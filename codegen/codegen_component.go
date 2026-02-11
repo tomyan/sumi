@@ -71,6 +71,23 @@ func nodeHasStyles(node template.Node, stylesheet *style.Stylesheet) bool {
 				return true
 			}
 		}
+	case *template.IfNode:
+		for _, child := range n.Then {
+			if nodeHasStyles(child, stylesheet) {
+				return true
+			}
+		}
+		for _, child := range n.Else {
+			if nodeHasStyles(child, stylesheet) {
+				return true
+			}
+		}
+	case *template.ForNode:
+		for _, child := range n.Children {
+			if nodeHasStyles(child, stylesheet) {
+				return true
+			}
+		}
 	}
 	return false
 }

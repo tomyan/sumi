@@ -40,6 +40,11 @@ func walkNode(node template.Node, components map[string]*ComponentInfo, counts m
 		addComponentInstance(n, components, counts, instances)
 	case *template.BoxElement:
 		walkNodes(n.Children, components, counts, instances)
+	case *template.IfNode:
+		walkNodes(n.Then, components, counts, instances)
+		walkNodes(n.Else, components, counts, instances)
+	case *template.ForNode:
+		walkNodes(n.Children, components, counts, instances)
 	}
 }
 
