@@ -1,0 +1,42 @@
+<style>
+.layout {
+    direction: row;
+    border-collapse: collapse;
+}
+.left-col {
+    border: single;
+    border-collapse: collapse;
+    flex-grow: 1;
+}
+.panel {
+    border: single;
+    flex-grow: 1;
+    padding: 0 1;
+}
+.title {
+    color: green;
+    bold: true;
+}
+.hint {
+    color: cyan;
+    dim: true;
+}
+</style>
+
+<box class="layout">
+    <box class="left-col">
+        <box class="panel" border-title="Panel 1">
+            <text class="title">Top-left panel</text>
+            <text>Content goes here</text>
+        </box>
+        <box class="panel" border-title="Panel 2">
+            <text class="title">Bottom-left panel</text>
+            <text>More content here</text>
+        </box>
+    </box>
+    <box class="panel" border-title="Panel 3">
+        <text class="title">Right panel</text>
+        <text>This panel spans the full height</text>
+        <text class="hint">Press q to quit</text>
+    </box>
+</box>
