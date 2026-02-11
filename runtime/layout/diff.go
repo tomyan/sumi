@@ -190,24 +190,6 @@ func diffKeyedChildren(oldChildren, newChildren []*Box, changes *[]Change) {
 	}
 }
 
-// HasOverlappingElements returns true if any descendant has absolute/fixed positioning
-// or a non-zero z-index. When true, surgical rendering is unsafe because nodes may
-// overlap and clearing one would erase parts of another.
-func HasOverlappingElements(box *Box) bool {
-	for _, child := range box.Children {
-		if child == nil {
-			continue
-		}
-		if child.Position == "absolute" || child.Position == "fixed" || child.ZIndex != 0 {
-			return true
-		}
-		if HasOverlappingElements(child) {
-			return true
-		}
-	}
-	return false
-}
-
 // linesEqual compares two string slices for equality.
 func linesEqual(a, b []string) bool {
 	if len(a) != len(b) {

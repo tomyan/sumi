@@ -73,6 +73,7 @@ type Box struct {
 	NeedsScrollbar           bool         // true when a vertical scrollbar should be drawn
 	NeedsHorizontalScrollbar bool         // true when a horizontal scrollbar should be drawn
 	Clip                     *render.Clip // clipping region (set when overflow is non-empty)
+	HasOverlap               bool         // true when any descendant has absolute/fixed or non-zero z-index
 }
 
 // ParsePadding parses a CSS-like padding shorthand string.
@@ -310,6 +311,9 @@ func layoutNode(input *Input, availW, availH int) *Box {
 	// Merge flow and positioned boxes back into visible order, then splice into full array
 	visibleBoxes := mergePartitioned(flowBoxes, flowIndices, posBoxes, posIndices, len(visibleChildren))
 	box.Children = spliceChildren(len(input.Children), visibleBoxes, visibleIndices)
+
+	// Propagate HasOverlap from children
+	box.HasOverlap = computeHasOverlap(box.Children)
 
 	// Compute size from flow children only (positioned elements don't affect parent size)
 	contentW, contentH := childrenExtent(flowBoxes, offsetX, offsetY)
@@ -633,6 +637,23 @@ func canStretch(input *Input, isWidth bool) bool {
 		return false
 	}
 	return true
+}
+
+// computeHasOverlap returns true if any child has absolute/fixed positioning,
+// non-zero z-index, or itself has HasOverlap set.
+func computeHasOverlap(children []*Box) bool {
+	for _, child := range children {
+		if child == nil {
+			continue
+		}
+		if child.Position == "absolute" || child.Position == "fixed" || child.ZIndex != 0 {
+			return true
+		}
+		if child.HasOverlap {
+			return true
+		}
+	}
+	return false
 }
 
 // childrenExtent returns the content width and height occupied by children.

@@ -2,61 +2,107 @@ package layout
 
 import "testing"
 
-func TestHasOverlappingElementsDetectsPositioned(t *testing.T) {
+func TestLayoutSetsHasOverlapForAbsoluteChild(t *testing.T) {
 	// Given — tree with an absolute child
-	box := &Box{
-		Children: []*Box{
-			{Children: []*Box{
-				{Position: "absolute"},
+	input := &Input{
+		Kind:        KindBox,
+		FixedWidth:  20,
+		FixedHeight: 10,
+		Children: []*Input{
+			{Kind: KindBox, Children: []*Input{
+				{Kind: KindText, Content: "abs", Position: "absolute"},
 			}},
 		},
 	}
 
-	// When/Then
-	if !HasOverlappingElements(box) {
-		t.Error("expected HasOverlappingElements to return true for absolute child")
+	// When
+	box := Layout(input, 20, 10)
+
+	// Then
+	if !box.HasOverlap {
+		t.Error("expected HasOverlap=true for tree with absolute child")
 	}
 }
 
-func TestHasOverlappingElementsDetectsFixed(t *testing.T) {
+func TestLayoutSetsHasOverlapForFixedChild(t *testing.T) {
 	// Given
-	box := &Box{
-		Children: []*Box{
-			{Position: "fixed"},
+	input := &Input{
+		Kind:        KindBox,
+		FixedWidth:  20,
+		FixedHeight: 10,
+		Children: []*Input{
+			{Kind: KindText, Content: "fixed", Position: "fixed"},
 		},
 	}
 
-	// When/Then
-	if !HasOverlappingElements(box) {
-		t.Error("expected HasOverlappingElements to return true for fixed child")
+	// When
+	box := Layout(input, 20, 10)
+
+	// Then
+	if !box.HasOverlap {
+		t.Error("expected HasOverlap=true for tree with fixed child")
 	}
 }
 
-func TestHasOverlappingElementsDetectsZIndex(t *testing.T) {
+func TestLayoutSetsHasOverlapForZIndex(t *testing.T) {
 	// Given
-	box := &Box{
-		Children: []*Box{
-			{ZIndex: 1},
+	input := &Input{
+		Kind:        KindBox,
+		FixedWidth:  20,
+		FixedHeight: 10,
+		Children: []*Input{
+			{Kind: KindText, Content: "z", ZIndex: 1},
 		},
 	}
 
-	// When/Then
-	if !HasOverlappingElements(box) {
-		t.Error("expected HasOverlappingElements to return true for non-zero z-index")
+	// When
+	box := Layout(input, 20, 10)
+
+	// Then
+	if !box.HasOverlap {
+		t.Error("expected HasOverlap=true for tree with non-zero z-index")
 	}
 }
 
-func TestHasOverlappingElementsFalseForPlainTree(t *testing.T) {
+func TestLayoutHasOverlapFalseForPlainTree(t *testing.T) {
 	// Given — no positioning or z-index
-	box := &Box{
-		Children: []*Box{
-			{Content: "hello"},
-			{Content: "world"},
+	input := &Input{
+		Kind: KindBox,
+		Children: []*Input{
+			{Kind: KindText, Content: "hello"},
+			{Kind: KindText, Content: "world"},
 		},
 	}
 
-	// When/Then
-	if HasOverlappingElements(box) {
-		t.Error("expected HasOverlappingElements to return false for plain tree")
+	// When
+	box := Layout(input, 80, 24)
+
+	// Then
+	if box.HasOverlap {
+		t.Error("expected HasOverlap=false for plain tree")
+	}
+}
+
+func TestLayoutHasOverlapPropagatesFromDeepChild(t *testing.T) {
+	// Given — absolute is 3 levels deep
+	input := &Input{
+		Kind:        KindBox,
+		FixedWidth:  40,
+		FixedHeight: 20,
+		Children: []*Input{
+			{Kind: KindBox, Children: []*Input{
+				{Kind: KindBox, Children: []*Input{
+					{Kind: KindText, Content: "deep", Position: "absolute"},
+				}},
+			}},
+		},
+	}
+
+	// When
+	box := Layout(input, 40, 20)
+
+	// Then — HasOverlap should propagate up to root
+	if !box.HasOverlap {
+		t.Error("expected HasOverlap=true to propagate from deep child")
 	}
 }
