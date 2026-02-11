@@ -219,7 +219,10 @@ func layoutNode(input *Input, availW, availH int) *Box {
 	// Filter out display:none children
 	visibleChildren, visibleIndices := filterVisible(input.Children)
 
-	hasFlexChildren := hasFlexGrow(visibleChildren)
+	// Partition visible children into flow and positioned (absolute/fixed)
+	flowChildren, flowIndices, posChildren, posIndices := partitionPositioned(visibleChildren)
+
+	hasFlexChildren := hasFlexGrow(flowChildren)
 
 	// Border-collapse forces gap to 0 and inflates available space to compensate for overlaps
 	gap := input.Gap
@@ -227,7 +230,7 @@ func layoutNode(input *Input, availW, availH int) *Box {
 	flexAvailH := childAvailH
 	if input.BorderCollapse {
 		gap = 0
-		overlaps := countOverlaps(visibleChildren)
+		overlaps := countOverlaps(flowChildren)
 		if input.Direction == "row" {
 			flexAvailW += overlaps
 		} else {
@@ -235,18 +238,18 @@ func layoutNode(input *Input, availW, availH int) *Box {
 		}
 	}
 
-	var visibleBoxes []*Box
+	var flowBoxes []*Box
 	if input.Direction == "row" {
 		if hasFlexChildren {
-			visibleBoxes = layoutRowFlex(visibleChildren, offsetX, offsetY, gap, flexAvailW, flexAvailH)
+			flowBoxes = layoutRowFlex(flowChildren, offsetX, offsetY, gap, flexAvailW, flexAvailH)
 		} else {
-			visibleBoxes = layoutRow(visibleChildren, offsetX, offsetY, gap, flexAvailW, flexAvailH)
+			flowBoxes = layoutRow(flowChildren, offsetX, offsetY, gap, flexAvailW, flexAvailH)
 		}
 	} else {
 		if hasFlexChildren {
-			visibleBoxes = layoutColumnFlex(visibleChildren, offsetX, offsetY, gap, flexAvailW, flexAvailH)
+			flowBoxes = layoutColumnFlex(flowChildren, offsetX, offsetY, gap, flexAvailW, flexAvailH)
 		} else {
-			visibleBoxes = layoutColumn(visibleChildren, offsetX, offsetY, gap, flexAvailW, flexAvailH)
+			flowBoxes = layoutColumn(flowChildren, offsetX, offsetY, gap, flexAvailW, flexAvailH)
 		}
 	}
 
@@ -257,13 +260,13 @@ func layoutNode(input *Input, availW, availH int) *Box {
 			if input.FixedWidth > 0 || hasFlexChildren {
 				targetW = contentAvailW
 			}
-			applyRowCollapse(visibleBoxes, visibleChildren, targetW)
+			applyRowCollapse(flowBoxes, flowChildren, targetW)
 		} else {
 			targetH := 0
 			if input.FixedHeight > 0 || hasFlexChildren {
 				targetH = contentAvailH
 			}
-			applyColumnCollapse(visibleBoxes, visibleChildren, targetH)
+			applyColumnCollapse(flowBoxes, flowChildren, targetH)
 		}
 	}
 
@@ -271,9 +274,9 @@ func layoutNode(input *Input, availW, availH int) *Box {
 	// Skip when the container auto-sizes on the main axis — no free space to distribute.
 	if input.Justify != "" && input.Justify != "start" {
 		if input.Direction == "row" {
-			applyJustifyRow(visibleBoxes, offsetX, contentAvailW, input.Justify)
+			applyJustifyRow(flowBoxes, offsetX, contentAvailW, input.Justify)
 		} else if input.FixedHeight > 0 {
-			applyJustifyColumn(visibleBoxes, offsetY, contentAvailH, input.Justify)
+			applyJustifyColumn(flowBoxes, offsetY, contentAvailH, input.Justify)
 		}
 	}
 
@@ -285,18 +288,22 @@ func layoutNode(input *Input, availW, availH int) *Box {
 	}
 	if align != "start" {
 		if input.Direction == "row" {
-			crossSize := rowCrossSize(contentAvailH, input.FixedHeight, visibleBoxes)
-			applyAlignRow(visibleBoxes, visibleChildren, offsetY, crossSize, align)
+			crossSize := rowCrossSize(contentAvailH, input.FixedHeight, flowBoxes)
+			applyAlignRow(flowBoxes, flowChildren, offsetY, crossSize, align)
 		} else {
-			applyAlignColumn(visibleBoxes, visibleChildren, offsetX, contentAvailW, align)
+			applyAlignColumn(flowBoxes, flowChildren, offsetX, contentAvailW, align)
 		}
 	}
 
-	// Splice visible boxes back into full children array with nil placeholders
+	// Layout positioned (absolute/fixed) children
+	posBoxes := layoutPositionedChildren(posChildren, offsetX, offsetY, contentAvailW, contentAvailH)
+
+	// Merge flow and positioned boxes back into visible order, then splice into full array
+	visibleBoxes := mergePartitioned(flowBoxes, flowIndices, posBoxes, posIndices, len(visibleChildren))
 	box.Children = spliceChildren(len(input.Children), visibleBoxes, visibleIndices)
 
-	// Compute size from visible children only
-	contentW, contentH := childrenExtent(visibleBoxes, offsetX, offsetY)
+	// Compute size from flow children only (positioned elements don't affect parent size)
+	contentW, contentH := childrenExtent(flowBoxes, offsetX, offsetY)
 
 	if input.FixedWidth > 0 {
 		box.Width = input.FixedWidth

@@ -47,6 +47,46 @@ func TestCodegenPositionRelative(t *testing.T) {
 	}
 }
 
+func TestCodegenPositionAbsolute(t *testing.T) {
+	// Given
+	doc := &template.Document{
+		Children: []template.Node{
+			&template.BoxElement{
+				Attributes: map[string]string{
+					"position": "absolute",
+					"top":      "5",
+					"left":     "10",
+					"right":    "2",
+					"bottom":   "3",
+				},
+				Children: []template.Node{textNode("Overlay")},
+			},
+		},
+	}
+
+	// When
+	out, err := Generate(doc, nil, nil, Options{PackageName: "main"})
+
+	// Then
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	src := string(out)
+	if !strings.Contains(src, `Position: "absolute"`) {
+		t.Errorf("expected Position: \"absolute\" in output:\n%s", src)
+	}
+	if !strings.Contains(src, "Right:") {
+		t.Errorf("expected Right field in output:\n%s", src)
+	}
+	if !strings.Contains(src, "Bottom:") {
+		t.Errorf("expected Bottom field in output:\n%s", src)
+	}
+	fset := token.NewFileSet()
+	if _, parseErr := parser.ParseFile(fset, "gen.go", out, parser.AllErrors); parseErr != nil {
+		t.Fatalf("generated code is not valid Go:\n%s\n\nerror: %v", src, parseErr)
+	}
+}
+
 func TestCodegenDisplayNone(t *testing.T) {
 	// Given
 	doc := &template.Document{
