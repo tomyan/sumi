@@ -66,6 +66,7 @@ func Run() {
 									Content: fmt.Sprintf("  %v", item),
 								})
 							}
+							cs[len(cs)-1].Key = fmt.Sprint(item)
 						}
 						return cs
 					}(),

@@ -29,7 +29,7 @@ func handleKey() {
 <box class="container" onkey="handleKey">
     <text class="title">Todo List</text>
     <text class="hint">Press any key to cycle, q to quit</text>
-    {for i, item := range items}
+    {for i, item := range items key=item}
         {if i == selected}
             <text class="selected">> {item}</text>
         {else}
