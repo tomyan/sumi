@@ -20,7 +20,7 @@ func TestDiffKeyedReorder(t *testing.T) {
 	}
 
 	// When
-	changes := DiffTrees(old, new)
+	changes, _ := DiffTrees(old, new)
 
 	// Then — no content changes, only position changes from reorder
 	for _, c := range changes {
@@ -51,7 +51,7 @@ func TestDiffKeyedInsertion(t *testing.T) {
 	}
 
 	// When
-	changes := DiffTrees(old, new)
+	changes, _ := DiffTrees(old, new)
 
 	// Then — the new child "beta" is reported as an addition
 	additions := 0
@@ -85,7 +85,7 @@ func TestDiffKeyedRemoval(t *testing.T) {
 	}
 
 	// When
-	changes := DiffTrees(old, new)
+	changes, _ := DiffTrees(old, new)
 
 	// Then — "beta" is reported as a removal
 	removals := 0
@@ -120,7 +120,7 @@ func TestDiffKeyedModification(t *testing.T) {
 	}
 
 	// When
-	changes := DiffTrees(old, new)
+	changes, _ := DiffTrees(old, new)
 
 	// Then — only "b" is reported as modified
 	modifications := 0
@@ -156,7 +156,7 @@ func TestDiffUnkeyedFallback(t *testing.T) {
 	}
 
 	// When
-	changes := DiffTrees(old, new)
+	changes, _ := DiffTrees(old, new)
 
 	// Then — positional: both children appear changed (content swapped)
 	contentChanges := 0
@@ -188,7 +188,7 @@ func TestDiffMixedKeyedUnkeyed(t *testing.T) {
 	}
 
 	// When
-	changes := DiffTrees(old, new)
+	changes, _ := DiffTrees(old, new)
 
 	// Then — no changes, mixed keyed/unkeyed produces reasonable result
 	if len(changes) != 0 {

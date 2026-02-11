@@ -16,7 +16,7 @@ func TestDiffTreesSameTree(t *testing.T) {
 	}
 
 	// When
-	changes := DiffTrees(tree, tree)
+	changes, _ := DiffTrees(tree, tree)
 
 	// Then — no changes
 	if len(changes) != 0 {
@@ -40,7 +40,7 @@ func TestDiffTreesContentChanged(t *testing.T) {
 	}
 
 	// When
-	changes := DiffTrees(old, new)
+	changes, _ := DiffTrees(old, new)
 
 	// Then — one change for the text node
 	if len(changes) != 1 {
@@ -70,7 +70,7 @@ func TestDiffTreesPositionShifted(t *testing.T) {
 	}
 
 	// When
-	changes := DiffTrees(old, new)
+	changes, _ := DiffTrees(old, new)
 
 	// Then — change for the moved node
 	if len(changes) != 1 {
@@ -87,7 +87,7 @@ func TestDiffTreesSizeChanged(t *testing.T) {
 	new := &Box{X: 0, Y: 0, Width: 12, Height: 5}
 
 	// When
-	changes := DiffTrees(old, new)
+	changes, _ := DiffTrees(old, new)
 
 	// Then
 	if len(changes) != 1 {
@@ -109,7 +109,7 @@ func TestDiffTreesStyleChanged(t *testing.T) {
 	}
 
 	// When
-	changes := DiffTrees(old, new)
+	changes, _ := DiffTrees(old, new)
 
 	// Then
 	if len(changes) != 1 {
@@ -123,7 +123,7 @@ func TestDiffTreesBorderChanged(t *testing.T) {
 	new := &Box{X: 0, Y: 0, Width: 10, Height: 5, Border: "none"}
 
 	// When
-	changes := DiffTrees(old, new)
+	changes, _ := DiffTrees(old, new)
 
 	// Then
 	if len(changes) != 1 {
@@ -157,7 +157,7 @@ func TestDiffTreesNestedChanges(t *testing.T) {
 	}
 
 	// When
-	changes := DiffTrees(old, new)
+	changes, _ := DiffTrees(old, new)
 
 	// Then — only the leaf node changed
 	if len(changes) != 1 {
@@ -174,11 +174,14 @@ func TestDiffDetectsScrollYChange(t *testing.T) {
 	new := &Box{X: 0, Y: 0, Width: 10, Height: 5, ScrollY: 3}
 
 	// When
-	changes := DiffTrees(old, new)
+	changes, scrollChanged := DiffTrees(old, new)
 
 	// Then
 	if len(changes) != 1 {
 		t.Fatalf("len(changes) = %d, want 1", len(changes))
+	}
+	if !scrollChanged {
+		t.Error("expected scrollChanged=true when ScrollY differs")
 	}
 }
 
@@ -188,11 +191,52 @@ func TestDiffDetectsScrollXChange(t *testing.T) {
 	new := &Box{X: 0, Y: 0, Width: 10, Height: 5, ScrollX: 5}
 
 	// When
-	changes := DiffTrees(old, new)
+	changes, scrollChanged := DiffTrees(old, new)
 
 	// Then
 	if len(changes) != 1 {
 		t.Fatalf("len(changes) = %d, want 1", len(changes))
+	}
+	if !scrollChanged {
+		t.Error("expected scrollChanged=true when ScrollX differs")
+	}
+}
+
+func TestDiffScrollChangedFalseWhenNoScroll(t *testing.T) {
+	// Given — content change but no scroll change
+	old := &Box{X: 0, Y: 0, Width: 10, Height: 5, Content: "old"}
+	new := &Box{X: 0, Y: 0, Width: 10, Height: 5, Content: "new"}
+
+	// When
+	_, scrollChanged := DiffTrees(old, new)
+
+	// Then
+	if scrollChanged {
+		t.Error("expected scrollChanged=false when no scroll offset differs")
+	}
+}
+
+func TestDiffScrollChangedDetectsNestedScroll(t *testing.T) {
+	// Given — scroll change in nested child
+	old := &Box{
+		X: 0, Y: 0, Width: 20, Height: 10,
+		Children: []*Box{
+			{X: 0, Y: 0, Width: 20, Height: 10, ScrollY: 0},
+		},
+	}
+	new := &Box{
+		X: 0, Y: 0, Width: 20, Height: 10,
+		Children: []*Box{
+			{X: 0, Y: 0, Width: 20, Height: 10, ScrollY: 5},
+		},
+	}
+
+	// When
+	_, scrollChanged := DiffTrees(old, new)
+
+	// Then
+	if !scrollChanged {
+		t.Error("expected scrollChanged=true for nested scroll change")
 	}
 }
 
@@ -202,7 +246,7 @@ func TestDiffDetectsScrollbarChange(t *testing.T) {
 	new := &Box{X: 0, Y: 0, Width: 10, Height: 5, NeedsScrollbar: true}
 
 	// When
-	changes := DiffTrees(old, new)
+	changes, _ := DiffTrees(old, new)
 
 	// Then
 	if len(changes) != 1 {
@@ -224,7 +268,7 @@ func TestDiffDetectsCollapsedChange(t *testing.T) {
 	}
 
 	// When
-	changes := DiffTrees(old, new)
+	changes, _ := DiffTrees(old, new)
 
 	// Then
 	if len(changes) != 1 {
@@ -238,7 +282,7 @@ func TestDiffDetectsBorderTitleChange(t *testing.T) {
 	new := &Box{X: 0, Y: 0, Width: 20, Height: 5, Border: "single", BorderTitle: "New"}
 
 	// When
-	changes := DiffTrees(old, new)
+	changes, _ := DiffTrees(old, new)
 
 	// Then
 	if len(changes) != 1 {
@@ -256,7 +300,7 @@ func TestDiffTreesNilOldIsFullRedraw(t *testing.T) {
 	}
 
 	// When
-	changes := DiffTrees(nil, new)
+	changes, _ := DiffTrees(nil, new)
 
 	// Then — all nodes reported as additions
 	if len(changes) < 1 {
