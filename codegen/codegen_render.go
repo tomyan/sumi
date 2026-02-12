@@ -1,0 +1,180 @@
+package codegen
+
+import (
+	"bytes"
+	"fmt"
+
+	"github.com/tomyan/sumi/parser/style"
+	"github.com/tomyan/sumi/parser/template"
+)
+
+// writeTreeAndSync writes the build-once layout tree and sync function at function scope.
+// Expression text nodes are extracted as named variables; sync patches their Content.
+func writeTreeAndSync(buf *bytes.Buffer, doc *template.Document, stylesheet *style.Stylesheet, instances []componentInstance, scrollBoxes []scrollableBox) *extractionCtx {
+	ext := newExtractionCtx("")
+
+	// Write tree to temp buffer (discovers extractions)
+	var treeBuf bytes.Buffer
+	writeLayoutTree(&treeBuf, doc, stylesheet, false, instances, ext)
+
+	// Emit extracted node declarations before tree
+	buf.Write(ext.declBuf.Bytes())
+
+	// Emit tree at function scope
+	buf.Write(treeBuf.Bytes())
+
+	// Emit sync function
+	dynamic := isDynamic(ext, scrollBoxes)
+	writeSyncFunc(buf, ext, dynamic)
+
+	return ext
+}
+
+// isDynamic returns true when the document has control flow or scroll containers,
+// requiring the full Layout+Diff path on every render.
+func isDynamic(ext *extractionCtx, scrollBoxes []scrollableBox) bool {
+	return ext.syncBuf.Len() > 0 || len(scrollBoxes) > 0
+}
+
+// writeSyncFunc writes the sync closure. Static documents get a returning sync
+// that compares before assigning and returns changed nodes. Dynamic documents
+// get a void sync that always patches.
+func writeSyncFunc(buf *bytes.Buffer, ext *extractionCtx, dynamic bool) {
+	if dynamic {
+		writeVoidSync(buf, ext)
+	} else {
+		writeReturningSync(buf, ext)
+	}
+}
+
+// writeVoidSync writes a sync closure that unconditionally patches all nodes.
+func writeVoidSync(buf *bytes.Buffer, ext *extractionCtx) {
+	buf.WriteString("\tsync := func() {\n")
+	for _, n := range ext.nodes {
+		fmt.Fprintf(buf, "\t\t%s.Content = %s\n", n.varName, n.syncExpr)
+	}
+	buf.Write(ext.syncBuf.Bytes())
+	buf.WriteString("\t}\n\n")
+}
+
+// writeReturningSync writes a sync closure that compares before assigning
+// and returns a slice of changed Input nodes (nil when nothing changed).
+func writeReturningSync(buf *bytes.Buffer, ext *extractionCtx) {
+	buf.WriteString("\tsync := func() []*layout.Input {\n")
+	buf.WriteString("\t\tvar changed []*layout.Input\n")
+	for _, n := range ext.nodes {
+		fmt.Fprintf(buf, "\t\tif v := %s; v != %s.Content {\n", n.syncExpr, n.varName)
+		fmt.Fprintf(buf, "\t\t\t%s.Content = v\n", n.varName)
+		fmt.Fprintf(buf, "\t\t\tchanged = append(changed, %s)\n", n.varName)
+		buf.WriteString("\t\t}\n")
+	}
+	buf.WriteString("\t\treturn changed\n")
+	buf.WriteString("\t}\n\n")
+}
+
+// writeRenderClosure writes the doRender closure with surgical rendering.
+// The tree is built once at function scope; doRender calls sync() then re-layouts.
+// Static documents get a no-op skip fast path; dynamic documents always run full Layout+Diff.
+func writeRenderClosure(buf *bytes.Buffer, doc *template.Document, stylesheet *style.Stylesheet, instances []componentInstance, scrollBoxes []scrollableBox, title *template.TitleElement) {
+	ext := writeTreeAndSync(buf, doc, stylesheet, instances, scrollBoxes)
+	dynamic := isDynamic(ext, scrollBoxes)
+
+	buf.WriteString("\tvar prevTree *layout.Box\n")
+	buf.WriteString("\tvar prevW, prevH int\n")
+	if !dynamic {
+		buf.WriteString("\tvar nodeBoxMap map[*layout.Input]*layout.Box\n")
+	}
+	buf.WriteString("\tdoRender := func() {\n")
+
+	if dynamic {
+		writeDynamicDoRender(buf, scrollBoxes, title)
+	} else {
+		writeStaticDoRender(buf, title)
+	}
+
+	buf.WriteString("\t}\n\n")
+}
+
+// writeStaticDoRender emits the doRender body for static documents (Pattern A).
+// Includes three fast paths: no-op skip, direct-write, and full layout fallback.
+func writeStaticDoRender(buf *bytes.Buffer, title *template.TitleElement) {
+	buf.WriteString("\t\tchanged := sync()\n")
+	buf.WriteString("\t\ttermW, termH := term.GetSize(int(os.Stdin.Fd()))\n")
+	// No-op skip: nothing changed and no resize
+	buf.WriteString("\t\tif prevTree != nil && len(changed) == 0 && termW == prevW && termH == prevH {\n")
+	buf.WriteString("\t\t\tdirty = false\n")
+	buf.WriteString("\t\t\treturn\n")
+	buf.WriteString("\t\t}\n")
+	// Direct-write fast path: same-length text changes without relayout
+	writeDirectWriteFastPath(buf)
+	writeFullLayoutAndDiff(buf, title)
+}
+
+// writeDirectWriteFastPath emits the direct-write block that skips Layout+Diff
+// when all changed nodes have same-length content and no overlap is present.
+func writeDirectWriteFastPath(buf *bytes.Buffer) {
+	buf.WriteString("\t\tif prevTree != nil && len(changed) > 0 && termW == prevW && termH == prevH && !prevTree.HasOverlap && nodeBoxMap != nil {\n")
+	buf.WriteString("\t\t\tallDirect := true\n")
+	buf.WriteString("\t\t\tfor _, inp := range changed {\n")
+	buf.WriteString("\t\t\t\tbox := nodeBoxMap[inp]\n")
+	buf.WriteString("\t\t\t\tif !layout.DirectWriteText(os.Stdout, box, inp.Content, box.Content) {\n")
+	buf.WriteString("\t\t\t\t\tallDirect = false\n")
+	buf.WriteString("\t\t\t\t\tbreak\n")
+	buf.WriteString("\t\t\t\t}\n")
+	buf.WriteString("\t\t\t\tbox.Content = inp.Content\n")
+	buf.WriteString("\t\t\t}\n")
+	buf.WriteString("\t\t\tif allDirect {\n")
+	buf.WriteString("\t\t\t\tdirty = false\n")
+	buf.WriteString("\t\t\t\treturn\n")
+	buf.WriteString("\t\t\t}\n")
+	buf.WriteString("\t\t}\n")
+}
+
+// writeDynamicDoRender emits the doRender body for dynamic documents (Pattern B).
+// Sync is void; always runs full Layout+Diff.
+func writeDynamicDoRender(buf *bytes.Buffer, scrollBoxes []scrollableBox, title *template.TitleElement) {
+	buf.WriteString("\t\tsync()\n")
+	buf.WriteString("\t\ttermW, termH := term.GetSize(int(os.Stdin.Fd()))\n")
+	writeFullLayoutBody(buf, scrollBoxes, title)
+}
+
+// writeFullLayoutBody emits Layout, scroll wiring, DiffTrees, and redraw/apply logic.
+func writeFullLayoutBody(buf *bytes.Buffer, scrollBoxes []scrollableBox, title *template.TitleElement) {
+	buf.WriteString("\t\ttree := layout.Layout(root, termW, termH)\n")
+	writeScrollTreeWiring(buf, scrollBoxes)
+	buf.WriteString("\t\tchanges, scrollChanged := layout.DiffTrees(prevTree, tree)\n")
+	buf.WriteString("\t\tif prevTree == nil || termW != prevW || termH != prevH || scrollChanged || tree.HasOverlap || prevTree.HasOverlap {\n")
+	buf.WriteString("\t\t\tbuf := render.NewBuffer(termW, termH)\n")
+	buf.WriteString("\t\t\tlayout.RenderTree(buf, tree, nil)\n")
+	buf.WriteString("\t\t\trender.ClearScreen(os.Stdout)\n")
+	buf.WriteString("\t\t\tbuf.RenderTo(os.Stdout)\n")
+	buf.WriteString("\t\t} else {\n")
+	buf.WriteString("\t\t\tlayout.ApplyChanges(os.Stdout, changes)\n")
+	buf.WriteString("\t\t}\n")
+	writeTitleSet(buf, title)
+	buf.WriteString("\t\tprevTree = tree\n")
+	buf.WriteString("\t\tprevW = termW\n")
+	buf.WriteString("\t\tprevH = termH\n")
+	buf.WriteString("\t\tdirty = false\n")
+}
+
+// writeFullLayoutAndDiff emits the full layout path for static documents
+// (no scroll wiring needed). Also builds the nodeBoxMap for direct-write.
+func writeFullLayoutAndDiff(buf *bytes.Buffer, title *template.TitleElement) {
+	buf.WriteString("\t\ttree := layout.Layout(root, termW, termH)\n")
+	buf.WriteString("\t\tnodeBoxMap = layout.MapInputToBox(root, tree)\n")
+	buf.WriteString("\t\tchanges, scrollChanged := layout.DiffTrees(prevTree, tree)\n")
+	buf.WriteString("\t\tif prevTree == nil || termW != prevW || termH != prevH || scrollChanged || tree.HasOverlap || prevTree.HasOverlap {\n")
+	buf.WriteString("\t\t\tbuf := render.NewBuffer(termW, termH)\n")
+	buf.WriteString("\t\t\tlayout.RenderTree(buf, tree, nil)\n")
+	buf.WriteString("\t\t\trender.ClearScreen(os.Stdout)\n")
+	buf.WriteString("\t\t\tbuf.RenderTo(os.Stdout)\n")
+	buf.WriteString("\t\t} else {\n")
+	buf.WriteString("\t\t\tlayout.ApplyChanges(os.Stdout, changes)\n")
+	buf.WriteString("\t\t}\n")
+	writeTitleSet(buf, title)
+	buf.WriteString("\t\tprevTree = tree\n")
+	buf.WriteString("\t\tprevW = termW\n")
+	buf.WriteString("\t\tprevH = termH\n")
+	buf.WriteString("\t\tdirty = false\n")
+}
