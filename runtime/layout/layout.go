@@ -36,6 +36,8 @@ type Input struct {
 	Left        int          // offset from left (for positioned elements)
 	Right       int          // offset from right (for positioned elements)
 	Bottom      int          // offset from bottom (for positioned elements)
+	Focusable   bool    // true if this element can receive focus
+	FocusIndex  int     // assigned focus index (0-based) for Tab cycling
 	Padding     Padding
 	Border         string       // "single", "none", or ""
 	BorderTitle    string       // text to display in the top border edge

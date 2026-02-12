@@ -16,7 +16,8 @@ func writeAppDecl(buf *bytes.Buffer) {
 
 // writeAppRun writes the tui.App construction and app.Run() call.
 func writeAppRun(buf *bytes.Buffer, doc *template.Document, sc *script.Script,
-	instances []componentInstance, scrollBoxes []scrollableBox, inlined []inlinedStateful, title *template.TitleElement) {
+	instances []componentInstance, scrollBoxes []scrollableBox, inlined []inlinedStateful,
+	focusHandlers []focusableHandler, title *template.TitleElement) {
 
 	buf.WriteString("\tapp = &tui.App{\n")
 
@@ -26,7 +27,7 @@ func writeAppRun(buf *bytes.Buffer, doc *template.Document, sc *script.Script,
 
 	writeAppTitle(buf, title)
 	buf.WriteString("\t\tOnRender: doRender,\n")
-	writeAppOnEvent(buf, doc, sc, instances, scrollBoxes, inlined)
+	writeAppOnEvent(buf, doc, sc, instances, scrollBoxes, inlined, focusHandlers)
 	writeAppOnResize(buf, sc)
 
 	buf.WriteString("\t}\n")
@@ -48,10 +49,12 @@ func writeAppTitle(buf *bytes.Buffer, title *template.TitleElement) {
 
 // writeAppOnEvent writes the OnEvent closure for the App.
 func writeAppOnEvent(buf *bytes.Buffer, doc *template.Document, sc *script.Script,
-	instances []componentInstance, scrollBoxes []scrollableBox, inlined []inlinedStateful) {
+	instances []componentInstance, scrollBoxes []scrollableBox, inlined []inlinedStateful,
+	focusHandlers []focusableHandler) {
 
 	hasKeys := hasKeyHandlers(doc, instances, inlined)
 	hasScroll := len(scrollBoxes) > 0
+	hasFocus := len(focusHandlers) > 0
 
 	if !hasKeys && !hasScroll {
 		return
@@ -62,18 +65,23 @@ func writeAppOnEvent(buf *bytes.Buffer, doc *template.Document, sc *script.Scrip
 	buf.WriteString("\t\tOnEvent: func(evt input.Event) {\n")
 
 	if hasKeys {
-		anyEventAware := len(eventAware) > 0
-		if anyEventAware {
-			writeEventAwareAutoQuit(buf, doc, sc, inlined, eventAware)
-			writeEventAwareDispatch(buf, doc, sc, inlined, eventAware)
-			writeZeroArgDispatch(buf, doc, sc, instances, inlined, eventAware)
+		if hasFocus {
+			bubblingHandlers := findNonFocusableHandlers(doc, inlined)
+			writeFocusDispatch(buf, focusHandlers, bubblingHandlers, eventAware)
 		} else {
-			writeAutoQuit(buf)
-			buf.WriteString("\t\t\tif evt.Kind == input.EventKey {\n")
-			writeOnkeyDispatchEvent(buf, doc, sc, eventAware)
-			writeChildHandleKeyEvent(buf, instances)
-			writeInlinedOnkeyDispatch(buf, inlined, eventAware)
-			buf.WriteString("\t\t\t}\n")
+			anyEventAware := len(eventAware) > 0
+			if anyEventAware {
+				writeEventAwareAutoQuit(buf, doc, sc, inlined, eventAware)
+				writeEventAwareDispatch(buf, doc, sc, inlined, eventAware)
+				writeZeroArgDispatch(buf, doc, sc, instances, inlined, eventAware)
+			} else {
+				writeAutoQuit(buf)
+				buf.WriteString("\t\t\tif evt.Kind == input.EventKey {\n")
+				writeOnkeyDispatchEvent(buf, doc, sc, eventAware)
+				writeChildHandleKeyEvent(buf, instances)
+				writeInlinedOnkeyDispatch(buf, inlined, eventAware)
+				buf.WriteString("\t\t\t}\n")
+			}
 		}
 	}
 

@@ -15,6 +15,7 @@ func writeReactiveBody(buf *bytes.Buffer, doc *template.Document, sc *script.Scr
 	scrollBoxes := findAllScrollableBoxes(doc, stylesheet)
 	title := findTitleElement(doc)
 	inlined := collectInlinedStateful(instances)
+	focusHandlers := collectFocusableHandlers(doc, inlined)
 	writeComponentInits(buf, instances)
 	writeStateAndEnvDecls(buf, sc)
 	writeAppDecl(buf)
@@ -22,13 +23,15 @@ func writeReactiveBody(buf *bytes.Buffer, doc *template.Document, sc *script.Scr
 	writeScrollStateDecls(buf, scrollBoxes)
 	writeFuncClosures(buf, sc)
 	writeInlinedFuncClosures(buf, inlined)
+	writeFocusStateDecls(buf, focusHandlers)
 	if len(inlined) > 0 {
 		buf.WriteString("\n")
 	}
 	writeRenderClosure(buf, doc, sc, stylesheet, instances, scrollBoxes, title, inlined)
 	writeSuppressUnusedFuncs(buf, doc, sc)
 	writeSuppressInlinedFuncs(buf, inlined)
-	writeAppRun(buf, doc, sc, instances, scrollBoxes, inlined, title)
+	writeSuppressFocusVars(buf, focusHandlers)
+	writeAppRun(buf, doc, sc, instances, scrollBoxes, inlined, focusHandlers, title)
 }
 
 // writeStateAndEnvDecls writes state, env, and derived variable declarations.

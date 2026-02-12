@@ -222,6 +222,9 @@ func writeBoxAttributes(buf *bytes.Buffer, tabs string, attrs map[string]string,
 	writeIntAttr(buf, tabs, attrs, props, "right", "Right")
 	writeIntAttr(buf, tabs, attrs, props, "bottom", "Bottom")
 	writeIntAttr(buf, tabs, attrs, props, "z-index", "ZIndex")
+	if f, ok := mergedAttr(attrs, props, "focusable"); ok && f == "true" {
+		fmt.Fprintf(buf, "%s\tFocusable: true,\n", tabs)
+	}
 }
 
 // writeIntAttr writes an integer attribute field if present and parseable.
