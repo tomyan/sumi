@@ -230,7 +230,7 @@ func Run() {
 			stopPropagation()
 			return
 		}
-		if evt.Kind == input.EventKey && evt.Rune >= 32 {
+		if evt.Kind == input.EventKey && !evt.Ctrl && evt.Rune >= 32 {
 			name = name[:textinput0_cursor] + string(evt.Rune) + name[textinput0_cursor:]
 			app.Dirty = true
 			textinput0_cursor = textinput0_cursor + 1

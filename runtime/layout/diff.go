@@ -8,38 +8,43 @@ type Change struct {
 }
 
 // DiffTrees walks old and new layout trees in lockstep, returning changes
-// and whether any scroll offset changed.
+// and whether a full redraw is needed (scroll offset or position/size changed).
 func DiffTrees(old, new *Box) ([]Change, bool) {
 	if old == nil && new == nil {
 		return nil, false
 	}
 	var changes []Change
-	var scrollChanged bool
-	diffNode(old, new, &changes, &scrollChanged)
-	return changes, scrollChanged
+	var needsFullRedraw bool
+	diffNode(old, new, &changes, &needsFullRedraw)
+	return changes, needsFullRedraw
 }
 
-func diffNode(old, new *Box, changes *[]Change, scrollChanged *bool) {
+func diffNode(old, new *Box, changes *[]Change, needsFullRedraw *bool) {
 	if old == nil && new == nil {
 		return
 	}
 	if old == nil {
 		// Addition: new node with no old counterpart
+		*needsFullRedraw = true
 		*changes = append(*changes, Change{Old: nil, New: new})
 		for _, child := range new.Children {
-			diffNode(nil, child, changes, scrollChanged)
+			diffNode(nil, child, changes, needsFullRedraw)
 		}
 		return
 	}
 	if new == nil {
 		// Removal: old node with no new counterpart
+		*needsFullRedraw = true
 		*changes = append(*changes, Change{Old: old, New: nil})
 		return
 	}
 
-	// Track scroll changes
+	// Track changes requiring full redraw: scroll, position, or size
 	if old.ScrollX != new.ScrollX || old.ScrollY != new.ScrollY {
-		*scrollChanged = true
+		*needsFullRedraw = true
+	}
+	if old.X != new.X || old.Y != new.Y || old.Width != new.Width || old.Height != new.Height {
+		*needsFullRedraw = true
 	}
 
 	// Both exist — compare
@@ -49,9 +54,9 @@ func diffNode(old, new *Box, changes *[]Change, scrollChanged *bool) {
 
 	// Walk children: use keyed diffing when keys are present, positional otherwise
 	if hasKeyedChildren(old.Children) || hasKeyedChildren(new.Children) {
-		diffKeyedChildren(old.Children, new.Children, changes, scrollChanged)
+		diffKeyedChildren(old.Children, new.Children, changes, needsFullRedraw)
 	} else {
-		diffPositionalChildren(old.Children, new.Children, changes, scrollChanged)
+		diffPositionalChildren(old.Children, new.Children, changes, needsFullRedraw)
 	}
 }
 
@@ -103,7 +108,7 @@ func nodeChanged(old, new *Box) bool {
 }
 
 // diffPositionalChildren walks old and new children in lockstep by index.
-func diffPositionalChildren(oldChildren, newChildren []*Box, changes *[]Change, scrollChanged *bool) {
+func diffPositionalChildren(oldChildren, newChildren []*Box, changes *[]Change, needsFullRedraw *bool) {
 	maxChildren := len(oldChildren)
 	if len(newChildren) > maxChildren {
 		maxChildren = len(newChildren)
@@ -116,7 +121,7 @@ func diffPositionalChildren(oldChildren, newChildren []*Box, changes *[]Change, 
 		if i < len(newChildren) {
 			newChild = newChildren[i]
 		}
-		diffNode(oldChild, newChild, changes, scrollChanged)
+		diffNode(oldChild, newChild, changes, needsFullRedraw)
 	}
 }
 
@@ -133,7 +138,7 @@ func hasKeyedChildren(children []*Box) bool {
 // diffKeyedChildren matches old and new children by Key for efficient diffing.
 // Keyed children are matched by key; unkeyed children are matched positionally
 // against other unkeyed children. Unmatched children are reported as additions/removals.
-func diffKeyedChildren(oldChildren, newChildren []*Box, changes *[]Change, scrollChanged *bool) {
+func diffKeyedChildren(oldChildren, newChildren []*Box, changes *[]Change, needsFullRedraw *bool) {
 	oldByKey := make(map[string]*Box, len(oldChildren))
 	var oldUnkeyed []*Box
 	for _, c := range oldChildren {
@@ -154,26 +159,26 @@ func diffKeyedChildren(oldChildren, newChildren []*Box, changes *[]Change, scrol
 				oldChild = oldUnkeyed[unkeyedIdx]
 				unkeyedIdx++
 			}
-			diffNode(oldChild, newChild, changes, scrollChanged)
+			diffNode(oldChild, newChild, changes, needsFullRedraw)
 			continue
 		}
 		if oldChild, ok := oldByKey[newChild.Key]; ok {
 			matched[newChild.Key] = true
-			diffNode(oldChild, newChild, changes, scrollChanged)
+			diffNode(oldChild, newChild, changes, needsFullRedraw)
 		} else {
-			diffNode(nil, newChild, changes, scrollChanged)
+			diffNode(nil, newChild, changes, needsFullRedraw)
 		}
 	}
 
 	// Report unmatched keyed old children as removals
 	for _, oldChild := range oldChildren {
 		if oldChild.Key != "" && !matched[oldChild.Key] {
-			diffNode(oldChild, nil, changes, scrollChanged)
+			diffNode(oldChild, nil, changes, needsFullRedraw)
 		}
 	}
 	// Report excess unkeyed old children as removals
 	for i := unkeyedIdx; i < len(oldUnkeyed); i++ {
-		diffNode(oldUnkeyed[i], nil, changes, scrollChanged)
+		diffNode(oldUnkeyed[i], nil, changes, needsFullRedraw)
 	}
 }
 

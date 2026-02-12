@@ -188,7 +188,7 @@ func handleEvent(evt input.Event) {
         stopPropagation()
         return
     }
-    if evt.Kind == input.EventKey && evt.Rune >= 32 {
+    if evt.Kind == input.EventKey && !evt.Ctrl && evt.Rune >= 32 {
         value = value[:cursor] + string(evt.Rune) + value[cursor:]
         cursor = cursor + 1
         adjustView()

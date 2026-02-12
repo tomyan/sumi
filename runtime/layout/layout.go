@@ -182,6 +182,8 @@ func layoutNode(input *Input, availW, availH int) *Box {
 	}
 
 	if input.Kind == KindText {
+		box.CursorCol = -1
+		box.CursorRow = -1
 		box.Content = input.Content
 		if availW > 0 && len(input.Content) > availW {
 			lines := wrapText(input.Content, availW)
