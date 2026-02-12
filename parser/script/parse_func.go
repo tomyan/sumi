@@ -1,6 +1,9 @@
 package script
 
-import "fmt"
+import (
+	"fmt"
+	"strings"
+)
 
 // tryParseFuncDecl tries to parse: func name(params) { body }
 func (p *parser) tryParseFuncDecl() (FuncDecl, bool, error) {
@@ -29,7 +32,7 @@ func (p *parser) completeFuncDecl(saved int, name string) (FuncDecl, bool, error
 		return p.resetAndNoMatch(saved)
 	}
 
-	body, ok, err := p.readFuncBody(name)
+	returnType, body, ok, err := p.readReturnTypeAndBody(name)
 	if err != nil {
 		return FuncDecl{}, false, err
 	}
@@ -37,7 +40,7 @@ func (p *parser) completeFuncDecl(saved int, name string) (FuncDecl, bool, error
 		return p.resetAndNoMatch(saved)
 	}
 
-	return FuncDecl{Name: name, Params: params, Body: body}, true, nil
+	return FuncDecl{Name: name, Params: params, ReturnType: returnType, Body: body}, true, nil
 }
 
 // resetAndNoMatch resets the parser position and returns a "no match" result.
@@ -70,16 +73,25 @@ func (p *parser) readFuncParams(name string) (string, bool, error) {
 	return params, true, nil
 }
 
-// readFuncBody reads the function body between braces.
-func (p *parser) readFuncBody(name string) (string, bool, error) {
+// readReturnTypeAndBody reads the optional return type and body.
+// Returns (returnType, body, matched, error).
+func (p *parser) readReturnTypeAndBody(name string) (string, string, bool, error) {
 	p.skipInlineWhitespace()
+
+	// Capture any return type between ) and {
+	start := p.pos
+	for p.pos < len(p.input) && p.input[p.pos] != '{' && p.input[p.pos] != '\n' {
+		p.pos++
+	}
+	returnType := strings.TrimSpace(p.input[start:p.pos])
+
 	if p.pos >= len(p.input) || p.input[p.pos] != '{' {
-		return "", false, nil
+		return "", "", false, nil
 	}
 
 	body, err := p.readBalancedBraceContents()
 	if err != nil {
-		return "", false, fmt.Errorf("unterminated function body for %q: %w", name, err)
+		return "", "", false, fmt.Errorf("unterminated function body for %q: %w", name, err)
 	}
-	return body, true, nil
+	return returnType, body, true, nil
 }

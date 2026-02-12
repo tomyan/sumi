@@ -13,15 +13,21 @@ func Run() {
 	root := &layout.Input{
 		Kind:      layout.KindBox,
 		Direction: "column",
+		CursorCol: -1,
+		CursorRow: -1,
 		Children: []*layout.Input{
 			{
-				Kind: layout.KindBox,
+				Kind:      layout.KindBox,
+				CursorCol: -1,
+				CursorRow: -1,
 				Children: []*layout.Input{
 					{
-						Kind:    layout.KindBox,
-						Justify: "center",
-						Padding: layout.ParsePadding("0 2"),
-						Border:  "single",
+						Kind:      layout.KindBox,
+						Justify:   "center",
+						Padding:   layout.ParsePadding("0 2"),
+						Border:    "single",
+						CursorCol: -1,
+						CursorRow: -1,
 						Children: []*layout.Input{
 							{
 								Kind:    layout.KindText,
@@ -45,12 +51,16 @@ func Run() {
 						Kind:      layout.KindBox,
 						Direction: "row",
 						Gap:       1,
+						CursorCol: -1,
+						CursorRow: -1,
 						Children: []*layout.Input{
 							{
-								Kind:     layout.KindBox,
-								FlexGrow: 1,
-								Padding:  layout.ParsePadding("0 1"),
-								Border:   "single",
+								Kind:      layout.KindBox,
+								FlexGrow:  1,
+								Padding:   layout.ParsePadding("0 1"),
+								Border:    "single",
+								CursorCol: -1,
+								CursorRow: -1,
 								Children: []*layout.Input{
 									{
 										Kind:    layout.KindText,
@@ -71,10 +81,12 @@ func Run() {
 								},
 							},
 							{
-								Kind:     layout.KindBox,
-								FlexGrow: 1,
-								Padding:  layout.ParsePadding("0 1"),
-								Border:   "single",
+								Kind:      layout.KindBox,
+								FlexGrow:  1,
+								Padding:   layout.ParsePadding("0 1"),
+								Border:    "single",
+								CursorCol: -1,
+								CursorRow: -1,
 								Children: []*layout.Input{
 									{
 										Kind:    layout.KindText,
@@ -102,6 +114,8 @@ func Run() {
 						Justify:   "space-between",
 						Padding:   layout.ParsePadding("0 2"),
 						Border:    "single",
+						CursorCol: -1,
+						CursorRow: -1,
 						Children: []*layout.Input{
 							{
 								Kind:    layout.KindText,

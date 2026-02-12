@@ -49,3 +49,11 @@ func (e *extractionCtx) nextBoxName() string {
 func (e *extractionCtx) hasSyncContent() bool {
 	return len(e.nodes) > 0 || e.syncBuf.Len() > 0
 }
+
+// firstBoxName returns the name of the first extracted box, or "" if none.
+func (e *extractionCtx) firstBoxName() string {
+	if e.boxCount == 0 {
+		return ""
+	}
+	return fmt.Sprintf("%sbox0", e.prefix)
+}

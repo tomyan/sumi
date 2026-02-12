@@ -51,6 +51,7 @@ type SelfDecl struct {
 type FuncDecl struct {
 	Name             string            // function name
 	Params           string            // parameter list, e.g. "" or "key string"
+	ReturnType       string            // return type, e.g. "string" or "" if void
 	Body             string            // function body (raw Go code between braces)
 	StateAssignments []StateAssignment // assignments to state variables within the body
 }

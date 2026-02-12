@@ -158,7 +158,7 @@ func buildComponentInfo(comp *parsedComponent) *codegen.ComponentInfo {
 	for i, p := range comp.script.PropDecls {
 		props[i] = p.Name
 	}
-	hasState := comp.script != nil && len(comp.script.StateDecls) > 0
+	hasState := comp.script != nil && (len(comp.script.StateDecls) > 0 || len(comp.script.SelfDecls) > 0 || len(comp.script.DerivedDecls) > 0 || len(comp.script.EnvDecls) > 0)
 	return &codegen.ComponentInfo{
 		Name:         comp.name,
 		ExportedName: comp.exported,

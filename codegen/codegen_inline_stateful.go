@@ -46,12 +46,12 @@ func writeInlinedStateDecls(buf *bytes.Buffer, inlined []inlinedStateful) {
 			}
 			fmt.Fprintf(buf, "\t%s%s := %s\n", is.Prefix, sd.Name, sd.InitExpr)
 		}
+		for _, sd := range sc.SelfDecls {
+			fmt.Fprintf(buf, "\t%s%s := 0\n", is.Prefix, sd.Name)
+		}
 		for _, dd := range sc.DerivedDecls {
 			expr := namespaceDerivedExpr(dd.Expr, sc, is.Prefix)
 			fmt.Fprintf(buf, "\t%s%s := %s\n", is.Prefix, dd.Name, expr)
-		}
-		for _, sd := range sc.SelfDecls {
-			fmt.Fprintf(buf, "\t%s%s := 0\n", is.Prefix, sd.Name)
 		}
 	}
 }
@@ -82,11 +82,7 @@ func writeInlinedFuncClosures(buf *bytes.Buffer, inlined []inlinedStateful) {
 		propMap := buildPropMap(is.Instance)
 		stateNameMap := buildStateNameMap(is.Instance)
 		for _, fd := range sc.FuncDecls {
-			if fd.Params != "" {
-				fmt.Fprintf(buf, "\t%s%s := func(%s) {\n", is.Prefix, fd.Name, fd.Params)
-			} else {
-				fmt.Fprintf(buf, "\t%s%s := func() {\n", is.Prefix, fd.Name)
-			}
+			writeFuncSignature(buf, is.Prefix+fd.Name, fd.Params, fd.ReturnType, "\t")
 			writeNamespacedFuncBody(buf, fd, stateNameMap, propMap)
 			buf.WriteString("\t}\n")
 		}

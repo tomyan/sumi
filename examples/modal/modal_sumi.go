@@ -22,14 +22,18 @@ func Run() {
 	root := &layout.Input{
 		Kind:      layout.KindBox,
 		Direction: "column",
+		CursorCol: -1,
+		CursorRow: -1,
 	}
 	sync := func() {
 		root.Children = func() []*layout.Input {
 			var cs []*layout.Input
 			cs = append(cs, &layout.Input{
-				Kind:    layout.KindBox,
-				Padding: layout.ParsePadding("1 2"),
-				Border:  "single",
+				Kind:      layout.KindBox,
+				Padding:   layout.ParsePadding("1 2"),
+				Border:    "single",
+				CursorCol: -1,
+				CursorRow: -1,
 				Children: []*layout.Input{
 					{
 						Kind:    layout.KindText,
@@ -64,6 +68,8 @@ func Run() {
 					Top:         5,
 					Left:        10,
 					ZIndex:      2,
+					CursorCol:   -1,
+					CursorRow:   -1,
 					Style: render.Style{
 						FG: render.Color{Name: "yellow"},
 						BG: render.Color{Name: "black"},

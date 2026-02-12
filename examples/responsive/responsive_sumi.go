@@ -30,11 +30,15 @@ func Run() {
 		Direction: "column",
 		Overflow:  "auto",
 		MinWidth:  48,
+		CursorCol: -1,
+		CursorRow: -1,
 		Children: []*layout.Input{
 			{
-				Kind:    layout.KindBox,
-				Padding: layout.ParsePadding("1 2"),
-				Border:  "single",
+				Kind:      layout.KindBox,
+				Padding:   layout.ParsePadding("1 2"),
+				Border:    "single",
+				CursorCol: -1,
+				CursorRow: -1,
 				Style: render.Style{
 					FG: render.Color{Name: "cyan"},
 				},

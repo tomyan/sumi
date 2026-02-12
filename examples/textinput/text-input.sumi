@@ -1,29 +1,83 @@
 <script>
 value := $prop("")
 cursor := $state(0)
+viewOffset := $state(0)
+selfW := $self(width)
+contentW := $derived(selfW - 4)
+
+func adjustView() {
+    if contentW <= 0 {
+        return
+    }
+    if cursor < viewOffset {
+        viewOffset = cursor
+    }
+    if cursor > viewOffset + contentW {
+        viewOffset = cursor - contentW
+    }
+    if viewOffset < 0 {
+        viewOffset = 0
+    }
+}
+
+func buildDisplayLine() string {
+    cw := contentW
+    if cw <= 0 {
+        return "[]"
+    }
+    vo := viewOffset
+    if vo < 0 {
+        vo = 0
+    }
+    if vo > len(value) {
+        vo = len(value)
+    }
+    end := vo + cw
+    if end > len(value) {
+        end = len(value)
+    }
+    visible := value[vo:end]
+    left := " "
+    if vo > 0 {
+        left = "<"
+    }
+    right := " "
+    if end < len(value) {
+        right = ">"
+    }
+    pad := ""
+    for i := len(visible); i < cw; i++ {
+        pad = pad + " "
+    }
+    return "[" + left + visible + pad + right + "]"
+}
 
 func handleEvent(evt input.Event) {
     if evt.Special == input.KeyBackspace && cursor > 0 {
         value = value[:cursor-1] + value[cursor:]
         cursor = cursor - 1
+        adjustView()
         stopPropagation()
     }
     if evt.Special == input.KeyLeft && cursor > 0 {
         cursor = cursor - 1
+        adjustView()
         stopPropagation()
     }
     if evt.Special == input.KeyRight && cursor < len(value) {
         cursor = cursor + 1
+        adjustView()
         stopPropagation()
     }
-    if evt.Kind == input.EventKey {
+    if evt.Kind == input.EventKey && evt.Rune >= 32 {
         value = value[:cursor] + string(evt.Rune) + value[cursor:]
         cursor = cursor + 1
+        adjustView()
         stopPropagation()
     }
 }
 </script>
 
-<box focusable="true" onkey="handleEvent" cursor-x={cursor} cursor-y="0">
-    <text>{value}</text>
+<box focusable="true" onkey="handleEvent" cursor-x={cursor - viewOffset + 2} cursor-y="0">
+    <text>{buildDisplayLine()}</text>
 </box>

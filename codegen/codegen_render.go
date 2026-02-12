@@ -61,12 +61,37 @@ func capitalizeFirst(s string) string {
 	return strings.ToUpper(s[:1]) + s[1:]
 }
 
-// collectSelfDecls returns self decls from the root script (nil-safe).
-func collectSelfDecls(sc *script.Script) []script.SelfDecl {
-	if sc == nil {
-		return nil
+// writeInlinedSelfWiring writes self pointer wiring for an inlined component's root box.
+func writeInlinedSelfWiring(buf *bytes.Buffer, selfDecls []script.SelfDecl, boxName, prefix string) {
+	for _, sd := range selfDecls {
+		switch sd.Key {
+		case "width":
+			fmt.Fprintf(buf, "\t%s.SelfW = &%s%s\n", boxName, prefix, sd.Name)
+		case "height":
+			fmt.Fprintf(buf, "\t%s.SelfH = &%s%s\n", boxName, prefix, sd.Name)
+		}
 	}
-	return sc.SelfDecls
+}
+
+// collectAllSelfDecls gathers self decls from root and inlined components, with namespacing.
+func collectAllSelfDecls(sc *script.Script, inlined []inlinedStateful) []script.SelfDecl {
+	var all []script.SelfDecl
+	if sc != nil {
+		all = append(all, sc.SelfDecls...)
+	}
+	for _, is := range inlined {
+		childSc := is.Instance.Info.Script
+		if childSc == nil {
+			continue
+		}
+		for _, sd := range childSc.SelfDecls {
+			all = append(all, script.SelfDecl{
+				Name: is.Prefix + sd.Name,
+				Key:  sd.Key,
+			})
+		}
+	}
+	return all
 }
 
 // writeSelfWiring writes pointer assignments for self-measurement decls on a named box.
@@ -159,7 +184,7 @@ func writeDerivedRecalc(buf *bytes.Buffer, derivedDecls []script.DerivedDecl) {
 // Static documents get a no-op skip fast path; dynamic documents always run full Layout+Diff.
 func writeRenderClosure(buf *bytes.Buffer, doc *template.Document, sc *script.Script, stylesheet *style.Stylesheet, instances []componentInstance, scrollBoxes []scrollableBox, title *template.TitleElement, inlined []inlinedStateful) {
 	derivedDecls := collectAllDerivedDecls(sc, inlined)
-	selfDecls := collectSelfDecls(sc)
+	selfDecls := collectAllSelfDecls(sc, inlined)
 	ext := writeTreeAndSync(buf, doc, stylesheet, instances, scrollBoxes, derivedDecls, selfDecls)
 	dynamic := isDynamic(ext, scrollBoxes)
 

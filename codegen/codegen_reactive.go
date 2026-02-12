@@ -65,11 +65,7 @@ func writeFuncClosures(buf *bytes.Buffer, sc *script.Script) {
 		return
 	}
 	for _, funcDecl := range sc.FuncDecls {
-		if funcDecl.Params != "" {
-			fmt.Fprintf(buf, "\t%s := func(%s) {\n", funcDecl.Name, funcDecl.Params)
-		} else {
-			fmt.Fprintf(buf, "\t%s := func() {\n", funcDecl.Name)
-		}
+		writeFuncSignature(buf, funcDecl.Name, funcDecl.Params, funcDecl.ReturnType, "\t")
 		writeReactiveFuncBody(buf, funcDecl)
 		buf.WriteString("\t}\n")
 	}
@@ -124,6 +120,23 @@ func envVarNames(envDecls []script.EnvDecl) (widthName, heightName string) {
 		}
 	}
 	return
+}
+
+// writeFuncSignature writes a function closure declaration line.
+func writeFuncSignature(buf *bytes.Buffer, name, params, returnType, tabs string) {
+	if returnType != "" {
+		if params != "" {
+			fmt.Fprintf(buf, "%s%s := func(%s) %s {\n", tabs, name, params, returnType)
+		} else {
+			fmt.Fprintf(buf, "%s%s := func() %s {\n", tabs, name, returnType)
+		}
+	} else {
+		if params != "" {
+			fmt.Fprintf(buf, "%s%s := func(%s) {\n", tabs, name, params)
+		} else {
+			fmt.Fprintf(buf, "%s%s := func() {\n", tabs, name)
+		}
+	}
 }
 
 // writeReactiveFuncBody writes a function body, adding app.Dirty=true after each state assignment.

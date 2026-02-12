@@ -16,6 +16,9 @@ func Run() {
 
 	var app *tui.App
 	textinput0_cursor := 0
+	textinput0_viewOffset := 0
+	textinput0_selfW := 0
+	textinput0_contentW := textinput0_selfW - 4
 	focusIndex := 0
 	focusCount := 1
 	propagationStopped := false
@@ -32,46 +35,99 @@ func Run() {
 		}
 	}
 
+	textinput0_adjustView := func() {
+		if textinput0_contentW <= 0 {
+			return
+		}
+		if textinput0_cursor < textinput0_viewOffset {
+			textinput0_viewOffset = textinput0_cursor
+			app.Dirty = true
+		}
+		if textinput0_cursor > textinput0_viewOffset+textinput0_contentW {
+			textinput0_viewOffset = textinput0_cursor - textinput0_contentW
+			app.Dirty = true
+		}
+		if textinput0_viewOffset < 0 {
+			textinput0_viewOffset = 0
+			app.Dirty = true
+		}
+	}
+	textinput0_buildDisplayLine := func() string {
+		cw := textinput0_contentW
+		if cw <= 0 {
+			return "[]"
+		}
+		vo := textinput0_viewOffset
+		if vo < 0 {
+			vo = 0
+		}
+		if vo > len(name) {
+			vo = len(name)
+		}
+		end := vo + cw
+		if end > len(name) {
+			end = len(name)
+		}
+		visible := name[vo:end]
+		left := " "
+		if vo > 0 {
+			left = "<"
+		}
+		right := " "
+		if end < len(name) {
+			right = ">"
+		}
+		pad := ""
+		for i := len(visible); i < cw; i++ {
+			pad = pad + " "
+		}
+		return "[" + left + visible + pad + right + "]"
+	}
 	textinput0_handleEvent := func(evt input.Event) {
 		if evt.Special == input.KeyBackspace && textinput0_cursor > 0 {
 			name = name[:textinput0_cursor-1] + name[textinput0_cursor:]
 			app.Dirty = true
 			textinput0_cursor = textinput0_cursor - 1
 			app.Dirty = true
+			textinput0_adjustView()
 			stopPropagation()
 		}
 		if evt.Special == input.KeyLeft && textinput0_cursor > 0 {
 			textinput0_cursor = textinput0_cursor - 1
 			app.Dirty = true
+			textinput0_adjustView()
 			stopPropagation()
 		}
 		if evt.Special == input.KeyRight && textinput0_cursor < len(name) {
 			textinput0_cursor = textinput0_cursor + 1
 			app.Dirty = true
+			textinput0_adjustView()
 			stopPropagation()
 		}
-		if evt.Kind == input.EventKey {
+		if evt.Kind == input.EventKey && evt.Rune >= 32 {
 			name = name[:textinput0_cursor] + string(evt.Rune) + name[textinput0_cursor:]
 			app.Dirty = true
 			textinput0_cursor = textinput0_cursor + 1
 			app.Dirty = true
+			textinput0_adjustView()
 			stopPropagation()
 		}
 	}
 
 	textinput0_node0 := &layout.Input{
 		Kind:    layout.KindText,
-		Content: fmt.Sprintf("%v", name),
+		Content: fmt.Sprintf("%v", textinput0_buildDisplayLine()),
 	}
 	textinput0_box0 := &layout.Input{
 		Kind:      layout.KindBox,
 		Focusable: true,
-		CursorCol: textinput0_cursor,
+		CursorCol: textinput0_cursor - textinput0_viewOffset + 2,
 		CursorRow: 0,
 		Children: []*layout.Input{
 			textinput0_node0,
 		},
 	}
+	textinput0_box0.SelfW = &textinput0_selfW
 	node0 := &layout.Input{
 		Kind:    layout.KindText,
 		Content: fmt.Sprintf("You typed: %v", name),
@@ -119,14 +175,17 @@ func Run() {
 			},
 		},
 	}
+	root.SelfW = &textinput0_selfW
 	sync := func() {
-		textinput0_node0.Content = fmt.Sprintf("%v", name)
+		textinput0_contentW = textinput0_selfW - 4
+		textinput0_node0.Content = fmt.Sprintf("%v", textinput0_buildDisplayLine())
 		node0.Content = fmt.Sprintf("You typed: %v", name)
-		textinput0_box0.CursorCol = textinput0_cursor
+		textinput0_box0.CursorCol = textinput0_cursor - textinput0_viewOffset + 2
 	}
 
 	var prevTree *layout.Box
 	var prevW, prevH int
+	var prevTextinput0_selfW int
 	doRender := func() {
 		sync()
 		termW, termH := term.GetSize(int(os.Stdin.Fd()))
@@ -143,6 +202,10 @@ func Run() {
 		prevTree = tree
 		prevW = termW
 		prevH = termH
+		if textinput0_selfW != prevTextinput0_selfW {
+			prevTextinput0_selfW = textinput0_selfW
+			app.Dirty = true
+		}
 		if cursorBox := layout.FindCursor(tree); cursorBox != nil {
 			render.ShowCursor(os.Stdout, cursorBox.Y+cursorBox.CursorRow, cursorBox.X+cursorBox.CursorCol)
 		} else {
@@ -150,6 +213,8 @@ func Run() {
 		}
 	}
 
+	_ = textinput0_adjustView
+	_ = textinput0_buildDisplayLine
 	_ = stopPropagation
 	app = &tui.App{
 		OnRender: doRender,

@@ -22,13 +22,17 @@ func Run() {
 	}
 
 	box0 := &layout.Input{
-		Kind:    layout.KindBox,
-		Padding: layout.ParsePadding("1 2"),
-		Border:  "single",
+		Kind:      layout.KindBox,
+		Padding:   layout.ParsePadding("1 2"),
+		Border:    "single",
+		CursorCol: -1,
+		CursorRow: -1,
 	}
 	root := &layout.Input{
 		Kind:      layout.KindBox,
 		Direction: "column",
+		CursorCol: -1,
+		CursorRow: -1,
 		Children: []*layout.Input{
 			box0,
 		},

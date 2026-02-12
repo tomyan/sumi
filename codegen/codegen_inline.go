@@ -40,6 +40,15 @@ func writeInlinedComponent(buf *bytes.Buffer, inst *componentInstance, indent in
 		}
 	}
 
+	// Wire self-measurement pointers on the inlined component's root box
+	if subExt != nil && subExt != ext && info.Script != nil && len(info.Script.SelfDecls) > 0 {
+		rootBoxName := subExt.firstBoxName()
+		if rootBoxName != "" {
+			prefix := inst.VarName + "_"
+			writeInlinedSelfWiring(&subExt.declBuf, info.Script.SelfDecls, rootBoxName, prefix)
+		}
+	}
+
 	// Merge sub-extraction context back into parent
 	if subExt != nil && subExt != ext && ext != nil {
 		mergeExtractionCtx(ext, subExt)
@@ -195,6 +204,12 @@ func buildStateNameMap(inst *componentInstance) map[string]string {
 	for _, dd := range inst.Info.Script.DerivedDecls {
 		m[dd.Name] = prefix + dd.Name
 	}
+	for _, sd := range inst.Info.Script.SelfDecls {
+		m[sd.Name] = prefix + sd.Name
+	}
+	for _, fd := range inst.Info.Script.FuncDecls {
+		m[fd.Name] = prefix + fd.Name
+	}
 	// Map bound props to parent variables (for props not also declared as state)
 	for _, pd := range inst.Info.Script.PropDecls {
 		if _, already := m[pd.Name]; already {
@@ -252,8 +267,9 @@ func namespaceExprParts(parts []template.Part, stateMap map[string]string) []tem
 	result := make([]template.Part, len(parts))
 	for i, p := range parts {
 		if ep, ok := p.(*template.ExprPart); ok {
-			if newName, found := stateMap[ep.Expr]; found {
-				result[i] = &template.ExprPart{Expr: newName}
+			namespaced := namespaceLineVars(ep.Expr, stateMap)
+			if namespaced != ep.Expr {
+				result[i] = &template.ExprPart{Expr: namespaced}
 				continue
 			}
 		}

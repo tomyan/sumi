@@ -291,6 +291,27 @@ func doThing() {
 	}
 }
 
+func TestFunctionWithReturnType(t *testing.T) {
+	// Given
+	input := `func buildLine() string {
+	return "[" + value + "]"
+}`
+
+	// When
+	s, err := Parse(input)
+
+	// Then
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if len(s.FuncDecls) != 1 {
+		t.Fatalf("expected 1 func decl, got %d", len(s.FuncDecls))
+	}
+	if s.FuncDecls[0].Name != "buildLine" {
+		t.Errorf("name: got %q, want %q", s.FuncDecls[0].Name, "buildLine")
+	}
+}
+
 func TestShortVarDeclNotStateAssignment(t *testing.T) {
 	// Given
 	input := `count := $state(0)
