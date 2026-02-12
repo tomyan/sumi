@@ -24,6 +24,6 @@ func handleEvent(evt input.Event) {
 }
 </script>
 
-<box focusable="true" onkey="handleEvent" cursor-x={cursor}>
+<box focusable="true" onkey="handleEvent" cursor-x={cursor} cursor-y="0">
     <text>{value}</text>
 </box>

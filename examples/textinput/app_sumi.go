@@ -67,7 +67,7 @@ func Run() {
 		Kind:      layout.KindBox,
 		Focusable: true,
 		CursorCol: textinput0_cursor,
-		CursorRow: -1,
+		CursorRow: 0,
 		Children: []*layout.Input{
 			textinput0_node0,
 		},
