@@ -7,6 +7,7 @@ type Script struct {
 	EnvDecls     []EnvDecl
 	ScrollDecls  []ScrollDecl
 	DerivedDecls []DerivedDecl
+	SelfDecls    []SelfDecl
 	FuncDecls    []FuncDecl
 }
 
@@ -38,6 +39,12 @@ type ScrollDecl struct {
 type DerivedDecl struct {
 	Name string // variable name
 	Expr string // expression to evaluate, e.g. "count * 2"
+}
+
+// SelfDecl represents a self-measurement declaration: name := $self(key)
+type SelfDecl struct {
+	Name string // variable name
+	Key  string // measurement key, e.g. "width", "height"
 }
 
 // FuncDecl represents a function declaration within the script block.
@@ -106,6 +113,13 @@ func (p *parser) parse() (*Script, error) {
 			return nil, err
 		} else if ok {
 			s.DerivedDecls = append(s.DerivedDecls, ddecl)
+			continue
+		}
+
+		if selfdecl, ok, err := p.tryParseSelfDecl(); err != nil {
+			return nil, err
+		} else if ok {
+			s.SelfDecls = append(s.SelfDecls, selfdecl)
 			continue
 		}
 
