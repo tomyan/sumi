@@ -39,7 +39,9 @@ const (
 type Event struct {
 	Kind    EventKind
 	Rune    rune           // set for EventKey
-	Ctrl    bool           // true if Ctrl modifier was held (EventKey only)
+	Ctrl    bool           // true if Ctrl modifier was held
+	Shift   bool           // true if Shift modifier was held
+	Alt     bool           // true if Alt modifier was held
 	Special SpecialKey     // set for EventSpecial
 	Mouse   MouseEvent     // set for EventMouse
 	Signal  syscall.Signal // set for EventSignal
@@ -138,9 +140,9 @@ func singleByteCSI(b byte) (SpecialKey, bool) {
 	}
 }
 
-// parseNumericCSI handles ESC[N~ sequences.
+// parseNumericCSI handles ESC[N~ and ESC[N;M<final> sequences.
+// The latter encodes modifier keys: M is (1+bitmask) where bit 0=Shift, bit 1=Alt, bit 2=Ctrl.
 func parseNumericCSI(r io.Reader, firstDigit byte) (Event, error) {
-	// Read until we get a ~ or other terminator
 	num := int(firstDigit - '0')
 	for {
 		b, err := readByte(r)
@@ -148,20 +150,59 @@ func parseNumericCSI(r io.Reader, firstDigit byte) (Event, error) {
 			return Event{Kind: EventKey, Rune: 0x1b}, nil
 		}
 		if b == '~' {
-			break
+			if special, ok := numericCSIKey(num); ok {
+				return Event{Kind: EventSpecial, Special: special}, nil
+			}
+			return Event{Kind: EventKey, Rune: 0x1b}, nil
+		}
+		if b == ';' {
+			return parseModifiedCSI(r, num)
 		}
 		if b >= '0' && b <= '9' {
 			num = num*10 + int(b-'0')
 			continue
 		}
-		// Unknown terminator
 		return Event{Kind: EventKey, Rune: 0x1b}, nil
 	}
+}
 
-	if special, ok := numericCSIKey(num); ok {
-		return Event{Kind: EventSpecial, Special: special}, nil
+// parseModifiedCSI handles CSI sequences with modifier: ESC[num;modifier<final>.
+// The final byte determines the key; modifier encodes Shift/Alt/Ctrl.
+func parseModifiedCSI(r io.Reader, num int) (Event, error) {
+	// Read modifier number
+	modifier := 0
+	for {
+		b, err := readByte(r)
+		if err != nil {
+			return Event{Kind: EventKey, Rune: 0x1b}, nil
+		}
+		if b >= '0' && b <= '9' {
+			modifier = modifier*10 + int(b-'0')
+			continue
+		}
+		// b is the final byte (or ~)
+		shift, alt, ctrl := decodeModifier(modifier)
+		if b == '~' {
+			if special, ok := numericCSIKey(num); ok {
+				return Event{Kind: EventSpecial, Special: special, Shift: shift, Alt: alt, Ctrl: ctrl}, nil
+			}
+			return Event{Kind: EventKey, Rune: 0x1b}, nil
+		}
+		if special, ok := singleByteCSI(b); ok {
+			return Event{Kind: EventSpecial, Special: special, Shift: shift, Alt: alt, Ctrl: ctrl}, nil
+		}
+		return Event{Kind: EventKey, Rune: 0x1b}, nil
 	}
-	return Event{Kind: EventKey, Rune: 0x1b}, nil
+}
+
+// decodeModifier decodes the CSI modifier parameter into flags.
+// Modifier param = 1 + bitmask: bit 0=Shift, bit 1=Alt, bit 2=Ctrl.
+func decodeModifier(modifier int) (shift, alt, ctrl bool) {
+	bits := modifier - 1
+	shift = bits&1 != 0
+	alt = bits&2 != 0
+	ctrl = bits&4 != 0
+	return
 }
 
 func numericCSIKey(num int) (SpecialKey, bool) {
