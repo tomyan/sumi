@@ -205,6 +205,65 @@ func TestAppNoQuitOnQ(t *testing.T) {
 	}
 }
 
+func TestAppBoundedReRender(t *testing.T) {
+	// Given — OnRender always sets Dirty, simulating self-measurement changes
+	eventCh := make(chan input.Event, 1)
+	eventCh <- input.Event{Kind: input.EventKey, Rune: 'a'}
+	close(eventCh)
+
+	renderCount := 0
+	a := &App{}
+	a.OnRender = func() {
+		renderCount++
+		a.Dirty = true // always re-dirty (simulates layout change)
+	}
+	a.initQuit()
+	a.OnEvent = func(evt input.Event) {
+		a.Dirty = true
+	}
+
+	// When
+	a.runLoop(eventCh, nil, nil)
+
+	// Then — bounded loop prevents infinite re-render
+	// 1 (initial) + up to 3 (bounded after event) = at most 4
+	if renderCount > 4 {
+		t.Errorf("renderCount = %d, want at most 4 (initial + 3 bounded)", renderCount)
+	}
+	if renderCount < 2 {
+		t.Errorf("renderCount = %d, want at least 2", renderCount)
+	}
+}
+
+func TestAppBoundedReRenderStopsWhenClean(t *testing.T) {
+	// Given — OnRender sets Dirty only on renders 2 and 3
+	eventCh := make(chan input.Event, 1)
+	eventCh <- input.Event{Kind: input.EventKey, Rune: 'x'}
+	close(eventCh)
+
+	renderCount := 0
+	a := &App{}
+	a.OnRender = func() {
+		renderCount++
+		// Set dirty on renders 2 and 3, clean on 4th
+		if renderCount == 2 || renderCount == 3 {
+			a.Dirty = true
+		}
+	}
+	a.initQuit()
+	a.OnEvent = func(evt input.Event) {
+		a.Dirty = true
+	}
+
+	// When
+	a.runLoop(eventCh, nil, nil)
+
+	// Then — 1 (initial) + 1 (event dirty) + 2 (re-render loop) = 4
+	if renderCount != 4 {
+		t.Errorf("renderCount = %d, want 4", renderCount)
+	}
+}
+
 func TestAppSignalWithNoHandlerDoesNotCrash(t *testing.T) {
 	// Given — signal arrives but no OnEvent handler is set
 	sigCh := make(chan os.Signal, 1)

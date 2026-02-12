@@ -181,6 +181,74 @@ func TestSelfInInlinedComponent(t *testing.T) {
 	assertValidGo(t, out)
 }
 
+func TestSelfChangeDetectionEmitted(t *testing.T) {
+	// Given — self decl present
+	doc := &template.Document{
+		Children: []template.Node{
+			&template.TextElement{
+				Parts: []template.Part{
+					&template.StringPart{Value: "hello"},
+				},
+			},
+		},
+	}
+	sc := &script.Script{
+		SelfDecls: []script.SelfDecl{{Name: "selfW", Key: "width"}},
+	}
+
+	// When
+	out, err := Generate(doc, sc, nil, Options{PackageName: "main"})
+
+	// Then
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	src := string(out)
+
+	// Should have previous self tracking variable
+	if !strings.Contains(src, "prevSelfW") {
+		t.Errorf("expected prevSelfW tracking variable:\n%s", src)
+	}
+
+	// Should have change detection with app.Dirty
+	if !strings.Contains(src, "selfW != prevSelfW") {
+		t.Errorf("expected self-width change detection:\n%s", src)
+	}
+
+	assertValidGo(t, out)
+}
+
+func TestSelfChangeDetectionNotEmittedWhenAbsent(t *testing.T) {
+	// Given — no self decls
+	doc := &template.Document{
+		Children: []template.Node{
+			&template.TextElement{
+				Parts: []template.Part{
+					&template.StringPart{Value: "hello"},
+				},
+			},
+		},
+	}
+	sc := &script.Script{
+		StateDecls: []script.StateDecl{{Name: "count", InitExpr: "0"}},
+	}
+
+	// When
+	out, err := Generate(doc, sc, nil, Options{PackageName: "main"})
+
+	// Then
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	src := string(out)
+
+	if strings.Contains(src, "prevSelf") {
+		t.Errorf("expected no self change detection when self decls absent:\n%s", src)
+	}
+
+	assertValidGo(t, out)
+}
+
 func TestSelfNotEmittedWhenAbsent(t *testing.T) {
 	// Given — no self decls
 	doc := &template.Document{

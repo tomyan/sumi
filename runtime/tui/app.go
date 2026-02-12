@@ -115,9 +115,9 @@ func (a *App) runLoop(eventCh <-chan input.Event, resizeCh <-chan struct{}, sigC
 		// Drain pending events before rendering
 		done := a.drain(eventCh, resizeCh, sigCh)
 
-		if a.Dirty {
-			a.OnRender()
+		for i := 0; i < 3 && a.Dirty; i++ {
 			a.Dirty = false
+			a.OnRender()
 		}
 
 		if done {

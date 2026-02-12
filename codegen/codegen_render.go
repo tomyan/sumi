@@ -3,6 +3,7 @@ package codegen
 import (
 	"bytes"
 	"fmt"
+	"strings"
 
 	"github.com/tomyan/sumi/parser/script"
 	"github.com/tomyan/sumi/parser/style"
@@ -32,6 +33,32 @@ func writeTreeAndSync(buf *bytes.Buffer, doc *template.Document, stylesheet *sty
 	writeSyncFunc(buf, ext, dynamic, derivedDecls)
 
 	return ext
+}
+
+// writeSelfPrevDecls emits tracking variables for self-measurement change detection.
+func writeSelfPrevDecls(buf *bytes.Buffer, selfDecls []script.SelfDecl) {
+	for _, sd := range selfDecls {
+		fmt.Fprintf(buf, "\tvar prev%s int\n", capitalizeFirst(sd.Name))
+	}
+}
+
+// writeSelfChangeDetection emits self-width/height change detection after layout.
+func writeSelfChangeDetection(buf *bytes.Buffer, selfDecls []script.SelfDecl) {
+	for _, sd := range selfDecls {
+		prevName := "prev" + capitalizeFirst(sd.Name)
+		fmt.Fprintf(buf, "\t\tif %s != %s {\n", sd.Name, prevName)
+		fmt.Fprintf(buf, "\t\t\t%s = %s\n", prevName, sd.Name)
+		fmt.Fprintf(buf, "\t\t\tapp.Dirty = true\n")
+		buf.WriteString("\t\t}\n")
+	}
+}
+
+// capitalizeFirst returns the string with its first letter uppercased.
+func capitalizeFirst(s string) string {
+	if s == "" {
+		return s
+	}
+	return strings.ToUpper(s[:1]) + s[1:]
 }
 
 // collectSelfDecls returns self decls from the root script (nil-safe).
@@ -138,6 +165,7 @@ func writeRenderClosure(buf *bytes.Buffer, doc *template.Document, sc *script.Sc
 
 	buf.WriteString("\tvar prevTree *layout.Box\n")
 	buf.WriteString("\tvar prevW, prevH int\n")
+	writeSelfPrevDecls(buf, selfDecls)
 	if !dynamic {
 		buf.WriteString("\tvar nodeBoxMap map[*layout.Input]*layout.Box\n")
 	}
@@ -148,6 +176,7 @@ func writeRenderClosure(buf *bytes.Buffer, doc *template.Document, sc *script.Sc
 	} else {
 		writeStaticDoRender(buf, title)
 	}
+	writeSelfChangeDetection(buf, selfDecls)
 	if ext.hasCursor {
 		writeCursorPositioning(buf)
 	}
