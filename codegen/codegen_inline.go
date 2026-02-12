@@ -85,17 +85,71 @@ func writeInlinedTextInput(buf *bytes.Buffer, n *template.TextElement, styleshee
 
 // writeInlinedBoxInput writes a box input from an inlined component template.
 func writeInlinedBoxInput(buf *bytes.Buffer, n *template.BoxElement, stylesheet *style.Stylesheet, indent int, propMap, stateMap map[string]string, tracker *instanceTracker, ext *extractionCtx) {
+	attrs := namespaceExprAttrs(n.Attributes, stateMap)
+
+	if ext != nil && hasDynamicCursor(attrs) {
+		writeExtractedInlinedCursorBox(buf, n, stylesheet, indent, attrs, propMap, stateMap, tracker, ext)
+		return
+	}
+
 	tabs := indentStr(indent)
-	boxProps := resolveProps(stylesheet, "box", n.Attributes)
+	boxProps := resolveProps(stylesheet, "box", attrs)
 
 	fmt.Fprintf(buf, "%s{\n", tabs)
 	fmt.Fprintf(buf, "%s\tKind: layout.KindBox,\n", tabs)
-	writeBoxAttributes(buf, tabs, n.Attributes, boxProps)
+	writeBoxAttributes(buf, tabs, attrs, boxProps)
 	if boxProps != nil {
 		writeStyleLiteral(buf, tabs, boxProps)
 	}
 	writeInlinedBoxChildren(buf, n.Children, stylesheet, indent, tabs, propMap, stateMap, tracker, ext)
 	fmt.Fprintf(buf, "%s},\n", tabs)
+}
+
+// writeExtractedInlinedCursorBox extracts an inlined box with dynamic cursor as a named variable.
+// Children are written to a temp buffer so text extractions go to declBuf first,
+// then the cursor box declaration follows with references to extracted text nodes.
+func writeExtractedInlinedCursorBox(treeBuf *bytes.Buffer, n *template.BoxElement, stylesheet *style.Stylesheet, indent int, attrs map[string]string, propMap, stateMap map[string]string, tracker *instanceTracker, ext *extractionCtx) {
+	tabs := indentStr(indent)
+	name := ext.nextBoxName()
+	props := resolveProps(stylesheet, "box", attrs)
+
+	// Process children first — text extractions go to ext.declBuf
+	var childBuf bytes.Buffer
+	writeInlinedBoxChildren(&childBuf, n.Children, stylesheet, 1, "\t", propMap, stateMap, tracker, ext)
+
+	// Now write cursor box declaration after child extractions
+	fmt.Fprintf(&ext.declBuf, "\t%s := &layout.Input{\n", name)
+	fmt.Fprintf(&ext.declBuf, "\t\tKind: layout.KindBox,\n")
+	writeBoxAttributes(&ext.declBuf, "\t", attrs, props)
+	if props != nil {
+		writeStyleLiteral(&ext.declBuf, "\t", props)
+	}
+	ext.declBuf.Write(childBuf.Bytes())
+	fmt.Fprintf(&ext.declBuf, "\t}\n")
+
+	ext.hasCursor = true
+	writeCursorSync(&ext.syncBuf, name, attrs)
+
+	fmt.Fprintf(treeBuf, "%s%s,\n", tabs, name)
+}
+
+// namespaceExprAttrs returns a copy of attrs with expression values namespaced.
+// e.g., cursor-x={cursor} with stateMap["cursor"]="textinput0_cursor" → cursor-x={textinput0_cursor}
+func namespaceExprAttrs(attrs map[string]string, stateMap map[string]string) map[string]string {
+	if len(stateMap) == 0 || len(attrs) == 0 {
+		return attrs
+	}
+	result := make(map[string]string, len(attrs))
+	for k, v := range attrs {
+		if isExprValue(v) {
+			expr := extractExprValue(v)
+			expr = namespaceLineVars(expr, stateMap)
+			result[k] = "{" + expr + "}"
+		} else {
+			result[k] = v
+		}
+	}
+	return result
 }
 
 // writeInlinedBoxChildren writes children of an inlined box.

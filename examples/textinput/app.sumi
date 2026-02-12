@@ -1,0 +1,41 @@
+<style>
+.container {
+    border: single;
+    padding: 1 2;
+}
+.title {
+    color: green;
+    bold: true;
+}
+.hint {
+    color: cyan;
+    dim: true;
+}
+.label {
+    color: yellow;
+    bold: true;
+}
+</style>
+
+<script>
+name := $state("")
+
+func handleKey(evt input.Event) {
+    if evt.Kind == input.EventSignal {
+        app.Quit()
+        return
+    }
+    if evt.Ctrl && evt.Rune == 'c' {
+        app.Quit()
+        return
+    }
+}
+</script>
+
+<box class="container" onkey="handleKey">
+    <text class="title">Text Input Demo</text>
+    <text class="hint">Type to enter your name, Tab to focus</text>
+    <text class="label">Name:</text>
+    <textinput bind:value="name" />
+    <text>You typed: {name}</text>
+</box>

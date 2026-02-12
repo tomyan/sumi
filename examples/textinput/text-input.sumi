@@ -1,0 +1,29 @@
+<script>
+value := $prop("")
+cursor := $state(0)
+
+func handleEvent(evt input.Event) {
+    if evt.Special == input.KeyBackspace && cursor > 0 {
+        value = value[:cursor-1] + value[cursor:]
+        cursor = cursor - 1
+        stopPropagation()
+    }
+    if evt.Special == input.KeyLeft && cursor > 0 {
+        cursor = cursor - 1
+        stopPropagation()
+    }
+    if evt.Special == input.KeyRight && cursor < len(value) {
+        cursor = cursor + 1
+        stopPropagation()
+    }
+    if evt.Kind == input.EventKey {
+        value = value[:cursor] + string(evt.Rune) + value[cursor:]
+        cursor = cursor + 1
+        stopPropagation()
+    }
+}
+</script>
+
+<box focusable="true" onkey="handleEvent" cursor-x={cursor}>
+    <text>{value}</text>
+</box>

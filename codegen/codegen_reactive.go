@@ -21,9 +21,9 @@ func writeReactiveBody(buf *bytes.Buffer, doc *template.Document, sc *script.Scr
 	writeAppDecl(buf)
 	writeInlinedStateDecls(buf, inlined)
 	writeScrollStateDecls(buf, scrollBoxes)
+	writeFocusStateDecls(buf, focusHandlers)
 	writeFuncClosures(buf, sc)
 	writeInlinedFuncClosures(buf, inlined)
-	writeFocusStateDecls(buf, focusHandlers)
 	if len(inlined) > 0 {
 		buf.WriteString("\n")
 	}
