@@ -36,6 +36,8 @@ type Input struct {
 	Left        int          // offset from left (for positioned elements)
 	Right       int          // offset from right (for positioned elements)
 	Bottom      int          // offset from bottom (for positioned elements)
+	SelfW       *int    // if non-nil, receives computed width after layout
+	SelfH       *int    // if non-nil, receives computed height after layout
 	CursorCol   int     // cursor column within content (-1 = no cursor)
 	CursorRow   int     // cursor row within content (-1 = no cursor)
 	Focusable   bool    // true if this element can receive focus
@@ -363,6 +365,14 @@ func layoutNode(input *Input, availW, availH int) *Box {
 
 	// Apply relative offsets after size is computed (visual shift only)
 	applyRelativeOffsets(box.Children)
+
+	// Write back self-measurement pointers
+	if input.SelfW != nil {
+		*input.SelfW = box.Width
+	}
+	if input.SelfH != nil {
+		*input.SelfH = box.Height
+	}
 
 	return box
 }
