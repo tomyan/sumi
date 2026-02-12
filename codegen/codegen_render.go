@@ -4,13 +4,14 @@ import (
 	"bytes"
 	"fmt"
 
+	"github.com/tomyan/sumi/parser/script"
 	"github.com/tomyan/sumi/parser/style"
 	"github.com/tomyan/sumi/parser/template"
 )
 
 // writeTreeAndSync writes the build-once layout tree and sync function at function scope.
 // Expression text nodes are extracted as named variables; sync patches their Content.
-func writeTreeAndSync(buf *bytes.Buffer, doc *template.Document, stylesheet *style.Stylesheet, instances []componentInstance, scrollBoxes []scrollableBox) *extractionCtx {
+func writeTreeAndSync(buf *bytes.Buffer, doc *template.Document, stylesheet *style.Stylesheet, instances []componentInstance, scrollBoxes []scrollableBox, derivedDecls []script.DerivedDecl) *extractionCtx {
 	ext := newExtractionCtx("")
 
 	// Write tree to temp buffer (discovers extractions)
@@ -25,7 +26,7 @@ func writeTreeAndSync(buf *bytes.Buffer, doc *template.Document, stylesheet *sty
 
 	// Emit sync function
 	dynamic := isDynamic(ext, scrollBoxes)
-	writeSyncFunc(buf, ext, dynamic)
+	writeSyncFunc(buf, ext, dynamic, derivedDecls)
 
 	return ext
 }
@@ -38,18 +39,19 @@ func isDynamic(ext *extractionCtx, scrollBoxes []scrollableBox) bool {
 
 // writeSyncFunc writes the sync closure. Static documents get a returning sync
 // that compares before assigning and returns changed nodes. Dynamic documents
-// get a void sync that always patches.
-func writeSyncFunc(buf *bytes.Buffer, ext *extractionCtx, dynamic bool) {
+// get a void sync that always patches. Derived values are recalculated first.
+func writeSyncFunc(buf *bytes.Buffer, ext *extractionCtx, dynamic bool, derivedDecls []script.DerivedDecl) {
 	if dynamic {
-		writeVoidSync(buf, ext)
+		writeVoidSync(buf, ext, derivedDecls)
 	} else {
-		writeReturningSync(buf, ext)
+		writeReturningSync(buf, ext, derivedDecls)
 	}
 }
 
 // writeVoidSync writes a sync closure that unconditionally patches all nodes.
-func writeVoidSync(buf *bytes.Buffer, ext *extractionCtx) {
+func writeVoidSync(buf *bytes.Buffer, ext *extractionCtx, derivedDecls []script.DerivedDecl) {
 	buf.WriteString("\tsync := func() {\n")
+	writeDerivedRecalc(buf, derivedDecls)
 	for _, n := range ext.nodes {
 		fmt.Fprintf(buf, "\t\t%s.Content = %s\n", n.varName, n.syncExpr)
 	}
@@ -59,8 +61,9 @@ func writeVoidSync(buf *bytes.Buffer, ext *extractionCtx) {
 
 // writeReturningSync writes a sync closure that compares before assigning
 // and returns a slice of changed Input nodes (nil when nothing changed).
-func writeReturningSync(buf *bytes.Buffer, ext *extractionCtx) {
+func writeReturningSync(buf *bytes.Buffer, ext *extractionCtx, derivedDecls []script.DerivedDecl) {
 	buf.WriteString("\tsync := func() []*layout.Input {\n")
+	writeDerivedRecalc(buf, derivedDecls)
 	buf.WriteString("\t\tvar changed []*layout.Input\n")
 	for _, n := range ext.nodes {
 		fmt.Fprintf(buf, "\t\tif v := %s; v != %s.Content {\n", n.syncExpr, n.varName)
@@ -72,11 +75,22 @@ func writeReturningSync(buf *bytes.Buffer, ext *extractionCtx) {
 	buf.WriteString("\t}\n\n")
 }
 
+// writeDerivedRecalc writes derived value reassignments at the top of a sync closure.
+func writeDerivedRecalc(buf *bytes.Buffer, derivedDecls []script.DerivedDecl) {
+	for _, dd := range derivedDecls {
+		fmt.Fprintf(buf, "\t\t%s = %s\n", dd.Name, dd.Expr)
+	}
+}
+
 // writeRenderClosure writes the doRender closure with surgical rendering.
 // The tree is built once at function scope; doRender calls sync() then re-layouts.
 // Static documents get a no-op skip fast path; dynamic documents always run full Layout+Diff.
-func writeRenderClosure(buf *bytes.Buffer, doc *template.Document, stylesheet *style.Stylesheet, instances []componentInstance, scrollBoxes []scrollableBox, title *template.TitleElement) {
-	ext := writeTreeAndSync(buf, doc, stylesheet, instances, scrollBoxes)
+func writeRenderClosure(buf *bytes.Buffer, doc *template.Document, sc *script.Script, stylesheet *style.Stylesheet, instances []componentInstance, scrollBoxes []scrollableBox, title *template.TitleElement) {
+	var derivedDecls []script.DerivedDecl
+	if sc != nil {
+		derivedDecls = sc.DerivedDecls
+	}
+	ext := writeTreeAndSync(buf, doc, stylesheet, instances, scrollBoxes, derivedDecls)
 	dynamic := isDynamic(ext, scrollBoxes)
 
 	buf.WriteString("\tvar prevTree *layout.Box\n")

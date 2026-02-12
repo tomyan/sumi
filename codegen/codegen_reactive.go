@@ -25,19 +25,22 @@ func writeReactiveBody(buf *bytes.Buffer, doc *template.Document, sc *script.Scr
 	if len(inlined) > 0 {
 		buf.WriteString("\n")
 	}
-	writeRenderClosure(buf, doc, stylesheet, instances, scrollBoxes, title)
+	writeRenderClosure(buf, doc, sc, stylesheet, instances, scrollBoxes, title)
 	writeSuppressUnusedFuncs(buf, doc, sc)
 	writeSuppressInlinedFuncs(buf, inlined)
 	writeAppRun(buf, doc, sc, instances, scrollBoxes, inlined, title)
 }
 
-// writeStateAndEnvDecls writes state and env variable declarations (no dirty flag).
+// writeStateAndEnvDecls writes state, env, and derived variable declarations.
 func writeStateAndEnvDecls(buf *bytes.Buffer, sc *script.Script) {
 	if sc != nil && len(sc.StateDecls) > 0 {
 		writeStateDecls(buf, sc.StateDecls)
 	}
 	if sc != nil && len(sc.EnvDecls) > 0 {
 		writeEnvDecls(buf, sc.EnvDecls)
+	}
+	if sc != nil && len(sc.DerivedDecls) > 0 {
+		writeDerivedDecls(buf, sc.DerivedDecls)
 	}
 }
 
@@ -79,6 +82,14 @@ func writeStateDecls(buf *bytes.Buffer, stateDecls []script.StateDecl) {
 func writeEnvDecls(buf *bytes.Buffer, envDecls []script.EnvDecl) {
 	wName, hName := envVarNames(envDecls)
 	fmt.Fprintf(buf, "\t%s, %s := term.GetSize(int(os.Stdin.Fd()))\n", wName, hName)
+}
+
+// writeDerivedDecls writes derived variable initial declarations.
+func writeDerivedDecls(buf *bytes.Buffer, derivedDecls []script.DerivedDecl) {
+	for _, dd := range derivedDecls {
+		fmt.Fprintf(buf, "\t%s := %s\n", dd.Name, dd.Expr)
+	}
+	buf.WriteString("\n")
 }
 
 // envVarNames returns the variable names for width and height from env decls.
