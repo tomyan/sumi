@@ -44,11 +44,15 @@ func Run() {
 	root := &layout.Input{
 		Kind:      layout.KindBox,
 		Direction: "column",
+		CursorCol: -1,
+		CursorRow: -1,
 		Children: []*layout.Input{
 			{
-				Kind:    layout.KindBox,
-				Padding: layout.ParsePadding("1 2"),
-				Border:  "single",
+				Kind:      layout.KindBox,
+				Padding:   layout.ParsePadding("1 2"),
+				Border:    "single",
+				CursorCol: -1,
+				CursorRow: -1,
 				Children: []*layout.Input{
 					{
 						Kind:    layout.KindText,
@@ -67,7 +71,9 @@ func Run() {
 						},
 					},
 					{
-						Kind: layout.KindBox,
+						Kind:      layout.KindBox,
+						CursorCol: -1,
+						CursorRow: -1,
 						Children: []*layout.Input{
 							{
 								Kind:    layout.KindText,
@@ -81,7 +87,9 @@ func Run() {
 						},
 					},
 					{
-						Kind: layout.KindBox,
+						Kind:      layout.KindBox,
+						CursorCol: -1,
+						CursorRow: -1,
 						Children: []*layout.Input{
 							{
 								Kind:    layout.KindText,

@@ -121,7 +121,7 @@ func buildPropMap(inst *componentInstance) map[string]string {
 	return propMap
 }
 
-// buildStateNameMap creates a map from state/derived variable name to its namespaced version.
+// buildStateNameMap creates a map from state/derived/bound-prop variable name to its namespaced version.
 // e.g., "count" → "counter0_count" when the instance VarName is "counter0".
 // For bind: attributes, the child's variable maps to the parent's variable instead.
 func buildStateNameMap(inst *componentInstance) map[string]string {
@@ -140,6 +140,15 @@ func buildStateNameMap(inst *componentInstance) map[string]string {
 	}
 	for _, dd := range inst.Info.Script.DerivedDecls {
 		m[dd.Name] = prefix + dd.Name
+	}
+	// Map bound props to parent variables (for props not also declared as state)
+	for _, pd := range inst.Info.Script.PropDecls {
+		if _, already := m[pd.Name]; already {
+			continue // already mapped via state decl
+		}
+		if parentVar, ok := bindings[pd.Name]; ok {
+			m[pd.Name] = parentVar
+		}
 	}
 	return m
 }

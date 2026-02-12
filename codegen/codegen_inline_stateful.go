@@ -54,16 +54,15 @@ func writeInlinedStateDecls(buf *bytes.Buffer, inlined []inlinedStateful) {
 }
 
 // namespaceDerivedExpr replaces state variable references in a derived expression with namespaced versions.
-// Prepends a space so namespaceVarRef can match vars at the start of the expression.
 func namespaceDerivedExpr(expr string, sc *script.Script, prefix string) string {
-	result := " " + expr
+	result := expr
 	for _, sd := range sc.StateDecls {
-		result = namespaceVarRef(result, sd.Name, prefix)
+		result = replaceIdentifier(result, sd.Name, prefix+sd.Name)
 	}
 	for _, dd := range sc.DerivedDecls {
-		result = namespaceVarRef(result, dd.Name, prefix)
+		result = replaceIdentifier(result, dd.Name, prefix+dd.Name)
 	}
-	return strings.TrimPrefix(result, " ")
+	return result
 }
 
 // writeInlinedFuncClosures writes namespaced function closures for inlined components.
@@ -96,7 +95,7 @@ func writeNamespacedFuncBody(buf *bytes.Buffer, funcDecl script.FuncDecl, stateN
 		if trimmed == "" {
 			continue
 		}
-		namespaced := namespaceAssignmentMapped(trimmed, funcDecl.StateAssignments, stateNameMap)
+		namespaced := namespaceLineVars(trimmed, stateNameMap)
 		namespaced = resolveCallbackProps(namespaced, propMap)
 		fmt.Fprintf(buf, "\t\t%s\n", namespaced)
 		if stateLines[trimmed] {
@@ -117,56 +116,6 @@ func resolveCallbackProps(line string, propMap map[string]string) string {
 		line = strings.ReplaceAll(line, propName+"(", resolved+"(")
 	}
 	return line
-}
-
-// namespaceAssignmentMapped rewrites a line, replacing state variable references using the stateNameMap.
-// The map translates child var names to their resolved names (namespaced or parent-bound).
-func namespaceAssignmentMapped(line string, assignments []script.StateAssignment, stateNameMap map[string]string) string {
-	for _, sa := range assignments {
-		if line == sa.Line {
-			return renameVarInLine(line, sa.VarName, stateNameMap)
-		}
-	}
-	return line
-}
-
-// renameVarInLine replaces all occurrences of a variable name with its mapped name from stateNameMap.
-func renameVarInLine(line, varName string, stateNameMap map[string]string) string {
-	newName, ok := stateNameMap[varName]
-	if !ok {
-		return line
-	}
-	// Replace "varName =" with "newName ="
-	result := strings.Replace(line, varName+" =", newName+" =", 1)
-	// Replace references on the right side
-	eqIdx := strings.Index(result, "=")
-	if eqIdx < 0 {
-		return result
-	}
-	left := result[:eqIdx+1]
-	right := result[eqIdx+1:]
-	right = renameVarRef(right, varName, newName)
-	return left + right
-}
-
-// renameVarRef replaces standalone variable references with a new name.
-func renameVarRef(s, oldName, newName string) string {
-	result := strings.ReplaceAll(s, " "+oldName+" ", " "+newName+" ")
-	result = strings.ReplaceAll(result, " "+oldName+"\n", " "+newName+"\n")
-	if strings.HasSuffix(result, " "+oldName) {
-		result = result[:len(result)-len(oldName)] + newName
-	}
-	return result
-}
-
-// namespaceVarRef replaces standalone variable references with namespaced versions.
-func namespaceVarRef(s, varName, prefix string) string {
-	result := strings.ReplaceAll(s, " "+varName+" ", " "+prefix+varName+" ")
-	result = strings.ReplaceAll(result, " "+varName+"\n", " "+prefix+varName+"\n")
-	if strings.HasSuffix(result, " "+varName) {
-		result = result[:len(result)-len(varName)] + prefix + varName
-	}
-	return result
 }
 
 // findChildOnkeyHandler finds the onkey handler name from a child component's document.
