@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"os"
+	"time"
 
 	"github.com/tomyan/sumi/runtime/input"
 	"github.com/tomyan/sumi/runtime/layout"
@@ -17,9 +18,16 @@ func Run() {
 	var app *tui.App
 	textinput0_cursor := 0
 	textinput0_viewOffset := 0
+	textinput0_scrollAnimating := false
+	textinput0_scrollDragging := false
+	textinput0_scrollHeld := false
+	textinput0_scrollAnimStart := int64(0)
+	textinput0_scrollAnimFrom := 0
+	textinput0_scrollAnimTo := 0
 	textinput0_placeholder := "Enter your name..."
 	textinput0_selfW := 0
 	textinput0_selfX := 0
+	textinput0_selfY := 0
 	textinput0_contentW := textinput0_selfW - 4
 	focusIndex := -1
 	focusCount := 1
@@ -123,12 +131,18 @@ func Run() {
 		}
 		return "<"
 	}
+	textinput0_scrollTrackW := func() int {
+		totalW := textinput0_contentW + 4
+		return totalW - 2 - 4
+	}
 	textinput0_scrollTrack := func() string {
 		if !textinput0_scrollbarVisible() {
 			return ""
 		}
-		totalW := textinput0_contentW + 4
-		trackW := totalW - 2
+		trackW := textinput0_scrollTrackW()
+		if trackW < 1 {
+			return ""
+		}
 		thumbSize := trackW * textinput0_contentW / len(name)
 		if thumbSize < 1 {
 			thumbSize = 1
@@ -153,6 +167,12 @@ func Run() {
 			}
 		}
 		return result
+	}
+	textinput0_scrollSpacer := func() string {
+		if !textinput0_scrollbarVisible() {
+			return ""
+		}
+		return "  "
 	}
 	textinput0_scrollRightArrow := func() string {
 		if !textinput0_scrollbarVisible() {
@@ -198,7 +218,117 @@ func Run() {
 			app.Dirty = true
 		}
 	}
+	textinput0_maxOffset := func() int {
+		return len(name) - textinput0_contentW
+	}
+	textinput0_scrollbarY := func() int {
+		return textinput0_selfY + 1
+	}
+	textinput0_scrollTrackStart := func() int {
+		return textinput0_selfX + 1 + 2
+	}
+	textinput0_viewOffsetForTrackX := func(trackX int) int {
+		trackW := textinput0_scrollTrackW()
+		if trackW <= 0 {
+			return textinput0_viewOffset
+		}
+		maxOff := textinput0_maxOffset()
+		if maxOff <= 0 {
+			return 0
+		}
+		target := trackX * maxOff / trackW
+		if target < 0 {
+			target = 0
+		}
+		if target > maxOff {
+			target = maxOff
+		}
+		return target
+	}
+	textinput0_cancelAnimation := func() {
+		textinput0_scrollAnimating = false
+		app.Dirty = true
+		textinput0_scrollDragging = false
+		app.Dirty = true
+		textinput0_scrollHeld = false
+		app.Dirty = true
+	}
+	textinput0_animateStep := func() {
+		now := time.Now().UnixMilli()
+		elapsed := now - textinput0_scrollAnimStart
+		duration := int64(200)
+		if elapsed >= duration {
+			textinput0_viewOffset = textinput0_scrollAnimTo
+			app.Dirty = true
+			textinput0_scrollAnimating = false
+			app.Dirty = true
+			if textinput0_scrollHeld {
+				textinput0_scrollDragging = true
+				app.Dirty = true
+			}
+			textinput0_clampCursorToView()
+			return
+		}
+		t := float64(elapsed) / float64(duration)
+		inv := 1.0 - t
+		eased := 1.0 - inv*inv*inv
+		textinput0_viewOffset = textinput0_scrollAnimFrom + int(eased*float64(textinput0_scrollAnimTo-textinput0_scrollAnimFrom))
+		app.Dirty = true
+		textinput0_clampCursorToView()
+		app.RequestFrame()
+	}
+	textinput0_startScrollAnimation := func(target int) {
+		textinput0_scrollAnimating = true
+		app.Dirty = true
+		textinput0_scrollAnimStart = time.Now().UnixMilli()
+		app.Dirty = true
+		textinput0_scrollAnimFrom = textinput0_viewOffset
+		app.Dirty = true
+		textinput0_scrollAnimTo = target
+		app.Dirty = true
+		app.RequestFrame()
+	}
 	textinput0_handleEvent := func(evt input.Event) {
+		if evt.Kind == input.EventFrame {
+			if textinput0_scrollAnimating {
+				textinput0_animateStep()
+			}
+			stopPropagation()
+			return
+		}
+		if evt.Kind == input.EventMouse && evt.Mouse.Action == input.MouseRelease {
+			if textinput0_scrollHeld || textinput0_scrollDragging {
+				textinput0_scrollHeld = false
+				app.Dirty = true
+				textinput0_scrollDragging = false
+				app.Dirty = true
+				stopPropagation()
+				return
+			}
+		}
+		if evt.Kind == input.EventMouse && evt.Mouse.Action == input.MouseMotion && textinput0_scrollDragging {
+			trackX := evt.Mouse.X - textinput0_scrollTrackStart()
+			textinput0_viewOffset = textinput0_viewOffsetForTrackX(trackX)
+			app.Dirty = true
+			textinput0_clampCursorToView()
+			stopPropagation()
+			return
+		}
+		if evt.Kind == input.EventMouse && evt.Mouse.Action == input.MousePress && evt.Mouse.Button == input.ButtonLeft && evt.Mouse.Y == textinput0_scrollbarY() && textinput0_scrollbarVisible() {
+			trackX := evt.Mouse.X - textinput0_scrollTrackStart()
+			trackW := textinput0_scrollTrackW()
+			if trackX >= 0 && trackX < trackW {
+				target := textinput0_viewOffsetForTrackX(trackX)
+				textinput0_scrollHeld = true
+				app.Dirty = true
+				textinput0_startScrollAnimation(target)
+				stopPropagation()
+				return
+			}
+		}
+		if textinput0_scrollAnimating {
+			textinput0_cancelAnimation()
+		}
 		if evt.Kind == input.EventMouse && evt.Mouse.Action == input.MousePress && evt.Mouse.Button == input.ButtonLeft {
 			relX := evt.Mouse.X - textinput0_selfX - 2
 			newCursor := textinput0_viewOffset + relX
@@ -362,12 +492,26 @@ func Run() {
 	}
 	textinput0_node4 := &layout.Input{
 		Kind:    layout.KindText,
-		Content: fmt.Sprintf("%v", textinput0_scrollTrack()),
+		Content: fmt.Sprintf("%v", textinput0_scrollSpacer()),
 		Style: render.Style{
 			Dim: true,
 		},
 	}
 	textinput0_node5 := &layout.Input{
+		Kind:    layout.KindText,
+		Content: fmt.Sprintf("%v", textinput0_scrollTrack()),
+		Style: render.Style{
+			Dim: true,
+		},
+	}
+	textinput0_node6 := &layout.Input{
+		Kind:    layout.KindText,
+		Content: fmt.Sprintf("%v", textinput0_scrollSpacer()),
+		Style: render.Style{
+			Dim: true,
+		},
+	}
+	textinput0_node7 := &layout.Input{
 		Kind:    layout.KindText,
 		Content: fmt.Sprintf("%v", textinput0_scrollRightArrow()),
 		Style: render.Style{
@@ -408,12 +552,15 @@ func Run() {
 					textinput0_node3,
 					textinput0_node4,
 					textinput0_node5,
+					textinput0_node6,
+					textinput0_node7,
 				},
 			},
 		},
 	}
 	textinput0_box0.SelfW = &textinput0_selfW
 	textinput0_box0.SelfX = &textinput0_selfX
+	textinput0_box0.SelfY = &textinput0_selfY
 	node0 := &layout.Input{
 		Kind:    layout.KindText,
 		Content: fmt.Sprintf("You typed: %v", name),
@@ -467,8 +614,10 @@ func Run() {
 		textinput0_node1.Content = fmt.Sprintf("%v", textinput0_visibleContent())
 		textinput0_node2.Content = fmt.Sprintf("%v", textinput0_rightIndicator())
 		textinput0_node3.Content = fmt.Sprintf("%v", textinput0_scrollLeftArrow())
-		textinput0_node4.Content = fmt.Sprintf("%v", textinput0_scrollTrack())
-		textinput0_node5.Content = fmt.Sprintf("%v", textinput0_scrollRightArrow())
+		textinput0_node4.Content = fmt.Sprintf("%v", textinput0_scrollSpacer())
+		textinput0_node5.Content = fmt.Sprintf("%v", textinput0_scrollTrack())
+		textinput0_node6.Content = fmt.Sprintf("%v", textinput0_scrollSpacer())
+		textinput0_node7.Content = fmt.Sprintf("%v", textinput0_scrollRightArrow())
 		node0.Content = fmt.Sprintf("You typed: %v", name)
 		if focusIndex == 0 {
 			textinput0_box0.CursorCol = textinput0_cursor - textinput0_viewOffset + 2
@@ -481,6 +630,7 @@ func Run() {
 	var prevW, prevH int
 	var prevTextinput0_selfW int
 	var prevTextinput0_selfX int
+	var prevTextinput0_selfY int
 	doRender := func() {
 		sync()
 		termW, termH := term.GetSize(int(os.Stdin.Fd()))
@@ -505,6 +655,10 @@ func Run() {
 			prevTextinput0_selfX = textinput0_selfX
 			app.Dirty = true
 		}
+		if textinput0_selfY != prevTextinput0_selfY {
+			prevTextinput0_selfY = textinput0_selfY
+			app.Dirty = true
+		}
 		if cursorBox := layout.FindCursor(tree); cursorBox != nil {
 			render.ShowCursor(os.Stdout, cursorBox.Y+cursorBox.CursorRow, cursorBox.X+cursorBox.CursorCol)
 		} else {
@@ -521,11 +675,20 @@ func Run() {
 	_ = textinput0_rightIndicator
 	_ = textinput0_scrollbarVisible
 	_ = textinput0_scrollLeftArrow
+	_ = textinput0_scrollTrackW
 	_ = textinput0_scrollTrack
+	_ = textinput0_scrollSpacer
 	_ = textinput0_scrollRightArrow
 	_ = textinput0_wordLeft
 	_ = textinput0_wordRight
 	_ = textinput0_clampCursorToView
+	_ = textinput0_maxOffset
+	_ = textinput0_scrollbarY
+	_ = textinput0_scrollTrackStart
+	_ = textinput0_viewOffsetForTrackX
+	_ = textinput0_cancelAnimation
+	_ = textinput0_animateStep
+	_ = textinput0_startScrollAnimation
 	_ = stopPropagation
 	app = &tui.App{
 		HasMouse: true,

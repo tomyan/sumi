@@ -5,7 +5,14 @@ cursor := $state(0)
 viewOffset := $state(0)
 selfW := $self(width)
 selfX := $self(x)
+selfY := $self(y)
 contentW := $derived(selfW - 4)
+scrollAnimating := $state(false)
+scrollDragging := $state(false)
+scrollHeld := $state(false)
+scrollAnimStart := $state(int64(0))
+scrollAnimFrom := $state(0)
+scrollAnimTo := $state(0)
 
 func adjustView() {
     if contentW <= 0 {
@@ -99,12 +106,19 @@ func scrollLeftArrow() string {
     return "<"
 }
 
+func scrollTrackW() int {
+    totalW := contentW + 4
+    return totalW - 2 - 4
+}
+
 func scrollTrack() string {
     if !scrollbarVisible() {
         return ""
     }
-    totalW := contentW + 4
-    trackW := totalW - 2
+    trackW := scrollTrackW()
+    if trackW < 1 {
+        return ""
+    }
     thumbSize := trackW * contentW / len(value)
     if thumbSize < 1 {
         thumbSize = 1
@@ -129,6 +143,13 @@ func scrollTrack() string {
         }
     }
     return result
+}
+
+func scrollSpacer() string {
+    if !scrollbarVisible() {
+        return ""
+    }
+    return "  "
 }
 
 func scrollRightArrow() string {
@@ -175,7 +196,109 @@ func clampCursorToView() {
     }
 }
 
+func maxOffset() int {
+    return len(value) - contentW
+}
+
+func scrollbarY() int {
+    return selfY + 1
+}
+
+func scrollTrackStart() int {
+    return selfX + 1 + 2
+}
+
+func viewOffsetForTrackX(trackX int) int {
+    trackW := scrollTrackW()
+    if trackW <= 0 {
+        return viewOffset
+    }
+    maxOff := maxOffset()
+    if maxOff <= 0 {
+        return 0
+    }
+    target := trackX * maxOff / trackW
+    if target < 0 {
+        target = 0
+    }
+    if target > maxOff {
+        target = maxOff
+    }
+    return target
+}
+
+func cancelAnimation() {
+    scrollAnimating = false
+    scrollDragging = false
+    scrollHeld = false
+}
+
+func animateStep() {
+    now := time.Now().UnixMilli()
+    elapsed := now - scrollAnimStart
+    duration := int64(200)
+    if elapsed >= duration {
+        viewOffset = scrollAnimTo
+        scrollAnimating = false
+        if scrollHeld {
+            scrollDragging = true
+        }
+        clampCursorToView()
+        return
+    }
+    t := float64(elapsed) / float64(duration)
+    inv := 1.0 - t
+    eased := 1.0 - inv*inv*inv
+    viewOffset = scrollAnimFrom + int(eased*float64(scrollAnimTo-scrollAnimFrom))
+    clampCursorToView()
+    app.RequestFrame()
+}
+
+func startScrollAnimation(target int) {
+    scrollAnimating = true
+    scrollAnimStart = time.Now().UnixMilli()
+    scrollAnimFrom = viewOffset
+    scrollAnimTo = target
+    app.RequestFrame()
+}
+
 func handleEvent(evt input.Event) {
+    if evt.Kind == input.EventFrame {
+        if scrollAnimating {
+            animateStep()
+        }
+        stopPropagation()
+        return
+    }
+    if evt.Kind == input.EventMouse && evt.Mouse.Action == input.MouseRelease {
+        if scrollHeld || scrollDragging {
+            scrollHeld = false
+            scrollDragging = false
+            stopPropagation()
+            return
+        }
+    }
+    if evt.Kind == input.EventMouse && evt.Mouse.Action == input.MouseMotion && scrollDragging {
+        trackX := evt.Mouse.X - scrollTrackStart()
+        viewOffset = viewOffsetForTrackX(trackX)
+        clampCursorToView()
+        stopPropagation()
+        return
+    }
+    if evt.Kind == input.EventMouse && evt.Mouse.Action == input.MousePress && evt.Mouse.Button == input.ButtonLeft && evt.Mouse.Y == scrollbarY() && scrollbarVisible() {
+        trackX := evt.Mouse.X - scrollTrackStart()
+        trackW := scrollTrackW()
+        if trackX >= 0 && trackX < trackW {
+            target := viewOffsetForTrackX(trackX)
+            scrollHeld = true
+            startScrollAnimation(target)
+            stopPropagation()
+            return
+        }
+    }
+    if scrollAnimating {
+        cancelAnimation()
+    }
     if evt.Kind == input.EventMouse && evt.Mouse.Action == input.MousePress && evt.Mouse.Button == input.ButtonLeft {
         relX := evt.Mouse.X - selfX - 2
         newCursor := viewOffset + relX
@@ -314,7 +437,9 @@ func handleEvent(evt input.Event) {
     </box>
     <box direction="row">
         <text class="arrow">{scrollLeftArrow()}</text>
+        <text class="scrollbar">{scrollSpacer()}</text>
         <text class="scrollbar">{scrollTrack()}</text>
+        <text class="scrollbar">{scrollSpacer()}</text>
         <text class="arrow">{scrollRightArrow()}</text>
     </box>
 </box>
