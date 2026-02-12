@@ -17,12 +17,13 @@ type extractedNode struct {
 // build-once / sync pattern. Dynamic-children parents (boxes with {if}/{for})
 // have their Children rebuilt in sync.
 type extractionCtx struct {
-	nodes    []extractedNode // text nodes needing Content sync
-	count    int
-	boxCount int
-	prefix   string // namespace prefix, e.g., "counter0_" (empty for root)
-	declBuf  bytes.Buffer
-	syncBuf  bytes.Buffer // multi-line sync code (for dynamic children IIFE)
+	nodes     []extractedNode // text nodes needing Content sync
+	count     int
+	boxCount  int
+	prefix    string // namespace prefix, e.g., "counter0_" (empty for root)
+	hasCursor bool   // true when any box has dynamic cursor attributes
+	declBuf   bytes.Buffer
+	syncBuf   bytes.Buffer // multi-line sync code (for dynamic children IIFE)
 }
 
 // newExtractionCtx creates an extraction context with the given namespace prefix.

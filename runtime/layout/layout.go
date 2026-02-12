@@ -36,6 +36,8 @@ type Input struct {
 	Left        int          // offset from left (for positioned elements)
 	Right       int          // offset from right (for positioned elements)
 	Bottom      int          // offset from bottom (for positioned elements)
+	CursorCol   int     // cursor column within content (-1 = no cursor)
+	CursorRow   int     // cursor row within content (-1 = no cursor)
 	Focusable   bool    // true if this element can receive focus
 	FocusIndex  int     // assigned focus index (0-based) for Tab cycling
 	Padding     Padding
@@ -72,6 +74,8 @@ type Box struct {
 	BorderTitle         string              // text to display in the top border edge
 	Collapsed           render.CollapsedEdges // edges shared with adjacent borders
 	Style               render.Style        // visual style
+	CursorCol                int          // cursor column within content (-1 = no cursor)
+	CursorRow                int          // cursor row within content (-1 = no cursor)
 	NeedsScrollbar           bool         // true when a vertical scrollbar should be drawn
 	NeedsHorizontalScrollbar bool         // true when a horizontal scrollbar should be drawn
 	Clip                     *render.Clip // clipping region (set when overflow is non-empty)
@@ -170,6 +174,8 @@ func layoutNode(input *Input, availW, availH int) *Box {
 		Left:        input.Left,
 		Right:       input.Right,
 		Bottom:      input.Bottom,
+		CursorCol:   input.CursorCol,
+		CursorRow:   input.CursorRow,
 		Style:       input.Style,
 	}
 

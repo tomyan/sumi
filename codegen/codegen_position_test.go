@@ -32,7 +32,7 @@ func TestCodegenPositionRelative(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 	src := string(out)
-	if !strings.Contains(src, `Position: "relative"`) {
+	if !strings.Contains(src, `Position:  "relative"`) {
 		t.Errorf("expected Position: \"relative\" in output:\n%s", src)
 	}
 	if !strings.Contains(src, "Top:") {
@@ -100,7 +100,7 @@ func TestCodegenPositionAbsolute(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 	src := string(out)
-	if !strings.Contains(src, `Position: "absolute"`) {
+	if !strings.Contains(src, `Position:  "absolute"`) {
 		t.Errorf("expected Position: \"absolute\" in output:\n%s", src)
 	}
 	if !strings.Contains(src, "Right:") {
@@ -134,7 +134,7 @@ func TestCodegenDisplayNone(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 	src := string(out)
-	if !strings.Contains(src, `Display: "none"`) {
+	if !strings.Contains(src, `Display:   "none"`) {
 		t.Errorf("expected Display: \"none\" in output:\n%s", src)
 	}
 	fset := token.NewFileSet()

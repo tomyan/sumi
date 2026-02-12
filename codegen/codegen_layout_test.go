@@ -101,7 +101,7 @@ func TestGenerateBoxWithBorder(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 	src := string(out)
-	if !strings.Contains(src, `Border: "single"`) {
+	if !strings.Contains(src, `Border:    "single"`) {
 		t.Errorf("expected Border: \"single\" in output:\n%s", src)
 	}
 }
@@ -176,7 +176,7 @@ func TestGenerateBoxWithGap(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 	src := string(out)
-	if !strings.Contains(src, "Gap:  2") {
+	if !strings.Contains(src, "Gap:       2") {
 		t.Errorf("expected Gap: 2 in output:\n%s", src)
 	}
 }

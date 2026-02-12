@@ -223,6 +223,9 @@ func mergeExtractionCtx(parent, sub *extractionCtx) {
 	parent.declBuf.Write(sub.declBuf.Bytes())
 	parent.syncBuf.Write(sub.syncBuf.Bytes())
 	parent.nodes = append(parent.nodes, sub.nodes...)
+	if sub.hasCursor {
+		parent.hasCursor = true
+	}
 }
 
 // writeComponentRefByName writes a component.Layout() reference by variable name.

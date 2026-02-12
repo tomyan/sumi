@@ -124,8 +124,20 @@ func writeRenderClosure(buf *bytes.Buffer, doc *template.Document, sc *script.Sc
 	} else {
 		writeStaticDoRender(buf, title)
 	}
+	if ext.hasCursor {
+		writeCursorPositioning(buf)
+	}
 
 	buf.WriteString("\t}\n\n")
+}
+
+// writeCursorPositioning emits cursor show/hide logic at the end of doRender.
+func writeCursorPositioning(buf *bytes.Buffer) {
+	buf.WriteString("\t\tif cursorBox := layout.FindCursor(tree); cursorBox != nil {\n")
+	buf.WriteString("\t\t\trender.ShowCursor(os.Stdout, cursorBox.Y+cursorBox.CursorRow, cursorBox.X+cursorBox.CursorCol)\n")
+	buf.WriteString("\t\t} else {\n")
+	buf.WriteString("\t\t\trender.HideCursor(os.Stdout)\n")
+	buf.WriteString("\t\t}\n")
 }
 
 // writeStaticDoRender emits the doRender body for static documents (Pattern A).

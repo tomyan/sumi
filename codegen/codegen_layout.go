@@ -130,11 +130,15 @@ func hasExprParts(parts []template.Part) bool {
 }
 
 // writeBoxInput writes a layout.Input literal for a box element.
-// When ext is non-nil and the box has dynamic children, the box is extracted
-// as a named variable and its Children are rebuilt in sync.
+// When ext is non-nil and the box has dynamic children or cursor, the box is extracted
+// as a named variable for sync patching.
 func writeBoxInput(buf *bytes.Buffer, n *template.BoxElement, stylesheet *style.Stylesheet, indent int, tracker *instanceTracker, ext *extractionCtx) {
 	if ext != nil && hasDynamicChildren(n.Children) {
 		writeExtractedDynamicBox(buf, n, stylesheet, indent, tracker, ext)
+		return
+	}
+	if ext != nil && hasDynamicCursor(n.Attributes) {
+		writeExtractedCursorBox(buf, n, stylesheet, indent, tracker, ext)
 		return
 	}
 	tabs := indentStr(indent)
@@ -148,6 +152,60 @@ func writeBoxInput(buf *bytes.Buffer, n *template.BoxElement, stylesheet *style.
 	}
 	writeBoxChildren(buf, n.Children, stylesheet, indent, tabs, tracker, ext)
 	fmt.Fprintf(buf, "%s},\n", tabs)
+}
+
+// hasDynamicCursor returns true if cursor-x or cursor-y contains an expression.
+func hasDynamicCursor(attrs map[string]string) bool {
+	if v, ok := attrs["cursor-x"]; ok && isExprValue(v) {
+		return true
+	}
+	if v, ok := attrs["cursor-y"]; ok && isExprValue(v) {
+		return true
+	}
+	return false
+}
+
+// writeExtractedCursorBox extracts a box with dynamic cursor as a named variable.
+// Cursor fields are patched in sync.
+func writeExtractedCursorBox(treeBuf *bytes.Buffer, n *template.BoxElement, stylesheet *style.Stylesheet, indent int, tracker *instanceTracker, ext *extractionCtx) {
+	tabs := indentStr(indent)
+	name := ext.nextBoxName()
+	props := resolveProps(stylesheet, "box", n.Attributes)
+
+	// Write declaration to declBuf (at function scope)
+	fmt.Fprintf(&ext.declBuf, "\t%s := &layout.Input{\n", name)
+	fmt.Fprintf(&ext.declBuf, "\t\tKind: layout.KindBox,\n")
+	writeBoxAttributes(&ext.declBuf, "\t", n.Attributes, props)
+	if props != nil {
+		writeStyleLiteral(&ext.declBuf, "\t", props)
+	}
+
+	// Write children inline in the declaration
+	if len(n.Children) > 0 {
+		fmt.Fprintf(&ext.declBuf, "\t\tChildren: []*layout.Input{\n")
+		for _, child := range n.Children {
+			writeInputNode(&ext.declBuf, child, stylesheet, 3, tracker, ext)
+		}
+		fmt.Fprintf(&ext.declBuf, "\t\t},\n")
+	}
+	fmt.Fprintf(&ext.declBuf, "\t}\n")
+
+	// Write cursor sync entries
+	ext.hasCursor = true
+	writeCursorSync(&ext.syncBuf, name, n.Attributes)
+
+	// Write reference in tree
+	fmt.Fprintf(treeBuf, "%s%s,\n", tabs, name)
+}
+
+// writeCursorSync writes CursorCol/CursorRow assignments to the sync buffer.
+func writeCursorSync(buf *bytes.Buffer, name string, attrs map[string]string) {
+	if v, ok := attrs["cursor-x"]; ok && isExprValue(v) {
+		fmt.Fprintf(buf, "\t\t%s.CursorCol = %s\n", name, extractExprValue(v))
+	}
+	if v, ok := attrs["cursor-y"]; ok && isExprValue(v) {
+		fmt.Fprintf(buf, "\t\t%s.CursorRow = %s\n", name, extractExprValue(v))
+	}
 }
 
 // writeExtractedDynamicBox extracts a box with dynamic children as a named variable.
@@ -225,6 +283,44 @@ func writeBoxAttributes(buf *bytes.Buffer, tabs string, attrs map[string]string,
 	if f, ok := mergedAttr(attrs, props, "focusable"); ok && f == "true" {
 		fmt.Fprintf(buf, "%s\tFocusable: true,\n", tabs)
 	}
+	writeCursorAttr(buf, tabs, attrs, props)
+}
+
+// writeCursorAttr writes CursorCol and CursorRow fields.
+// Defaults to -1 (no cursor). Static integers are emitted directly.
+// Dynamic expressions like "{cursor}" emit the bare expression.
+func writeCursorAttr(buf *bytes.Buffer, tabs string, attrs, props map[string]string) {
+	cx := resolveCursorValue(attrs, props, "cursor-x", "CursorCol")
+	cy := resolveCursorValue(attrs, props, "cursor-y", "CursorRow")
+	fmt.Fprintf(buf, "%s\tCursorCol: %s,\n", tabs, cx)
+	fmt.Fprintf(buf, "%s\tCursorRow: %s,\n", tabs, cy)
+}
+
+// resolveCursorValue returns the Go expression for a cursor attribute.
+// Returns "-1" if not set. Static integers are returned as-is.
+// Expression values like "{expr}" return just "expr".
+func resolveCursorValue(attrs, props map[string]string, attrKey, fieldName string) string {
+	val, ok := mergedAttr(attrs, props, attrKey)
+	if !ok {
+		return "-1"
+	}
+	if isExprValue(val) {
+		return extractExprValue(val)
+	}
+	if _, err := strconv.Atoi(val); err == nil {
+		return val
+	}
+	return "-1"
+}
+
+// isExprValue returns true if the value is a dynamic expression like "{cursor}".
+func isExprValue(val string) bool {
+	return len(val) > 2 && val[0] == '{' && val[len(val)-1] == '}'
+}
+
+// extractExprValue extracts the expression from "{expr}" → "expr".
+func extractExprValue(val string) string {
+	return val[1 : len(val)-1]
 }
 
 // writeIntAttr writes an integer attribute field if present and parseable.
