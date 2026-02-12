@@ -126,11 +126,3 @@ func writeChildHandleKeyEvent(buf *bytes.Buffer, instances []componentInstance) 
 	}
 }
 
-// writeEnvUpdate writes env variable updates on resize.
-func writeEnvUpdate(buf *bytes.Buffer, sc *script.Script) {
-	if sc == nil || len(sc.EnvDecls) == 0 {
-		return
-	}
-	wName, hName := envVarNames(sc.EnvDecls)
-	fmt.Fprintf(buf, "\t\t\t%s, %s = term.GetSize(int(os.Stdin.Fd()))\n", wName, hName)
-}

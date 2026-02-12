@@ -10,8 +10,8 @@ import (
 	"github.com/tomyan/sumi/parser/template"
 )
 
-func TestGenerateWithTitleEmitsOSC(t *testing.T) {
-	// Given — a document with a <title> element
+func TestGenerateWithStaticTitleNoOSCInDoRender(t *testing.T) {
+	// Given — a document with a static <title> element
 	doc := &template.Document{
 		Children: []template.Node{
 			&template.TitleElement{Parts: []template.Part{
@@ -29,13 +29,16 @@ func TestGenerateWithTitleEmitsOSC(t *testing.T) {
 	// When
 	out, err := Generate(doc, sc, nil, Options{PackageName: "main"})
 
-	// Then
+	// Then — static titles use App.Title, no OSC in generated doRender
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 	src := string(out)
-	if !strings.Contains(src, `\033]2;`) {
-		t.Errorf("expected OSC title escape sequence in output:\n%s", src)
+	if !strings.Contains(src, `Title:`) {
+		t.Errorf("expected Title field on App struct:\n%s", src)
+	}
+	if strings.Contains(src, `\033]2;`) {
+		t.Errorf("static title should not emit OSC in doRender:\n%s", src)
 	}
 }
 

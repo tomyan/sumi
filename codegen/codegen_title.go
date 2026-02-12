@@ -29,16 +29,13 @@ func buildStaticTitleString(title *template.TitleElement) string {
 }
 
 // writeTitleSet writes the OSC escape sequence to set the terminal title.
-// Called inside doRender so the title updates when state changes.
+// Called inside doRender for dynamic titles that update when state changes.
+// Static titles are handled by App.Title, so only dynamic titles emit here.
 func writeTitleSet(buf *bytes.Buffer, title *template.TitleElement) {
-	if title == nil {
+	if title == nil || isStaticTitle(title) {
 		return
 	}
-	if isStaticTitle(title) {
-		writeStaticTitle(buf, title)
-	} else {
-		writeDynamicTitle(buf, title)
-	}
+	writeDynamicTitle(buf, title)
 }
 
 // isStaticTitle returns true if all parts are StringParts.
@@ -49,17 +46,6 @@ func isStaticTitle(title *template.TitleElement) bool {
 		}
 	}
 	return true
-}
-
-// writeStaticTitle writes an OSC title set with a static string.
-func writeStaticTitle(buf *bytes.Buffer, title *template.TitleElement) {
-	var content string
-	for _, part := range title.Parts {
-		if sp, ok := part.(*template.StringPart); ok {
-			content += sp.Value
-		}
-	}
-	fmt.Fprintf(buf, "\t\tfmt.Fprint(os.Stdout, \"\\033]2;%s\\007\")\n", content)
 }
 
 // writeDynamicTitle writes an OSC title set using fmt.Fprintf for expressions.
