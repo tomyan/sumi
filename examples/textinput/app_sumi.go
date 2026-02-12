@@ -485,14 +485,14 @@ func Run() {
 	}
 	textinput0_node3 := &layout.Input{
 		Kind:    layout.KindText,
-		Content: fmt.Sprintf("%v", textinput0_scrollLeftArrow()),
+		Content: fmt.Sprintf("%v", textinput0_scrollSpacer()),
 		Style: render.Style{
 			Dim: true,
 		},
 	}
 	textinput0_node4 := &layout.Input{
 		Kind:    layout.KindText,
-		Content: fmt.Sprintf("%v", textinput0_scrollSpacer()),
+		Content: fmt.Sprintf("%v", textinput0_scrollLeftArrow()),
 		Style: render.Style{
 			Dim: true,
 		},
@@ -506,14 +506,14 @@ func Run() {
 	}
 	textinput0_node6 := &layout.Input{
 		Kind:    layout.KindText,
-		Content: fmt.Sprintf("%v", textinput0_scrollSpacer()),
+		Content: fmt.Sprintf("%v", textinput0_scrollRightArrow()),
 		Style: render.Style{
 			Dim: true,
 		},
 	}
 	textinput0_node7 := &layout.Input{
 		Kind:    layout.KindText,
-		Content: fmt.Sprintf("%v", textinput0_scrollRightArrow()),
+		Content: fmt.Sprintf("%v", textinput0_scrollSpacer()),
 		Style: render.Style{
 			Dim: true,
 		},
@@ -613,11 +613,11 @@ func Run() {
 		textinput0_node0.Content = fmt.Sprintf("%v", textinput0_leftIndicator())
 		textinput0_node1.Content = fmt.Sprintf("%v", textinput0_visibleContent())
 		textinput0_node2.Content = fmt.Sprintf("%v", textinput0_rightIndicator())
-		textinput0_node3.Content = fmt.Sprintf("%v", textinput0_scrollLeftArrow())
-		textinput0_node4.Content = fmt.Sprintf("%v", textinput0_scrollSpacer())
+		textinput0_node3.Content = fmt.Sprintf("%v", textinput0_scrollSpacer())
+		textinput0_node4.Content = fmt.Sprintf("%v", textinput0_scrollLeftArrow())
 		textinput0_node5.Content = fmt.Sprintf("%v", textinput0_scrollTrack())
-		textinput0_node6.Content = fmt.Sprintf("%v", textinput0_scrollSpacer())
-		textinput0_node7.Content = fmt.Sprintf("%v", textinput0_scrollRightArrow())
+		textinput0_node6.Content = fmt.Sprintf("%v", textinput0_scrollRightArrow())
+		textinput0_node7.Content = fmt.Sprintf("%v", textinput0_scrollSpacer())
 		node0.Content = fmt.Sprintf("You typed: %v", name)
 		if focusIndex == 0 {
 			textinput0_box0.CursorCol = textinput0_cursor - textinput0_viewOffset + 2
@@ -696,16 +696,12 @@ func Run() {
 		OnEvent: func(evt input.Event) {
 			if evt.Kind == input.EventSpecial {
 				if evt.Special == input.KeyTab {
-					focusIndex = (focusIndex + 1) % focusCount
+					focusIndex = (focusIndex+2)%(focusCount+1) - 1
 					app.Dirty = true
 					return
 				}
 				if evt.Special == input.KeyShiftTab {
-					if focusIndex < 0 {
-						focusIndex = focusCount - 1
-					} else {
-						focusIndex = (focusIndex + focusCount - 1) % focusCount
-					}
+					focusIndex = (focusIndex+focusCount+1)%(focusCount+1) - 1
 					app.Dirty = true
 					return
 				}

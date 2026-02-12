@@ -257,6 +257,42 @@ func TestGenerateHasMouseWhenFocusableBoxes(t *testing.T) {
 	}
 }
 
+func TestGenerateTabCyclesToUnfocused(t *testing.T) {
+	// Given — a single focusable box; Tab should cycle: -1 → 0 → -1 → 0
+	doc := &template.Document{
+		Children: []template.Node{
+			&template.BoxElement{
+				Attributes: map[string]string{"focusable": "true", "onkey": "h1"},
+				Children:   []template.Node{textNode("A")},
+			},
+		},
+	}
+	sc := &script.Script{
+		StateDecls: []script.StateDecl{{Name: "x", InitExpr: "0"}},
+		FuncDecls: []script.FuncDecl{
+			{Name: "h1", Params: "evt input.Event", Body: "\n\tx = x + 1\n",
+				StateAssignments: []script.StateAssignment{{VarName: "x", Line: "x = x + 1"}}},
+		},
+	}
+
+	// When
+	out, err := Generate(doc, sc, nil, Options{PackageName: "main"})
+
+	// Then
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	assertValidGo(t, out)
+	src := string(out)
+
+	// Tab should wrap around through -1 (unfocused), not stay stuck at last index
+	// focusIndex goes: -1 → 0 → -1 → 0 ...
+	// This requires cycling over focusCount+1 positions and subtracting 1
+	if !strings.Contains(src, "focusIndex = (focusIndex+2)%(focusCount+1) - 1") {
+		t.Errorf("expected Tab to cycle through unfocused state:\n%s", src)
+	}
+}
+
 func TestGenerateNoFocusWhenNoFocusableBoxes(t *testing.T) {
 	// Given — no focusable boxes
 	doc := &template.Document{

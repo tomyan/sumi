@@ -140,19 +140,15 @@ func writeSuppressFocusVars(buf *bytes.Buffer, focusHandlers []focusableHandler)
 func writeFocusDispatch(buf *bytes.Buffer, focusHandlers []focusableHandler,
 	bubblingHandlers []string, eventAware map[string]bool) {
 
-	// Tab cycling
+	// Tab cycling — includes -1 (unfocused) as a valid position
 	buf.WriteString("\t\t\tif evt.Kind == input.EventSpecial {\n")
 	buf.WriteString("\t\t\t\tif evt.Special == input.KeyTab {\n")
-	buf.WriteString("\t\t\t\t\tfocusIndex = (focusIndex + 1) % focusCount\n")
+	buf.WriteString("\t\t\t\t\tfocusIndex = (focusIndex + 2) % (focusCount + 1) - 1\n")
 	buf.WriteString("\t\t\t\t\tapp.Dirty = true\n")
 	buf.WriteString("\t\t\t\t\treturn\n")
 	buf.WriteString("\t\t\t\t}\n")
 	buf.WriteString("\t\t\t\tif evt.Special == input.KeyShiftTab {\n")
-	buf.WriteString("\t\t\t\t\tif focusIndex < 0 {\n")
-	buf.WriteString("\t\t\t\t\t\tfocusIndex = focusCount - 1\n")
-	buf.WriteString("\t\t\t\t\t} else {\n")
-	buf.WriteString("\t\t\t\t\t\tfocusIndex = (focusIndex + focusCount - 1) % focusCount\n")
-	buf.WriteString("\t\t\t\t\t}\n")
+	buf.WriteString("\t\t\t\t\tfocusIndex = (focusIndex + focusCount + 1) % (focusCount + 1) - 1\n")
 	buf.WriteString("\t\t\t\t\tapp.Dirty = true\n")
 	buf.WriteString("\t\t\t\t\treturn\n")
 	buf.WriteString("\t\t\t\t}\n")

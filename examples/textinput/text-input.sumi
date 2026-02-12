@@ -436,10 +436,10 @@ func handleEvent(evt input.Event) {
         <text>]</text>
     </box>
     <box direction="row">
+        <text class="scrollbar">{scrollSpacer()}</text>
         <text class="arrow">{scrollLeftArrow()}</text>
-        <text class="scrollbar">{scrollSpacer()}</text>
         <text class="scrollbar">{scrollTrack()}</text>
-        <text class="scrollbar">{scrollSpacer()}</text>
         <text class="arrow">{scrollRightArrow()}</text>
+        <text class="scrollbar">{scrollSpacer()}</text>
     </box>
 </box>
