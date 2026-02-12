@@ -176,7 +176,7 @@ func TestGenerateParentSingleDirtyFlag(t *testing.T) {
 		Components:  inlinableCounter(),
 	})
 
-	// Then a single dirty flag is used (no Dirty() polling)
+	// Then a single dirty flag via app.Dirty (no Dirty() polling)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -184,8 +184,8 @@ func TestGenerateParentSingleDirtyFlag(t *testing.T) {
 	if strings.Contains(src, ".Dirty()") {
 		t.Errorf("should not have .Dirty() polling:\n%s", src)
 	}
-	if !strings.Contains(src, "if dirty {") {
-		t.Errorf("expected simple dirty check:\n%s", src)
+	if !strings.Contains(src, "app.Dirty = true") {
+		t.Errorf("expected app.Dirty = true in output:\n%s", src)
 	}
 }
 
@@ -206,13 +206,13 @@ func TestGenerateParentWithoutScriptUsesReactive(t *testing.T) {
 		Components:  inlinableCounter(),
 	})
 
-	// Then reactive code (event loop) is generated, not static
+	// Then reactive code (tui.App with OnEvent) is generated, not static
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 	src := string(out)
-	if !strings.Contains(src, "input.ReadEvent") {
-		t.Errorf("expected input.ReadEvent (reactive mode) in output:\n%s", src)
+	if !strings.Contains(src, "OnEvent:") {
+		t.Errorf("expected OnEvent in reactive mode output:\n%s", src)
 	}
 }
 

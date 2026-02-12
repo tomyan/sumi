@@ -69,7 +69,7 @@ func TestGenerateWithTitleExpressionUsesFormatting(t *testing.T) {
 	}
 }
 
-func TestGenerateWithTitleRestoresOnExit(t *testing.T) {
+func TestGenerateWithStaticTitleSetsAppTitle(t *testing.T) {
 	// Given
 	doc := &template.Document{
 		Children: []template.Node{
@@ -93,12 +93,12 @@ func TestGenerateWithTitleRestoresOnExit(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 	src := string(out)
-	// Should save and restore title using xterm stack sequences
-	if !strings.Contains(src, `\033[22;2t`) {
-		t.Errorf("expected title save sequence in output:\n%s", src)
+	// Title save/restore is now handled by the App runtime via the Title field
+	if !strings.Contains(src, `Title:`) {
+		t.Errorf("expected Title field on App struct:\n%s", src)
 	}
-	if !strings.Contains(src, `\033[23;2t`) {
-		t.Errorf("expected title restore sequence in output:\n%s", src)
+	if !strings.Contains(src, `"My App"`) {
+		t.Errorf("expected title string in output:\n%s", src)
 	}
 }
 

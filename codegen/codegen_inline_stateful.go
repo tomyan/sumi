@@ -70,7 +70,7 @@ func writeNamespacedFuncBody(buf *bytes.Buffer, funcDecl script.FuncDecl, prefix
 		namespaced := namespaceAssignment(trimmed, funcDecl.StateAssignments, prefix)
 		fmt.Fprintf(buf, "\t\t%s\n", namespaced)
 		if stateLines[trimmed] {
-			buf.WriteString("\t\tdirty = true\n")
+			buf.WriteString("\t\tapp.Dirty = true\n")
 		}
 	}
 }

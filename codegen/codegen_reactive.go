@@ -10,13 +10,14 @@ import (
 	"github.com/tomyan/sumi/parser/template"
 )
 
-// writeReactiveBody generates the reactive function body with event loop.
+// writeReactiveBody generates the reactive function body with tui.App event loop.
 func writeReactiveBody(buf *bytes.Buffer, doc *template.Document, sc *script.Script, stylesheet *style.Stylesheet, instances []componentInstance) {
 	scrollBoxes := findAllScrollableBoxes(doc, stylesheet)
 	title := findTitleElement(doc)
 	inlined := collectInlinedStateful(instances)
 	writeComponentInits(buf, instances)
-	writeStateOrDirtyOnly(buf, sc)
+	writeStateAndEnvDecls(buf, sc)
+	writeAppDecl(buf)
 	writeInlinedStateDecls(buf, inlined)
 	writeScrollStateDecls(buf, scrollBoxes)
 	writeFuncClosures(buf, sc)
@@ -27,19 +28,17 @@ func writeReactiveBody(buf *bytes.Buffer, doc *template.Document, sc *script.Scr
 	writeRenderClosure(buf, doc, stylesheet, instances, scrollBoxes, title)
 	writeSuppressUnusedFuncs(buf, doc, sc)
 	writeSuppressInlinedFuncs(buf, inlined)
-	writeTerminalSetup(buf, title, len(scrollBoxes) > 0)
-	writeEventLoop(buf, doc, sc, instances, scrollBoxes, inlined)
+	writeAppRun(buf, doc, sc, instances, scrollBoxes, inlined, title)
 }
 
-// writeStateOrDirtyOnly writes state decls and env decls if present, then the dirty flag.
-func writeStateOrDirtyOnly(buf *bytes.Buffer, sc *script.Script) {
+// writeStateAndEnvDecls writes state and env variable declarations (no dirty flag).
+func writeStateAndEnvDecls(buf *bytes.Buffer, sc *script.Script) {
 	if sc != nil && len(sc.StateDecls) > 0 {
 		writeStateDecls(buf, sc.StateDecls)
 	}
 	if sc != nil && len(sc.EnvDecls) > 0 {
 		writeEnvDecls(buf, sc.EnvDecls)
 	}
-	buf.WriteString("\tdirty := true\n")
 }
 
 // writeFuncClosures writes function closure declarations if present.
@@ -98,7 +97,7 @@ func envVarNames(envDecls []script.EnvDecl) (widthName, heightName string) {
 	return
 }
 
-// writeReactiveFuncBody writes a function body, adding dirty=true after each state assignment.
+// writeReactiveFuncBody writes a function body, adding app.Dirty=true after each state assignment.
 func writeReactiveFuncBody(buf *bytes.Buffer, funcDecl script.FuncDecl) {
 	stateLines := buildStateLinesSet(funcDecl.StateAssignments)
 	for _, line := range strings.Split(funcDecl.Body, "\n") {
@@ -108,7 +107,7 @@ func writeReactiveFuncBody(buf *bytes.Buffer, funcDecl script.FuncDecl) {
 		}
 		fmt.Fprintf(buf, "\t\t%s\n", trimmed)
 		if stateLines[trimmed] {
-			buf.WriteString("\t\tdirty = true\n")
+			buf.WriteString("\t\tapp.Dirty = true\n")
 		}
 	}
 }

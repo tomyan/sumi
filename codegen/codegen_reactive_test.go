@@ -10,26 +10,63 @@ import (
 	"github.com/tomyan/sumi/parser/template"
 )
 
-func TestGenerateWithNilScriptUsesEventLoop(t *testing.T) {
+func TestGenerateReactiveUsesApp(t *testing.T) {
 	// Given
 	doc := &template.Document{
 		Children: []template.Node{textNode("Hello")},
 	}
+	sc := &script.Script{
+		StateDecls: []script.StateDecl{
+			{Name: "count", InitExpr: "0"},
+		},
+	}
 
 	// When
-	out, err := Generate(doc, nil, nil, Options{PackageName: "main"})
+	out, err := Generate(doc, sc, nil, Options{PackageName: "main"})
 
 	// Then
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 	src := string(out)
-	// Static mode now uses event loop for resize + quit support
-	if !strings.Contains(src, "input.ReadEvent") {
-		t.Errorf("expected input.ReadEvent in static mode output:\n%s", src)
+	if !strings.Contains(src, "tui.App") {
+		t.Errorf("expected tui.App in reactive output:\n%s", src)
 	}
-	if !strings.Contains(src, "term.WatchResize") {
-		t.Errorf("expected term.WatchResize in static mode output:\n%s", src)
+	if !strings.Contains(src, "app.Run()") {
+		t.Errorf("expected app.Run() in reactive output:\n%s", src)
+	}
+}
+
+func TestGenerateReactiveNoInlineEventLoop(t *testing.T) {
+	// Given
+	doc := &template.Document{
+		Children: []template.Node{textNode("Hello")},
+	}
+	sc := &script.Script{
+		StateDecls: []script.StateDecl{
+			{Name: "count", InitExpr: "0"},
+		},
+	}
+
+	// When
+	out, err := Generate(doc, sc, nil, Options{PackageName: "main"})
+
+	// Then
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	src := string(out)
+	if strings.Contains(src, "select {") {
+		t.Errorf("should not have inline select in output:\n%s", src)
+	}
+	if strings.Contains(src, "chan input.Event") {
+		t.Errorf("should not have event channel in output:\n%s", src)
+	}
+	if strings.Contains(src, "input.EnableRawMode") {
+		t.Errorf("should not have EnableRawMode in output:\n%s", src)
+	}
+	if strings.Contains(src, "evt.Rune == 'q'") {
+		t.Errorf("should not have hardcoded 'q' quit:\n%s", src)
 	}
 }
 
@@ -58,11 +95,7 @@ func TestGenerateWithStateDeclaration(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	fset := token.NewFileSet()
-	_, parseErr := parser.ParseFile(fset, "generated.go", out, parser.AllErrors)
-	if parseErr != nil {
-		t.Fatalf("generated code is not valid Go:\n%s\n\nerror: %v", string(out), parseErr)
-	}
+	assertValidGo(t, out)
 	src := string(out)
 	if !strings.Contains(src, "count := 0") {
 		t.Errorf("expected state variable declaration in output:\n%s", src)
@@ -103,60 +136,6 @@ func TestGenerateWithExpressionUsesFmtSprintf(t *testing.T) {
 	}
 }
 
-func TestGenerateUsesReadEvent(t *testing.T) {
-	// Given
-	doc := &template.Document{
-		Children: []template.Node{textNode("Hello")},
-	}
-	sc := &script.Script{
-		StateDecls: []script.StateDecl{
-			{Name: "count", InitExpr: "0"},
-		},
-	}
-
-	// When
-	out, err := Generate(doc, sc, nil, Options{PackageName: "main"})
-
-	// Then
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-	src := string(out)
-	if !strings.Contains(src, "input.ReadEvent") {
-		t.Errorf("expected input.ReadEvent in reactive mode output:\n%s", src)
-	}
-	if !strings.Contains(src, "input.EnableRawMode") {
-		t.Errorf("expected input.EnableRawMode in reactive mode output:\n%s", src)
-	}
-	if !strings.Contains(src, `"github.com/tomyan/sumi/runtime/input"`) {
-		t.Errorf("expected runtime/input import in output:\n%s", src)
-	}
-}
-
-func TestGenerateEventChannelType(t *testing.T) {
-	// Given
-	doc := &template.Document{
-		Children: []template.Node{textNode("Hello")},
-	}
-	sc := &script.Script{
-		StateDecls: []script.StateDecl{
-			{Name: "count", InitExpr: "0"},
-		},
-	}
-
-	// When
-	out, err := Generate(doc, sc, nil, Options{PackageName: "main"})
-
-	// Then
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-	src := string(out)
-	if !strings.Contains(src, "chan input.Event") {
-		t.Errorf("expected chan input.Event in output:\n%s", src)
-	}
-}
-
 func TestGenerateOnkeyStillFiresOnEventKey(t *testing.T) {
 	// Given
 	doc := &template.Document{
@@ -184,11 +163,7 @@ func TestGenerateOnkeyStillFiresOnEventKey(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	fset := token.NewFileSet()
-	_, parseErr := parser.ParseFile(fset, "generated.go", out, parser.AllErrors)
-	if parseErr != nil {
-		t.Fatalf("generated code is not valid Go:\n%s\n\nerror: %v", string(out), parseErr)
-	}
+	assertValidGo(t, out)
 	src := string(out)
 	if !strings.Contains(src, "handleKey()") {
 		t.Errorf("expected handleKey() call in event handler:\n%s", src)
@@ -228,18 +203,14 @@ func TestGenerateWithOnkeyHandler(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	fset := token.NewFileSet()
-	_, parseErr := parser.ParseFile(fset, "generated.go", out, parser.AllErrors)
-	if parseErr != nil {
-		t.Fatalf("generated code is not valid Go:\n%s\n\nerror: %v", string(out), parseErr)
-	}
+	assertValidGo(t, out)
 	src := string(out)
 	if !strings.Contains(src, "increment()") {
 		t.Errorf("expected increment() call in event loop:\n%s", src)
 	}
 }
 
-func TestGenerateWithFunctionSetsDirecty(t *testing.T) {
+func TestGenerateWithFunctionSetsAppDirty(t *testing.T) {
 	// Given
 	doc := &template.Document{
 		Children: []template.Node{textNode("Hello")},
@@ -268,8 +239,8 @@ func TestGenerateWithFunctionSetsDirecty(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 	src := string(out)
-	if !strings.Contains(src, "dirty = true") {
-		t.Errorf("expected dirty = true in function body:\n%s", src)
+	if !strings.Contains(src, "app.Dirty = true") {
+		t.Errorf("expected app.Dirty = true in function body:\n%s", src)
 	}
 }
 
@@ -325,38 +296,6 @@ func TestGenerateStaticUsesTermGetSize(t *testing.T) {
 	}
 }
 
-func TestGenerateReactiveEventLoopUsesSelect(t *testing.T) {
-	// Given a reactive document
-	doc := &template.Document{
-		Children: []template.Node{textNode("Hello")},
-	}
-	sc := &script.Script{
-		StateDecls: []script.StateDecl{
-			{Name: "count", InitExpr: "0"},
-		},
-	}
-
-	// When
-	out, err := Generate(doc, sc, nil, Options{PackageName: "main"})
-
-	// Then generated code should use select-based event loop with resize channel
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-	fset := token.NewFileSet()
-	_, parseErr := parser.ParseFile(fset, "generated.go", out, parser.AllErrors)
-	if parseErr != nil {
-		t.Fatalf("generated code is not valid Go:\n%s\n\nerror: %v", string(out), parseErr)
-	}
-	src := string(out)
-	if !strings.Contains(src, "term.WatchResize") {
-		t.Errorf("expected term.WatchResize in output:\n%s", src)
-	}
-	if !strings.Contains(src, "select {") {
-		t.Errorf("expected select statement in event loop:\n%s", src)
-	}
-}
-
 func TestGenerateWithEnvDeclsIsReactive(t *testing.T) {
 	// Given: only env decls, no state — should still be reactive
 	doc := &template.Document{
@@ -385,21 +324,17 @@ func TestGenerateWithEnvDeclsIsReactive(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	fset := token.NewFileSet()
-	_, parseErr := parser.ParseFile(fset, "generated.go", out, parser.AllErrors)
-	if parseErr != nil {
-		t.Fatalf("generated code is not valid Go:\n%s\n\nerror: %v", string(out), parseErr)
-	}
+	assertValidGo(t, out)
 	src := string(out)
-	// Should be reactive (has select-based event loop)
-	if !strings.Contains(src, "select {") {
-		t.Errorf("expected select-based event loop:\n%s", src)
+	// Should use tui.App
+	if !strings.Contains(src, "tui.App") {
+		t.Errorf("expected tui.App in output:\n%s", src)
 	}
 	// Env vars should be initialized
 	if !strings.Contains(src, "width, height := term.GetSize") {
 		t.Errorf("expected width, height := term.GetSize in output:\n%s", src)
 	}
-	// On resize: env vars should be updated
+	// On resize: env vars should be updated via OnResize
 	if !strings.Contains(src, "width, height = term.GetSize") {
 		t.Errorf("expected width, height = term.GetSize on resize:\n%s", src)
 	}
@@ -459,11 +394,7 @@ func TestGenerateReactiveUsesSurgicalRendering(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	fset := token.NewFileSet()
-	_, parseErr := parser.ParseFile(fset, "generated.go", out, parser.AllErrors)
-	if parseErr != nil {
-		t.Fatalf("generated code is not valid Go:\n%s\n\nerror: %v", string(out), parseErr)
-	}
+	assertValidGo(t, out)
 	src := string(out)
 	if !strings.Contains(src, "prevTree") {
 		t.Errorf("expected prevTree variable in output:\n%s", src)
@@ -514,11 +445,7 @@ func TestGenerateMultipleStateVarsAndFunctions(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	fset := token.NewFileSet()
-	_, parseErr := parser.ParseFile(fset, "generated.go", out, parser.AllErrors)
-	if parseErr != nil {
-		t.Fatalf("generated code is not valid Go:\n%s\n\nerror: %v", string(out), parseErr)
-	}
+	assertValidGo(t, out)
 	src := string(out)
 	if !strings.Contains(src, "x := 0") {
 		t.Errorf("expected x := 0 in output:\n%s", src)

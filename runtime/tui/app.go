@@ -14,16 +14,21 @@ import (
 // App owns the terminal event loop for a Sumi application.
 // Generated code builds the tree, defines handlers, and calls app.Run().
 type App struct {
-	OnRender func()            // called to perform a render
-	OnEvent  func(input.Event) // called for each input event
-	OnResize func()            // called on terminal resize
-	HasMouse bool              // enable SGR mouse mode
-	Title    string            // terminal title (saved/restored around Run)
-	Dirty    bool              // set by handlers to trigger re-render
+	OnRender  func()            // called to perform a render
+	OnEvent   func(input.Event) // called for each input event
+	OnResize  func()            // called on terminal resize
+	HasMouse  bool              // enable SGR mouse mode
+	Title     string            // static terminal title (saved/set/restored around Run)
+	SaveTitle bool              // save/restore terminal title only (for dynamic titles set in doRender)
+	Dirty     bool              // set by handlers to trigger re-render
 }
 
 // Run sets up the terminal, starts the event reader, and runs the event loop.
 func (a *App) Run() {
+	if a.Title != "" || a.SaveTitle {
+		fmt.Fprint(os.Stdout, "\033[22;2t") // save current title
+	}
+
 	restore, _ := input.EnableRawMode(int(os.Stdin.Fd()))
 	defer restore()
 	render.EnterAlternateScreen(os.Stdout)
@@ -34,9 +39,10 @@ func (a *App) Run() {
 		defer fmt.Fprint(os.Stdout, input.MouseDisableSeq)
 	}
 
+	if a.Title != "" || a.SaveTitle {
+		defer fmt.Fprint(os.Stdout, "\033[23;2t") // restore title
+	}
 	if a.Title != "" {
-		fmt.Fprint(os.Stdout, "\033[22;2t")
-		defer fmt.Fprint(os.Stdout, "\033[23;2t")
 		fmt.Fprintf(os.Stdout, "\033]2;%s\007", a.Title)
 	}
 

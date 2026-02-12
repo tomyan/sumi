@@ -102,7 +102,6 @@ func writeStaticDoRender(buf *bytes.Buffer, title *template.TitleElement) {
 	buf.WriteString("\t\ttermW, termH := term.GetSize(int(os.Stdin.Fd()))\n")
 	// No-op skip: nothing changed and no resize
 	buf.WriteString("\t\tif prevTree != nil && len(changed) == 0 && termW == prevW && termH == prevH {\n")
-	buf.WriteString("\t\t\tdirty = false\n")
 	buf.WriteString("\t\t\treturn\n")
 	buf.WriteString("\t\t}\n")
 	// Direct-write fast path: same-length text changes without relayout
@@ -124,7 +123,6 @@ func writeDirectWriteFastPath(buf *bytes.Buffer) {
 	buf.WriteString("\t\t\t\tbox.Content = inp.Content\n")
 	buf.WriteString("\t\t\t}\n")
 	buf.WriteString("\t\t\tif allDirect {\n")
-	buf.WriteString("\t\t\t\tdirty = false\n")
 	buf.WriteString("\t\t\t\treturn\n")
 	buf.WriteString("\t\t\t}\n")
 	buf.WriteString("\t\t}\n")
@@ -155,7 +153,6 @@ func writeFullLayoutBody(buf *bytes.Buffer, scrollBoxes []scrollableBox, title *
 	buf.WriteString("\t\tprevTree = tree\n")
 	buf.WriteString("\t\tprevW = termW\n")
 	buf.WriteString("\t\tprevH = termH\n")
-	buf.WriteString("\t\tdirty = false\n")
 }
 
 // writeFullLayoutAndDiff emits the full layout path for static documents
@@ -176,5 +173,4 @@ func writeFullLayoutAndDiff(buf *bytes.Buffer, title *template.TitleElement) {
 	buf.WriteString("\t\tprevTree = tree\n")
 	buf.WriteString("\t\tprevW = termW\n")
 	buf.WriteString("\t\tprevH = termH\n")
-	buf.WriteString("\t\tdirty = false\n")
 }

@@ -122,9 +122,9 @@ func TestInlineStatefulChildHandler(t *testing.T) {
 		t.Errorf("expected namespaced state in handler body:\n%s", src)
 	}
 
-	// Handler should set dirty flag
-	if !strings.Contains(src, "dirty = true") {
-		t.Errorf("expected dirty = true in handler:\n%s", src)
+	// Handler should set dirty flag via app
+	if !strings.Contains(src, "app.Dirty = true") {
+		t.Errorf("expected app.Dirty = true in handler:\n%s", src)
 	}
 
 	assertValidGo(t, out)
@@ -181,7 +181,7 @@ func TestInlineStatefulNoDirtyPolling(t *testing.T) {
 		Components:  map[string]*ComponentInfo{"counter": counterComponentInfo()},
 	})
 
-	// Then no Dirty() polling should exist — single dirty flag
+	// Then no Dirty() polling should exist — app.Dirty used instead
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -190,9 +190,9 @@ func TestInlineStatefulNoDirtyPolling(t *testing.T) {
 		t.Errorf("should not have Dirty() polling:\n%s", src)
 	}
 
-	// Dirty check should be simple "if dirty {"
-	if !strings.Contains(src, "if dirty {") {
-		t.Errorf("expected simple dirty check:\n%s", src)
+	// Dirty flag should use app.Dirty
+	if !strings.Contains(src, "app.Dirty = true") {
+		t.Errorf("expected app.Dirty = true in output:\n%s", src)
 	}
 
 	assertValidGo(t, out)

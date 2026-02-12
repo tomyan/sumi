@@ -17,20 +17,15 @@ func findTitleElement(doc *template.Document) *template.TitleElement {
 	return nil
 }
 
-// writeTitleSave writes the xterm title save sequence if a title element exists.
-func writeTitleSave(buf *bytes.Buffer, title *template.TitleElement) {
-	if title == nil {
-		return
+// buildStaticTitleString returns the concatenated string content of a static title.
+func buildStaticTitleString(title *template.TitleElement) string {
+	var content string
+	for _, part := range title.Parts {
+		if sp, ok := part.(*template.StringPart); ok {
+			content += sp.Value
+		}
 	}
-	buf.WriteString("\tfmt.Fprint(os.Stdout, \"\\033[22;2t\")\n")
-}
-
-// writeTitleRestore writes a deferred xterm title restore sequence.
-func writeTitleRestore(buf *bytes.Buffer, title *template.TitleElement) {
-	if title == nil {
-		return
-	}
-	buf.WriteString("\tdefer fmt.Fprint(os.Stdout, \"\\033[23;2t\")\n")
+	return content
 }
 
 // writeTitleSet writes the OSC escape sequence to set the terminal title.
