@@ -454,3 +454,134 @@ func TestGenerateMultipleStateVarsAndFunctions(t *testing.T) {
 		t.Errorf("expected y := 0 in output:\n%s", src)
 	}
 }
+
+func TestGenerateZeroArgHandlerGetsAutoQuit(t *testing.T) {
+	// Given — a zero-arg handler should get auto-quit for backward compat
+	doc := &template.Document{
+		Children: []template.Node{
+			&template.BoxElement{
+				Attributes: map[string]string{"onkey": "handleKey"},
+				Children:   []template.Node{textNode("Hello")},
+			},
+		},
+	}
+	sc := &script.Script{
+		StateDecls: []script.StateDecl{
+			{Name: "count", InitExpr: "0"},
+		},
+		FuncDecls: []script.FuncDecl{
+			{Name: "handleKey", Params: "", Body: "\n\tcount = count + 1\n",
+				StateAssignments: []script.StateAssignment{{VarName: "count", Line: "count = count + 1"}}},
+		},
+	}
+
+	// When
+	out, err := Generate(doc, sc, nil, Options{PackageName: "main"})
+
+	// Then
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	assertValidGo(t, out)
+	src := string(out)
+	// Should include auto-quit for Ctrl+C and signals
+	if !strings.Contains(src, "app.Quit()") {
+		t.Errorf("expected app.Quit() in auto-quit:\n%s", src)
+	}
+	if !strings.Contains(src, "evt.Rune == 3") {
+		t.Errorf("expected Ctrl+C check in auto-quit:\n%s", src)
+	}
+	if !strings.Contains(src, "input.EventSignal") {
+		t.Errorf("expected EventSignal check in auto-quit:\n%s", src)
+	}
+	// Zero-arg handler should be called without evt
+	if !strings.Contains(src, "handleKey()") {
+		t.Errorf("expected handleKey() call (not handleKey(evt)):\n%s", src)
+	}
+}
+
+func TestGenerateEventAwareNoAutoQuit(t *testing.T) {
+	// Given — event-aware handler should NOT get auto-quit
+	doc := &template.Document{
+		Children: []template.Node{
+			&template.BoxElement{
+				Attributes: map[string]string{"onkey": "handleKey"},
+				Children:   []template.Node{textNode("Hello")},
+			},
+		},
+	}
+	sc := &script.Script{
+		StateDecls: []script.StateDecl{
+			{Name: "count", InitExpr: "0"},
+		},
+		FuncDecls: []script.FuncDecl{
+			{
+				Name:   "handleKey",
+				Params: "evt input.Event",
+				Body:   "\n\tcount = count + 1\n",
+				StateAssignments: []script.StateAssignment{
+					{VarName: "count", Line: "count = count + 1"},
+				},
+			},
+		},
+	}
+
+	// When
+	out, err := Generate(doc, sc, nil, Options{PackageName: "main"})
+
+	// Then
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	assertValidGo(t, out)
+	src := string(out)
+	// Should NOT have auto-quit
+	if strings.Contains(src, "evt.Rune == 3") {
+		t.Errorf("event-aware handler should not have auto Ctrl+C quit:\n%s", src)
+	}
+}
+
+func TestGenerateEventAwareClosure(t *testing.T) {
+	// Given — a function with params (event-aware handler)
+	doc := &template.Document{
+		Children: []template.Node{
+			&template.BoxElement{
+				Attributes: map[string]string{"onkey": "handleKey"},
+				Children:   []template.Node{textNode("Hello")},
+			},
+		},
+	}
+	sc := &script.Script{
+		StateDecls: []script.StateDecl{
+			{Name: "count", InitExpr: "0"},
+		},
+		FuncDecls: []script.FuncDecl{
+			{
+				Name:   "handleKey",
+				Params: "evt input.Event",
+				Body:   "\n\tcount = count + 1\n",
+				StateAssignments: []script.StateAssignment{
+					{VarName: "count", Line: "count = count + 1"},
+				},
+			},
+		},
+	}
+
+	// When
+	out, err := Generate(doc, sc, nil, Options{PackageName: "main"})
+
+	// Then
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	assertValidGo(t, out)
+	src := string(out)
+	// Should emit parameterized closure
+	if !strings.Contains(src, "func(evt input.Event)") {
+		t.Errorf("expected parameterized closure in output:\n%s", src)
+	}
+	// Should call handler with evt
+	if !strings.Contains(src, "handleKey(evt)") {
+		t.Errorf("expected handleKey(evt) call in event handler:\n%s", src)
+	}
+}

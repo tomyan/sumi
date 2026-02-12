@@ -301,6 +301,89 @@ func TestInlineStatefulMultipleInstances(t *testing.T) {
 	assertValidGo(t, out)
 }
 
+// eventAwareCounterComponentInfo builds a ComponentInfo with an event-aware handler.
+func eventAwareCounterComponentInfo() *ComponentInfo {
+	return &ComponentInfo{
+		Name:         "counter",
+		ExportedName: "Counter",
+		Props:        []string{"label"},
+		HasState:     true,
+		Doc: &template.Document{
+			Children: []template.Node{
+				&template.BoxElement{
+					Attributes: map[string]string{"onkey": "handleKey"},
+					Children: []template.Node{
+						&template.TextElement{
+							Parts: []template.Part{
+								&template.ExprPart{Expr: "label"},
+								&template.StringPart{Value: ": "},
+								&template.ExprPart{Expr: "count"},
+							},
+						},
+					},
+				},
+			},
+		},
+		Script: &script.Script{
+			PropDecls: []script.PropDecl{
+				{Name: "label", DefaultExpr: `"Count"`},
+			},
+			StateDecls: []script.StateDecl{
+				{Name: "count", InitExpr: "0"},
+			},
+			FuncDecls: []script.FuncDecl{
+				{
+					Name: "handleKey", Params: "evt input.Event", Body: "\n\tcount = count + 1\n",
+					StateAssignments: []script.StateAssignment{
+						{VarName: "count", Line: "count = count + 1"},
+					},
+				},
+			},
+		},
+	}
+}
+
+func TestInlineStatefulEventAwareClosure(t *testing.T) {
+	// Given a parent with an event-aware inlined component
+	doc := &template.Document{
+		Children: []template.Node{
+			&template.ComponentElement{
+				Name:       "counter",
+				Attributes: map[string]string{"label": "Clicks"},
+			},
+		},
+	}
+
+	// When generating with inlinable component info
+	out, err := Generate(doc, nil, nil, Options{
+		PackageName: "main",
+		Components:  map[string]*ComponentInfo{"counter": eventAwareCounterComponentInfo()},
+	})
+
+	// Then child handler should be event-aware
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	src := string(out)
+
+	// Namespaced closure with event parameter
+	if !strings.Contains(src, "counter0_handleKey := func(evt input.Event)") {
+		t.Errorf("expected parameterized inlined closure:\n%s", src)
+	}
+
+	// Event loop should call with evt, not as zero-arg
+	if !strings.Contains(src, "counter0_handleKey(evt)") {
+		t.Errorf("expected counter0_handleKey(evt) call:\n%s", src)
+	}
+
+	// No auto-quit since handler is event-aware
+	if strings.Contains(src, "evt.Rune == 3") {
+		t.Errorf("event-aware inlined handler should not have auto Ctrl+C quit:\n%s", src)
+	}
+
+	assertValidGo(t, out)
+}
+
 // assertValidGo checks that the output is valid Go source code.
 func assertValidGo(t *testing.T, out []byte) {
 	t.Helper()

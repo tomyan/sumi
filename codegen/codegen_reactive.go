@@ -51,7 +51,11 @@ func writeFuncClosures(buf *bytes.Buffer, sc *script.Script) {
 		return
 	}
 	for _, funcDecl := range sc.FuncDecls {
-		fmt.Fprintf(buf, "\t%s := func() {\n", funcDecl.Name)
+		if funcDecl.Params != "" {
+			fmt.Fprintf(buf, "\t%s := func(%s) {\n", funcDecl.Name, funcDecl.Params)
+		} else {
+			fmt.Fprintf(buf, "\t%s := func() {\n", funcDecl.Name)
+		}
 		writeReactiveFuncBody(buf, funcDecl)
 		buf.WriteString("\t}\n")
 	}

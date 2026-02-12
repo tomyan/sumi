@@ -69,7 +69,11 @@ func writeInlinedFuncClosures(buf *bytes.Buffer, inlined []inlinedStateful) {
 			continue
 		}
 		for _, fd := range sc.FuncDecls {
-			fmt.Fprintf(buf, "\t%s%s := func() {\n", is.Prefix, fd.Name)
+			if fd.Params != "" {
+				fmt.Fprintf(buf, "\t%s%s := func(%s) {\n", is.Prefix, fd.Name, fd.Params)
+			} else {
+				fmt.Fprintf(buf, "\t%s%s := func() {\n", is.Prefix, fd.Name)
+			}
 			writeNamespacedFuncBody(buf, fd, is.Prefix)
 			buf.WriteString("\t}\n")
 		}
@@ -125,16 +129,6 @@ func namespaceVarRef(s, varName, prefix string) string {
 		result = result[:len(result)-len(varName)] + prefix + varName
 	}
 	return result
-}
-
-// writeInlinedOnkeyDispatch writes inlined onkey handler calls in the event loop.
-func writeInlinedOnkeyDispatch(buf *bytes.Buffer, inlined []inlinedStateful) {
-	for _, is := range inlined {
-		onkey := findChildOnkeyHandler(is.Instance.Info.Doc)
-		if onkey != "" {
-			fmt.Fprintf(buf, "\t\t\t\t%s%s()\n", is.Prefix, onkey)
-		}
-	}
 }
 
 // findChildOnkeyHandler finds the onkey handler name from a child component's document.
