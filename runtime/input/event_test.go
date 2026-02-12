@@ -211,3 +211,60 @@ func TestReadEventShiftTab(t *testing.T) {
 		t.Errorf("Special = %q, want %q", ev.Special, KeyShiftTab)
 	}
 }
+
+func TestReadEventUTF8TwoByte(t *testing.T) {
+	// Given — "é" is a 2-byte UTF-8 character (0xC3 0xA9)
+	r := strings.NewReader("é")
+
+	// When
+	ev, err := ReadEvent(r)
+
+	// Then
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if ev.Kind != EventKey {
+		t.Errorf("Kind = %d, want EventKey", ev.Kind)
+	}
+	if ev.Rune != 'é' {
+		t.Errorf("Rune = %U, want %U ('é')", ev.Rune, 'é')
+	}
+}
+
+func TestReadEventUTF8ThreeByte(t *testing.T) {
+	// Given — "日" is a 3-byte UTF-8 character (0xE6 0x97 0xA5)
+	r := strings.NewReader("日")
+
+	// When
+	ev, err := ReadEvent(r)
+
+	// Then
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if ev.Kind != EventKey {
+		t.Errorf("Kind = %d, want EventKey", ev.Kind)
+	}
+	if ev.Rune != '日' {
+		t.Errorf("Rune = %U, want %U ('日')", ev.Rune, '日')
+	}
+}
+
+func TestReadEventUTF8FourByte(t *testing.T) {
+	// Given — "🎉" is a 4-byte UTF-8 character (0xF0 0x9F 0x8E 0x89)
+	r := strings.NewReader("🎉")
+
+	// When
+	ev, err := ReadEvent(r)
+
+	// Then
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if ev.Kind != EventKey {
+		t.Errorf("Kind = %d, want EventKey", ev.Kind)
+	}
+	if ev.Rune != '🎉' {
+		t.Errorf("Rune = %U, want %U ('🎉')", ev.Rune, '🎉')
+	}
+}

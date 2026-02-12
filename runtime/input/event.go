@@ -37,18 +37,19 @@ type Event struct {
 
 // ReadEvent reads a single input event from the reader.
 // Parses escape sequences for arrow keys, PgUp/PgDn, Home/End.
+// Uses ReadKey for the initial character to handle multi-byte UTF-8.
 func ReadEvent(r io.Reader) (Event, error) {
-	b, err := readByte(r)
+	ch, err := ReadKey(r)
 	if err != nil {
 		return Event{}, err
 	}
 
-	if b == '\t' {
+	if ch == '\t' {
 		return Event{Kind: EventSpecial, Special: KeyTab}, nil
 	}
 
-	if b != 0x1b {
-		return Event{Kind: EventKey, Rune: rune(b)}, nil
+	if ch != 0x1b {
+		return Event{Kind: EventKey, Rune: ch}, nil
 	}
 
 	return parseEscapeSequence(r)
