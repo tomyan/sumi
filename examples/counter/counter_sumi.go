@@ -14,6 +14,8 @@ import (
 func Run() {
 	count := 0
 
+	doubled := count * 2
+
 	var app *tui.App
 	increment := func() {
 		count = count + 1
@@ -22,7 +24,7 @@ func Run() {
 
 	node0 := &layout.Input{
 		Kind:    layout.KindText,
-		Content: fmt.Sprintf("Count: %v", count),
+		Content: fmt.Sprintf("Count: %v (doubled: %v)", count, doubled),
 		Style: render.Style{
 			FG:   render.Color{Name: "yellow"},
 			Bold: true,
@@ -59,8 +61,9 @@ func Run() {
 		},
 	}
 	sync := func() []*layout.Input {
+		doubled = count * 2
 		var changed []*layout.Input
-		if v := fmt.Sprintf("Count: %v", count); v != node0.Content {
+		if v := fmt.Sprintf("Count: %v (doubled: %v)", count, doubled); v != node0.Content {
 			node0.Content = v
 			changed = append(changed, node0)
 		}

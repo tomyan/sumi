@@ -19,6 +19,7 @@
 
 <script>
 count := $state(0)
+doubled := $derived(count * 2)
 
 func increment() {
     count = count + 1
@@ -28,5 +29,5 @@ func increment() {
 <box class="container" onkey="increment">
     <text class="title">Sumi Counter</text>
     <text class="hint">Press any key to increment, q to quit</text>
-    <text class="count">Count: {count}</text>
+    <text class="count">Count: {count} (doubled: {doubled})</text>
 </box>
