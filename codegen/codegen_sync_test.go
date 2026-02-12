@@ -102,6 +102,101 @@ func TestStaticDoRenderHasNoOpSkip(t *testing.T) {
 	}
 }
 
+func TestStaticDoRenderHasDirectWriteFastPath(t *testing.T) {
+	// Given — static document
+	doc := &template.Document{
+		Children: []template.Node{
+			&template.TextElement{
+				Parts: []template.Part{
+					&template.StringPart{Value: "Count: "},
+					&template.ExprPart{Expr: "count"},
+				},
+			},
+		},
+	}
+	sc := &script.Script{
+		StateDecls: []script.StateDecl{
+			{Name: "count", InitExpr: "0"},
+		},
+	}
+
+	// When
+	out, err := Generate(doc, sc, nil, Options{PackageName: "main"})
+
+	// Then
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	src := string(out)
+
+	// Should declare nodeBoxMap
+	if !strings.Contains(src, "nodeBoxMap") {
+		t.Errorf("expected nodeBoxMap variable:\n%s", src)
+	}
+
+	// Should have MapInputToBox call
+	if !strings.Contains(src, "layout.MapInputToBox") {
+		t.Errorf("expected layout.MapInputToBox call:\n%s", src)
+	}
+
+	// Should have DirectWriteText call
+	if !strings.Contains(src, "layout.DirectWriteText") {
+		t.Errorf("expected layout.DirectWriteText call:\n%s", src)
+	}
+
+	fset := token.NewFileSet()
+	_, parseErr := parser.ParseFile(fset, "generated.go", out, parser.AllErrors)
+	if parseErr != nil {
+		t.Fatalf("generated code is not valid Go:\n%s\n\nerror: %v", string(out), parseErr)
+	}
+}
+
+func TestDynamicDoRenderHasNoDirectWrite(t *testing.T) {
+	// Given — dynamic document
+	doc := &template.Document{
+		Children: []template.Node{
+			&template.BoxElement{
+				Attributes: map[string]string{"border": "single"},
+				Children: []template.Node{
+					textNode("Title"),
+					&template.IfNode{
+						Condition: "showModal",
+						Then:      []template.Node{textNode("Modal content")},
+					},
+				},
+			},
+		},
+	}
+	sc := &script.Script{
+		StateDecls: []script.StateDecl{
+			{Name: "showModal", InitExpr: "false"},
+		},
+	}
+
+	// When
+	out, err := Generate(doc, sc, nil, Options{PackageName: "main"})
+
+	// Then
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	src := string(out)
+
+	// Should NOT have direct-write fast path
+	if strings.Contains(src, "nodeBoxMap") {
+		t.Errorf("dynamic document should not have nodeBoxMap:\n%s", src)
+	}
+	if strings.Contains(src, "DirectWriteText") {
+		t.Errorf("dynamic document should not have DirectWriteText:\n%s", src)
+	}
+
+	fset := token.NewFileSet()
+	_, parseErr := parser.ParseFile(fset, "generated.go", out, parser.AllErrors)
+	if parseErr != nil {
+		t.Fatalf("generated code is not valid Go:\n%s\n\nerror: %v", string(out), parseErr)
+	}
+}
+
 func TestDynamicSyncIsVoid(t *testing.T) {
 	// Given — dynamic document (has {if} control flow)
 	doc := &template.Document{
