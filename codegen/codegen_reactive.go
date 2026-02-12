@@ -124,7 +124,7 @@ func buildStateLinesSet(assignments []script.StateAssignment) map[string]bool {
 
 // writeTreeAndSync writes the build-once layout tree and sync function at function scope.
 // Expression text nodes are extracted as named variables; sync patches their Content.
-func writeTreeAndSync(buf *bytes.Buffer, doc *template.Document, stylesheet *style.Stylesheet, instances []componentInstance) *extractionCtx {
+func writeTreeAndSync(buf *bytes.Buffer, doc *template.Document, stylesheet *style.Stylesheet, instances []componentInstance, scrollBoxes []scrollableBox) *extractionCtx {
 	ext := newExtractionCtx("")
 
 	// Write tree to temp buffer (discovers extractions)
@@ -138,14 +138,31 @@ func writeTreeAndSync(buf *bytes.Buffer, doc *template.Document, stylesheet *sty
 	buf.Write(treeBuf.Bytes())
 
 	// Emit sync function
-	writeSyncFunc(buf, ext)
+	dynamic := isDynamic(ext, scrollBoxes)
+	writeSyncFunc(buf, ext, dynamic)
 
 	return ext
 }
 
-// writeSyncFunc writes the sync closure that patches expression nodes
-// and rebuilds dynamic children.
-func writeSyncFunc(buf *bytes.Buffer, ext *extractionCtx) {
+// isDynamic returns true when the document has control flow or scroll containers,
+// requiring the full Layout+Diff path on every render.
+func isDynamic(ext *extractionCtx, scrollBoxes []scrollableBox) bool {
+	return ext.syncBuf.Len() > 0 || len(scrollBoxes) > 0
+}
+
+// writeSyncFunc writes the sync closure. Static documents get a returning sync
+// that compares before assigning and returns changed nodes. Dynamic documents
+// get a void sync that always patches.
+func writeSyncFunc(buf *bytes.Buffer, ext *extractionCtx, dynamic bool) {
+	if dynamic {
+		writeVoidSync(buf, ext)
+	} else {
+		writeReturningSync(buf, ext)
+	}
+}
+
+// writeVoidSync writes a sync closure that unconditionally patches all nodes.
+func writeVoidSync(buf *bytes.Buffer, ext *extractionCtx) {
 	buf.WriteString("\tsync := func() {\n")
 	for _, n := range ext.nodes {
 		fmt.Fprintf(buf, "\t\t%s.Content = %s\n", n.varName, n.syncExpr)
@@ -154,15 +171,64 @@ func writeSyncFunc(buf *bytes.Buffer, ext *extractionCtx) {
 	buf.WriteString("\t}\n\n")
 }
 
+// writeReturningSync writes a sync closure that compares before assigning
+// and returns a slice of changed Input nodes (nil when nothing changed).
+func writeReturningSync(buf *bytes.Buffer, ext *extractionCtx) {
+	buf.WriteString("\tsync := func() []*layout.Input {\n")
+	buf.WriteString("\t\tvar changed []*layout.Input\n")
+	for _, n := range ext.nodes {
+		fmt.Fprintf(buf, "\t\tif v := %s; v != %s.Content {\n", n.syncExpr, n.varName)
+		fmt.Fprintf(buf, "\t\t\t%s.Content = v\n", n.varName)
+		fmt.Fprintf(buf, "\t\t\tchanged = append(changed, %s)\n", n.varName)
+		buf.WriteString("\t\t}\n")
+	}
+	buf.WriteString("\t\treturn changed\n")
+	buf.WriteString("\t}\n\n")
+}
+
 // writeRenderClosure writes the doRender closure with surgical rendering.
 // The tree is built once at function scope; doRender calls sync() then re-layouts.
+// Static documents get a no-op skip fast path; dynamic documents always run full Layout+Diff.
 func writeRenderClosure(buf *bytes.Buffer, doc *template.Document, stylesheet *style.Stylesheet, instances []componentInstance, scrollBoxes []scrollableBox, title *template.TitleElement) {
-	writeTreeAndSync(buf, doc, stylesheet, instances)
+	ext := writeTreeAndSync(buf, doc, stylesheet, instances, scrollBoxes)
+	dynamic := isDynamic(ext, scrollBoxes)
+
 	buf.WriteString("\tvar prevTree *layout.Box\n")
 	buf.WriteString("\tvar prevW, prevH int\n")
 	buf.WriteString("\tdoRender := func() {\n")
+
+	if dynamic {
+		writeDynamicDoRender(buf, scrollBoxes, title)
+	} else {
+		writeStaticDoRender(buf, title)
+	}
+
+	buf.WriteString("\t}\n\n")
+}
+
+// writeStaticDoRender emits the doRender body for static documents (Pattern A).
+// Sync returns changed nodes; when nothing changed and no resize, we skip entirely.
+func writeStaticDoRender(buf *bytes.Buffer, title *template.TitleElement) {
+	buf.WriteString("\t\tchanged := sync()\n")
+	buf.WriteString("\t\ttermW, termH := term.GetSize(int(os.Stdin.Fd()))\n")
+	// No-op skip: nothing changed and no resize
+	buf.WriteString("\t\tif prevTree != nil && len(changed) == 0 && termW == prevW && termH == prevH {\n")
+	buf.WriteString("\t\t\tdirty = false\n")
+	buf.WriteString("\t\t\treturn\n")
+	buf.WriteString("\t\t}\n")
+	writeFullLayoutAndDiff(buf, title)
+}
+
+// writeDynamicDoRender emits the doRender body for dynamic documents (Pattern B).
+// Sync is void; always runs full Layout+Diff.
+func writeDynamicDoRender(buf *bytes.Buffer, scrollBoxes []scrollableBox, title *template.TitleElement) {
 	buf.WriteString("\t\tsync()\n")
 	buf.WriteString("\t\ttermW, termH := term.GetSize(int(os.Stdin.Fd()))\n")
+	writeFullLayoutBody(buf, scrollBoxes, title)
+}
+
+// writeFullLayoutBody emits Layout, scroll wiring, DiffTrees, and redraw/apply logic.
+func writeFullLayoutBody(buf *bytes.Buffer, scrollBoxes []scrollableBox, title *template.TitleElement) {
 	buf.WriteString("\t\ttree := layout.Layout(root, termW, termH)\n")
 	writeScrollTreeWiring(buf, scrollBoxes)
 	buf.WriteString("\t\tchanges, scrollChanged := layout.DiffTrees(prevTree, tree)\n")
@@ -179,7 +245,12 @@ func writeRenderClosure(buf *bytes.Buffer, doc *template.Document, stylesheet *s
 	buf.WriteString("\t\tprevW = termW\n")
 	buf.WriteString("\t\tprevH = termH\n")
 	buf.WriteString("\t\tdirty = false\n")
-	buf.WriteString("\t}\n\n")
+}
+
+// writeFullLayoutAndDiff emits the full layout path for static documents
+// (no scroll wiring needed).
+func writeFullLayoutAndDiff(buf *bytes.Buffer, title *template.TitleElement) {
+	writeFullLayoutBody(buf, nil, title)
 }
 
 // writeTerminalSetup writes raw mode, alternate screen, event channel, and resize watcher setup.

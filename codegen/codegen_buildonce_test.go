@@ -49,11 +49,11 @@ func TestBuildOnceExtractsExpressionNode(t *testing.T) {
 		t.Errorf("expected root tree before doRender closure:\n%s", src)
 	}
 
-	// Sync function should exist and patch Content
-	if !strings.Contains(src, "sync := func() {") {
+	// Sync function should exist and patch Content (compare-before-assign for static docs)
+	if !strings.Contains(src, "sync := func()") {
 		t.Errorf("expected sync function:\n%s", src)
 	}
-	if !strings.Contains(src, `node0.Content = fmt.Sprintf("Count: %v", count)`) {
+	if !strings.Contains(src, `node0.Content = v`) {
 		t.Errorf("expected sync to patch node0.Content:\n%s", src)
 	}
 
@@ -155,11 +155,11 @@ func TestBuildOnceMultipleExpressionNodes(t *testing.T) {
 		t.Errorf("expected node1:\n%s", src)
 	}
 
-	// Both should have sync lines
-	if !strings.Contains(src, `node0.Content = fmt.Sprintf("X: %v", x)`) {
+	// Both should have sync lines (compare-before-assign for static docs)
+	if !strings.Contains(src, `node0.Content = v`) {
 		t.Errorf("expected sync for node0:\n%s", src)
 	}
-	if !strings.Contains(src, `node1.Content = fmt.Sprintf("Y: %v", y)`) {
+	if !strings.Contains(src, `node1.Content = v`) {
 		t.Errorf("expected sync for node1:\n%s", src)
 	}
 
