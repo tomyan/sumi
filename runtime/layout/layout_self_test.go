@@ -82,6 +82,32 @@ func TestSelfNilPointerDoesNotCrash(t *testing.T) {
 	}
 }
 
+func TestSelfWCapturesStretchedWidth(t *testing.T) {
+	// Given — a child box with SelfW inside a column parent (align: stretch is default)
+	selfW := 0
+	input := &Input{
+		Kind:       KindBox,
+		FixedWidth: 60,
+		Children: []*Input{
+			{
+				Kind:  KindBox,
+				SelfW: &selfW,
+				Children: []*Input{
+					{Kind: KindText, Content: "hi"},
+				},
+			},
+		},
+	}
+
+	// When
+	Layout(input, 80, 24)
+
+	// Then — child should be stretched to parent's content width (60), not intrinsic width (2)
+	if selfW != 60 {
+		t.Errorf("SelfW: got %d, want 60 (stretched)", selfW)
+	}
+}
+
 func TestSelfWAndSelfHTogether(t *testing.T) {
 	// Given
 	selfW := 0

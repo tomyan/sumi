@@ -315,6 +315,9 @@ func layoutNode(input *Input, availW, availH int) *Box {
 		}
 	}
 
+	// Update self-measurement pointers after alignment may have changed dimensions
+	updateSelfPointers(flowChildren, flowBoxes)
+
 	// Layout positioned (absolute/fixed) children
 	posBoxes := layoutPositionedChildren(posChildren, offsetX, offsetY, contentAvailW, contentAvailH)
 
@@ -375,6 +378,22 @@ func layoutNode(input *Input, availW, availH int) *Box {
 	}
 
 	return box
+}
+
+// updateSelfPointers re-writes SelfW/SelfH pointers after alignment may have
+// changed a child's dimensions (e.g., stretch in a column stretches width).
+func updateSelfPointers(inputs []*Input, boxes []*Box) {
+	for i, inp := range inputs {
+		if inp == nil || i >= len(boxes) || boxes[i] == nil {
+			continue
+		}
+		if inp.SelfW != nil {
+			*inp.SelfW = boxes[i].Width
+		}
+		if inp.SelfH != nil {
+			*inp.SelfH = boxes[i].Height
+		}
+	}
 }
 
 // hasFlexGrow returns true if any child has FlexGrow > 0.

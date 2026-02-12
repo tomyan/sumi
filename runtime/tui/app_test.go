@@ -226,9 +226,9 @@ func TestAppBoundedReRender(t *testing.T) {
 	a.runLoop(eventCh, nil, nil)
 
 	// Then — bounded loop prevents infinite re-render
-	// 1 (initial) + up to 3 (bounded after event) = at most 4
-	if renderCount > 4 {
-		t.Errorf("renderCount = %d, want at most 4 (initial + 3 bounded)", renderCount)
+	// up to 3 (initial) + up to 3 (bounded after event) = at most 6
+	if renderCount > 6 {
+		t.Errorf("renderCount = %d, want at most 6 (3 initial + 3 bounded)", renderCount)
 	}
 	if renderCount < 2 {
 		t.Errorf("renderCount = %d, want at least 2", renderCount)
