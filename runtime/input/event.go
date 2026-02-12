@@ -27,14 +27,19 @@ const (
 	KeyPgDn     SpecialKey = "pgdn"
 	KeyHome     SpecialKey = "home"
 	KeyEnd      SpecialKey = "end"
-	KeyTab      SpecialKey = "tab"
-	KeyShiftTab SpecialKey = "shift-tab"
+	KeyTab       SpecialKey = "tab"
+	KeyShiftTab  SpecialKey = "shift-tab"
+	KeyEnter     SpecialKey = "enter"
+	KeyEscape    SpecialKey = "escape"
+	KeyBackspace SpecialKey = "backspace"
+	KeyDelete    SpecialKey = "delete"
 )
 
 // Event represents a terminal input event.
 type Event struct {
 	Kind    EventKind
 	Rune    rune           // set for EventKey
+	Ctrl    bool           // true if Ctrl modifier was held (EventKey only)
 	Special SpecialKey     // set for EventSpecial
 	Mouse   MouseEvent     // set for EventMouse
 	Signal  syscall.Signal // set for EventSignal
@@ -52,6 +57,17 @@ func ReadEvent(r io.Reader) (Event, error) {
 	if ch == '\t' {
 		return Event{Kind: EventSpecial, Special: KeyTab}, nil
 	}
+	if ch == '\r' || ch == '\n' {
+		return Event{Kind: EventSpecial, Special: KeyEnter}, nil
+	}
+	if ch == 127 || ch == 8 {
+		return Event{Kind: EventSpecial, Special: KeyBackspace}, nil
+	}
+
+	// Control characters (Ctrl+A through Ctrl+Z, excluding Tab and Enter)
+	if ch >= 1 && ch <= 26 {
+		return Event{Kind: EventKey, Rune: 'a' + ch - 1, Ctrl: true}, nil
+	}
 
 	if ch != 0x1b {
 		return Event{Kind: EventKey, Rune: ch}, nil
@@ -65,12 +81,12 @@ func parseEscapeSequence(r io.Reader) (Event, error) {
 	b, err := readByte(r)
 	if err != nil {
 		// bare ESC with no following bytes
-		return Event{Kind: EventKey, Rune: 0x1b}, nil
+		return Event{Kind: EventSpecial, Special: KeyEscape}, nil
 	}
 
 	if b != '[' {
 		// ESC followed by something other than [
-		return Event{Kind: EventKey, Rune: 0x1b}, nil
+		return Event{Kind: EventSpecial, Special: KeyEscape}, nil
 	}
 
 	return parseCSISequence(r)
@@ -150,14 +166,16 @@ func parseNumericCSI(r io.Reader, firstDigit byte) (Event, error) {
 
 func numericCSIKey(num int) (SpecialKey, bool) {
 	switch num {
+	case 1:
+		return KeyHome, true
+	case 3:
+		return KeyDelete, true
+	case 4:
+		return KeyEnd, true
 	case 5:
 		return KeyPgUp, true
 	case 6:
 		return KeyPgDn, true
-	case 1:
-		return KeyHome, true
-	case 4:
-		return KeyEnd, true
 	default:
 		return "", false
 	}

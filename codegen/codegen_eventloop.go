@@ -140,7 +140,7 @@ func hasKeyHandlers(doc *template.Document, instances []componentInstance, inlin
 
 // writeAutoQuit writes the auto-quit logic for zero-arg handler mode.
 func writeAutoQuit(buf *bytes.Buffer) {
-	buf.WriteString("\t\t\tif evt.Kind == input.EventKey && evt.Rune == 3 {\n")
+	buf.WriteString("\t\t\tif evt.Kind == input.EventKey && evt.Ctrl && evt.Rune == 'c' {\n")
 	buf.WriteString("\t\t\t\tapp.Quit()\n")
 	buf.WriteString("\t\t\t\treturn\n")
 	buf.WriteString("\t\t\t}\n")

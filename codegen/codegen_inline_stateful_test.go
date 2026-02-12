@@ -377,7 +377,7 @@ func TestInlineStatefulEventAwareClosure(t *testing.T) {
 	}
 
 	// No auto-quit since handler is event-aware
-	if strings.Contains(src, "evt.Rune == 3") {
+	if strings.Contains(src, "evt.Ctrl && evt.Rune == 'c'") {
 		t.Errorf("event-aware inlined handler should not have auto Ctrl+C quit:\n%s", src)
 	}
 

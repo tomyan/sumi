@@ -488,7 +488,7 @@ func TestGenerateZeroArgHandlerGetsAutoQuit(t *testing.T) {
 	if !strings.Contains(src, "app.Quit()") {
 		t.Errorf("expected app.Quit() in auto-quit:\n%s", src)
 	}
-	if !strings.Contains(src, "evt.Rune == 3") {
+	if !strings.Contains(src, "evt.Ctrl && evt.Rune == 'c'") {
 		t.Errorf("expected Ctrl+C check in auto-quit:\n%s", src)
 	}
 	if !strings.Contains(src, "input.EventSignal") {
@@ -536,7 +536,7 @@ func TestGenerateEventAwareNoAutoQuit(t *testing.T) {
 	assertValidGo(t, out)
 	src := string(out)
 	// Should NOT have auto-quit
-	if strings.Contains(src, "evt.Rune == 3") {
+	if strings.Contains(src, "evt.Ctrl && evt.Rune == 'c'") {
 		t.Errorf("event-aware handler should not have auto Ctrl+C quit:\n%s", src)
 	}
 }

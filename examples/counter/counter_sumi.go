@@ -22,7 +22,7 @@ func Run() {
 			app.Quit()
 			return
 		}
-		if evt.Rune == 'q' || evt.Rune == 3 {
+		if evt.Rune == 'q' || (evt.Ctrl && evt.Rune == 'c') {
 			app.Quit()
 			return
 		}
