@@ -121,7 +121,7 @@ func buildPropMap(inst *componentInstance) map[string]string {
 	return propMap
 }
 
-// buildStateNameMap creates a map from state variable name to its namespaced version.
+// buildStateNameMap creates a map from state/derived variable name to its namespaced version.
 // e.g., "count" → "counter0_count" when the instance VarName is "counter0".
 func buildStateNameMap(inst *componentInstance) map[string]string {
 	if inst.Info.Script == nil || !inst.Info.HasState {
@@ -131,6 +131,9 @@ func buildStateNameMap(inst *componentInstance) map[string]string {
 	prefix := inst.VarName + "_"
 	for _, sd := range inst.Info.Script.StateDecls {
 		m[sd.Name] = prefix + sd.Name
+	}
+	for _, dd := range inst.Info.Script.DerivedDecls {
+		m[dd.Name] = prefix + dd.Name
 	}
 	return m
 }

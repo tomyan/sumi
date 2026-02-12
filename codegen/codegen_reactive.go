@@ -25,7 +25,7 @@ func writeReactiveBody(buf *bytes.Buffer, doc *template.Document, sc *script.Scr
 	if len(inlined) > 0 {
 		buf.WriteString("\n")
 	}
-	writeRenderClosure(buf, doc, sc, stylesheet, instances, scrollBoxes, title)
+	writeRenderClosure(buf, doc, sc, stylesheet, instances, scrollBoxes, title, inlined)
 	writeSuppressUnusedFuncs(buf, doc, sc)
 	writeSuppressInlinedFuncs(buf, inlined)
 	writeAppRun(buf, doc, sc, instances, scrollBoxes, inlined, title)

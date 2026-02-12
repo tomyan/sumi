@@ -75,6 +75,28 @@ func writeReturningSync(buf *bytes.Buffer, ext *extractionCtx, derivedDecls []sc
 	buf.WriteString("\t}\n\n")
 }
 
+// collectAllDerivedDecls gathers derived decls from the root script and all inlined components,
+// with inlined derived decls namespaced (e.g., counter0_doubled = counter0_count * 2).
+func collectAllDerivedDecls(sc *script.Script, inlined []inlinedStateful) []script.DerivedDecl {
+	var all []script.DerivedDecl
+	if sc != nil {
+		all = append(all, sc.DerivedDecls...)
+	}
+	for _, is := range inlined {
+		childSc := is.Instance.Info.Script
+		if childSc == nil {
+			continue
+		}
+		for _, dd := range childSc.DerivedDecls {
+			all = append(all, script.DerivedDecl{
+				Name: is.Prefix + dd.Name,
+				Expr: namespaceDerivedExpr(dd.Expr, childSc, is.Prefix),
+			})
+		}
+	}
+	return all
+}
+
 // writeDerivedRecalc writes derived value reassignments at the top of a sync closure.
 func writeDerivedRecalc(buf *bytes.Buffer, derivedDecls []script.DerivedDecl) {
 	for _, dd := range derivedDecls {
@@ -85,11 +107,8 @@ func writeDerivedRecalc(buf *bytes.Buffer, derivedDecls []script.DerivedDecl) {
 // writeRenderClosure writes the doRender closure with surgical rendering.
 // The tree is built once at function scope; doRender calls sync() then re-layouts.
 // Static documents get a no-op skip fast path; dynamic documents always run full Layout+Diff.
-func writeRenderClosure(buf *bytes.Buffer, doc *template.Document, sc *script.Script, stylesheet *style.Stylesheet, instances []componentInstance, scrollBoxes []scrollableBox, title *template.TitleElement) {
-	var derivedDecls []script.DerivedDecl
-	if sc != nil {
-		derivedDecls = sc.DerivedDecls
-	}
+func writeRenderClosure(buf *bytes.Buffer, doc *template.Document, sc *script.Script, stylesheet *style.Stylesheet, instances []componentInstance, scrollBoxes []scrollableBox, title *template.TitleElement, inlined []inlinedStateful) {
+	derivedDecls := collectAllDerivedDecls(sc, inlined)
 	ext := writeTreeAndSync(buf, doc, stylesheet, instances, scrollBoxes, derivedDecls)
 	dynamic := isDynamic(ext, scrollBoxes)
 

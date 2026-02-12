@@ -31,7 +31,7 @@ func collectInlinedStateful(instances []componentInstance) []inlinedStateful {
 	return result
 }
 
-// writeInlinedStateDecls writes namespaced state variable declarations for inlined components.
+// writeInlinedStateDecls writes namespaced state and derived variable declarations for inlined components.
 func writeInlinedStateDecls(buf *bytes.Buffer, inlined []inlinedStateful) {
 	for _, is := range inlined {
 		sc := is.Instance.Info.Script
@@ -41,7 +41,24 @@ func writeInlinedStateDecls(buf *bytes.Buffer, inlined []inlinedStateful) {
 		for _, sd := range sc.StateDecls {
 			fmt.Fprintf(buf, "\t%s%s := %s\n", is.Prefix, sd.Name, sd.InitExpr)
 		}
+		for _, dd := range sc.DerivedDecls {
+			expr := namespaceDerivedExpr(dd.Expr, sc, is.Prefix)
+			fmt.Fprintf(buf, "\t%s%s := %s\n", is.Prefix, dd.Name, expr)
+		}
 	}
+}
+
+// namespaceDerivedExpr replaces state variable references in a derived expression with namespaced versions.
+// Prepends a space so namespaceVarRef can match vars at the start of the expression.
+func namespaceDerivedExpr(expr string, sc *script.Script, prefix string) string {
+	result := " " + expr
+	for _, sd := range sc.StateDecls {
+		result = namespaceVarRef(result, sd.Name, prefix)
+	}
+	for _, dd := range sc.DerivedDecls {
+		result = namespaceVarRef(result, dd.Name, prefix)
+	}
+	return strings.TrimPrefix(result, " ")
 }
 
 // writeInlinedFuncClosures writes namespaced function closures for inlined components.
