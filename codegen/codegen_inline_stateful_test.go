@@ -384,6 +384,155 @@ func TestInlineStatefulEventAwareClosure(t *testing.T) {
 	assertValidGo(t, out)
 }
 
+// inputComponentWithProp builds a ComponentInfo with a prop used as a bare variable in a function body.
+func inputComponentWithProp() *ComponentInfo {
+	return &ComponentInfo{
+		Name:         "textinput",
+		ExportedName: "Textinput",
+		Props:        []string{"placeholder"},
+		HasState:     true,
+		Doc: &template.Document{
+			Children: []template.Node{
+				&template.BoxElement{
+					Attributes: map[string]string{"onkey": "handleEvent"},
+					Children: []template.Node{
+						&template.TextElement{
+							Parts: []template.Part{
+								&template.ExprPart{Expr: "displayLine()"},
+							},
+						},
+					},
+				},
+			},
+		},
+		Script: &script.Script{
+			PropDecls: []script.PropDecl{
+				{Name: "placeholder", DefaultExpr: `""`},
+			},
+			StateDecls: []script.StateDecl{
+				{Name: "value", InitExpr: `""`},
+			},
+			FuncDecls: []script.FuncDecl{
+				{
+					Name: "displayLine", ReturnType: "string",
+					Body: "\n\ttext := value\n\tif len(text) == 0 && len(placeholder) > 0 {\n\t\ttext = placeholder\n\t}\n\treturn text\n",
+				},
+				{
+					Name: "handleEvent", Params: "evt input.Event",
+					Body: "\n\tvalue = value + string(evt.Rune)\n",
+					StateAssignments: []script.StateAssignment{
+						{VarName: "value", Line: "value = value + string(evt.Rune)"},
+					},
+				},
+			},
+		},
+	}
+}
+
+func TestInlineLiteralPropDeclared(t *testing.T) {
+	// Given a parent using a component with a literal prop value
+	doc := &template.Document{
+		Children: []template.Node{
+			&template.ComponentElement{
+				Name:       "textinput",
+				Attributes: map[string]string{"placeholder": "Enter name..."},
+			},
+		},
+	}
+
+	// When generating with inlinable component info
+	out, err := Generate(doc, nil, nil, Options{
+		PackageName: "main",
+		Components:  map[string]*ComponentInfo{"textinput": inputComponentWithProp()},
+	})
+
+	// Then the literal prop should be declared as a namespaced variable
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	src := string(out)
+	if !strings.Contains(src, `textinput0_placeholder := "Enter name..."`) {
+		t.Errorf("expected namespaced prop declaration:\n%s", src)
+	}
+
+	// Function body should reference namespaced prop variable
+	if !strings.Contains(src, "textinput0_placeholder") {
+		t.Errorf("expected namespaced placeholder reference in function body:\n%s", src)
+	}
+
+	assertValidGo(t, out)
+}
+
+func TestInlineLiteralPropDefault(t *testing.T) {
+	// Given a parent using a component WITHOUT passing the prop (uses default)
+	doc := &template.Document{
+		Children: []template.Node{
+			&template.ComponentElement{
+				Name:       "textinput",
+				Attributes: map[string]string{},
+			},
+		},
+	}
+
+	// When generating with inlinable component info
+	out, err := Generate(doc, nil, nil, Options{
+		PackageName: "main",
+		Components:  map[string]*ComponentInfo{"textinput": inputComponentWithProp()},
+	})
+
+	// Then the prop should be declared with its default value
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	src := string(out)
+	if !strings.Contains(src, `textinput0_placeholder := ""`) {
+		t.Errorf("expected default prop declaration:\n%s", src)
+	}
+
+	assertValidGo(t, out)
+}
+
+func TestInlineExpressionPropMappedDirectly(t *testing.T) {
+	// Given a parent using a component with an expression prop
+	doc := &template.Document{
+		Children: []template.Node{
+			&template.ComponentElement{
+				Name:       "textinput",
+				Attributes: map[string]string{"placeholder": "{hint}"},
+			},
+		},
+	}
+	parentScript := &script.Script{
+		StateDecls: []script.StateDecl{
+			{Name: "hint", InitExpr: `"Type here"`},
+		},
+	}
+
+	// When generating with inlinable component info
+	out, err := Generate(doc, parentScript, nil, Options{
+		PackageName: "main",
+		Components:  map[string]*ComponentInfo{"textinput": inputComponentWithProp()},
+	})
+
+	// Then the expression prop should map to the parent variable (no separate declaration)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	src := string(out)
+
+	// Function body should reference parent's variable directly
+	if !strings.Contains(src, "len(hint)") {
+		t.Errorf("expected parent variable 'hint' in function body:\n%s", src)
+	}
+
+	// Should NOT declare textinput0_placeholder for expression props
+	if strings.Contains(src, "textinput0_placeholder") {
+		t.Errorf("expression prop should not declare namespaced variable:\n%s", src)
+	}
+
+	assertValidGo(t, out)
+}
+
 // assertValidGo checks that the output is valid Go source code.
 func assertValidGo(t *testing.T, out []byte) {
 	t.Helper()

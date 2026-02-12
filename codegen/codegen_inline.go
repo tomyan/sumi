@@ -210,13 +210,17 @@ func buildStateNameMap(inst *componentInstance) map[string]string {
 	for _, fd := range inst.Info.Script.FuncDecls {
 		m[fd.Name] = prefix + fd.Name
 	}
-	// Map bound props to parent variables (for props not also declared as state)
+	// Map props: bound → parent variable, expression → parent expression, literal → namespaced variable
 	for _, pd := range inst.Info.Script.PropDecls {
 		if _, already := m[pd.Name]; already {
 			continue // already mapped via state decl
 		}
 		if parentVar, ok := bindings[pd.Name]; ok {
 			m[pd.Name] = parentVar
+		} else if val, ok := inst.Attrs[pd.Name]; ok && isExprValue(val) {
+			m[pd.Name] = extractExprValue(val)
+		} else {
+			m[pd.Name] = prefix + pd.Name
 		}
 	}
 	return m

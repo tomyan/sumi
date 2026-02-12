@@ -17,6 +17,7 @@ func Run() {
 	var app *tui.App
 	textinput0_cursor := 0
 	textinput0_viewOffset := 0
+	textinput0_placeholder := "Enter your name..."
 	textinput0_selfW := 0
 	textinput0_contentW := textinput0_selfW - 4
 	focusIndex := 0
@@ -57,24 +58,31 @@ func Run() {
 		if cw <= 0 {
 			return "[]"
 		}
+		text := name
+		if len(text) == 0 && len(textinput0_placeholder) > 0 {
+			text = textinput0_placeholder
+		}
 		vo := textinput0_viewOffset
+		if len(name) == 0 {
+			vo = 0
+		}
 		if vo < 0 {
 			vo = 0
 		}
-		if vo > len(name) {
-			vo = len(name)
+		if vo > len(text) {
+			vo = len(text)
 		}
 		end := vo + cw
-		if end > len(name) {
-			end = len(name)
+		if end > len(text) {
+			end = len(text)
 		}
-		visible := name[vo:end]
+		visible := text[vo:end]
 		left := " "
 		if vo > 0 {
 			left = "<"
 		}
 		right := " "
-		if end < len(name) {
+		if end < len(text) {
 			right = ">"
 		}
 		pad := ""

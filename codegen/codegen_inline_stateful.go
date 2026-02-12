@@ -46,12 +46,32 @@ func writeInlinedStateDecls(buf *bytes.Buffer, inlined []inlinedStateful) {
 			}
 			fmt.Fprintf(buf, "\t%s%s := %s\n", is.Prefix, sd.Name, sd.InitExpr)
 		}
+		writePropDecls(buf, sc.PropDecls, bindings, is.Instance.Attrs, is.Prefix)
 		for _, sd := range sc.SelfDecls {
 			fmt.Fprintf(buf, "\t%s%s := 0\n", is.Prefix, sd.Name)
 		}
 		for _, dd := range sc.DerivedDecls {
 			expr := namespaceDerivedExpr(dd.Expr, sc, is.Prefix)
 			fmt.Fprintf(buf, "\t%s%s := %s\n", is.Prefix, dd.Name, expr)
+		}
+	}
+}
+
+// writePropDecls emits variable declarations for unbound literal props.
+// Bound props and expression props are handled via stateNameMap and don't need declarations.
+func writePropDecls(buf *bytes.Buffer, propDecls []script.PropDecl, bindings map[string]string, attrs map[string]string, prefix string) {
+	for _, pd := range propDecls {
+		if _, bound := bindings[pd.Name]; bound {
+			continue
+		}
+		attrVal, passed := attrs[pd.Name]
+		if passed && isExprValue(attrVal) {
+			continue // expression props map to parent variable directly
+		}
+		if passed {
+			fmt.Fprintf(buf, "\t%s%s := %q\n", prefix, pd.Name, attrVal)
+		} else {
+			fmt.Fprintf(buf, "\t%s%s := %s\n", prefix, pd.Name, pd.DefaultExpr)
 		}
 	}
 }

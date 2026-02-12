@@ -1,5 +1,6 @@
 <script>
 value := $prop("")
+placeholder := $prop("")
 cursor := $state(0)
 viewOffset := $state(0)
 selfW := $self(width)
@@ -25,24 +26,31 @@ func buildDisplayLine() string {
     if cw <= 0 {
         return "[]"
     }
+    text := value
+    if len(text) == 0 && len(placeholder) > 0 {
+        text = placeholder
+    }
     vo := viewOffset
+    if len(value) == 0 {
+        vo = 0
+    }
     if vo < 0 {
         vo = 0
     }
-    if vo > len(value) {
-        vo = len(value)
+    if vo > len(text) {
+        vo = len(text)
     }
     end := vo + cw
-    if end > len(value) {
-        end = len(value)
+    if end > len(text) {
+        end = len(text)
     }
-    visible := value[vo:end]
+    visible := text[vo:end]
     left := " "
     if vo > 0 {
         left = "<"
     }
     right := " "
-    if end < len(value) {
+    if end < len(text) {
         right = ">"
     }
     pad := ""
