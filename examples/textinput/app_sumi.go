@@ -53,15 +53,14 @@ func Run() {
 			app.Dirty = true
 		}
 	}
-	textinput0_buildDisplayLine := func() string {
-		cw := textinput0_contentW
-		if cw <= 0 {
-			return "[]"
-		}
+	textinput0_displayText := func() string {
 		text := name
 		if len(text) == 0 && len(textinput0_placeholder) > 0 {
 			text = textinput0_placeholder
 		}
+		return text
+	}
+	textinput0_viewStart := func() int {
 		vo := textinput0_viewOffset
 		if len(name) == 0 {
 			vo = 0
@@ -69,30 +68,62 @@ func Run() {
 		if vo < 0 {
 			vo = 0
 		}
+		text := textinput0_displayText()
 		if vo > len(text) {
 			vo = len(text)
 		}
-		end := vo + cw
+		return vo
+	}
+	textinput0_viewEnd := func() int {
+		vo := textinput0_viewStart()
+		end := vo + textinput0_contentW
+		text := textinput0_displayText()
 		if end > len(text) {
 			end = len(text)
 		}
-		visible := text[vo:end]
-		left := " "
-		if vo > 0 {
-			left = "<"
+		return end
+	}
+	textinput0_leftIndicator := func() string {
+		if textinput0_contentW <= 0 {
+			return ""
 		}
-		right := " "
-		if end < len(text) {
-			right = ">"
+		if textinput0_viewStart() > 0 {
+			return "<"
 		}
+		return " "
+	}
+	textinput0_visibleContent := func() string {
+		if textinput0_contentW <= 0 {
+			return ""
+		}
+		text := textinput0_displayText()
+		visible := text[textinput0_viewStart():textinput0_viewEnd()]
 		pad := ""
-		for i := len(visible); i < cw; i++ {
+		for i := len(visible); i < textinput0_contentW; i++ {
 			pad = pad + " "
 		}
-		return "[" + left + visible + pad + right + "]"
+		return visible + pad
 	}
-	textinput0_buildScrollbar := func() string {
-		if len(name) <= textinput0_contentW || textinput0_contentW <= 0 {
+	textinput0_rightIndicator := func() string {
+		if textinput0_contentW <= 0 {
+			return ""
+		}
+		if textinput0_viewEnd() < len(textinput0_displayText()) {
+			return ">"
+		}
+		return " "
+	}
+	textinput0_scrollbarVisible := func() bool {
+		return len(name) > textinput0_contentW && textinput0_contentW > 0
+	}
+	textinput0_scrollLeftArrow := func() string {
+		if !textinput0_scrollbarVisible() {
+			return ""
+		}
+		return "<"
+	}
+	textinput0_scrollTrack := func() string {
+		if !textinput0_scrollbarVisible() {
 			return ""
 		}
 		totalW := textinput0_contentW + 4
@@ -112,7 +143,7 @@ func Run() {
 		if thumbPos+thumbSize > trackW {
 			thumbPos = trackW - thumbSize
 		}
-		result := "<"
+		result := ""
 		for i := 0; i < trackW; i++ {
 			if i >= thumbPos && i < thumbPos+thumbSize {
 				result = result + "#"
@@ -120,8 +151,13 @@ func Run() {
 				result = result + "-"
 			}
 		}
-		result = result + ">"
 		return result
+	}
+	textinput0_scrollRightArrow := func() string {
+		if !textinput0_scrollbarVisible() {
+			return ""
+		}
+		return ">"
 	}
 	textinput0_wordLeft := func() int {
 		pos := textinput0_cursor
@@ -243,11 +279,39 @@ func Run() {
 
 	textinput0_node0 := &layout.Input{
 		Kind:    layout.KindText,
-		Content: fmt.Sprintf("%v", textinput0_buildDisplayLine()),
+		Content: fmt.Sprintf("%v", textinput0_leftIndicator()),
+		Style: render.Style{
+			Dim: true,
+		},
 	}
 	textinput0_node1 := &layout.Input{
 		Kind:    layout.KindText,
-		Content: fmt.Sprintf("%v", textinput0_buildScrollbar()),
+		Content: fmt.Sprintf("%v", textinput0_visibleContent()),
+	}
+	textinput0_node2 := &layout.Input{
+		Kind:    layout.KindText,
+		Content: fmt.Sprintf("%v", textinput0_rightIndicator()),
+		Style: render.Style{
+			Dim: true,
+		},
+	}
+	textinput0_node3 := &layout.Input{
+		Kind:    layout.KindText,
+		Content: fmt.Sprintf("%v", textinput0_scrollLeftArrow()),
+		Style: render.Style{
+			Dim: true,
+		},
+	}
+	textinput0_node4 := &layout.Input{
+		Kind:    layout.KindText,
+		Content: fmt.Sprintf("%v", textinput0_scrollTrack()),
+		Style: render.Style{
+			Dim: true,
+		},
+	}
+	textinput0_node5 := &layout.Input{
+		Kind:    layout.KindText,
+		Content: fmt.Sprintf("%v", textinput0_scrollRightArrow()),
 		Style: render.Style{
 			Dim: true,
 		},
@@ -258,8 +322,36 @@ func Run() {
 		CursorCol: textinput0_cursor - textinput0_viewOffset + 2,
 		CursorRow: 0,
 		Children: []*layout.Input{
-			textinput0_node0,
-			textinput0_node1,
+			{
+				Kind:      layout.KindBox,
+				Direction: "row",
+				CursorCol: -1,
+				CursorRow: -1,
+				Children: []*layout.Input{
+					{
+						Kind:    layout.KindText,
+						Content: "[",
+					},
+					textinput0_node0,
+					textinput0_node1,
+					textinput0_node2,
+					{
+						Kind:    layout.KindText,
+						Content: "]",
+					},
+				},
+			},
+			{
+				Kind:      layout.KindBox,
+				Direction: "row",
+				CursorCol: -1,
+				CursorRow: -1,
+				Children: []*layout.Input{
+					textinput0_node3,
+					textinput0_node4,
+					textinput0_node5,
+				},
+			},
 		},
 	}
 	textinput0_box0.SelfW = &textinput0_selfW
@@ -312,8 +404,12 @@ func Run() {
 	}
 	sync := func() {
 		textinput0_contentW = textinput0_selfW - 4
-		textinput0_node0.Content = fmt.Sprintf("%v", textinput0_buildDisplayLine())
-		textinput0_node1.Content = fmt.Sprintf("%v", textinput0_buildScrollbar())
+		textinput0_node0.Content = fmt.Sprintf("%v", textinput0_leftIndicator())
+		textinput0_node1.Content = fmt.Sprintf("%v", textinput0_visibleContent())
+		textinput0_node2.Content = fmt.Sprintf("%v", textinput0_rightIndicator())
+		textinput0_node3.Content = fmt.Sprintf("%v", textinput0_scrollLeftArrow())
+		textinput0_node4.Content = fmt.Sprintf("%v", textinput0_scrollTrack())
+		textinput0_node5.Content = fmt.Sprintf("%v", textinput0_scrollRightArrow())
 		node0.Content = fmt.Sprintf("You typed: %v", name)
 		if focusIndex == 0 {
 			textinput0_box0.CursorCol = textinput0_cursor - textinput0_viewOffset + 2
@@ -353,8 +449,16 @@ func Run() {
 	}
 
 	_ = textinput0_adjustView
-	_ = textinput0_buildDisplayLine
-	_ = textinput0_buildScrollbar
+	_ = textinput0_displayText
+	_ = textinput0_viewStart
+	_ = textinput0_viewEnd
+	_ = textinput0_leftIndicator
+	_ = textinput0_visibleContent
+	_ = textinput0_rightIndicator
+	_ = textinput0_scrollbarVisible
+	_ = textinput0_scrollLeftArrow
+	_ = textinput0_scrollTrack
+	_ = textinput0_scrollRightArrow
 	_ = textinput0_wordLeft
 	_ = textinput0_wordRight
 	_ = stopPropagation

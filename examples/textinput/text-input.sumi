@@ -21,15 +21,15 @@ func adjustView() {
     }
 }
 
-func buildDisplayLine() string {
-    cw := contentW
-    if cw <= 0 {
-        return "[]"
-    }
+func displayText() string {
     text := value
     if len(text) == 0 && len(placeholder) > 0 {
         text = placeholder
     }
+    return text
+}
+
+func viewStart() int {
     vo := viewOffset
     if len(value) == 0 {
         vo = 0
@@ -37,31 +37,69 @@ func buildDisplayLine() string {
     if vo < 0 {
         vo = 0
     }
+    text := displayText()
     if vo > len(text) {
         vo = len(text)
     }
-    end := vo + cw
+    return vo
+}
+
+func viewEnd() int {
+    vo := viewStart()
+    end := vo + contentW
+    text := displayText()
     if end > len(text) {
         end = len(text)
     }
-    visible := text[vo:end]
-    left := " "
-    if vo > 0 {
-        left = "<"
-    }
-    right := " "
-    if end < len(text) {
-        right = ">"
-    }
-    pad := ""
-    for i := len(visible); i < cw; i++ {
-        pad = pad + " "
-    }
-    return "[" + left + visible + pad + right + "]"
+    return end
 }
 
-func buildScrollbar() string {
-    if len(value) <= contentW || contentW <= 0 {
+func leftIndicator() string {
+    if contentW <= 0 {
+        return ""
+    }
+    if viewStart() > 0 {
+        return "<"
+    }
+    return " "
+}
+
+func visibleContent() string {
+    if contentW <= 0 {
+        return ""
+    }
+    text := displayText()
+    visible := text[viewStart():viewEnd()]
+    pad := ""
+    for i := len(visible); i < contentW; i++ {
+        pad = pad + " "
+    }
+    return visible + pad
+}
+
+func rightIndicator() string {
+    if contentW <= 0 {
+        return ""
+    }
+    if viewEnd() < len(displayText()) {
+        return ">"
+    }
+    return " "
+}
+
+func scrollbarVisible() bool {
+    return len(value) > contentW && contentW > 0
+}
+
+func scrollLeftArrow() string {
+    if !scrollbarVisible() {
+        return ""
+    }
+    return "<"
+}
+
+func scrollTrack() string {
+    if !scrollbarVisible() {
         return ""
     }
     totalW := contentW + 4
@@ -81,7 +119,7 @@ func buildScrollbar() string {
     if thumbPos + thumbSize > trackW {
         thumbPos = trackW - thumbSize
     }
-    result := "<"
+    result := ""
     for i := 0; i < trackW; i++ {
         if i >= thumbPos && i < thumbPos + thumbSize {
             result = result + "#"
@@ -89,8 +127,14 @@ func buildScrollbar() string {
             result = result + "-"
         }
     }
-    result = result + ">"
     return result
+}
+
+func scrollRightArrow() string {
+    if !scrollbarVisible() {
+        return ""
+    }
+    return ">"
 }
 
 func wordLeft() int {
@@ -199,12 +243,28 @@ func handleEvent(evt input.Event) {
 </script>
 
 <style>
+.indicator {
+    dim: true;
+}
+.arrow {
+    dim: true;
+}
 .scrollbar {
     dim: true;
 }
 </style>
 
 <box focusable="true" onkey="handleEvent" cursor-x={cursor - viewOffset + 2} cursor-y="0">
-    <text>{buildDisplayLine()}</text>
-    <text class="scrollbar">{buildScrollbar()}</text>
+    <box direction="row">
+        <text>[</text>
+        <text class="indicator">{leftIndicator()}</text>
+        <text>{visibleContent()}</text>
+        <text class="indicator">{rightIndicator()}</text>
+        <text>]</text>
+    </box>
+    <box direction="row">
+        <text class="arrow">{scrollLeftArrow()}</text>
+        <text class="scrollbar">{scrollTrack()}</text>
+        <text class="arrow">{scrollRightArrow()}</text>
+    </box>
 </box>
