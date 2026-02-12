@@ -60,6 +60,39 @@ func buildDisplayLine() string {
     return "[" + left + visible + pad + right + "]"
 }
 
+func buildScrollbar() string {
+    if len(value) <= contentW || contentW <= 0 {
+        return ""
+    }
+    totalW := contentW + 4
+    trackW := totalW - 2
+    thumbSize := trackW * contentW / len(value)
+    if thumbSize < 1 {
+        thumbSize = 1
+    }
+    maxOff := len(value) - contentW
+    thumbPos := 0
+    if maxOff > 0 {
+        thumbPos = (trackW - thumbSize) * viewOffset / maxOff
+    }
+    if thumbPos < 0 {
+        thumbPos = 0
+    }
+    if thumbPos + thumbSize > trackW {
+        thumbPos = trackW - thumbSize
+    }
+    result := "<"
+    for i := 0; i < trackW; i++ {
+        if i >= thumbPos && i < thumbPos + thumbSize {
+            result = result + "#"
+        } else {
+            result = result + "-"
+        }
+    }
+    result = result + ">"
+    return result
+}
+
 func wordLeft() int {
     pos := cursor
     for pos > 0 && value[pos-1] == ' ' {
@@ -165,6 +198,13 @@ func handleEvent(evt input.Event) {
 }
 </script>
 
+<style>
+.scrollbar {
+    dim: true;
+}
+</style>
+
 <box focusable="true" onkey="handleEvent" cursor-x={cursor - viewOffset + 2} cursor-y="0">
     <text>{buildDisplayLine()}</text>
+    <text class="scrollbar">{buildScrollbar()}</text>
 </box>

@@ -91,6 +91,38 @@ func Run() {
 		}
 		return "[" + left + visible + pad + right + "]"
 	}
+	textinput0_buildScrollbar := func() string {
+		if len(name) <= textinput0_contentW || textinput0_contentW <= 0 {
+			return ""
+		}
+		totalW := textinput0_contentW + 4
+		trackW := totalW - 2
+		thumbSize := trackW * textinput0_contentW / len(name)
+		if thumbSize < 1 {
+			thumbSize = 1
+		}
+		maxOff := len(name) - textinput0_contentW
+		thumbPos := 0
+		if maxOff > 0 {
+			thumbPos = (trackW - thumbSize) * textinput0_viewOffset / maxOff
+		}
+		if thumbPos < 0 {
+			thumbPos = 0
+		}
+		if thumbPos+thumbSize > trackW {
+			thumbPos = trackW - thumbSize
+		}
+		result := "<"
+		for i := 0; i < trackW; i++ {
+			if i >= thumbPos && i < thumbPos+thumbSize {
+				result = result + "#"
+			} else {
+				result = result + "-"
+			}
+		}
+		result = result + ">"
+		return result
+	}
 	textinput0_wordLeft := func() int {
 		pos := textinput0_cursor
 		for pos > 0 && name[pos-1] == ' ' {
@@ -213,6 +245,13 @@ func Run() {
 		Kind:    layout.KindText,
 		Content: fmt.Sprintf("%v", textinput0_buildDisplayLine()),
 	}
+	textinput0_node1 := &layout.Input{
+		Kind:    layout.KindText,
+		Content: fmt.Sprintf("%v", textinput0_buildScrollbar()),
+		Style: render.Style{
+			Dim: true,
+		},
+	}
 	textinput0_box0 := &layout.Input{
 		Kind:      layout.KindBox,
 		Focusable: true,
@@ -220,6 +259,7 @@ func Run() {
 		CursorRow: 0,
 		Children: []*layout.Input{
 			textinput0_node0,
+			textinput0_node1,
 		},
 	}
 	textinput0_box0.SelfW = &textinput0_selfW
@@ -274,6 +314,7 @@ func Run() {
 	sync := func() {
 		textinput0_contentW = textinput0_selfW - 4
 		textinput0_node0.Content = fmt.Sprintf("%v", textinput0_buildDisplayLine())
+		textinput0_node1.Content = fmt.Sprintf("%v", textinput0_buildScrollbar())
 		node0.Content = fmt.Sprintf("You typed: %v", name)
 		textinput0_box0.CursorCol = textinput0_cursor - textinput0_viewOffset + 2
 	}
@@ -310,6 +351,7 @@ func Run() {
 
 	_ = textinput0_adjustView
 	_ = textinput0_buildDisplayLine
+	_ = textinput0_buildScrollbar
 	_ = textinput0_wordLeft
 	_ = textinput0_wordRight
 	_ = stopPropagation
