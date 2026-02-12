@@ -19,6 +19,7 @@ func Run() {
 	textinput0_viewOffset := 0
 	textinput0_placeholder := "Enter your name..."
 	textinput0_selfW := 0
+	textinput0_selfX := 0
 	textinput0_contentW := textinput0_selfW - 4
 	focusIndex := -1
 	focusCount := 1
@@ -179,7 +180,64 @@ func Run() {
 		}
 		return pos
 	}
+	textinput0_clampCursorToView := func() {
+		if textinput0_cursor < textinput0_viewOffset {
+			textinput0_cursor = textinput0_viewOffset
+			app.Dirty = true
+		}
+		if textinput0_cursor > textinput0_viewOffset+textinput0_contentW {
+			textinput0_cursor = textinput0_viewOffset + textinput0_contentW
+			app.Dirty = true
+		}
+		if textinput0_cursor > len(name) {
+			textinput0_cursor = len(name)
+			app.Dirty = true
+		}
+		if textinput0_cursor < 0 {
+			textinput0_cursor = 0
+			app.Dirty = true
+		}
+	}
 	textinput0_handleEvent := func(evt input.Event) {
+		if evt.Kind == input.EventMouse && evt.Mouse.Action == input.MousePress && evt.Mouse.Button == input.ButtonLeft {
+			relX := evt.Mouse.X - textinput0_selfX - 2
+			newCursor := textinput0_viewOffset + relX
+			if newCursor < 0 {
+				newCursor = 0
+			}
+			if newCursor > len(name) {
+				newCursor = len(name)
+			}
+			textinput0_cursor = newCursor
+			app.Dirty = true
+			textinput0_adjustView()
+			stopPropagation()
+			return
+		}
+		if evt.Kind == input.EventMouse && evt.Mouse.Action == input.MouseScroll {
+			if evt.Mouse.Button == input.ScrollUp && textinput0_viewOffset > 0 {
+				textinput0_viewOffset = textinput0_viewOffset - 3
+				app.Dirty = true
+				if textinput0_viewOffset < 0 {
+					textinput0_viewOffset = 0
+					app.Dirty = true
+				}
+				textinput0_clampCursorToView()
+				stopPropagation()
+				return
+			}
+			if evt.Mouse.Button == input.ScrollDown && textinput0_viewOffset < len(name)-textinput0_contentW {
+				textinput0_viewOffset = textinput0_viewOffset + 3
+				app.Dirty = true
+				if textinput0_viewOffset > len(name)-textinput0_contentW {
+					textinput0_viewOffset = len(name) - textinput0_contentW
+					app.Dirty = true
+				}
+				textinput0_clampCursorToView()
+				stopPropagation()
+				return
+			}
+		}
 		if evt.Special == input.KeyBackspace && evt.Ctrl && textinput0_cursor > 0 {
 			pos := textinput0_wordLeft()
 			name = name[:pos] + name[textinput0_cursor:]
@@ -355,6 +413,7 @@ func Run() {
 		},
 	}
 	textinput0_box0.SelfW = &textinput0_selfW
+	textinput0_box0.SelfX = &textinput0_selfX
 	node0 := &layout.Input{
 		Kind:    layout.KindText,
 		Content: fmt.Sprintf("You typed: %v", name),
@@ -421,6 +480,7 @@ func Run() {
 	var prevTree *layout.Box
 	var prevW, prevH int
 	var prevTextinput0_selfW int
+	var prevTextinput0_selfX int
 	doRender := func() {
 		sync()
 		termW, termH := term.GetSize(int(os.Stdin.Fd()))
@@ -439,6 +499,10 @@ func Run() {
 		prevH = termH
 		if textinput0_selfW != prevTextinput0_selfW {
 			prevTextinput0_selfW = textinput0_selfW
+			app.Dirty = true
+		}
+		if textinput0_selfX != prevTextinput0_selfX {
+			prevTextinput0_selfX = textinput0_selfX
 			app.Dirty = true
 		}
 		if cursorBox := layout.FindCursor(tree); cursorBox != nil {
@@ -461,8 +525,10 @@ func Run() {
 	_ = textinput0_scrollRightArrow
 	_ = textinput0_wordLeft
 	_ = textinput0_wordRight
+	_ = textinput0_clampCursorToView
 	_ = stopPropagation
 	app = &tui.App{
+		HasMouse: true,
 		OnRender: doRender,
 		OnEvent: func(evt input.Event) {
 			if evt.Kind == input.EventSpecial {

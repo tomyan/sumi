@@ -4,6 +4,7 @@ placeholder := $prop("")
 cursor := $state(0)
 viewOffset := $state(0)
 selfW := $self(width)
+selfX := $self(x)
 contentW := $derived(selfW - 4)
 
 func adjustView() {
@@ -159,7 +160,56 @@ func wordRight() int {
     return pos
 }
 
+func clampCursorToView() {
+    if cursor < viewOffset {
+        cursor = viewOffset
+    }
+    if cursor > viewOffset + contentW {
+        cursor = viewOffset + contentW
+    }
+    if cursor > len(value) {
+        cursor = len(value)
+    }
+    if cursor < 0 {
+        cursor = 0
+    }
+}
+
 func handleEvent(evt input.Event) {
+    if evt.Kind == input.EventMouse && evt.Mouse.Action == input.MousePress && evt.Mouse.Button == input.ButtonLeft {
+        relX := evt.Mouse.X - selfX - 2
+        newCursor := viewOffset + relX
+        if newCursor < 0 {
+            newCursor = 0
+        }
+        if newCursor > len(value) {
+            newCursor = len(value)
+        }
+        cursor = newCursor
+        adjustView()
+        stopPropagation()
+        return
+    }
+    if evt.Kind == input.EventMouse && evt.Mouse.Action == input.MouseScroll {
+        if evt.Mouse.Button == input.ScrollUp && viewOffset > 0 {
+            viewOffset = viewOffset - 3
+            if viewOffset < 0 {
+                viewOffset = 0
+            }
+            clampCursorToView()
+            stopPropagation()
+            return
+        }
+        if evt.Mouse.Button == input.ScrollDown && viewOffset < len(value) - contentW {
+            viewOffset = viewOffset + 3
+            if viewOffset > len(value) - contentW {
+                viewOffset = len(value) - contentW
+            }
+            clampCursorToView()
+            stopPropagation()
+            return
+        }
+    }
     if evt.Special == input.KeyBackspace && evt.Ctrl && cursor > 0 {
         pos := wordLeft()
         value = value[:pos] + value[cursor:]
