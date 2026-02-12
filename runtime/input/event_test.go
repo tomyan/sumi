@@ -487,6 +487,20 @@ func TestReadEventTabNotCtrl(t *testing.T) {
 	}
 }
 
+func TestEventFrameKind(t *testing.T) {
+	// Given — EventFrame is a distinct event kind for animation ticks
+	evt := Event{Kind: EventFrame}
+
+	// Then
+	if evt.Kind != EventFrame {
+		t.Errorf("Kind = %d, want EventFrame (%d)", evt.Kind, EventFrame)
+	}
+	// EventFrame should be distinct from all other kinds
+	if EventFrame == EventKey || EventFrame == EventSpecial || EventFrame == EventMouse || EventFrame == EventSignal {
+		t.Error("EventFrame should be a unique kind value")
+	}
+}
+
 func TestReadEventEnterNotCtrl(t *testing.T) {
 	// Given — Enter (0x0d/Ctrl+M) should remain KeyEnter, not Ctrl+m
 	r := strings.NewReader("\r")

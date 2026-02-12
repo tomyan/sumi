@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"go/format"
+	"strings"
 
 	"github.com/tomyan/sumi/parser/script"
 	"github.com/tomyan/sumi/parser/style"
@@ -39,11 +40,13 @@ func Generate(doc *template.Document, sc *script.Script, stylesheet *style.Style
 func generateRunFunc(doc *template.Document, sc *script.Script, stylesheet *style.Stylesheet, opts Options) ([]byte, error) {
 	instances := collectComponentInstances(doc, opts.Components)
 	reactive := hasReactiveContent(sc, instances)
+	inlined := collectInlinedStateful(instances)
 	var buf bytes.Buffer
 	fmt.Fprintf(&buf, "package %s\n\n", opts.PackageName)
 	hasTitle := findTitleElement(doc) != nil
 	hasScroll := len(findAllScrollableBoxes(doc, stylesheet)) > 0
-	writeImports(&buf, docHasExprs(doc) || hasTitle || hasScroll || docHasForKey(doc) || instancesHaveExprs(instances), reactive)
+	hasTime := needsTimeImport(sc, inlined)
+	writeImports(&buf, docHasExprs(doc) || hasTitle || hasScroll || docHasForKey(doc) || instancesHaveExprs(instances), reactive, hasTime)
 	buf.WriteString("func Run() {\n")
 	if reactive {
 		writeReactiveBody(&buf, doc, sc, stylesheet, instances)
@@ -60,6 +63,28 @@ func hasReactiveContent(sc *script.Script, instances []componentInstance) bool {
 		return true
 	}
 	return len(instances) > 0
+}
+
+// needsTimeImport returns true if any function body references the time package.
+func needsTimeImport(sc *script.Script, inlined []inlinedStateful) bool {
+	if sc != nil {
+		for _, fd := range sc.FuncDecls {
+			if strings.Contains(fd.Body, "time.") {
+				return true
+			}
+		}
+	}
+	for _, is := range inlined {
+		if is.Instance.Info.Script == nil {
+			continue
+		}
+		for _, fd := range is.Instance.Info.Script.FuncDecls {
+			if strings.Contains(fd.Body, "time.") {
+				return true
+			}
+		}
+	}
+	return false
 }
 
 // instancesHaveExprs returns true if any inlined component has expression parts.

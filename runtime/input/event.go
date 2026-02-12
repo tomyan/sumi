@@ -13,6 +13,7 @@ const (
 	EventSpecial                  // special key (arrow, pgup, etc.)
 	EventMouse                    // mouse event
 	EventSignal                   // OS signal (SIGINT, SIGTERM, etc.)
+	EventFrame                    // animation frame tick
 )
 
 // SpecialKey identifies a special key.

@@ -235,6 +235,62 @@ func TestAppBoundedReRender(t *testing.T) {
 	}
 }
 
+func TestAppRequestFrameWakesLoop(t *testing.T) {
+	// Given — a long-lived event channel
+	eventCh := make(chan input.Event, 1)
+
+	renderCount := 0
+	app := &App{
+		OnRender: func() { renderCount++ },
+	}
+	app.initQuit()
+	app.OnEvent = func(evt input.Event) {
+		if evt.Kind == input.EventFrame {
+			app.Quit()
+		}
+	}
+
+	// When — request a frame, which should wake the loop
+	app.RequestFrame()
+	app.runLoop(eventCh, nil, nil)
+
+	// Then — initial render + frame render
+	if renderCount < 2 {
+		t.Errorf("renderCount = %d, want at least 2", renderCount)
+	}
+}
+
+func TestAppRequestFrameDeliversEventFrame(t *testing.T) {
+	// Given
+	eventCh := make(chan input.Event, 1)
+
+	var gotFrame bool
+	var gotKind input.EventKind
+	app := &App{
+		OnRender: func() {},
+	}
+	app.initQuit()
+	app.OnEvent = func(evt input.Event) {
+		if evt.Kind == input.EventFrame {
+			gotFrame = true
+			gotKind = evt.Kind
+			app.Quit()
+		}
+	}
+
+	// When
+	app.RequestFrame()
+	app.runLoop(eventCh, nil, nil)
+
+	// Then
+	if !gotFrame {
+		t.Fatal("EventFrame was not delivered to OnEvent")
+	}
+	if gotKind != input.EventFrame {
+		t.Errorf("Kind = %d, want EventFrame", gotKind)
+	}
+}
+
 func TestAppBoundedReRenderStopsWhenClean(t *testing.T) {
 	// Given — OnRender sets Dirty only on renders 2 and 3
 	eventCh := make(chan input.Event, 1)

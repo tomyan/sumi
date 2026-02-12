@@ -10,12 +10,16 @@ import (
 // writeImports writes the import block for the generated code.
 // hasEvents indicates whether the generated code references input.Event types
 // (reactive path with event handlers).
-func writeImports(buf *bytes.Buffer, hasExprs bool, hasEvents bool) {
+func writeImports(buf *bytes.Buffer, hasExprs bool, hasEvents bool, hasTime bool) {
 	buf.WriteString("import (\n")
 	if hasExprs {
 		buf.WriteString("\t\"fmt\"\n")
 	}
-	buf.WriteString("\t\"os\"\n\n")
+	buf.WriteString("\t\"os\"\n")
+	if hasTime {
+		buf.WriteString("\t\"time\"\n")
+	}
+	buf.WriteString("\n")
 	if hasEvents {
 		buf.WriteString("\t\"github.com/tomyan/sumi/runtime/input\"\n")
 	}

@@ -5,6 +5,7 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
+	"time"
 
 	"github.com/tomyan/sumi/runtime/input"
 	"github.com/tomyan/sumi/runtime/render"
@@ -22,6 +23,7 @@ type App struct {
 	SaveTitle bool              // save/restore terminal title only (for dynamic titles set in doRender)
 	Dirty     bool              // set by handlers to trigger re-render
 	quitCh    chan struct{}      // closed by Quit() to exit the event loop
+	wakeCh    chan struct{}      // receives from RequestFrame() to wake the event loop
 }
 
 // Quit signals the event loop to exit.
@@ -32,9 +34,23 @@ func (a *App) Quit() {
 	}
 }
 
-// initQuit creates the quit channel. Called by Run() and tests.
+// RequestFrame schedules an animation frame tick after ~16ms.
+// When the tick fires, the event loop dispatches EventFrame to OnEvent.
+func (a *App) RequestFrame() {
+	go func() {
+		time.Sleep(16 * time.Millisecond)
+		a.Dirty = true
+		select {
+		case a.wakeCh <- struct{}{}:
+		default:
+		}
+	}()
+}
+
+// initQuit creates the quit and wake channels. Called by Run() and tests.
 func (a *App) initQuit() {
 	a.quitCh = make(chan struct{}, 1)
+	a.wakeCh = make(chan struct{}, 1)
 }
 
 // Run sets up the terminal, starts the event reader, and runs the event loop.
@@ -110,6 +126,9 @@ func (a *App) runLoop(eventCh <-chan input.Event, resizeCh <-chan struct{}, sigC
 		case sig := <-sigCh:
 			a.dispatchEvent(input.Event{Kind: input.EventSignal, Signal: sig.(syscall.Signal)})
 
+		case <-a.wakeCh:
+			a.dispatchEvent(input.Event{Kind: input.EventFrame})
+
 		case <-a.quitCh:
 			return
 		}
@@ -159,6 +178,9 @@ func (a *App) drain(eventCh <-chan input.Event, resizeCh <-chan struct{}, sigCh 
 
 		case sig := <-sigCh:
 			a.dispatchEvent(input.Event{Kind: input.EventSignal, Signal: sig.(syscall.Signal)})
+
+		case <-a.wakeCh:
+			a.dispatchEvent(input.Event{Kind: input.EventFrame})
 
 		case <-a.quitCh:
 			return true
