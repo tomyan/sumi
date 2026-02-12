@@ -1,6 +1,9 @@
 package input
 
-import "io"
+import (
+	"io"
+	"syscall"
+)
 
 // EventKind distinguishes key events from special key events and mouse events.
 type EventKind int
@@ -9,6 +12,7 @@ const (
 	EventKey     EventKind = iota // regular character key
 	EventSpecial                  // special key (arrow, pgup, etc.)
 	EventMouse                    // mouse event
+	EventSignal                   // OS signal (SIGINT, SIGTERM, etc.)
 )
 
 // SpecialKey identifies a special key.
@@ -30,9 +34,10 @@ const (
 // Event represents a terminal input event.
 type Event struct {
 	Kind    EventKind
-	Rune    rune       // set for EventKey
-	Special SpecialKey // set for EventSpecial
-	Mouse   MouseEvent // set for EventMouse
+	Rune    rune           // set for EventKey
+	Special SpecialKey     // set for EventSpecial
+	Mouse   MouseEvent     // set for EventMouse
+	Signal  syscall.Signal // set for EventSignal
 }
 
 // ReadEvent reads a single input event from the reader.

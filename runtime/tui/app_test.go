@@ -1,6 +1,8 @@
 package tui
 
 import (
+	"os"
+	"syscall"
 	"testing"
 
 	"github.com/tomyan/sumi/runtime/input"
@@ -14,6 +16,7 @@ func TestAppCallsOnRender(t *testing.T) {
 	app := &App{
 		OnRender: func() { rendered = true },
 	}
+	app.initQuit()
 
 	// When — close the event channel immediately so the loop exits after initial render
 	close(eventCh)
@@ -25,22 +28,90 @@ func TestAppCallsOnRender(t *testing.T) {
 	}
 }
 
-func TestAppQuitsOnCtrlC(t *testing.T) {
-	// Given
-	eventCh := make(chan input.Event, 1)
+func TestAppDispatchesCtrlCAsEvent(t *testing.T) {
+	// Given — Ctrl+C should be dispatched as a regular key event, not auto-quit
+	eventCh := make(chan input.Event, 2)
 	eventCh <- input.Event{Kind: input.EventKey, Rune: 3}
+	close(eventCh)
 
-	renderCount := 0
+	var gotCtrlC bool
 	app := &App{
-		OnRender: func() { renderCount++ },
+		OnRender: func() {},
+	}
+	app.initQuit()
+	app.OnEvent = func(evt input.Event) {
+		if evt.Kind == input.EventKey && evt.Rune == 3 {
+			gotCtrlC = true
+		}
 	}
 
 	// When
 	app.runLoop(eventCh, nil, nil)
 
-	// Then — should have rendered once (initial) then quit
-	if renderCount != 1 {
-		t.Errorf("renderCount = %d, want 1 (initial render only)", renderCount)
+	// Then — Ctrl+C dispatched to OnEvent, loop exits when channel closes
+	if !gotCtrlC {
+		t.Error("Ctrl+C was not dispatched to OnEvent")
+	}
+}
+
+func TestAppQuitExitsLoop(t *testing.T) {
+	// Given — a long-lived event channel
+	eventCh := make(chan input.Event, 1)
+	eventCh <- input.Event{Kind: input.EventKey, Rune: 'a'}
+
+	renderCount := 0
+	app := &App{
+		OnRender: func() { renderCount++ },
+	}
+	app.initQuit()
+	app.OnEvent = func(evt input.Event) {
+		app.Dirty = true
+		app.Quit()
+	}
+
+	// When
+	app.runLoop(eventCh, nil, nil)
+
+	// Then — initial render + dirty render after event, then quit
+	if renderCount != 2 {
+		t.Errorf("renderCount = %d, want 2", renderCount)
+	}
+}
+
+func TestAppDispatchesSignalAsEvent(t *testing.T) {
+	// Given — a signal arrives on sigCh
+	sigCh := make(chan os.Signal, 1)
+	sigCh <- syscall.SIGINT
+	eventCh := make(chan input.Event)
+
+	var gotSignal bool
+	var gotSignalKind input.EventKind
+	var gotSignalValue syscall.Signal
+	app := &App{
+		OnRender: func() {},
+	}
+	app.initQuit()
+	app.OnEvent = func(evt input.Event) {
+		if evt.Kind == input.EventSignal {
+			gotSignal = true
+			gotSignalKind = evt.Kind
+			gotSignalValue = evt.Signal
+			app.Quit()
+		}
+	}
+
+	// When
+	app.runLoop(eventCh, nil, sigCh)
+
+	// Then — signal dispatched as EventSignal
+	if !gotSignal {
+		t.Fatal("signal was not dispatched to OnEvent")
+	}
+	if gotSignalKind != input.EventSignal {
+		t.Errorf("Kind = %d, want EventSignal", gotSignalKind)
+	}
+	if gotSignalValue != syscall.SIGINT {
+		t.Errorf("Signal = %v, want SIGINT", gotSignalValue)
 	}
 }
 
@@ -57,6 +128,7 @@ func TestAppDrainsEvents(t *testing.T) {
 	app := &App{
 		OnRender: func() { renderCount++ },
 	}
+	app.initQuit()
 	app.OnEvent = func(evt input.Event) {
 		receivedRunes = append(receivedRunes, evt.Rune)
 		app.Dirty = true
@@ -93,6 +165,7 @@ func TestAppHandlesResize(t *testing.T) {
 		},
 		OnResize: func() { resized = true },
 	}
+	app.initQuit()
 
 	// When
 	app.runLoop(eventCh, resizeCh, nil)
@@ -121,6 +194,7 @@ func TestAppNoQuitOnQ(t *testing.T) {
 			}
 		},
 	}
+	app.initQuit()
 
 	// When
 	app.runLoop(eventCh, nil, nil)
@@ -131,22 +205,20 @@ func TestAppNoQuitOnQ(t *testing.T) {
 	}
 }
 
-func TestAppQuitsOnSignal(t *testing.T) {
-	// Given
-	sigCh := make(chan struct{}, 1)
-	sigCh <- struct{}{}
-	eventCh := make(chan input.Event)
+func TestAppSignalWithNoHandlerDoesNotCrash(t *testing.T) {
+	// Given — signal arrives but no OnEvent handler is set
+	sigCh := make(chan os.Signal, 1)
+	sigCh <- syscall.SIGTERM
+	eventCh := make(chan input.Event, 1)
+	close(eventCh)
 
-	renderCount := 0
 	app := &App{
-		OnRender: func() { renderCount++ },
+		OnRender: func() {},
 	}
+	app.initQuit()
 
-	// When
+	// When — signal dispatched (no-op), then eventCh closes, loop exits
 	app.runLoop(eventCh, nil, sigCh)
 
-	// Then — only initial render, then signal causes quit
-	if renderCount != 1 {
-		t.Errorf("renderCount = %d, want 1", renderCount)
-	}
+	// Then — no panic, no hang
 }

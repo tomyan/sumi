@@ -21,10 +21,26 @@ type App struct {
 	Title     string            // static terminal title (saved/set/restored around Run)
 	SaveTitle bool              // save/restore terminal title only (for dynamic titles set in doRender)
 	Dirty     bool              // set by handlers to trigger re-render
+	quitCh    chan struct{}      // closed by Quit() to exit the event loop
+}
+
+// Quit signals the event loop to exit.
+func (a *App) Quit() {
+	select {
+	case a.quitCh <- struct{}{}:
+	default:
+	}
+}
+
+// initQuit creates the quit channel. Called by Run() and tests.
+func (a *App) initQuit() {
+	a.quitCh = make(chan struct{}, 1)
 }
 
 // Run sets up the terminal, starts the event reader, and runs the event loop.
 func (a *App) Run() {
+	a.initQuit()
+
 	if a.Title != "" || a.SaveTitle {
 		fmt.Fprint(os.Stdout, "\033[22;2t") // save current title
 	}
@@ -65,20 +81,13 @@ func (a *App) Run() {
 	signal.Notify(sigCh, syscall.SIGINT, syscall.SIGTERM)
 	defer signal.Stop(sigCh)
 
-	// Convert os.Signal channel to struct{} channel for runLoop
-	shutdownCh := make(chan struct{}, 1)
-	go func() {
-		<-sigCh
-		shutdownCh <- struct{}{}
-	}()
-
-	a.runLoop(eventCh, resizeCh, shutdownCh)
+	a.runLoop(eventCh, resizeCh, sigCh)
 }
 
 // runLoop is the internal event loop, injectable for testing.
 // eventCh delivers input events, resizeCh delivers resize signals,
-// sigCh delivers shutdown signals. Nil channels are ignored.
-func (a *App) runLoop(eventCh <-chan input.Event, resizeCh <-chan struct{}, sigCh <-chan struct{}) {
+// sigCh delivers OS signals (dispatched as EventSignal events).
+func (a *App) runLoop(eventCh <-chan input.Event, resizeCh <-chan struct{}, sigCh <-chan os.Signal) {
 	// Initial render
 	a.Dirty = true
 	a.OnRender()
@@ -91,31 +100,30 @@ func (a *App) runLoop(eventCh <-chan input.Event, resizeCh <-chan struct{}, sigC
 			if !ok {
 				return
 			}
-			if isQuit(evt) {
-				return
-			}
 			a.dispatchEvent(evt)
 
 		case <-resizeCh:
 			a.dispatchResize()
 
-		case <-sigCh:
+		case sig := <-sigCh:
+			a.dispatchEvent(input.Event{Kind: input.EventSignal, Signal: sig.(syscall.Signal)})
+
+		case <-a.quitCh:
 			return
 		}
 
 		// Drain pending events before rendering
-		a.drain(eventCh, resizeCh, sigCh)
+		done := a.drain(eventCh, resizeCh, sigCh)
 
 		if a.Dirty {
 			a.OnRender()
 			a.Dirty = false
 		}
-	}
-}
 
-// isQuit returns true for Ctrl+C (rune 3).
-func isQuit(evt input.Event) bool {
-	return evt.Kind == input.EventKey && evt.Rune == 3
+		if done {
+			return
+		}
+	}
 }
 
 // dispatchEvent calls OnEvent if set.
@@ -134,15 +142,12 @@ func (a *App) dispatchResize() {
 }
 
 // drain non-blocking reads all pending events from all channels.
-// Returns true if a quit/signal was received.
-func (a *App) drain(eventCh <-chan input.Event, resizeCh <-chan struct{}, sigCh <-chan struct{}) bool {
+// Returns true if a quit was requested or the event channel closed.
+func (a *App) drain(eventCh <-chan input.Event, resizeCh <-chan struct{}, sigCh <-chan os.Signal) bool {
 	for {
 		select {
 		case evt, ok := <-eventCh:
 			if !ok {
-				return true
-			}
-			if isQuit(evt) {
 				return true
 			}
 			a.dispatchEvent(evt)
@@ -150,7 +155,10 @@ func (a *App) drain(eventCh <-chan input.Event, resizeCh <-chan struct{}, sigCh 
 		case <-resizeCh:
 			a.dispatchResize()
 
-		case <-sigCh:
+		case sig := <-sigCh:
+			a.dispatchEvent(input.Event{Kind: input.EventSignal, Signal: sig.(syscall.Signal)})
+
+		case <-a.quitCh:
 			return true
 
 		default:

@@ -2,6 +2,7 @@ package input
 
 import (
 	"strings"
+	"syscall"
 	"testing"
 )
 
@@ -266,5 +267,29 @@ func TestReadEventUTF8FourByte(t *testing.T) {
 	}
 	if ev.Rune != '🎉' {
 		t.Errorf("Rune = %U, want %U ('🎉')", ev.Rune, '🎉')
+	}
+}
+
+func TestEventSignalKind(t *testing.T) {
+	// Given — an event with the signal kind
+	evt := Event{Kind: EventSignal, Signal: syscall.SIGINT}
+
+	// Then
+	if evt.Kind != EventSignal {
+		t.Errorf("Kind = %d, want EventSignal (%d)", evt.Kind, EventSignal)
+	}
+	if evt.Signal != syscall.SIGINT {
+		t.Errorf("Signal = %v, want SIGINT", evt.Signal)
+	}
+}
+
+func TestEventSignalPreservesIdentity(t *testing.T) {
+	// Given — different signals should be distinguishable
+	sigint := Event{Kind: EventSignal, Signal: syscall.SIGINT}
+	sigterm := Event{Kind: EventSignal, Signal: syscall.SIGTERM}
+
+	// Then
+	if sigint.Signal == sigterm.Signal {
+		t.Error("SIGINT and SIGTERM should be different signals")
 	}
 }
