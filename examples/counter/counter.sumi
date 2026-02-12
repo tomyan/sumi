@@ -21,12 +21,22 @@
 count := $state(0)
 doubled := $derived(count * 2)
 
-func increment() {
-    count = count + 1
+func handleKey(evt input.Event) {
+    if evt.Kind == input.EventSignal {
+        app.Quit()
+        return
+    }
+    if evt.Rune == 'q' || evt.Rune == 3 {
+        app.Quit()
+        return
+    }
+    if evt.Kind == input.EventKey {
+        count = count + 1
+    }
 }
 </script>
 
-<box class="container" onkey="increment">
+<box class="container" onkey="handleKey">
     <text class="title">Sumi Counter</text>
     <text class="hint">Press any key to increment, q to quit</text>
     <text class="count">Count: {count} (doubled: {doubled})</text>

@@ -17,9 +17,19 @@ func Run() {
 	doubled := count * 2
 
 	var app *tui.App
-	increment := func() {
-		count = count + 1
-		app.Dirty = true
+	handleKey := func(evt input.Event) {
+		if evt.Kind == input.EventSignal {
+			app.Quit()
+			return
+		}
+		if evt.Rune == 'q' || evt.Rune == 3 {
+			app.Quit()
+			return
+		}
+		if evt.Kind == input.EventKey {
+			count = count + 1
+			app.Dirty = true
+		}
 	}
 
 	node0 := &layout.Input{
@@ -112,9 +122,7 @@ func Run() {
 	app = &tui.App{
 		OnRender: doRender,
 		OnEvent: func(evt input.Event) {
-			if evt.Kind == input.EventKey {
-				increment()
-			}
+			handleKey(evt)
 		},
 	}
 	app.Run()

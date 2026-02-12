@@ -97,6 +97,14 @@ func Run() {
 	app = &tui.App{
 		OnRender: doRender,
 		OnEvent: func(evt input.Event) {
+			if evt.Kind == input.EventKey && evt.Rune == 3 {
+				app.Quit()
+				return
+			}
+			if evt.Kind == input.EventSignal {
+				app.Quit()
+				return
+			}
 			if evt.Kind == input.EventKey {
 				handleKey()
 			}
