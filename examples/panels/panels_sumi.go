@@ -3,10 +3,10 @@ package main
 import (
 	"os"
 
-	"github.com/tomyan/sumi/runtime/input"
 	"github.com/tomyan/sumi/runtime/layout"
 	"github.com/tomyan/sumi/runtime/render"
 	"github.com/tomyan/sumi/runtime/term"
+	"github.com/tomyan/sumi/runtime/tui"
 )
 
 func Run() {
@@ -111,41 +111,8 @@ func Run() {
 		buf.RenderTo(os.Stdout)
 	}
 
-	restore, _ := input.EnableRawMode(int(os.Stdin.Fd()))
-	defer restore()
-	render.EnterAlternateScreen(os.Stdout)
-	defer render.ExitAlternateScreen(os.Stdout)
-
-	eventCh := make(chan input.Event)
-	go func() {
-		for {
-			evt, err := input.ReadEvent(os.Stdin)
-			if err != nil {
-				close(eventCh)
-				return
-			}
-			eventCh <- evt
-		}
-	}()
-
-	resizeCh, stopResize := term.WatchResize()
-	defer stopResize()
-
-	doRender()
-
-	for {
-		select {
-		case evt, ok := <-eventCh:
-			if !ok {
-				return
-			}
-			if evt.Kind == input.EventKey {
-				if evt.Rune == 'q' || evt.Rune == 3 {
-					return
-				}
-			}
-		case <-resizeCh:
-			doRender()
-		}
+	app := &tui.App{
+		OnRender: doRender,
 	}
+	app.Run()
 }

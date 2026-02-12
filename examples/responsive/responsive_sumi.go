@@ -8,11 +8,12 @@ import (
 	"github.com/tomyan/sumi/runtime/layout"
 	"github.com/tomyan/sumi/runtime/render"
 	"github.com/tomyan/sumi/runtime/term"
+	"github.com/tomyan/sumi/runtime/tui"
 )
 
 func Run() {
 	width, height := term.GetSize(int(os.Stdin.Fd()))
-	dirty := true
+	var app *tui.App
 	var scroll0 layout.ScrollState
 	draggingHScroll := false
 
@@ -84,76 +85,43 @@ func Run() {
 		prevTree = tree
 		prevW = termW
 		prevH = termH
-		dirty = false
 	}
 
-	fmt.Fprint(os.Stdout, "\033[22;2t")
-	restore, _ := input.EnableRawMode(int(os.Stdin.Fd()))
-	defer restore()
-	render.EnterAlternateScreen(os.Stdout)
-	defer render.ExitAlternateScreen(os.Stdout)
-	fmt.Fprint(os.Stdout, input.MouseEnableSeq)
-	defer fmt.Fprint(os.Stdout, input.MouseDisableSeq)
-	defer fmt.Fprint(os.Stdout, "\033[23;2t")
-
-	eventCh := make(chan input.Event)
-	go func() {
-		for {
-			evt, err := input.ReadEvent(os.Stdin)
-			if err != nil {
-				close(eventCh)
-				return
-			}
-			eventCh <- evt
-		}
-	}()
-
-	resizeCh, stopResize := term.WatchResize()
-	defer stopResize()
-
-	doRender()
-
-	for {
-		select {
-		case evt, ok := <-eventCh:
-			if !ok {
-				return
-			}
-			if evt.Kind == input.EventKey {
-				if evt.Rune == 'q' || evt.Rune == 3 {
-					return
-				}
-			}
+	app = &tui.App{
+		HasMouse:  true,
+		SaveTitle: true,
+		OnRender:  doRender,
+		OnEvent: func(evt input.Event) {
 			if evt.Kind == input.EventSpecial && prevTree != nil {
 				switch evt.Special {
 				case input.KeyDown:
 					scroll0.ScrollDown(prevTree.ContentHeight, prevTree.Height)
-					dirty = true
+					app.Dirty = true
 				case input.KeyUp:
 					scroll0.ScrollUp()
-					dirty = true
+					app.Dirty = true
 				case input.KeyPgDn:
 					scroll0.PageDown(prevTree.ContentHeight, prevTree.Height)
-					dirty = true
+					app.Dirty = true
 				case input.KeyPgUp:
 					scroll0.PageUp(prevTree.Height)
-					dirty = true
+					app.Dirty = true
 				case input.KeyRight:
 					scroll0.ScrollRight(prevTree.ContentWidth, prevTree.Width)
-					dirty = true
+					app.Dirty = true
 				case input.KeyLeft:
 					scroll0.ScrollLeft()
-					dirty = true
+					app.Dirty = true
 				}
 			}
 			if evt.Kind == input.EventMouse && evt.Mouse.Action == input.MouseScroll && prevTree != nil {
 				switch evt.Mouse.Button {
 				case input.ScrollDown:
 					scroll0.ScrollDown(prevTree.ContentHeight, prevTree.Height)
-					dirty = true
+					app.Dirty = true
 				case input.ScrollUp:
 					scroll0.ScrollUp()
-					dirty = true
+					app.Dirty = true
 				}
 			}
 			if evt.Kind == input.EventMouse && prevTree != nil {
@@ -161,23 +129,21 @@ func Run() {
 					if prevTree.NeedsHorizontalScrollbar && prevTree.Clip != nil && evt.Mouse.Y == prevTree.Clip.Bottom {
 						draggingHScroll = true
 						scroll0.ScrollX = layout.ScrollXFromDrag(evt.Mouse.X-prevTree.Clip.Left, prevTree.ContentWidth, prevTree.Clip.Right-prevTree.Clip.Left+1)
-						dirty = true
+						app.Dirty = true
 					}
 				}
 				if evt.Mouse.Action == input.MouseMotion && draggingHScroll {
 					scroll0.ScrollX = layout.ScrollXFromDrag(evt.Mouse.X-prevTree.Clip.Left, prevTree.ContentWidth, prevTree.Clip.Right-prevTree.Clip.Left+1)
-					dirty = true
+					app.Dirty = true
 				}
 				if evt.Mouse.Action == input.MouseRelease {
 					draggingHScroll = false
 				}
 			}
-		case <-resizeCh:
+		},
+		OnResize: func() {
 			width, height = term.GetSize(int(os.Stdin.Fd()))
-			dirty = true
-		}
-		if dirty {
-			doRender()
-		}
+		},
 	}
+	app.Run()
 }

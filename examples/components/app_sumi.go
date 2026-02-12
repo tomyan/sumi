@@ -8,20 +8,21 @@ import (
 	"github.com/tomyan/sumi/runtime/layout"
 	"github.com/tomyan/sumi/runtime/render"
 	"github.com/tomyan/sumi/runtime/term"
+	"github.com/tomyan/sumi/runtime/tui"
 )
 
 func Run() {
-	dirty := true
+	var app *tui.App
 	counter0_count := 0
 	counter1_count := 0
 
 	counter0_increment := func() {
 		counter0_count = counter0_count + 1
-		dirty = true
+		app.Dirty = true
 	}
 	counter1_increment := func() {
 		counter1_count = counter1_count + 1
-		dirty = true
+		app.Dirty = true
 	}
 
 	counter0_node0 := &layout.Input{
@@ -117,7 +118,6 @@ func Run() {
 		changed := sync()
 		termW, termH := term.GetSize(int(os.Stdin.Fd()))
 		if prevTree != nil && len(changed) == 0 && termW == prevW && termH == prevH {
-			dirty = false
 			return
 		}
 		if prevTree != nil && len(changed) > 0 && termW == prevW && termH == prevH && !prevTree.HasOverlap && nodeBoxMap != nil {
@@ -131,7 +131,6 @@ func Run() {
 				box.Content = inp.Content
 			}
 			if allDirect {
-				dirty = false
 				return
 			}
 		}
@@ -149,49 +148,16 @@ func Run() {
 		prevTree = tree
 		prevW = termW
 		prevH = termH
-		dirty = false
 	}
 
-	restore, _ := input.EnableRawMode(int(os.Stdin.Fd()))
-	defer restore()
-	render.EnterAlternateScreen(os.Stdout)
-	defer render.ExitAlternateScreen(os.Stdout)
-
-	eventCh := make(chan input.Event)
-	go func() {
-		for {
-			evt, err := input.ReadEvent(os.Stdin)
-			if err != nil {
-				close(eventCh)
-				return
-			}
-			eventCh <- evt
-		}
-	}()
-
-	resizeCh, stopResize := term.WatchResize()
-	defer stopResize()
-
-	doRender()
-
-	for {
-		select {
-		case evt, ok := <-eventCh:
-			if !ok {
-				return
-			}
+	app = &tui.App{
+		OnRender: doRender,
+		OnEvent: func(evt input.Event) {
 			if evt.Kind == input.EventKey {
-				if evt.Rune == 'q' || evt.Rune == 3 {
-					return
-				}
 				counter0_increment()
 				counter1_increment()
 			}
-		case <-resizeCh:
-			dirty = true
-		}
-		if dirty {
-			doRender()
-		}
+		},
 	}
+	app.Run()
 }

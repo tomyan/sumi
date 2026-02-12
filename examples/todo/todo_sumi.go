@@ -8,16 +8,17 @@ import (
 	"github.com/tomyan/sumi/runtime/layout"
 	"github.com/tomyan/sumi/runtime/render"
 	"github.com/tomyan/sumi/runtime/term"
+	"github.com/tomyan/sumi/runtime/tui"
 )
 
 func Run() {
 	items := []string{"Buy groceries", "Write tests", "Review PR"}
 	selected := 0
 
-	dirty := true
+	var app *tui.App
 	handleKey := func() {
 		selected = (selected + 1) % len(items)
-		dirty = true
+		app.Dirty = true
 	}
 
 	box0 := &layout.Input{
@@ -91,48 +92,15 @@ func Run() {
 		prevTree = tree
 		prevW = termW
 		prevH = termH
-		dirty = false
 	}
 
-	restore, _ := input.EnableRawMode(int(os.Stdin.Fd()))
-	defer restore()
-	render.EnterAlternateScreen(os.Stdout)
-	defer render.ExitAlternateScreen(os.Stdout)
-
-	eventCh := make(chan input.Event)
-	go func() {
-		for {
-			evt, err := input.ReadEvent(os.Stdin)
-			if err != nil {
-				close(eventCh)
-				return
-			}
-			eventCh <- evt
-		}
-	}()
-
-	resizeCh, stopResize := term.WatchResize()
-	defer stopResize()
-
-	doRender()
-
-	for {
-		select {
-		case evt, ok := <-eventCh:
-			if !ok {
-				return
-			}
+	app = &tui.App{
+		OnRender: doRender,
+		OnEvent: func(evt input.Event) {
 			if evt.Kind == input.EventKey {
-				if evt.Rune == 'q' || evt.Rune == 3 {
-					return
-				}
 				handleKey()
 			}
-		case <-resizeCh:
-			dirty = true
-		}
-		if dirty {
-			doRender()
-		}
+		},
 	}
+	app.Run()
 }
