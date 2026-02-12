@@ -181,6 +181,64 @@ func TestSelfInInlinedComponent(t *testing.T) {
 	assertValidGo(t, out)
 }
 
+func TestInlinedSelfNotWiredToRoot(t *testing.T) {
+	// Given — parent (no self decls) with an inlined component that has $self(width)
+	childInfo := &ComponentInfo{
+		Name:         "widget",
+		ExportedName: "Widget",
+		HasState:     true,
+		Doc: &template.Document{
+			Children: []template.Node{
+				&template.BoxElement{
+					Children: []template.Node{
+						&template.TextElement{
+							Parts: []template.Part{
+								&template.ExprPart{Expr: `fmt.Sprintf("w=%d", selfW)`},
+							},
+						},
+					},
+				},
+			},
+		},
+		Script: &script.Script{
+			SelfDecls: []script.SelfDecl{{Name: "selfW", Key: "width"}},
+		},
+	}
+
+	doc := &template.Document{
+		Children: []template.Node{
+			&template.ComponentElement{
+				Name:       "widget",
+				Attributes: map[string]string{},
+			},
+		},
+	}
+
+	// When
+	out, err := Generate(doc, nil, nil, Options{
+		PackageName: "main",
+		Components:  map[string]*ComponentInfo{"widget": childInfo},
+	})
+
+	// Then
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	src := string(out)
+
+	// Inlined self should NOT be wired to root
+	if strings.Contains(src, "root.SelfW") {
+		t.Errorf("inlined component's SelfW should not be wired to root:\n%s", src)
+	}
+
+	// Should be wired to the inlined component's box instead
+	if !strings.Contains(src, "widget0_selfW") {
+		t.Errorf("expected namespaced self var widget0_selfW:\n%s", src)
+	}
+
+	assertValidGo(t, out)
+}
+
 func TestSelfChangeDetectionEmitted(t *testing.T) {
 	// Given — self decl present
 	doc := &template.Document{

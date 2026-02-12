@@ -73,6 +73,14 @@ func writeInlinedSelfWiring(buf *bytes.Buffer, selfDecls []script.SelfDecl, boxN
 	}
 }
 
+// rootOnlySelfDecls returns the self decls from the root script only (not inlined components).
+func rootOnlySelfDecls(sc *script.Script) []script.SelfDecl {
+	if sc == nil {
+		return nil
+	}
+	return sc.SelfDecls
+}
+
 // collectAllSelfDecls gathers self decls from root and inlined components, with namespacing.
 func collectAllSelfDecls(sc *script.Script, inlined []inlinedStateful) []script.SelfDecl {
 	var all []script.SelfDecl
@@ -184,13 +192,14 @@ func writeDerivedRecalc(buf *bytes.Buffer, derivedDecls []script.DerivedDecl) {
 // Static documents get a no-op skip fast path; dynamic documents always run full Layout+Diff.
 func writeRenderClosure(buf *bytes.Buffer, doc *template.Document, sc *script.Script, stylesheet *style.Stylesheet, instances []componentInstance, scrollBoxes []scrollableBox, title *template.TitleElement, inlined []inlinedStateful) {
 	derivedDecls := collectAllDerivedDecls(sc, inlined)
-	selfDecls := collectAllSelfDecls(sc, inlined)
-	ext := writeTreeAndSync(buf, doc, stylesheet, instances, scrollBoxes, derivedDecls, selfDecls)
+	allSelfDecls := collectAllSelfDecls(sc, inlined)
+	rootSelfDecls := rootOnlySelfDecls(sc)
+	ext := writeTreeAndSync(buf, doc, stylesheet, instances, scrollBoxes, derivedDecls, rootSelfDecls)
 	dynamic := isDynamic(ext, scrollBoxes)
 
 	buf.WriteString("\tvar prevTree *layout.Box\n")
 	buf.WriteString("\tvar prevW, prevH int\n")
-	writeSelfPrevDecls(buf, selfDecls)
+	writeSelfPrevDecls(buf, allSelfDecls)
 	if !dynamic {
 		buf.WriteString("\tvar nodeBoxMap map[*layout.Input]*layout.Box\n")
 	}
@@ -201,7 +210,7 @@ func writeRenderClosure(buf *bytes.Buffer, doc *template.Document, sc *script.Sc
 	} else {
 		writeStaticDoRender(buf, title)
 	}
-	writeSelfChangeDetection(buf, selfDecls)
+	writeSelfChangeDetection(buf, allSelfDecls)
 	if ext.hasCursor {
 		writeCursorPositioning(buf)
 	}

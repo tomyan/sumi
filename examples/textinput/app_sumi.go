@@ -310,7 +310,6 @@ func Run() {
 			},
 		},
 	}
-	root.SelfW = &textinput0_selfW
 	sync := func() {
 		textinput0_contentW = textinput0_selfW - 4
 		textinput0_node0.Content = fmt.Sprintf("%v", textinput0_buildDisplayLine())
