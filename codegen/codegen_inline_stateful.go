@@ -107,10 +107,14 @@ func writeNamespacedFuncBody(buf *bytes.Buffer, funcDecl script.FuncDecl, stateN
 
 // resolveCallbackProps replaces prop name references in a line with their resolved values.
 // Handles function calls: propName(...) → resolvedValue(...)
+// Expression prop values ({expr}) have curlies stripped before substitution.
 func resolveCallbackProps(line string, propMap map[string]string) string {
 	for propName, propValue := range propMap {
-		// Replace function calls: propName( → propValue(
-		line = strings.ReplaceAll(line, propName+"(", propValue+"(")
+		resolved := propValue
+		if isExprValue(resolved) {
+			resolved = extractExprValue(resolved)
+		}
+		line = strings.ReplaceAll(line, propName+"(", resolved+"(")
 	}
 	return line
 }

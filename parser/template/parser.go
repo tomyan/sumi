@@ -233,22 +233,71 @@ func (p *parser) parseAttributes() (map[string]string, error) {
 	return attrs, nil
 }
 
-// readAttribute reads a single name="value" attribute pair.
+// readAttribute reads an attribute in one of three forms:
+//   - name="value"  → literal string
+//   - name={expr}   → expression (stored as "{expr}")
+//   - {name}        → shorthand for name={name}
 func (p *parser) readAttribute() (string, string, error) {
+	// Shorthand: {name} → name={name}
+	if p.pos < len(p.input) && p.input[p.pos] == '{' {
+		expr, err := p.readBracedValue()
+		if err != nil {
+			return "", "", err
+		}
+		return expr, "{" + expr + "}", nil
+	}
+
 	name := p.readWhile(func(b byte) bool {
-		return b != '=' && b != '>' && !isWhitespace(b)
+		return b != '=' && b != '>' && b != '/' && !isWhitespace(b)
 	})
 	if name == "" {
 		return "", "", nil
 	}
-	if err := p.expectByte('=', "after attribute name %q", name); err != nil {
-		return "", "", err
+	if p.pos >= len(p.input) || p.input[p.pos] != '=' {
+		return "", "", fmt.Errorf("expected '=' after attribute name %q", name)
 	}
+	p.pos++ // consume '='
+
+	// Expression value: name={expr}
+	if p.pos < len(p.input) && p.input[p.pos] == '{' {
+		expr, err := p.readBracedValue()
+		if err != nil {
+			return "", "", err
+		}
+		return name, "{" + expr + "}", nil
+	}
+
+	// Quoted value: name="value"
 	value, err := p.readQuotedValue(name)
 	if err != nil {
 		return "", "", err
 	}
 	return name, value, nil
+}
+
+// readBracedValue reads content between { and }, consuming both delimiters.
+func (p *parser) readBracedValue() (string, error) {
+	if err := p.expectByte('{', "for expression value"); err != nil {
+		return "", err
+	}
+	depth := 1
+	start := p.pos
+	for p.pos < len(p.input) && depth > 0 {
+		if p.input[p.pos] == '{' {
+			depth++
+		} else if p.input[p.pos] == '}' {
+			depth--
+		}
+		if depth > 0 {
+			p.pos++
+		}
+	}
+	if depth != 0 {
+		return "", fmt.Errorf("unterminated expression value")
+	}
+	expr := p.input[start:p.pos]
+	p.pos++ // consume closing '}'
+	return expr, nil
 }
 
 // readQuotedValue reads a double-quoted attribute value.

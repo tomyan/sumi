@@ -156,15 +156,20 @@ func extractBindings(attrs map[string]string) map[string]string {
 	return bindings
 }
 
-// resolveTextParts substitutes prop references in text parts with literal string values.
-// An ExprPart matching a prop name becomes a StringPart with the prop's value.
+// resolveTextParts substitutes prop references in text parts.
+// Literal props (no curlies) become StringParts. Expression props ({expr}) stay as ExprParts
+// with the expression substituted.
 func resolveTextParts(parts []template.Part, propMap map[string]string) []template.Part {
 	resolved := make([]template.Part, 0, len(parts))
 	for _, p := range parts {
 		switch pt := p.(type) {
 		case *template.ExprPart:
 			if val, ok := propMap[pt.Expr]; ok {
-				resolved = append(resolved, &template.StringPart{Value: val})
+				if isExprValue(val) {
+					resolved = append(resolved, &template.ExprPart{Expr: extractExprValue(val)})
+				} else {
+					resolved = append(resolved, &template.StringPart{Value: val})
+				}
 			} else {
 				resolved = append(resolved, pt)
 			}
