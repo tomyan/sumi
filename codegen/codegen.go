@@ -56,7 +56,7 @@ func generateRunFunc(doc *template.Document, sc *script.Script, stylesheet *styl
 
 // hasReactiveContent returns true when the document needs the reactive code path.
 func hasReactiveContent(sc *script.Script, instances []componentInstance) bool {
-	if sc != nil && (len(sc.StateDecls) > 0 || len(sc.EnvDecls) > 0 || len(sc.DerivedDecls) > 0) {
+	if sc != nil && (len(sc.StateDecls) > 0 || len(sc.EnvDecls) > 0 || len(sc.DerivedDecls) > 0 || len(sc.SelfDecls) > 0) {
 		return true
 	}
 	return len(instances) > 0

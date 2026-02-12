@@ -50,10 +50,14 @@ func writeInlinedStateDecls(buf *bytes.Buffer, inlined []inlinedStateful) {
 			expr := namespaceDerivedExpr(dd.Expr, sc, is.Prefix)
 			fmt.Fprintf(buf, "\t%s%s := %s\n", is.Prefix, dd.Name, expr)
 		}
+		for _, sd := range sc.SelfDecls {
+			fmt.Fprintf(buf, "\t%s%s := 0\n", is.Prefix, sd.Name)
+		}
 	}
 }
 
-// namespaceDerivedExpr replaces state variable references in a derived expression with namespaced versions.
+// namespaceDerivedExpr replaces state, derived, and self variable references
+// in a derived expression with namespaced versions.
 func namespaceDerivedExpr(expr string, sc *script.Script, prefix string) string {
 	result := expr
 	for _, sd := range sc.StateDecls {
@@ -61,6 +65,9 @@ func namespaceDerivedExpr(expr string, sc *script.Script, prefix string) string 
 	}
 	for _, dd := range sc.DerivedDecls {
 		result = replaceIdentifier(result, dd.Name, prefix+dd.Name)
+	}
+	for _, sd := range sc.SelfDecls {
+		result = replaceIdentifier(result, sd.Name, prefix+sd.Name)
 	}
 	return result
 }

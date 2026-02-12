@@ -11,7 +11,7 @@ import (
 
 // writeTreeAndSync writes the build-once layout tree and sync function at function scope.
 // Expression text nodes are extracted as named variables; sync patches their Content.
-func writeTreeAndSync(buf *bytes.Buffer, doc *template.Document, stylesheet *style.Stylesheet, instances []componentInstance, scrollBoxes []scrollableBox, derivedDecls []script.DerivedDecl) *extractionCtx {
+func writeTreeAndSync(buf *bytes.Buffer, doc *template.Document, stylesheet *style.Stylesheet, instances []componentInstance, scrollBoxes []scrollableBox, derivedDecls []script.DerivedDecl, selfDecls []script.SelfDecl) *extractionCtx {
 	ext := newExtractionCtx("")
 
 	// Write tree to temp buffer (discovers extractions)
@@ -24,11 +24,34 @@ func writeTreeAndSync(buf *bytes.Buffer, doc *template.Document, stylesheet *sty
 	// Emit tree at function scope
 	buf.Write(treeBuf.Bytes())
 
+	// Wire self-measurement pointers on root
+	writeSelfWiring(buf, selfDecls, "root")
+
 	// Emit sync function
 	dynamic := isDynamic(ext, scrollBoxes)
 	writeSyncFunc(buf, ext, dynamic, derivedDecls)
 
 	return ext
+}
+
+// collectSelfDecls returns self decls from the root script (nil-safe).
+func collectSelfDecls(sc *script.Script) []script.SelfDecl {
+	if sc == nil {
+		return nil
+	}
+	return sc.SelfDecls
+}
+
+// writeSelfWiring writes pointer assignments for self-measurement decls on a named box.
+func writeSelfWiring(buf *bytes.Buffer, selfDecls []script.SelfDecl, boxName string) {
+	for _, sd := range selfDecls {
+		switch sd.Key {
+		case "width":
+			fmt.Fprintf(buf, "\t%s.SelfW = &%s\n", boxName, sd.Name)
+		case "height":
+			fmt.Fprintf(buf, "\t%s.SelfH = &%s\n", boxName, sd.Name)
+		}
+	}
 }
 
 // isDynamic returns true when the document has control flow or scroll containers,
@@ -109,7 +132,8 @@ func writeDerivedRecalc(buf *bytes.Buffer, derivedDecls []script.DerivedDecl) {
 // Static documents get a no-op skip fast path; dynamic documents always run full Layout+Diff.
 func writeRenderClosure(buf *bytes.Buffer, doc *template.Document, sc *script.Script, stylesheet *style.Stylesheet, instances []componentInstance, scrollBoxes []scrollableBox, title *template.TitleElement, inlined []inlinedStateful) {
 	derivedDecls := collectAllDerivedDecls(sc, inlined)
-	ext := writeTreeAndSync(buf, doc, stylesheet, instances, scrollBoxes, derivedDecls)
+	selfDecls := collectSelfDecls(sc)
+	ext := writeTreeAndSync(buf, doc, stylesheet, instances, scrollBoxes, derivedDecls, selfDecls)
 	dynamic := isDynamic(ext, scrollBoxes)
 
 	buf.WriteString("\tvar prevTree *layout.Box\n")

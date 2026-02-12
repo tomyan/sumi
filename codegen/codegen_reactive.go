@@ -34,7 +34,7 @@ func writeReactiveBody(buf *bytes.Buffer, doc *template.Document, sc *script.Scr
 	writeAppRun(buf, doc, sc, instances, scrollBoxes, inlined, focusHandlers, title)
 }
 
-// writeStateAndEnvDecls writes state, env, and derived variable declarations.
+// writeStateAndEnvDecls writes state, env, self, and derived variable declarations.
 func writeStateAndEnvDecls(buf *bytes.Buffer, sc *script.Script) {
 	if sc != nil && len(sc.StateDecls) > 0 {
 		writeStateDecls(buf, sc.StateDecls)
@@ -42,9 +42,20 @@ func writeStateAndEnvDecls(buf *bytes.Buffer, sc *script.Script) {
 	if sc != nil && len(sc.EnvDecls) > 0 {
 		writeEnvDecls(buf, sc.EnvDecls)
 	}
+	if sc != nil && len(sc.SelfDecls) > 0 {
+		writeSelfDecls(buf, sc.SelfDecls)
+	}
 	if sc != nil && len(sc.DerivedDecls) > 0 {
 		writeDerivedDecls(buf, sc.DerivedDecls)
 	}
+}
+
+// writeSelfDecls writes self-measurement variable declarations (initialized to 0).
+func writeSelfDecls(buf *bytes.Buffer, selfDecls []script.SelfDecl) {
+	for _, sd := range selfDecls {
+		fmt.Fprintf(buf, "\t%s := 0\n", sd.Name)
+	}
+	buf.WriteString("\n")
 }
 
 // writeFuncClosures writes function closure declarations if present.
