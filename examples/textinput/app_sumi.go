@@ -92,6 +92,12 @@ func Run() {
 			textinput0_adjustView()
 			stopPropagation()
 		}
+		if evt.Special == input.KeyDelete && textinput0_cursor < len(name) {
+			name = name[:textinput0_cursor] + name[textinput0_cursor+1:]
+			app.Dirty = true
+			textinput0_adjustView()
+			stopPropagation()
+		}
 		if evt.Special == input.KeyLeft && textinput0_cursor > 0 {
 			textinput0_cursor = textinput0_cursor - 1
 			app.Dirty = true
@@ -100,6 +106,18 @@ func Run() {
 		}
 		if evt.Special == input.KeyRight && textinput0_cursor < len(name) {
 			textinput0_cursor = textinput0_cursor + 1
+			app.Dirty = true
+			textinput0_adjustView()
+			stopPropagation()
+		}
+		if evt.Special == input.KeyHome && textinput0_cursor > 0 {
+			textinput0_cursor = 0
+			app.Dirty = true
+			textinput0_adjustView()
+			stopPropagation()
+		}
+		if evt.Special == input.KeyEnd && textinput0_cursor < len(name) {
+			textinput0_cursor = len(name)
 			app.Dirty = true
 			textinput0_adjustView()
 			stopPropagation()

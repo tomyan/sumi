@@ -59,6 +59,11 @@ func handleEvent(evt input.Event) {
         adjustView()
         stopPropagation()
     }
+    if evt.Special == input.KeyDelete && cursor < len(value) {
+        value = value[:cursor] + value[cursor+1:]
+        adjustView()
+        stopPropagation()
+    }
     if evt.Special == input.KeyLeft && cursor > 0 {
         cursor = cursor - 1
         adjustView()
@@ -66,6 +71,16 @@ func handleEvent(evt input.Event) {
     }
     if evt.Special == input.KeyRight && cursor < len(value) {
         cursor = cursor + 1
+        adjustView()
+        stopPropagation()
+    }
+    if evt.Special == input.KeyHome && cursor > 0 {
+        cursor = 0
+        adjustView()
+        stopPropagation()
+    }
+    if evt.Special == input.KeyEnd && cursor < len(value) {
+        cursor = len(value)
         adjustView()
         stopPropagation()
     }
