@@ -123,19 +123,37 @@ func buildPropMap(inst *componentInstance) map[string]string {
 
 // buildStateNameMap creates a map from state/derived variable name to its namespaced version.
 // e.g., "count" → "counter0_count" when the instance VarName is "counter0".
+// For bind: attributes, the child's variable maps to the parent's variable instead.
 func buildStateNameMap(inst *componentInstance) map[string]string {
 	if inst.Info.Script == nil || !inst.Info.HasState {
 		return nil
 	}
 	m := make(map[string]string)
 	prefix := inst.VarName + "_"
+	bindings := extractBindings(inst.Attrs)
 	for _, sd := range inst.Info.Script.StateDecls {
-		m[sd.Name] = prefix + sd.Name
+		if parentVar, ok := bindings[sd.Name]; ok {
+			m[sd.Name] = parentVar
+		} else {
+			m[sd.Name] = prefix + sd.Name
+		}
 	}
 	for _, dd := range inst.Info.Script.DerivedDecls {
 		m[dd.Name] = prefix + dd.Name
 	}
 	return m
+}
+
+// extractBindings returns a map from child variable name to parent variable name
+// for bind: prefixed attributes. e.g., bind:value="name" → {"value": "name"}
+func extractBindings(attrs map[string]string) map[string]string {
+	bindings := make(map[string]string)
+	for k, v := range attrs {
+		if strings.HasPrefix(k, "bind:") {
+			bindings[strings.TrimPrefix(k, "bind:")] = v
+		}
+	}
+	return bindings
 }
 
 // resolveTextParts substitutes prop references in text parts with literal string values.

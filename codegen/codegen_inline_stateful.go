@@ -32,13 +32,18 @@ func collectInlinedStateful(instances []componentInstance) []inlinedStateful {
 }
 
 // writeInlinedStateDecls writes namespaced state and derived variable declarations for inlined components.
+// Bound variables (via bind:) are skipped since the parent owns them.
 func writeInlinedStateDecls(buf *bytes.Buffer, inlined []inlinedStateful) {
 	for _, is := range inlined {
 		sc := is.Instance.Info.Script
 		if sc == nil {
 			continue
 		}
+		bindings := extractBindings(is.Instance.Attrs)
 		for _, sd := range sc.StateDecls {
+			if _, bound := bindings[sd.Name]; bound {
+				continue // parent owns this variable
+			}
 			fmt.Fprintf(buf, "\t%s%s := %s\n", is.Prefix, sd.Name, sd.InitExpr)
 		}
 		for _, dd := range sc.DerivedDecls {
@@ -68,27 +73,31 @@ func writeInlinedFuncClosures(buf *bytes.Buffer, inlined []inlinedStateful) {
 		if sc == nil {
 			continue
 		}
+		propMap := buildPropMap(is.Instance)
+		stateNameMap := buildStateNameMap(is.Instance)
 		for _, fd := range sc.FuncDecls {
 			if fd.Params != "" {
 				fmt.Fprintf(buf, "\t%s%s := func(%s) {\n", is.Prefix, fd.Name, fd.Params)
 			} else {
 				fmt.Fprintf(buf, "\t%s%s := func() {\n", is.Prefix, fd.Name)
 			}
-			writeNamespacedFuncBody(buf, fd, is.Prefix)
+			writeNamespacedFuncBody(buf, fd, stateNameMap, propMap)
 			buf.WriteString("\t}\n")
 		}
 	}
 }
 
-// writeNamespacedFuncBody writes a function body with state vars namespaced.
-func writeNamespacedFuncBody(buf *bytes.Buffer, funcDecl script.FuncDecl, prefix string) {
+// writeNamespacedFuncBody writes a function body with state vars namespaced and callback props resolved.
+// stateNameMap maps child variable names to their resolved names (namespaced or parent-bound).
+func writeNamespacedFuncBody(buf *bytes.Buffer, funcDecl script.FuncDecl, stateNameMap map[string]string, propMap map[string]string) {
 	stateLines := buildStateLinesSet(funcDecl.StateAssignments)
 	for _, line := range strings.Split(funcDecl.Body, "\n") {
 		trimmed := strings.TrimSpace(line)
 		if trimmed == "" {
 			continue
 		}
-		namespaced := namespaceAssignment(trimmed, funcDecl.StateAssignments, prefix)
+		namespaced := namespaceAssignmentMapped(trimmed, funcDecl.StateAssignments, stateNameMap)
+		namespaced = resolveCallbackProps(namespaced, propMap)
 		fmt.Fprintf(buf, "\t\t%s\n", namespaced)
 		if stateLines[trimmed] {
 			buf.WriteString("\t\tapp.Dirty = true\n")
@@ -96,20 +105,35 @@ func writeNamespacedFuncBody(buf *bytes.Buffer, funcDecl script.FuncDecl, prefix
 	}
 }
 
-// namespaceAssignment rewrites a line, replacing state variable references with namespaced versions.
-func namespaceAssignment(line string, assignments []script.StateAssignment, prefix string) string {
+// resolveCallbackProps replaces prop name references in a line with their resolved values.
+// Handles function calls: propName(...) → resolvedValue(...)
+func resolveCallbackProps(line string, propMap map[string]string) string {
+	for propName, propValue := range propMap {
+		// Replace function calls: propName( → propValue(
+		line = strings.ReplaceAll(line, propName+"(", propValue+"(")
+	}
+	return line
+}
+
+// namespaceAssignmentMapped rewrites a line, replacing state variable references using the stateNameMap.
+// The map translates child var names to their resolved names (namespaced or parent-bound).
+func namespaceAssignmentMapped(line string, assignments []script.StateAssignment, stateNameMap map[string]string) string {
 	for _, sa := range assignments {
 		if line == sa.Line {
-			return namespaceVarInLine(line, sa.VarName, prefix)
+			return renameVarInLine(line, sa.VarName, stateNameMap)
 		}
 	}
 	return line
 }
 
-// namespaceVarInLine replaces all occurrences of a variable name with its namespaced version.
-func namespaceVarInLine(line, varName, prefix string) string {
-	// Replace "varName =" with "prefix_varName ="
-	result := strings.Replace(line, varName+" =", prefix+varName+" =", 1)
+// renameVarInLine replaces all occurrences of a variable name with its mapped name from stateNameMap.
+func renameVarInLine(line, varName string, stateNameMap map[string]string) string {
+	newName, ok := stateNameMap[varName]
+	if !ok {
+		return line
+	}
+	// Replace "varName =" with "newName ="
+	result := strings.Replace(line, varName+" =", newName+" =", 1)
 	// Replace references on the right side
 	eqIdx := strings.Index(result, "=")
 	if eqIdx < 0 {
@@ -117,8 +141,18 @@ func namespaceVarInLine(line, varName, prefix string) string {
 	}
 	left := result[:eqIdx+1]
 	right := result[eqIdx+1:]
-	right = namespaceVarRef(right, varName, prefix)
+	right = renameVarRef(right, varName, newName)
 	return left + right
+}
+
+// renameVarRef replaces standalone variable references with a new name.
+func renameVarRef(s, oldName, newName string) string {
+	result := strings.ReplaceAll(s, " "+oldName+" ", " "+newName+" ")
+	result = strings.ReplaceAll(result, " "+oldName+"\n", " "+newName+"\n")
+	if strings.HasSuffix(result, " "+oldName) {
+		result = result[:len(result)-len(oldName)] + newName
+	}
+	return result
 }
 
 // namespaceVarRef replaces standalone variable references with namespaced versions.
