@@ -38,6 +38,8 @@ type Input struct {
 	Bottom      int          // offset from bottom (for positioned elements)
 	SelfW       *int    // if non-nil, receives computed width after layout
 	SelfH       *int    // if non-nil, receives computed height after layout
+	SelfX       *int    // if non-nil, receives absolute X position after layout
+	SelfY       *int    // if non-nil, receives absolute Y position after layout
 	CursorCol   int     // cursor column within content (-1 = no cursor)
 	CursorRow   int     // cursor row within content (-1 = no cursor)
 	Focusable   bool    // true if this element can receive focus
@@ -134,7 +136,27 @@ func Layout(input *Input, availWidth, availHeight int) *Box {
 	box := layoutNode(input, availWidth, availHeight)
 	absolutePositions(box)
 	repositionFixed(box, availWidth, availHeight)
+	writeSelfPositions(input, box)
 	return box
+}
+
+// writeSelfPositions writes absolute X/Y through SelfX/SelfY pointers
+// after absolutePositions has converted to screen coordinates.
+func writeSelfPositions(input *Input, box *Box) {
+	if input == nil || box == nil {
+		return
+	}
+	if input.SelfX != nil {
+		*input.SelfX = box.X
+	}
+	if input.SelfY != nil {
+		*input.SelfY = box.Y
+	}
+	for i, child := range input.Children {
+		if i < len(box.Children) {
+			writeSelfPositions(child, box.Children[i])
+		}
+	}
 }
 
 // absolutePositions converts relative positions to absolute by accumulating

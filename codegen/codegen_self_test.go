@@ -101,6 +101,38 @@ func TestSelfHeightPointerWiredOnRoot(t *testing.T) {
 	assertValidGo(t, out)
 }
 
+func TestSelfXPointerWiredOnRoot(t *testing.T) {
+	// Given
+	doc := &template.Document{
+		Children: []template.Node{
+			&template.TextElement{
+				Parts: []template.Part{&template.StringPart{Value: "hello"}},
+			},
+		},
+	}
+	sc := &script.Script{
+		SelfDecls: []script.SelfDecl{{Name: "selfX", Key: "x"}},
+	}
+
+	// When
+	out, err := Generate(doc, sc, nil, Options{PackageName: "main"})
+
+	// Then
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	src := string(out)
+
+	if !strings.Contains(src, "selfX := 0") {
+		t.Errorf("expected self variable declaration 'selfX := 0':\n%s", src)
+	}
+	if !strings.Contains(src, "root.SelfX = &selfX") {
+		t.Errorf("expected SelfX pointer wiring on root:\n%s", src)
+	}
+
+	assertValidGo(t, out)
+}
+
 func TestSelfTriggersReactivePath(t *testing.T) {
 	// Given — only self decl, no state
 	doc := &template.Document{

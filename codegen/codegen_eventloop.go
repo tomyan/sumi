@@ -21,7 +21,7 @@ func writeAppRun(buf *bytes.Buffer, doc *template.Document, sc *script.Script,
 
 	buf.WriteString("\tapp = &tui.App{\n")
 
-	if len(scrollBoxes) > 0 {
+	if len(scrollBoxes) > 0 || len(focusHandlers) > 0 {
 		buf.WriteString("\t\tHasMouse: true,\n")
 	}
 

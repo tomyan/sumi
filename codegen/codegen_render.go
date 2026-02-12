@@ -69,6 +69,10 @@ func writeInlinedSelfWiring(buf *bytes.Buffer, selfDecls []script.SelfDecl, boxN
 			fmt.Fprintf(buf, "\t%s.SelfW = &%s%s\n", boxName, prefix, sd.Name)
 		case "height":
 			fmt.Fprintf(buf, "\t%s.SelfH = &%s%s\n", boxName, prefix, sd.Name)
+		case "x":
+			fmt.Fprintf(buf, "\t%s.SelfX = &%s%s\n", boxName, prefix, sd.Name)
+		case "y":
+			fmt.Fprintf(buf, "\t%s.SelfY = &%s%s\n", boxName, prefix, sd.Name)
 		}
 	}
 }
@@ -110,6 +114,10 @@ func writeSelfWiring(buf *bytes.Buffer, selfDecls []script.SelfDecl, boxName str
 			fmt.Fprintf(buf, "\t%s.SelfW = &%s\n", boxName, sd.Name)
 		case "height":
 			fmt.Fprintf(buf, "\t%s.SelfH = &%s\n", boxName, sd.Name)
+		case "x":
+			fmt.Fprintf(buf, "\t%s.SelfX = &%s\n", boxName, sd.Name)
+		case "y":
+			fmt.Fprintf(buf, "\t%s.SelfY = &%s\n", boxName, sd.Name)
 		}
 	}
 }

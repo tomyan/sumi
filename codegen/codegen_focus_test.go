@@ -225,6 +225,38 @@ func TestGenerateStopPropagation(t *testing.T) {
 	}
 }
 
+func TestGenerateHasMouseWhenFocusableBoxes(t *testing.T) {
+	// Given — a focusable box
+	doc := &template.Document{
+		Children: []template.Node{
+			&template.BoxElement{
+				Attributes: map[string]string{"focusable": "true", "onkey": "handleKey"},
+				Children:   []template.Node{textNode("Input")},
+			},
+		},
+	}
+	sc := &script.Script{
+		StateDecls: []script.StateDecl{{Name: "x", InitExpr: "0"}},
+		FuncDecls: []script.FuncDecl{
+			{Name: "handleKey", Params: "evt input.Event", Body: "\n\tx = x + 1\n",
+				StateAssignments: []script.StateAssignment{{VarName: "x", Line: "x = x + 1"}}},
+		},
+	}
+
+	// When
+	out, err := Generate(doc, sc, nil, Options{PackageName: "main"})
+
+	// Then
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	assertValidGo(t, out)
+	src := string(out)
+	if !strings.Contains(src, "HasMouse: true") {
+		t.Errorf("expected HasMouse: true when focusable boxes present:\n%s", src)
+	}
+}
+
 func TestGenerateNoFocusWhenNoFocusableBoxes(t *testing.T) {
 	// Given — no focusable boxes
 	doc := &template.Document{

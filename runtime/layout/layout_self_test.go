@@ -108,6 +108,68 @@ func TestSelfWCapturesStretchedWidth(t *testing.T) {
 	}
 }
 
+func TestSelfXWritesAbsolutePosition(t *testing.T) {
+	// Given — a nested box with border and padding
+	var selfX int
+	input := &Input{
+		Kind:    KindBox,
+		Border:  "single",
+		Padding: ParsePadding("0 2"),
+		Children: []*Input{
+			{Kind: KindBox, SelfX: &selfX, Children: []*Input{
+				{Kind: KindText, Content: "hello"},
+			}},
+		},
+	}
+
+	// When
+	Layout(input, 40, 10)
+
+	// Then — selfX = border(1) + padding.Left(2) = 3
+	if selfX != 3 {
+		t.Errorf("SelfX = %d, want 3", selfX)
+	}
+}
+
+func TestSelfYWritesAbsolutePosition(t *testing.T) {
+	// Given — second child in a column with border
+	var selfY int
+	input := &Input{
+		Kind:   KindBox,
+		Border: "single",
+		Children: []*Input{
+			{Kind: KindText, Content: "first"},
+			{Kind: KindBox, SelfY: &selfY, Children: []*Input{
+				{Kind: KindText, Content: "second"},
+			}},
+		},
+	}
+
+	// When
+	Layout(input, 40, 10)
+
+	// Then — selfY = border(1) + first_child_height(1) = 2
+	if selfY != 2 {
+		t.Errorf("SelfY = %d, want 2", selfY)
+	}
+}
+
+func TestSelfXNilDoesNotCrash(t *testing.T) {
+	// Given — no SelfX pointer
+	input := &Input{
+		Kind:     KindBox,
+		Children: []*Input{{Kind: KindText, Content: "hello"}},
+	}
+
+	// When — should not panic
+	box := Layout(input, 40, 10)
+
+	// Then
+	if box.X != 0 {
+		t.Errorf("X = %d, want 0", box.X)
+	}
+}
+
 func TestSelfWAndSelfHTogether(t *testing.T) {
 	// Given
 	selfW := 0
