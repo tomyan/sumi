@@ -13,6 +13,7 @@ scrollHeld := $state(false)
 scrollAnimStart := $state(int64(0))
 scrollAnimFrom := $state(0)
 scrollAnimTo := $state(0)
+focused := $state(false)
 
 func adjustView() {
     if contentW <= 0 {
@@ -96,7 +97,7 @@ func rightIndicator() string {
 }
 
 func scrollbarVisible() bool {
-    return len(value) > contentW && contentW > 0
+    return focused && len(value) > contentW && contentW > 0
 }
 
 func scrollLeftArrow() string {

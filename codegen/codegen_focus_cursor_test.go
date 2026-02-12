@@ -85,6 +85,64 @@ func TestCursorSyncConditionalOnFocus(t *testing.T) {
 	}
 }
 
+func TestFocusedStateSyncedForInlinedComponent(t *testing.T) {
+	// Given — an inlined component with focused state and focusable box
+	childDoc := &template.Document{
+		Children: []template.Node{
+			&template.BoxElement{
+				Attributes: map[string]string{
+					"focusable": "true",
+					"onkey":     "handler",
+					"cursor-x":  "{pos}",
+					"cursor-y":  "0",
+				},
+				Children: []template.Node{textNode("Field")},
+			},
+		},
+	}
+	childScript := &script.Script{
+		StateDecls: []script.StateDecl{
+			{Name: "pos", InitExpr: "0"},
+			{Name: "focused", InitExpr: "false"},
+		},
+		FuncDecls: []script.FuncDecl{
+			{Name: "handler", Params: "evt input.Event", Body: "\n\tpos = pos + 1\n",
+				StateAssignments: []script.StateAssignment{{VarName: "pos", Line: "pos = pos + 1"}}},
+		},
+	}
+	doc := &template.Document{
+		Children: []template.Node{
+			&template.ComponentElement{Name: "widget"},
+		},
+	}
+	sc := &script.Script{}
+
+	// When
+	out, err := Generate(doc, sc, nil, Options{
+		PackageName: "main",
+		Components: map[string]*ComponentInfo{
+			"widget": {
+				Name: "widget", ExportedName: "Widget",
+				HasState: true,
+				Doc: childDoc, Script: childScript,
+				Props: []string{},
+			},
+		},
+	})
+
+	// Then
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	assertValidGo(t, out)
+	src := string(out)
+
+	// sync should write focused state based on focusIndex
+	if !strings.Contains(src, "widget0_focused = focusIndex == 0") {
+		t.Errorf("expected focused sync in output:\n%s", src)
+	}
+}
+
 func TestCursorUnconditionalWhenNotFocusable(t *testing.T) {
 	// Given — a box with dynamic cursor but NOT focusable
 	doc := &template.Document{

@@ -108,6 +108,11 @@ func writeInlinedBoxInput(buf *bytes.Buffer, n *template.BoxElement, stylesheet 
 		return
 	}
 
+	// Emit focused state sync for focusable boxes without a dynamic cursor
+	if ext != nil && focusIdx >= 0 {
+		writeFocusedStateSync(&ext.syncBuf, stateMap["focused"], focusIdx)
+	}
+
 	tabs := indentStr(indent)
 	boxProps := resolveProps(stylesheet, "box", attrs)
 
@@ -146,6 +151,7 @@ func writeExtractedInlinedCursorBox(treeBuf *bytes.Buffer, n *template.BoxElemen
 
 	ext.hasCursor = true
 	writeCursorSync(&ext.syncBuf, name, attrs, focusIdx)
+	writeFocusedStateSync(&ext.syncBuf, stateMap["focused"], focusIdx)
 
 	fmt.Fprintf(treeBuf, "%s%s,\n", tabs, name)
 }

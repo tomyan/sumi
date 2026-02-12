@@ -24,6 +24,7 @@ func Run() {
 	textinput0_scrollAnimStart := int64(0)
 	textinput0_scrollAnimFrom := 0
 	textinput0_scrollAnimTo := 0
+	textinput0_focused := false
 	textinput0_placeholder := "Enter your name..."
 	textinput0_selfW := 0
 	textinput0_selfX := 0
@@ -123,7 +124,7 @@ func Run() {
 		return " "
 	}
 	textinput0_scrollbarVisible := func() bool {
-		return len(name) > textinput0_contentW && textinput0_contentW > 0
+		return textinput0_focused && len(name) > textinput0_contentW && textinput0_contentW > 0
 	}
 	textinput0_scrollLeftArrow := func() string {
 		if !textinput0_scrollbarVisible() {
@@ -624,6 +625,7 @@ func Run() {
 		} else {
 			textinput0_box0.CursorCol = -1
 		}
+		textinput0_focused = focusIndex == 0
 	}
 
 	var prevTree *layout.Box

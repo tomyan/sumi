@@ -226,6 +226,15 @@ func writeCursorSync(buf *bytes.Buffer, name string, attrs map[string]string, fo
 	}
 }
 
+// writeFocusedStateSync emits a focused state variable assignment if the component has one.
+// focusedVar is the namespaced name of the focused state variable (e.g., "textinput0_focused").
+func writeFocusedStateSync(buf *bytes.Buffer, focusedVar string, focusIdx int) {
+	if focusedVar == "" || focusIdx < 0 {
+		return
+	}
+	fmt.Fprintf(buf, "\t\t%s = focusIndex == %d\n", focusedVar, focusIdx)
+}
+
 // writeFocusConditionalCursor emits cursor assignment conditional on focusIndex.
 func writeFocusConditionalCursor(buf *bytes.Buffer, name string, attrs map[string]string, focusIdx int) {
 	fmt.Fprintf(buf, "\t\tif focusIndex == %d {\n", focusIdx)
