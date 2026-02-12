@@ -52,43 +52,107 @@ func buildDisplayLine() string {
     return "[" + left + visible + pad + right + "]"
 }
 
+func wordLeft() int {
+    pos := cursor
+    for pos > 0 && value[pos-1] == ' ' {
+        pos = pos - 1
+    }
+    for pos > 0 && value[pos-1] != ' ' {
+        pos = pos - 1
+    }
+    return pos
+}
+
+func wordRight() int {
+    pos := cursor
+    for pos < len(value) && value[pos] != ' ' {
+        pos = pos + 1
+    }
+    for pos < len(value) && value[pos] == ' ' {
+        pos = pos + 1
+    }
+    return pos
+}
+
 func handleEvent(evt input.Event) {
+    if evt.Special == input.KeyBackspace && evt.Ctrl && cursor > 0 {
+        pos := wordLeft()
+        value = value[:pos] + value[cursor:]
+        cursor = pos
+        adjustView()
+        stopPropagation()
+        return
+    }
     if evt.Special == input.KeyBackspace && cursor > 0 {
         value = value[:cursor-1] + value[cursor:]
         cursor = cursor - 1
         adjustView()
         stopPropagation()
+        return
+    }
+    if evt.Special == input.KeyDelete && evt.Ctrl && cursor < len(value) {
+        pos := wordRight()
+        value = value[:cursor] + value[pos:]
+        adjustView()
+        stopPropagation()
+        return
     }
     if evt.Special == input.KeyDelete && cursor < len(value) {
         value = value[:cursor] + value[cursor+1:]
         adjustView()
         stopPropagation()
+        return
+    }
+    if evt.Special == input.KeyLeft && evt.Ctrl && cursor > 0 {
+        cursor = wordLeft()
+        adjustView()
+        stopPropagation()
+        return
     }
     if evt.Special == input.KeyLeft && cursor > 0 {
         cursor = cursor - 1
         adjustView()
         stopPropagation()
+        return
+    }
+    if evt.Special == input.KeyRight && evt.Ctrl && cursor < len(value) {
+        cursor = wordRight()
+        adjustView()
+        stopPropagation()
+        return
     }
     if evt.Special == input.KeyRight && cursor < len(value) {
         cursor = cursor + 1
         adjustView()
         stopPropagation()
+        return
     }
     if evt.Special == input.KeyHome && cursor > 0 {
         cursor = 0
         adjustView()
         stopPropagation()
+        return
     }
     if evt.Special == input.KeyEnd && cursor < len(value) {
         cursor = len(value)
         adjustView()
         stopPropagation()
+        return
+    }
+    if evt.Kind == input.EventKey && evt.Ctrl && evt.Rune == 'w' && cursor > 0 {
+        pos := wordLeft()
+        value = value[:pos] + value[cursor:]
+        cursor = pos
+        adjustView()
+        stopPropagation()
+        return
     }
     if evt.Kind == input.EventKey && evt.Rune >= 32 {
         value = value[:cursor] + string(evt.Rune) + value[cursor:]
         cursor = cursor + 1
         adjustView()
         stopPropagation()
+        return
     }
 }
 </script>
