@@ -2,11 +2,12 @@ package script
 
 // Script represents the parsed contents of a <script> block.
 type Script struct {
-	StateDecls  []StateDecl
-	PropDecls   []PropDecl
-	EnvDecls    []EnvDecl
-	ScrollDecls []ScrollDecl
-	FuncDecls   []FuncDecl
+	StateDecls   []StateDecl
+	PropDecls    []PropDecl
+	EnvDecls     []EnvDecl
+	ScrollDecls  []ScrollDecl
+	DerivedDecls []DerivedDecl
+	FuncDecls    []FuncDecl
 }
 
 // StateDecl represents a reactive state declaration: name := $state(initExpr)
@@ -31,6 +32,12 @@ type EnvDecl struct {
 type ScrollDecl struct {
 	Name  string // variable name
 	BoxID string // ID of the scrollable box
+}
+
+// DerivedDecl represents a computed value declaration: name := $derived(expr)
+type DerivedDecl struct {
+	Name string // variable name
+	Expr string // expression to evaluate, e.g. "count * 2"
 }
 
 // FuncDecl represents a function declaration within the script block.
@@ -92,6 +99,13 @@ func (p *parser) parse() (*Script, error) {
 			return nil, err
 		} else if ok {
 			s.ScrollDecls = append(s.ScrollDecls, sdecl)
+			continue
+		}
+
+		if ddecl, ok, err := p.tryParseDerivedDecl(); err != nil {
+			return nil, err
+		} else if ok {
+			s.DerivedDecls = append(s.DerivedDecls, ddecl)
 			continue
 		}
 
