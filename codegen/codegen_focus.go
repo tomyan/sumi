@@ -121,7 +121,7 @@ func writeFocusStateDecls(buf *bytes.Buffer, focusHandlers []focusableHandler) {
 	if len(focusHandlers) == 0 {
 		return
 	}
-	fmt.Fprintf(buf, "\tfocusIndex := 0\n")
+	fmt.Fprintf(buf, "\tfocusIndex := -1\n")
 	fmt.Fprintf(buf, "\tfocusCount := %d\n", len(focusHandlers))
 	buf.WriteString("\tpropagationStopped := false\n")
 	buf.WriteString("\tstopPropagation := func() { propagationStopped = true }\n")
@@ -148,7 +148,11 @@ func writeFocusDispatch(buf *bytes.Buffer, focusHandlers []focusableHandler,
 	buf.WriteString("\t\t\t\t\treturn\n")
 	buf.WriteString("\t\t\t\t}\n")
 	buf.WriteString("\t\t\t\tif evt.Special == input.KeyShiftTab {\n")
-	buf.WriteString("\t\t\t\t\tfocusIndex = (focusIndex + focusCount - 1) % focusCount\n")
+	buf.WriteString("\t\t\t\t\tif focusIndex < 0 {\n")
+	buf.WriteString("\t\t\t\t\t\tfocusIndex = focusCount - 1\n")
+	buf.WriteString("\t\t\t\t\t} else {\n")
+	buf.WriteString("\t\t\t\t\t\tfocusIndex = (focusIndex + focusCount - 1) % focusCount\n")
+	buf.WriteString("\t\t\t\t\t}\n")
 	buf.WriteString("\t\t\t\t\tapp.Dirty = true\n")
 	buf.WriteString("\t\t\t\t\treturn\n")
 	buf.WriteString("\t\t\t\t}\n")

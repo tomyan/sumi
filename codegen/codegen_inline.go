@@ -96,8 +96,15 @@ func writeInlinedTextInput(buf *bytes.Buffer, n *template.TextElement, styleshee
 func writeInlinedBoxInput(buf *bytes.Buffer, n *template.BoxElement, stylesheet *style.Stylesheet, indent int, propMap, stateMap map[string]string, tracker *instanceTracker, ext *extractionCtx) {
 	attrs := namespaceExprAttrs(n.Attributes, stateMap)
 
+	// Track focusable index for cursor-focus correlation
+	focusIdx := -1
+	if ext != nil && isFocusableBox(attrs) {
+		focusIdx = ext.focusablesSeen
+		ext.focusablesSeen++
+	}
+
 	if ext != nil && hasDynamicCursor(attrs) {
-		writeExtractedInlinedCursorBox(buf, n, stylesheet, indent, attrs, propMap, stateMap, tracker, ext)
+		writeExtractedInlinedCursorBox(buf, n, stylesheet, indent, attrs, propMap, stateMap, tracker, ext, focusIdx)
 		return
 	}
 
@@ -117,7 +124,8 @@ func writeInlinedBoxInput(buf *bytes.Buffer, n *template.BoxElement, stylesheet 
 // writeExtractedInlinedCursorBox extracts an inlined box with dynamic cursor as a named variable.
 // Children are written to a temp buffer so text extractions go to declBuf first,
 // then the cursor box declaration follows with references to extracted text nodes.
-func writeExtractedInlinedCursorBox(treeBuf *bytes.Buffer, n *template.BoxElement, stylesheet *style.Stylesheet, indent int, attrs map[string]string, propMap, stateMap map[string]string, tracker *instanceTracker, ext *extractionCtx) {
+// focusIdx >= 0 means cursor is conditional on focus.
+func writeExtractedInlinedCursorBox(treeBuf *bytes.Buffer, n *template.BoxElement, stylesheet *style.Stylesheet, indent int, attrs map[string]string, propMap, stateMap map[string]string, tracker *instanceTracker, ext *extractionCtx, focusIdx int) {
 	tabs := indentStr(indent)
 	name := ext.nextBoxName()
 	props := resolveProps(stylesheet, "box", attrs)
@@ -137,7 +145,7 @@ func writeExtractedInlinedCursorBox(treeBuf *bytes.Buffer, n *template.BoxElemen
 	fmt.Fprintf(&ext.declBuf, "\t}\n")
 
 	ext.hasCursor = true
-	writeCursorSync(&ext.syncBuf, name, attrs)
+	writeCursorSync(&ext.syncBuf, name, attrs, focusIdx)
 
 	fmt.Fprintf(treeBuf, "%s%s,\n", tabs, name)
 }

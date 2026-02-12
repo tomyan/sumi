@@ -74,8 +74,8 @@ func TestGenerateFocusStateVars(t *testing.T) {
 	assertValidGo(t, out)
 	src := string(out)
 	// Focus state variables
-	if !strings.Contains(src, "focusIndex := 0") {
-		t.Errorf("expected focusIndex := 0:\n%s", src)
+	if !strings.Contains(src, "focusIndex := -1") {
+		t.Errorf("expected focusIndex := -1:\n%s", src)
 	}
 	if !strings.Contains(src, "focusCount := 2") {
 		t.Errorf("expected focusCount := 2:\n%s", src)

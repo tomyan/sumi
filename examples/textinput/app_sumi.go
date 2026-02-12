@@ -20,7 +20,7 @@ func Run() {
 	textinput0_placeholder := "Enter your name..."
 	textinput0_selfW := 0
 	textinput0_contentW := textinput0_selfW - 4
-	focusIndex := 0
+	focusIndex := -1
 	focusCount := 1
 	propagationStopped := false
 	stopPropagation := func() { propagationStopped = true }
@@ -315,7 +315,11 @@ func Run() {
 		textinput0_node0.Content = fmt.Sprintf("%v", textinput0_buildDisplayLine())
 		textinput0_node1.Content = fmt.Sprintf("%v", textinput0_buildScrollbar())
 		node0.Content = fmt.Sprintf("You typed: %v", name)
-		textinput0_box0.CursorCol = textinput0_cursor - textinput0_viewOffset + 2
+		if focusIndex == 0 {
+			textinput0_box0.CursorCol = textinput0_cursor - textinput0_viewOffset + 2
+		} else {
+			textinput0_box0.CursorCol = -1
+		}
 	}
 
 	var prevTree *layout.Box
@@ -364,7 +368,11 @@ func Run() {
 					return
 				}
 				if evt.Special == input.KeyShiftTab {
-					focusIndex = (focusIndex + focusCount - 1) % focusCount
+					if focusIndex < 0 {
+						focusIndex = focusCount - 1
+					} else {
+						focusIndex = (focusIndex + focusCount - 1) % focusCount
+					}
 					app.Dirty = true
 					return
 				}
