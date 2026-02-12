@@ -110,7 +110,7 @@ func writeInlinedBoxInput(buf *bytes.Buffer, n *template.BoxElement, stylesheet 
 
 	// Emit focused state sync for focusable boxes without a dynamic cursor
 	if ext != nil && focusIdx >= 0 {
-		writeFocusedStateSync(&ext.syncBuf, stateMap["focused"], focusIdx)
+		writeFocusedStateSync(&ext.preSyncBuf, stateMap["focused"], focusIdx)
 	}
 
 	tabs := indentStr(indent)
@@ -151,7 +151,7 @@ func writeExtractedInlinedCursorBox(treeBuf *bytes.Buffer, n *template.BoxElemen
 
 	ext.hasCursor = true
 	writeCursorSync(&ext.syncBuf, name, attrs, focusIdx)
-	writeFocusedStateSync(&ext.syncBuf, stateMap["focused"], focusIdx)
+	writeFocusedStateSync(&ext.preSyncBuf, stateMap["focused"], focusIdx)
 
 	fmt.Fprintf(treeBuf, "%s%s,\n", tabs, name)
 }
@@ -323,6 +323,7 @@ func mergeAdjacentStrings(parts []template.Part) []template.Part {
 // mergeExtractionCtx merges a sub-context's extractions back into the parent.
 func mergeExtractionCtx(parent, sub *extractionCtx) {
 	parent.declBuf.Write(sub.declBuf.Bytes())
+	parent.preSyncBuf.Write(sub.preSyncBuf.Bytes())
 	parent.syncBuf.Write(sub.syncBuf.Bytes())
 	parent.nodes = append(parent.nodes, sub.nodes...)
 	if sub.hasCursor {

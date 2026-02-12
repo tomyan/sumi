@@ -24,6 +24,7 @@ type extractionCtx struct {
 	hasCursor      bool   // true when any box has dynamic cursor attributes
 	focusablesSeen int    // counts focusable boxes seen during tree walk (for cursor-focus correlation)
 	declBuf        bytes.Buffer
+	preSyncBuf     bytes.Buffer // code that must run before node content updates (e.g., focused state)
 	syncBuf        bytes.Buffer // multi-line sync code (for dynamic children IIFE)
 }
 
@@ -48,7 +49,7 @@ func (e *extractionCtx) nextBoxName() string {
 
 // hasSyncContent returns true if any sync entries exist.
 func (e *extractionCtx) hasSyncContent() bool {
-	return len(e.nodes) > 0 || e.syncBuf.Len() > 0
+	return len(e.nodes) > 0 || e.preSyncBuf.Len() > 0 || e.syncBuf.Len() > 0
 }
 
 // firstBoxName returns the name of the first extracted box, or "" if none.

@@ -143,6 +143,7 @@ func writeSyncFunc(buf *bytes.Buffer, ext *extractionCtx, dynamic bool, derivedD
 func writeVoidSync(buf *bytes.Buffer, ext *extractionCtx, derivedDecls []script.DerivedDecl) {
 	buf.WriteString("\tsync := func() {\n")
 	writeDerivedRecalc(buf, derivedDecls)
+	buf.Write(ext.preSyncBuf.Bytes())
 	for _, n := range ext.nodes {
 		fmt.Fprintf(buf, "\t\t%s.Content = %s\n", n.varName, n.syncExpr)
 	}
@@ -155,6 +156,7 @@ func writeVoidSync(buf *bytes.Buffer, ext *extractionCtx, derivedDecls []script.
 func writeReturningSync(buf *bytes.Buffer, ext *extractionCtx, derivedDecls []script.DerivedDecl) {
 	buf.WriteString("\tsync := func() []*layout.Input {\n")
 	writeDerivedRecalc(buf, derivedDecls)
+	buf.Write(ext.preSyncBuf.Bytes())
 	buf.WriteString("\t\tvar changed []*layout.Input\n")
 	for _, n := range ext.nodes {
 		fmt.Fprintf(buf, "\t\tif v := %s; v != %s.Content {\n", n.syncExpr, n.varName)

@@ -611,6 +611,7 @@ func Run() {
 	}
 	sync := func() {
 		textinput0_contentW = textinput0_selfW - 4
+		textinput0_focused = focusIndex == 0
 		textinput0_node0.Content = fmt.Sprintf("%v", textinput0_leftIndicator())
 		textinput0_node1.Content = fmt.Sprintf("%v", textinput0_visibleContent())
 		textinput0_node2.Content = fmt.Sprintf("%v", textinput0_rightIndicator())
@@ -625,7 +626,6 @@ func Run() {
 		} else {
 			textinput0_box0.CursorCol = -1
 		}
-		textinput0_focused = focusIndex == 0
 	}
 
 	var prevTree *layout.Box
