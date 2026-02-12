@@ -101,13 +101,13 @@ func Run() {
 		sync()
 		termW, termH := term.GetSize(int(os.Stdin.Fd()))
 		tree := layout.Layout(root, termW, termH)
-		if prevTree == nil || termW != prevW || termH != prevH || layout.HasScrollChanged(prevTree, tree) || layout.HasOverlappingElements(tree) || layout.HasOverlappingElements(prevTree) {
+		changes, scrollChanged := layout.DiffTrees(prevTree, tree)
+		if prevTree == nil || termW != prevW || termH != prevH || scrollChanged || tree.HasOverlap || prevTree.HasOverlap {
 			buf := render.NewBuffer(termW, termH)
 			layout.RenderTree(buf, tree, nil)
 			render.ClearScreen(os.Stdout)
 			buf.RenderTo(os.Stdout)
 		} else {
-			changes := layout.DiffTrees(prevTree, tree)
 			layout.ApplyChanges(os.Stdout, changes)
 		}
 		prevTree = tree

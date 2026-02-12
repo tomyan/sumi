@@ -57,23 +57,49 @@ func Run() {
 			},
 		},
 	}
-	sync := func() {
-		node0.Content = fmt.Sprintf("Count: %v", count)
+	sync := func() []*layout.Input {
+		var changed []*layout.Input
+		if v := fmt.Sprintf("Count: %v", count); v != node0.Content {
+			node0.Content = v
+			changed = append(changed, node0)
+		}
+		return changed
 	}
 
 	var prevTree *layout.Box
 	var prevW, prevH int
+	var nodeBoxMap map[*layout.Input]*layout.Box
 	doRender := func() {
-		sync()
+		changed := sync()
 		termW, termH := term.GetSize(int(os.Stdin.Fd()))
+		if prevTree != nil && len(changed) == 0 && termW == prevW && termH == prevH {
+			dirty = false
+			return
+		}
+		if prevTree != nil && len(changed) > 0 && termW == prevW && termH == prevH && !prevTree.HasOverlap && nodeBoxMap != nil {
+			allDirect := true
+			for _, inp := range changed {
+				box := nodeBoxMap[inp]
+				if !layout.DirectWriteText(os.Stdout, box, inp.Content, box.Content) {
+					allDirect = false
+					break
+				}
+				box.Content = inp.Content
+			}
+			if allDirect {
+				dirty = false
+				return
+			}
+		}
 		tree := layout.Layout(root, termW, termH)
-		if prevTree == nil || termW != prevW || termH != prevH || layout.HasScrollChanged(prevTree, tree) || layout.HasOverlappingElements(tree) || layout.HasOverlappingElements(prevTree) {
+		nodeBoxMap = layout.MapInputToBox(root, tree)
+		changes, scrollChanged := layout.DiffTrees(prevTree, tree)
+		if prevTree == nil || termW != prevW || termH != prevH || scrollChanged || tree.HasOverlap || prevTree.HasOverlap {
 			buf := render.NewBuffer(termW, termH)
 			layout.RenderTree(buf, tree, nil)
 			render.ClearScreen(os.Stdout)
 			buf.RenderTo(os.Stdout)
 		} else {
-			changes := layout.DiffTrees(prevTree, tree)
 			layout.ApplyChanges(os.Stdout, changes)
 		}
 		prevTree = tree

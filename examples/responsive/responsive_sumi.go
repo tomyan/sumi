@@ -71,13 +71,13 @@ func Run() {
 		tree := layout.Layout(root, termW, termH)
 		tree.ScrollY = scroll0.ScrollY
 		tree.ScrollX = scroll0.ScrollX
-		if prevTree == nil || termW != prevW || termH != prevH || layout.HasScrollChanged(prevTree, tree) || layout.HasOverlappingElements(tree) || layout.HasOverlappingElements(prevTree) {
+		changes, scrollChanged := layout.DiffTrees(prevTree, tree)
+		if prevTree == nil || termW != prevW || termH != prevH || scrollChanged || tree.HasOverlap || prevTree.HasOverlap {
 			buf := render.NewBuffer(termW, termH)
 			layout.RenderTree(buf, tree, nil)
 			render.ClearScreen(os.Stdout)
 			buf.RenderTo(os.Stdout)
 		} else {
-			changes := layout.DiffTrees(prevTree, tree)
 			layout.ApplyChanges(os.Stdout, changes)
 		}
 		fmt.Fprintf(os.Stdout, "\033]2;Sumi %vx%v\007", width, height)
