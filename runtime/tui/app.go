@@ -66,6 +66,9 @@ func (a *App) Run() {
 	render.EnterAlternateScreen(os.Stdout)
 	defer render.ExitAlternateScreen(os.Stdout)
 
+	fmt.Fprint(os.Stdout, input.PasteEnableSeq)
+	defer fmt.Fprint(os.Stdout, input.PasteDisableSeq)
+
 	if a.HasMouse {
 		fmt.Fprint(os.Stdout, input.MouseEnableSeq)
 		defer fmt.Fprint(os.Stdout, input.MouseDisableSeq)

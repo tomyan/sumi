@@ -14,6 +14,7 @@ const (
 	EventMouse                    // mouse event
 	EventSignal                   // OS signal (SIGINT, SIGTERM, etc.)
 	EventFrame                    // animation frame tick
+	EventPaste                    // bracketed paste
 )
 
 // SpecialKey identifies a special key.
@@ -45,7 +46,8 @@ type Event struct {
 	Alt     bool           // true if Alt modifier was held
 	Special SpecialKey     // set for EventSpecial
 	Mouse   MouseEvent     // set for EventMouse
-	Signal  syscall.Signal // set for EventSignal
+	Signal    syscall.Signal // set for EventSignal
+	PasteText string         // set for EventPaste
 }
 
 // ReadEvent reads a single input event from the reader.
@@ -158,6 +160,13 @@ func parseNumericCSI(r io.Reader, firstDigit byte) (Event, error) {
 			return Event{Kind: EventKey, Rune: 0x1b}, nil
 		}
 		if b == '~' {
+			if num == 200 {
+				text, err := readBracketedPaste(r)
+				if err != nil {
+					return Event{Kind: EventPaste, PasteText: text}, err
+				}
+				return Event{Kind: EventPaste, PasteText: text}, nil
+			}
 			if special, ok := numericCSIKey(num); ok {
 				return Event{Kind: EventSpecial, Special: special}, nil
 			}
