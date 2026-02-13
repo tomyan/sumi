@@ -105,17 +105,30 @@ func Run() {
 		}
 		return " "
 	}
-	textinput0_visibleContent := func() string {
-		if textinput0_contentW <= 0 {
+	textinput0_visibleValue := func() string {
+		if textinput0_contentW <= 0 || len(name) == 0 {
 			return ""
 		}
-		text := textinput0_displayText()
-		visible := text[textinput0_viewStart():textinput0_viewEnd()]
+		visible := name[textinput0_viewStart():textinput0_viewEnd()]
 		pad := ""
 		for i := len(visible); i < textinput0_contentW; i++ {
 			pad = pad + " "
 		}
 		return visible + pad
+	}
+	textinput0_visiblePlaceholder := func() string {
+		if textinput0_contentW <= 0 || len(name) > 0 || len(textinput0_placeholder) == 0 {
+			return ""
+		}
+		text := textinput0_placeholder
+		if len(text) > textinput0_contentW {
+			text = text[:textinput0_contentW]
+		}
+		pad := ""
+		for i := len(text); i < textinput0_contentW; i++ {
+			pad = pad + " "
+		}
+		return text + pad
 	}
 	textinput0_rightIndicator := func() string {
 		if textinput0_contentW <= 0 {
@@ -628,44 +641,51 @@ func Run() {
 	}
 	textinput0_node1 := &layout.Input{
 		Kind:    layout.KindText,
-		Content: fmt.Sprintf("%v", textinput0_visibleContent()),
+		Content: fmt.Sprintf("%v", textinput0_visibleValue()),
 	}
 	textinput0_node2 := &layout.Input{
 		Kind:    layout.KindText,
-		Content: fmt.Sprintf("%v", textinput0_rightIndicator()),
+		Content: fmt.Sprintf("%v", textinput0_visiblePlaceholder()),
 		Style: render.Style{
 			Dim: true,
 		},
 	}
 	textinput0_node3 := &layout.Input{
 		Kind:    layout.KindText,
-		Content: fmt.Sprintf("%v", textinput0_scrollSpacer()),
+		Content: fmt.Sprintf("%v", textinput0_rightIndicator()),
 		Style: render.Style{
 			Dim: true,
 		},
 	}
 	textinput0_node4 := &layout.Input{
 		Kind:    layout.KindText,
-		Content: fmt.Sprintf("%v", textinput0_scrollLeftArrow()),
+		Content: fmt.Sprintf("%v", textinput0_scrollSpacer()),
 		Style: render.Style{
 			Dim: true,
 		},
 	}
 	textinput0_node5 := &layout.Input{
 		Kind:    layout.KindText,
-		Content: fmt.Sprintf("%v", textinput0_scrollTrack()),
+		Content: fmt.Sprintf("%v", textinput0_scrollLeftArrow()),
 		Style: render.Style{
 			Dim: true,
 		},
 	}
 	textinput0_node6 := &layout.Input{
 		Kind:    layout.KindText,
-		Content: fmt.Sprintf("%v", textinput0_scrollRightArrow()),
+		Content: fmt.Sprintf("%v", textinput0_scrollTrack()),
 		Style: render.Style{
 			Dim: true,
 		},
 	}
 	textinput0_node7 := &layout.Input{
+		Kind:    layout.KindText,
+		Content: fmt.Sprintf("%v", textinput0_scrollRightArrow()),
+		Style: render.Style{
+			Dim: true,
+		},
+	}
+	textinput0_node8 := &layout.Input{
 		Kind:    layout.KindText,
 		Content: fmt.Sprintf("%v", textinput0_scrollSpacer()),
 		Style: render.Style{
@@ -691,6 +711,7 @@ func Run() {
 					textinput0_node0,
 					textinput0_node1,
 					textinput0_node2,
+					textinput0_node3,
 					{
 						Kind:    layout.KindText,
 						Content: "]",
@@ -703,11 +724,11 @@ func Run() {
 				CursorCol: -1,
 				CursorRow: -1,
 				Children: []*layout.Input{
-					textinput0_node3,
 					textinput0_node4,
 					textinput0_node5,
 					textinput0_node6,
 					textinput0_node7,
+					textinput0_node8,
 				},
 			},
 		},
@@ -766,13 +787,14 @@ func Run() {
 		textinput0_contentW = textinput0_selfW - 4
 		textinput0_focused = focusIndex == 0
 		textinput0_node0.Content = fmt.Sprintf("%v", textinput0_leftIndicator())
-		textinput0_node1.Content = fmt.Sprintf("%v", textinput0_visibleContent())
-		textinput0_node2.Content = fmt.Sprintf("%v", textinput0_rightIndicator())
-		textinput0_node3.Content = fmt.Sprintf("%v", textinput0_scrollSpacer())
-		textinput0_node4.Content = fmt.Sprintf("%v", textinput0_scrollLeftArrow())
-		textinput0_node5.Content = fmt.Sprintf("%v", textinput0_scrollTrack())
-		textinput0_node6.Content = fmt.Sprintf("%v", textinput0_scrollRightArrow())
-		textinput0_node7.Content = fmt.Sprintf("%v", textinput0_scrollSpacer())
+		textinput0_node1.Content = fmt.Sprintf("%v", textinput0_visibleValue())
+		textinput0_node2.Content = fmt.Sprintf("%v", textinput0_visiblePlaceholder())
+		textinput0_node3.Content = fmt.Sprintf("%v", textinput0_rightIndicator())
+		textinput0_node4.Content = fmt.Sprintf("%v", textinput0_scrollSpacer())
+		textinput0_node5.Content = fmt.Sprintf("%v", textinput0_scrollLeftArrow())
+		textinput0_node6.Content = fmt.Sprintf("%v", textinput0_scrollTrack())
+		textinput0_node7.Content = fmt.Sprintf("%v", textinput0_scrollRightArrow())
+		textinput0_node8.Content = fmt.Sprintf("%v", textinput0_scrollSpacer())
 		node0.Content = fmt.Sprintf("You typed: %v", name)
 		if focusIndex == 0 {
 			textinput0_box0.CursorCol = textinput0_cursor - textinput0_viewOffset + 2
@@ -826,7 +848,8 @@ func Run() {
 	_ = textinput0_viewStart
 	_ = textinput0_viewEnd
 	_ = textinput0_leftIndicator
-	_ = textinput0_visibleContent
+	_ = textinput0_visibleValue
+	_ = textinput0_visiblePlaceholder
 	_ = textinput0_rightIndicator
 	_ = textinput0_scrollbarVisible
 	_ = textinput0_scrollLeftArrow

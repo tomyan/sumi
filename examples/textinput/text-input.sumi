@@ -76,17 +76,31 @@ func leftIndicator() string {
     return " "
 }
 
-func visibleContent() string {
-    if contentW <= 0 {
+func visibleValue() string {
+    if contentW <= 0 || len(value) == 0 {
         return ""
     }
-    text := displayText()
-    visible := text[viewStart():viewEnd()]
+    visible := value[viewStart():viewEnd()]
     pad := ""
     for i := len(visible); i < contentW; i++ {
         pad = pad + " "
     }
     return visible + pad
+}
+
+func visiblePlaceholder() string {
+    if contentW <= 0 || len(value) > 0 || len(placeholder) == 0 {
+        return ""
+    }
+    text := placeholder
+    if len(text) > contentW {
+        text = text[:contentW]
+    }
+    pad := ""
+    for i := len(text); i < contentW; i++ {
+        pad = pad + " "
+    }
+    return text + pad
 }
 
 func rightIndicator() string {
@@ -560,13 +574,16 @@ func handleEvent(evt input.Event) {
 .scrollbar {
     dim: true;
 }
+.placeholder {
+    dim: true;
+}
 </style>
 
 <box focusable="true" onkey="handleEvent" cursor-x={cursor - viewOffset + 2} cursor-y="0">
     <box direction="row">
         <text>[</text>
         <text class="indicator">{leftIndicator()}</text>
-        <text>{visibleContent()}</text>
+        <text>{visibleValue()}</text><text class="placeholder">{visiblePlaceholder()}</text>
         <text class="indicator">{rightIndicator()}</text>
         <text>]</text>
     </box>
