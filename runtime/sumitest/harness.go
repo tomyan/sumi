@@ -2,6 +2,7 @@ package sumitest
 
 import (
 	"github.com/tomyan/sumi/runtime/input"
+	"github.com/tomyan/sumi/runtime/render"
 	"github.com/tomyan/sumi/runtime/tui"
 )
 
@@ -36,6 +37,11 @@ func (h *Harness) Resize(w, h2 int) {
 		h.app.OnResize()
 	}
 	h.app.Render()
+}
+
+// Buffer returns the underlying render buffer for direct access.
+func (h *Harness) Buffer() *render.Buffer {
+	return h.app.TestBuffer
 }
 
 // StyledText returns the current buffer content as styled markup.
