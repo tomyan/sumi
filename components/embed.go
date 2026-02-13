@@ -3,7 +3,7 @@ package components
 
 import "embed"
 
-// FS embeds all .sumi component files.
+// FS embeds all .sumi component files including subdirectories.
 //
-//go:embed *.sumi
+//go:embed *.sumi sumi/*.sumi
 var FS embed.FS

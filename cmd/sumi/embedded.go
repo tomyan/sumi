@@ -35,6 +35,8 @@ func listEmbeddedComponents() []string {
 }
 
 // listComponentsInDir lists .sumi files in an embedded directory with an optional prefix.
+// Fundamental (no prefix): "scrollbar.sumi" → "scrollbar"
+// Stdlib (with prefix): "text-input.sumi" → "sumi:TextInput" (kebab-to-PascalCase)
 func listComponentsInDir(dir, prefix string) []string {
 	entries, err := components.FS.ReadDir(dir)
 	if err != nil {
@@ -45,13 +47,26 @@ func listComponentsInDir(dir, prefix string) []string {
 		if entry.IsDir() || !strings.HasSuffix(entry.Name(), ".sumi") {
 			continue
 		}
-		name := strings.TrimSuffix(entry.Name(), ".sumi")
-		name = strings.ReplaceAll(name, "-", "")
+		base := strings.TrimSuffix(entry.Name(), ".sumi")
 		if prefix != "" {
-			names = append(names, prefix+":"+name)
+			names = append(names, prefix+":"+kebabToPascal(base))
 		} else {
+			name := strings.ReplaceAll(base, "-", "")
 			names = append(names, name)
 		}
 	}
 	return names
+}
+
+// kebabToPascal converts "text-input" to "TextInput".
+func kebabToPascal(s string) string {
+	parts := strings.Split(s, "-")
+	var b strings.Builder
+	for _, part := range parts {
+		if len(part) == 0 {
+			continue
+		}
+		b.WriteString(strings.ToUpper(part[:1]) + part[1:])
+	}
+	return b.String()
 }

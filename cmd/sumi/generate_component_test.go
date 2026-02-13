@@ -226,6 +226,40 @@ func handleEvent(evt input.Event) {
 	}
 }
 
+func TestGenerateDirWithTextInputStdlib(t *testing.T) {
+	// Given a root app using the stdlib sumi:TextInput (recursive inlining)
+	dir := t.TempDir()
+	appSrc := `<script>
+username := $state("")
+func handleEvent(evt input.Event) {
+}
+</script>
+<box focusable="true" onkey="handleEvent">
+    <sumi:TextInput bind:value={username} placeholder="Username" />
+</box>`
+	writeTestFile(t, dir, "app.sumi", appSrc)
+
+	// When generating the directory
+	err := generateDir(dir)
+
+	// Then the app compiles — sumi:TextInput inlines textedit + scrollbar
+	if err != nil {
+		t.Fatalf("generateDir: %v", err)
+	}
+	src := readTestFile(t, filepath.Join(dir, "app_sumi.go"))
+	assertValidGoFile(t, filepath.Join(dir, "app_sumi.go"))
+
+	// Should have the parent's username variable
+	if !strings.Contains(src, "username") {
+		t.Errorf("expected parent variable 'username' in output:\n%s", src)
+	}
+
+	// Should have bracket chrome from TextInput wrapper
+	if !strings.Contains(src, `"["`) {
+		t.Errorf("expected bracket '[' in output:\n%s", src)
+	}
+}
+
 func TestGenerateDirWithEmbeddedComponent(t *testing.T) {
 	// Given a directory with a root component referencing an embedded fundamental component
 	dir := t.TempDir()

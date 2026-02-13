@@ -1,0 +1,67 @@
+<script>
+value := $prop("")
+placeholder := $prop("")
+inputType := $prop("")
+maxlength := $prop(0)
+readonly := $prop(false)
+strip := $prop(false)
+viewOffset := $state(0)
+focused := $state(false)
+selfW := $self(width)
+contentW := $derived(selfW - 4)
+
+func leftIndicator() string {
+    if contentW <= 0 {
+        return ""
+    }
+    if viewOffset > 0 {
+        return "<"
+    }
+    return " "
+}
+
+func rightIndicator() string {
+    if contentW <= 0 {
+        return ""
+    }
+    if viewOffset + contentW < len(value) {
+        return ">"
+    }
+    return " "
+}
+
+func scrollbarVisible() bool {
+    return focused && len(value) > contentW && contentW > 0
+}
+</script>
+
+<style>
+.indicator {
+    dim: true;
+}
+</style>
+
+<box>
+    <box direction="row">
+        <text>[</text>
+        <text class="indicator">{leftIndicator()}</text>
+        <textedit
+            bind:value={value}
+            bind:viewOffset={viewOffset}
+            bind:focused={focused}
+            placeholder={placeholder}
+            inputType={inputType}
+            maxlength={maxlength}
+            readonly={readonly}
+            strip={strip}
+        />
+        <text class="indicator">{rightIndicator()}</text>
+        <text>]</text>
+    </box>
+    <scrollbar
+        contentSize={len(value)}
+        viewSize={contentW}
+        bind:offset={viewOffset}
+        visible={scrollbarVisible()}
+    />
+</box>

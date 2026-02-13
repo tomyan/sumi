@@ -168,12 +168,24 @@ func mergeEmbeddedComponents(registry map[string]*codegen.ComponentInfo) error {
 		if err != nil {
 			return err
 		}
+		// Override name to match tag name (componentName from path won't work for embedded)
+		comp.name = embeddedComponentName(tagName)
+		comp.exported = exportedName(comp.name)
 		if !isChildComponent(comp) {
 			continue
 		}
 		registry[key] = buildComponentInfo(comp)
 	}
 	return nil
+}
+
+// embeddedComponentName derives the component name from an embedded tag name.
+// "scrollbar" → "scrollbar", "sumi:textinput" → "textinput"
+func embeddedComponentName(tagName string) string {
+	if _, local, ok := template.SplitPrefix(tagName); ok {
+		return local
+	}
+	return tagName
 }
 
 // isChildComponent returns true if the component has prop declarations.
