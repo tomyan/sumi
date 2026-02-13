@@ -10,6 +10,13 @@ import (
 // Only non-empty cells (Ch != 0) are rendered. Styled cells emit ANSI SGR
 // sequences before the character.
 func (b *Buffer) RenderTo(w io.Writer) {
+	b.RenderToOffset(w, 0, 0)
+}
+
+// RenderToOffset renders the buffer with all cursor positions shifted by the
+// given row and column offsets. This allows rendering a buffer at an arbitrary
+// position on screen (e.g. below a header in preview mode).
+func (b *Buffer) RenderToOffset(w io.Writer, rowOffset, colOffset int) {
 	inStyled := false
 	for row := 0; row < b.height; row++ {
 		for col := 0; col < b.width; col++ {
@@ -17,7 +24,7 @@ func (b *Buffer) RenderTo(w io.Writer) {
 			if c.Ch == 0 {
 				continue
 			}
-			fmt.Fprintf(w, "\x1b[%d;%dH", row+1, col+1)
+			fmt.Fprintf(w, "\x1b[%d;%dH", row+1+rowOffset, col+1+colOffset)
 			if sgr := buildSGR(c.Style); sgr != "" {
 				inStyled = true
 				fmt.Fprint(w, sgr)
