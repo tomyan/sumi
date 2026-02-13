@@ -15,6 +15,8 @@ const (
 	EventSignal                   // OS signal (SIGINT, SIGTERM, etc.)
 	EventFrame                    // animation frame tick
 	EventPaste                    // bracketed paste
+	EventFocus                    // terminal focus gained
+	EventBlur                     // terminal focus lost
 )
 
 // SpecialKey identifies a special key.

@@ -136,6 +136,26 @@ func writeSuppressFocusVars(buf *bytes.Buffer, focusHandlers []focusableHandler)
 	buf.WriteString("\t_ = stopPropagation\n")
 }
 
+// writeDispatchToFocusable writes the dispatchToFocusable helper closure.
+// This closure dispatches an event to a focusable handler by index.
+func writeDispatchToFocusable(buf *bytes.Buffer, focusHandlers []focusableHandler, eventAware map[string]bool) {
+	if len(focusHandlers) == 0 {
+		return
+	}
+	buf.WriteString("\tdispatchToFocusable := func(idx int, evt input.Event) {\n")
+	buf.WriteString("\t\tswitch idx {\n")
+	for _, fh := range focusHandlers {
+		fmt.Fprintf(buf, "\t\tcase %d:\n", fh.FocusIndex)
+		if eventAware[fh.HandlerName] {
+			fmt.Fprintf(buf, "\t\t\t%s(evt)\n", fh.HandlerName)
+		} else {
+			fmt.Fprintf(buf, "\t\t\t%s()\n", fh.HandlerName)
+		}
+	}
+	buf.WriteString("\t\t}\n")
+	buf.WriteString("\t}\n\n")
+}
+
 // writeFocusDispatch writes focus-directed event dispatch in the OnEvent closure.
 func writeFocusDispatch(buf *bytes.Buffer, focusHandlers []focusableHandler,
 	bubblingHandlers []string, eventAware map[string]bool) {
@@ -143,18 +163,22 @@ func writeFocusDispatch(buf *bytes.Buffer, focusHandlers []focusableHandler,
 	// Tab cycling — includes -1 (unfocused) as a valid position
 	buf.WriteString("\t\t\tif evt.Kind == input.EventSpecial {\n")
 	buf.WriteString("\t\t\t\tif evt.Special == input.KeyTab {\n")
+	buf.WriteString("\t\t\t\t\tprev := focusIndex\n")
 	buf.WriteString("\t\t\t\t\tfocusIndex = (focusIndex + 2) % (focusCount + 1) - 1\n")
+	writeFocusTransitionDispatch(buf)
 	buf.WriteString("\t\t\t\t\tapp.Dirty = true\n")
 	buf.WriteString("\t\t\t\t\treturn\n")
 	buf.WriteString("\t\t\t\t}\n")
 	buf.WriteString("\t\t\t\tif evt.Special == input.KeyShiftTab {\n")
+	buf.WriteString("\t\t\t\t\tprev := focusIndex\n")
 	buf.WriteString("\t\t\t\t\tfocusIndex = (focusIndex + focusCount + 1) % (focusCount + 1) - 1\n")
+	writeFocusTransitionDispatch(buf)
 	buf.WriteString("\t\t\t\t\tapp.Dirty = true\n")
 	buf.WriteString("\t\t\t\t\treturn\n")
 	buf.WriteString("\t\t\t\t}\n")
 	buf.WriteString("\t\t\t}\n")
 
-	// Focus-directed dispatch
+	// Focus-directed dispatch (regular events)
 	buf.WriteString("\t\t\tpropagationStopped = false\n")
 	buf.WriteString("\t\t\tswitch focusIndex {\n")
 	for _, fh := range focusHandlers {
@@ -177,4 +201,14 @@ func writeFocusDispatch(buf *bytes.Buffer, focusHandlers []focusableHandler,
 		}
 		buf.WriteString("\t\t\t}\n")
 	}
+}
+
+// writeFocusTransitionDispatch emits EventBlur to prev handler and EventFocus to new handler.
+func writeFocusTransitionDispatch(buf *bytes.Buffer) {
+	buf.WriteString("\t\t\t\t\tif prev >= 0 {\n")
+	buf.WriteString("\t\t\t\t\t\tdispatchToFocusable(prev, input.Event{Kind: input.EventBlur})\n")
+	buf.WriteString("\t\t\t\t\t}\n")
+	buf.WriteString("\t\t\t\t\tif focusIndex >= 0 {\n")
+	buf.WriteString("\t\t\t\t\t\tdispatchToFocusable(focusIndex, input.Event{Kind: input.EventFocus})\n")
+	buf.WriteString("\t\t\t\t\t}\n")
 }

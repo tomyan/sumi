@@ -293,6 +293,54 @@ func TestGenerateTabCyclesToUnfocused(t *testing.T) {
 	}
 }
 
+func TestGenerateTabDispatchesFocusBlur(t *testing.T) {
+	// Given — two focusable boxes with event-aware handlers
+	doc := &template.Document{
+		Children: []template.Node{
+			&template.BoxElement{
+				Attributes: map[string]string{"focusable": "true", "onkey": "h1"},
+				Children:   []template.Node{textNode("A")},
+			},
+			&template.BoxElement{
+				Attributes: map[string]string{"focusable": "true", "onkey": "h2"},
+				Children:   []template.Node{textNode("B")},
+			},
+		},
+	}
+	sc := &script.Script{
+		StateDecls: []script.StateDecl{{Name: "x", InitExpr: "0"}},
+		FuncDecls: []script.FuncDecl{
+			{Name: "h1", Params: "evt input.Event", Body: "\n\tx = x + 1\n",
+				StateAssignments: []script.StateAssignment{{VarName: "x", Line: "x = x + 1"}}},
+			{Name: "h2", Params: "evt input.Event", Body: "\n\tx = x + 1\n",
+				StateAssignments: []script.StateAssignment{{VarName: "x", Line: "x = x + 1"}}},
+		},
+	}
+
+	// When
+	out, err := Generate(doc, sc, nil, Options{PackageName: "main"})
+
+	// Then
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	assertValidGo(t, out)
+	src := string(out)
+
+	// Should dispatch EventBlur to the previous focus
+	if !strings.Contains(src, "input.EventBlur") {
+		t.Errorf("expected EventBlur dispatch in Tab handling:\n%s", src)
+	}
+	// Should dispatch EventFocus to the new focus
+	if !strings.Contains(src, "input.EventFocus") {
+		t.Errorf("expected EventFocus dispatch in Tab handling:\n%s", src)
+	}
+	// Should have a dispatchToFocusable helper
+	if !strings.Contains(src, "dispatchToFocusable") {
+		t.Errorf("expected dispatchToFocusable helper:\n%s", src)
+	}
+}
+
 func TestGenerateNoFocusWhenNoFocusableBoxes(t *testing.T) {
 	// Given — no focusable boxes
 	doc := &template.Document{
