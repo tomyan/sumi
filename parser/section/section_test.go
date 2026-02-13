@@ -101,6 +101,54 @@ func TestParseEmptyInput(t *testing.T) {
 	}
 }
 
+func TestParseImportsSection(t *testing.T) {
+	// Given
+	input := `<sumi:imports>
+    "myui"
+    alias "github.com/someone/otherui"
+</sumi:imports>
+
+<script>
+x := $state(0)
+</script>
+
+<text>Hello</text>`
+
+	// When
+	got, err := Parse(input)
+
+	// Then
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if got.Imports != "\n    \"myui\"\n    alias \"github.com/someone/otherui\"\n" {
+		t.Errorf("Imports = %q", got.Imports)
+	}
+	if got.Script != "\nx := $state(0)\n" {
+		t.Errorf("Script = %q, want %q", got.Script, "\nx := $state(0)\n")
+	}
+	if got.Template != "<text>Hello</text>" {
+		t.Errorf("Template = %q, want %q", got.Template, "<text>Hello</text>")
+	}
+}
+
+func TestParseNoImportsSection(t *testing.T) {
+	// Given
+	input := `<script>x := 1</script>
+<text>Hello</text>`
+
+	// When
+	got, err := Parse(input)
+
+	// Then
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if got.Imports != "" {
+		t.Errorf("Imports = %q, want empty", got.Imports)
+	}
+}
+
 func TestParseWhitespaceBetweenSections(t *testing.T) {
 	// Given
 	input := `<script>

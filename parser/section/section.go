@@ -2,8 +2,9 @@ package section
 
 import "strings"
 
-// Sections holds the three optional parts of a .sumi file.
+// Sections holds the optional parts of a .sumi file.
 type Sections struct {
+	Imports  string
 	Script   string
 	Style    string
 	Template string
@@ -17,6 +18,7 @@ func Parse(input string) (Sections, error) {
 	var s Sections
 	remaining := input
 
+	remaining, s.Imports = extractSection(remaining, "<sumi:imports>", "</sumi:imports>")
 	remaining, s.Script = extractSection(remaining, "<script>", "</script>")
 	remaining, s.Style = extractSection(remaining, "<style>", "</style>")
 
