@@ -8,15 +8,31 @@ import (
 )
 
 // Preview runs a scenario interactively, showing each frame with ANSI rendering.
-// Press Enter to advance between frames. Only active when -preview flag is set.
+// Opens /dev/tty directly so output and input work even under go test's pipes.
+// Press Enter to advance between frames.
 func Preview(s Scenario) {
+	tty, err := os.OpenFile("/dev/tty", os.O_RDWR, 0)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "preview: cannot open /dev/tty: %v\n", err)
+		return
+	}
+	defer tty.Close()
+
 	frames := RunScenario(s)
-	reader := bufio.NewReader(os.Stdin)
+	reader := bufio.NewReader(tty)
+	promptRow := headerHeight + s.Height + 1
 	for i := range frames {
-		writePreviewFrame(os.Stdout, s, frames, i)
-		fmt.Print("\n\nPress Enter to continue...")
+		writePreviewFrame(tty, s, frames, i)
+		fmt.Fprintf(tty, "\x1b[%d;1H", promptRow)
+		if i < len(frames)-1 {
+			fmt.Fprint(tty, "Press Enter for next frame...")
+		} else {
+			fmt.Fprint(tty, "Last frame. Press Enter to finish.")
+		}
 		reader.ReadString('\n')
 	}
+	// Clear screen on exit
+	fmt.Fprint(tty, "\x1b[2J\x1b[1;1H")
 }
 
 const headerHeight = 3
