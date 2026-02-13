@@ -68,19 +68,13 @@ func Run() {
 	}
 
 	textinput0_leftIndicator := func() string {
-		if textinput0_contentW <= 0 {
-			return ""
-		}
 		if textinput0_viewOffset > 0 {
 			return "<"
 		}
 		return " "
 	}
 	textinput0_rightIndicator := func() string {
-		if textinput0_contentW <= 0 {
-			return ""
-		}
-		if textinput0_viewOffset+textinput0_contentW < len(value) {
+		if textinput0_contentW > 0 && textinput0_viewOffset+textinput0_contentW < len(value) {
 			return ">"
 		}
 		return " "
@@ -1544,19 +1538,13 @@ func CreateApp(w, h int) *tui.App {
 	}
 
 	textinput0_leftIndicator := func() string {
-		if textinput0_contentW <= 0 {
-			return ""
-		}
 		if textinput0_viewOffset > 0 {
 			return "<"
 		}
 		return " "
 	}
 	textinput0_rightIndicator := func() string {
-		if textinput0_contentW <= 0 {
-			return ""
-		}
-		if textinput0_viewOffset+textinput0_contentW < len(value) {
+		if textinput0_contentW > 0 && textinput0_viewOffset+textinput0_contentW < len(value) {
 			return ">"
 		}
 		return " "
