@@ -242,11 +242,16 @@ func buildStateNameMap(inst *componentInstance) map[string]string {
 
 // extractBindings returns a map from child variable name to parent variable name
 // for bind: prefixed attributes. e.g., bind:value="name" → {"value": "name"}
+// Expression values like bind:offset={offset} are stripped of curlies.
 func extractBindings(attrs map[string]string) map[string]string {
 	bindings := make(map[string]string)
 	for k, v := range attrs {
 		if strings.HasPrefix(k, "bind:") {
-			bindings[strings.TrimPrefix(k, "bind:")] = v
+			parentVar := v
+			if isExprValue(parentVar) {
+				parentVar = extractExprValue(parentVar)
+			}
+			bindings[strings.TrimPrefix(k, "bind:")] = parentVar
 		}
 	}
 	return bindings

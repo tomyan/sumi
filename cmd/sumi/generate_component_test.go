@@ -169,6 +169,35 @@ func TestGenerateDirUnknownComponentReturnsError(t *testing.T) {
 	}
 }
 
+func TestGenerateDirWithScrollbarComponent(t *testing.T) {
+	// Given a root app using the embedded scrollbar component
+	dir := t.TempDir()
+	appSrc := `<script>
+offset := $state(0)
+func handleEvent(evt input.Event) {
+}
+</script>
+<box focusable="true" onkey="handleEvent">
+    <scrollbar
+        contentSize={100}
+        viewSize={20}
+        bind:offset={offset}
+        direction="horizontal"
+        visible={true}
+    />
+</box>`
+	writeTestFile(t, dir, "app.sumi", appSrc)
+
+	// When generating the directory
+	err := generateDir(dir)
+
+	// Then the app compiles with the scrollbar inlined
+	if err != nil {
+		t.Fatalf("generateDir: %v", err)
+	}
+	assertValidGoFile(t, filepath.Join(dir, "app_sumi.go"))
+}
+
 func TestGenerateDirWithEmbeddedComponent(t *testing.T) {
 	// Given a directory with a root component referencing an embedded fundamental component
 	dir := t.TempDir()

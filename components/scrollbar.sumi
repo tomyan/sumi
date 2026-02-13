@@ -1,0 +1,248 @@
+<script>
+contentSize := $prop(0)
+viewSize := $prop(0)
+offset := $prop(0)
+direction := $prop("horizontal")
+visible := $prop(true)
+selfX := $self(x)
+selfY := $self(y)
+selfW := $self(width)
+selfH := $self(height)
+animating := $state(false)
+dragging := $state(false)
+held := $state(false)
+animStart := $state(int64(0))
+animFrom := $state(0)
+animTo := $state(0)
+
+func isVisible() bool {
+    return visible && contentSize > viewSize && viewSize > 0
+}
+
+func trackChar() string {
+    if direction == "vertical" {
+        return "|"
+    }
+    return "-"
+}
+
+func thumbChar() string {
+    return "#"
+}
+
+func startArrow() string {
+    if !isVisible() {
+        return ""
+    }
+    if direction == "vertical" {
+        return "^"
+    }
+    return "<"
+}
+
+func endArrow() string {
+    if !isVisible() {
+        return ""
+    }
+    if direction == "vertical" {
+        return "v"
+    }
+    return ">"
+}
+
+func trackSize() int {
+    if direction == "vertical" {
+        return selfH - 2
+    }
+    return selfW - 2
+}
+
+func thumbSize() int {
+    ts := trackSize()
+    if ts < 1 {
+        return 1
+    }
+    size := ts * viewSize / contentSize
+    if size < 1 {
+        size = 1
+    }
+    return size
+}
+
+func thumbPos() int {
+    ts := trackSize()
+    ths := thumbSize()
+    maxOff := contentSize - viewSize
+    if maxOff <= 0 {
+        return 0
+    }
+    pos := (ts - ths) * offset / maxOff
+    if pos < 0 {
+        pos = 0
+    }
+    if pos + ths > ts {
+        pos = ts - ths
+    }
+    return pos
+}
+
+func trackText() string {
+    if !isVisible() {
+        return ""
+    }
+    ts := trackSize()
+    if ts < 1 {
+        return ""
+    }
+    tp := thumbPos()
+    ths := thumbSize()
+    tc := trackChar()
+    thc := thumbChar()
+    result := ""
+    for i := 0; i < ts; i++ {
+        if i >= tp && i < tp + ths {
+            result = result + thc
+        } else {
+            result = result + tc
+        }
+    }
+    return result
+}
+
+func spacer() string {
+    if !isVisible() {
+        return ""
+    }
+    return " "
+}
+
+func maxOffset() int {
+    return contentSize - viewSize
+}
+
+func offsetForTrackPos(pos int) int {
+    ts := trackSize()
+    if ts <= 0 {
+        return offset
+    }
+    maxOff := maxOffset()
+    if maxOff <= 0 {
+        return 0
+    }
+    target := pos * maxOff / ts
+    if target < 0 {
+        target = 0
+    }
+    if target > maxOff {
+        target = maxOff
+    }
+    return target
+}
+
+func trackStart() int {
+    if direction == "vertical" {
+        return selfY + 1
+    }
+    return selfX + 1 + 1
+}
+
+func mouseToTrackPos(mousePos int) int {
+    return mousePos - trackStart()
+}
+
+func isOnTrack(evt input.Event) bool {
+    if direction == "vertical" {
+        return evt.Mouse.X == selfX
+    }
+    return evt.Mouse.Y == selfY
+}
+
+func mouseTrackPos(evt input.Event) int {
+    if direction == "vertical" {
+        return mouseToTrackPos(evt.Mouse.Y)
+    }
+    return mouseToTrackPos(evt.Mouse.X)
+}
+
+func cancelAnimation() {
+    animating = false
+    dragging = false
+    held = false
+}
+
+func animateStep() {
+    now := time.Now().UnixMilli()
+    elapsed := now - animStart
+    duration := int64(200)
+    if elapsed >= duration {
+        offset = animTo
+        animating = false
+        if held {
+            dragging = true
+        }
+        return
+    }
+    t := float64(elapsed) / float64(duration)
+    inv := 1.0 - t
+    eased := 1.0 - inv*inv*inv
+    offset = animFrom + int(eased*float64(animTo-animFrom))
+    app.RequestFrame()
+}
+
+func startAnimation(target int) {
+    animating = true
+    animStart = time.Now().UnixMilli()
+    animFrom = offset
+    animTo = target
+    app.RequestFrame()
+}
+
+func handleEvent(evt input.Event) {
+    if evt.Kind == input.EventFrame {
+        if animating {
+            animateStep()
+        }
+        stopPropagation()
+        return
+    }
+    if evt.Kind == input.EventMouse && evt.Mouse.Action == input.MouseRelease {
+        if held || dragging {
+            held = false
+            dragging = false
+            stopPropagation()
+            return
+        }
+    }
+    if evt.Kind == input.EventMouse && evt.Mouse.Action == input.MouseMotion && dragging {
+        pos := mouseTrackPos(evt)
+        offset = offsetForTrackPos(pos)
+        stopPropagation()
+        return
+    }
+    if evt.Kind == input.EventMouse && evt.Mouse.Action == input.MousePress && evt.Mouse.Button == input.ButtonLeft && isOnTrack(evt) {
+        pos := mouseTrackPos(evt)
+        ts := trackSize()
+        if pos >= 0 && pos < ts {
+            target := offsetForTrackPos(pos)
+            held = true
+            startAnimation(target)
+            stopPropagation()
+            return
+        }
+    }
+}
+</script>
+
+<style>
+.dim {
+    dim: true;
+}
+</style>
+
+<box direction="row" focusable="true" onkey="handleEvent">
+    <text class="dim">{spacer()}</text>
+    <text class="dim">{startArrow()}</text>
+    <text class="dim">{trackText()}</text>
+    <text class="dim">{endArrow()}</text>
+    <text class="dim">{spacer()}</text>
+</box>
