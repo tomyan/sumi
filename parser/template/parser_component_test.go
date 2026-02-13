@@ -182,6 +182,93 @@ func TestParseComponentMixedWithText(t *testing.T) {
 	}
 }
 
+func TestParseNamespacedComponentSelfClosing(t *testing.T) {
+	// Given
+	input := `<sumi:TextInput />`
+
+	// When
+	doc, err := Parse(input)
+
+	// Then
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if len(doc.Children) != 1 {
+		t.Fatalf("got %d children, want 1", len(doc.Children))
+	}
+	comp, ok := doc.Children[0].(*ComponentElement)
+	if !ok {
+		t.Fatalf("child is %T, want *ComponentElement", doc.Children[0])
+	}
+	if comp.Name != "sumi:TextInput" {
+		t.Errorf("Name = %q, want %q", comp.Name, "sumi:TextInput")
+	}
+}
+
+func TestParseNamespacedComponentWithClosingTag(t *testing.T) {
+	// Given
+	input := `<sumi:TextInput></sumi:TextInput>`
+
+	// When
+	doc, err := Parse(input)
+
+	// Then
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	comp, ok := doc.Children[0].(*ComponentElement)
+	if !ok {
+		t.Fatalf("child is %T, want *ComponentElement", doc.Children[0])
+	}
+	if comp.Name != "sumi:TextInput" {
+		t.Errorf("Name = %q, want %q", comp.Name, "sumi:TextInput")
+	}
+}
+
+func TestParseNamespacedComponentWithAttributes(t *testing.T) {
+	// Given
+	input := `<sumi:TextInput bind:value={name} placeholder="Enter name" />`
+
+	// When
+	doc, err := Parse(input)
+
+	// Then
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	comp := doc.Children[0].(*ComponentElement)
+	if comp.Name != "sumi:TextInput" {
+		t.Errorf("Name = %q, want %q", comp.Name, "sumi:TextInput")
+	}
+	if got := comp.Attributes["bind:value"]; got != "{name}" {
+		t.Errorf("bind:value = %q, want %q", got, "{name}")
+	}
+	if got := comp.Attributes["placeholder"]; got != "Enter name" {
+		t.Errorf("placeholder = %q, want %q", got, "Enter name")
+	}
+}
+
+func TestParseNamespacedComponentInsideBox(t *testing.T) {
+	// Given
+	input := `<box><sumi:TextInput bind:value={x} /></box>`
+
+	// When
+	doc, err := Parse(input)
+
+	// Then
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	box := doc.Children[0].(*BoxElement)
+	comp, ok := box.Children[0].(*ComponentElement)
+	if !ok {
+		t.Fatalf("box child is %T, want *ComponentElement", box.Children[0])
+	}
+	if comp.Name != "sumi:TextInput" {
+		t.Errorf("Name = %q, want %q", comp.Name, "sumi:TextInput")
+	}
+}
+
 func TestParseSelfClosingNoSpace(t *testing.T) {
 	// Given
 	input := `<counter/>`
