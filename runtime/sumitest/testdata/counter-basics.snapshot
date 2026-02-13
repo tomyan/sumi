@@ -1,0 +1,9 @@
+=== Frame: initial ===
+Count: 0
+
+=== Frame: after-first-key ===
+Count: 1
+
+=== Frame: after-second-key ===
+Count: 2
+

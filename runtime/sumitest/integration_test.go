@@ -140,3 +140,14 @@ func TestIntegrationCounterTextOutput(t *testing.T) {
 	}
 	AssertContains(t, h, "Count: 1")
 }
+
+func TestCounterSnapshots(t *testing.T) {
+	AssertSnapshots(t, counterScenario())
+}
+
+func TestCounterPreview(t *testing.T) {
+	if !PreviewMode() {
+		t.Skip("run with -preview to see interactive preview")
+	}
+	Preview(counterScenario())
+}
