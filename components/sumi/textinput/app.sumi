@@ -1,0 +1,19 @@
+<script>
+value := $state("")
+
+func handleKey(evt input.Event) {
+    if evt.Kind == input.EventSignal {
+        app.Quit()
+        return
+    }
+    if evt.Ctrl && evt.Rune == 'c' {
+        app.Quit()
+        return
+    }
+}
+</script>
+
+<box onkey="handleKey">
+    <text>Value: {value}</text>
+    <sumi:TextInput bind:value={value} placeholder="Type here..." />
+</box>

@@ -1,0 +1,20 @@
+=== Frame: initial ===
+Value: 
+[<<dim>>Type here...                           <</>>
+
+=== Frame: focus ===
+Value: 
+[<<dim>>Type here...                           <</>>
+
+=== Frame: type-hello ===
+Value: Hello
+[Hello                                  
+
+=== Frame: type-world ===
+Value: Hello World
+[Hello World                            
+
+=== Frame: backspace ===
+Value: Hello Worl
+[Hello Worl                             
+
