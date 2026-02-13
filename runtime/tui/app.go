@@ -24,6 +24,11 @@ type App struct {
 	Dirty     bool              // set by handlers to trigger re-render
 	quitCh    chan struct{}      // closed by Quit() to exit the event loop
 	wakeCh    chan struct{}      // receives from RequestFrame() to wake the event loop
+
+	// Test mode fields — set by CreateApp for synchronous stepping.
+	TestWidth  int            // test viewport width (0 = use real terminal)
+	TestHeight int            // test viewport height (0 = use real terminal)
+	TestBuffer *render.Buffer // populated by doRender in test mode instead of writing to stdout
 }
 
 // Quit signals the event loop to exit.
@@ -51,6 +56,37 @@ func (a *App) RequestFrame() {
 func (a *App) initQuit() {
 	a.quitCh = make(chan struct{}, 1)
 	a.wakeCh = make(chan struct{}, 1)
+}
+
+// Step dispatches a single event and runs bounded convergence rendering.
+// Used for synchronous testing — no terminal setup, no goroutines.
+func (a *App) Step(evt input.Event) {
+	a.ensureInit()
+	a.dispatchEvent(evt)
+	a.converge()
+}
+
+// Render triggers an initial render with bounded convergence.
+// Used for synchronous testing to produce the first rendered frame.
+func (a *App) Render() {
+	a.ensureInit()
+	a.Dirty = true
+	a.converge()
+}
+
+// converge runs up to 3 render passes while Dirty remains true.
+func (a *App) converge() {
+	for i := 0; i < 3 && a.Dirty; i++ {
+		a.Dirty = false
+		a.OnRender()
+	}
+}
+
+// ensureInit creates channels if not already initialized.
+func (a *App) ensureInit() {
+	if a.quitCh == nil {
+		a.initQuit()
+	}
 }
 
 // Run sets up the terminal, starts the event reader, and runs the event loop.
@@ -109,10 +145,7 @@ func (a *App) Run() {
 func (a *App) runLoop(eventCh <-chan input.Event, resizeCh <-chan struct{}, sigCh <-chan os.Signal) {
 	// Initial render with bounded convergence (e.g., $self measurement needs a second pass)
 	a.Dirty = true
-	for i := 0; i < 3 && a.Dirty; i++ {
-		a.Dirty = false
-		a.OnRender()
-	}
+	a.converge()
 
 	for {
 		// Wait for at least one event
@@ -139,10 +172,7 @@ func (a *App) runLoop(eventCh <-chan input.Event, resizeCh <-chan struct{}, sigC
 		// Drain pending events before rendering
 		done := a.drain(eventCh, resizeCh, sigCh)
 
-		for i := 0; i < 3 && a.Dirty; i++ {
-			a.Dirty = false
-			a.OnRender()
-		}
+		a.converge()
 
 		if done {
 			return
