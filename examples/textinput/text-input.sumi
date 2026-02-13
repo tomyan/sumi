@@ -1,6 +1,9 @@
 <script>
 value := $prop("")
 placeholder := $prop("")
+inputType := $prop("")
+maxlength := $prop(0)
+readonly := $prop(false)
 cursor := $state(0)
 viewOffset := $state(0)
 selfW := $self(width)
@@ -33,8 +36,23 @@ func adjustView() {
     }
 }
 
+func maskedValue() string {
+    result := ""
+    for i := 0; i < len(value); i++ {
+        result = result + "*"
+    }
+    return result
+}
+
+func displayValue() string {
+    if inputType == "password" {
+        return maskedValue()
+    }
+    return value
+}
+
 func displayText() string {
-    text := value
+    text := displayValue()
     if len(text) == 0 && len(placeholder) > 0 {
         text = placeholder
     }
@@ -80,7 +98,7 @@ func visibleValue() string {
     if contentW <= 0 || len(value) == 0 {
         return ""
     }
-    visible := value[viewStart():viewEnd()]
+    visible := displayValue()[viewStart():viewEnd()]
     pad := ""
     for i := len(visible); i < contentW; i++ {
         pad = pad + " "
@@ -315,6 +333,16 @@ func startScrollAnimation(target int) {
 }
 
 func handleEvent(evt input.Event) {
+    if evt.Kind == input.EventFocus {
+        focused = true
+        stopPropagation()
+        return
+    }
+    if evt.Kind == input.EventBlur {
+        focused = false
+        stopPropagation()
+        return
+    }
     if evt.Kind == input.EventFrame {
         if scrollAnimating {
             animateStep()
@@ -386,6 +414,10 @@ func handleEvent(evt input.Event) {
         }
     }
     if evt.Special == input.KeyBackspace && evt.Ctrl && cursor > 0 {
+        if readonly {
+            stopPropagation()
+            return
+        }
         saveUndo()
         pos := wordLeft()
         killText(value[pos:cursor])
@@ -396,6 +428,10 @@ func handleEvent(evt input.Event) {
         return
     }
     if evt.Special == input.KeyBackspace && cursor > 0 {
+        if readonly {
+            stopPropagation()
+            return
+        }
         saveUndo()
         value = value[:cursor-1] + value[cursor:]
         cursor = cursor - 1
@@ -404,6 +440,10 @@ func handleEvent(evt input.Event) {
         return
     }
     if evt.Special == input.KeyDelete && evt.Ctrl && cursor < len(value) {
+        if readonly {
+            stopPropagation()
+            return
+        }
         saveUndo()
         pos := wordRight()
         killText(value[cursor:pos])
@@ -413,6 +453,10 @@ func handleEvent(evt input.Event) {
         return
     }
     if evt.Special == input.KeyDelete && cursor < len(value) {
+        if readonly {
+            stopPropagation()
+            return
+        }
         saveUndo()
         value = value[:cursor] + value[cursor+1:]
         adjustView()
@@ -480,6 +524,10 @@ func handleEvent(evt input.Event) {
         return
     }
     if evt.Kind == input.EventKey && evt.Ctrl && evt.Rune == 'd' && cursor < len(value) {
+        if readonly {
+            stopPropagation()
+            return
+        }
         saveUndo()
         value = value[:cursor] + value[cursor+1:]
         adjustView()
@@ -487,6 +535,10 @@ func handleEvent(evt input.Event) {
         return
     }
     if evt.Kind == input.EventKey && evt.Ctrl && evt.Rune == 'k' && cursor < len(value) {
+        if readonly {
+            stopPropagation()
+            return
+        }
         saveUndo()
         killText(value[cursor:])
         value = value[:cursor]
@@ -495,6 +547,10 @@ func handleEvent(evt input.Event) {
         return
     }
     if evt.Kind == input.EventKey && evt.Ctrl && evt.Rune == 'u' && cursor > 0 {
+        if readonly {
+            stopPropagation()
+            return
+        }
         saveUndo()
         killText(value[:cursor])
         value = value[cursor:]
@@ -504,6 +560,10 @@ func handleEvent(evt input.Event) {
         return
     }
     if evt.Kind == input.EventKey && evt.Ctrl && evt.Rune == 'w' && cursor > 0 {
+        if readonly {
+            stopPropagation()
+            return
+        }
         saveUndo()
         pos := wordLeft()
         killText(value[pos:cursor])
@@ -514,20 +574,43 @@ func handleEvent(evt input.Event) {
         return
     }
     if evt.Kind == input.EventKey && evt.Ctrl && evt.Rune == 't' && cursor >= 2 {
+        if readonly {
+            stopPropagation()
+            return
+        }
         saveUndo()
         transposeChars()
         stopPropagation()
         return
     }
     if evt.Kind == input.EventKey && evt.Ctrl && evt.Rune == 'y' && len(killBuffer) > 0 {
+        if readonly {
+            stopPropagation()
+            return
+        }
+        yank := killBuffer
+        if maxlength > 0 {
+            room := maxlength - len(value)
+            if room <= 0 {
+                stopPropagation()
+                return
+            }
+            if len(yank) > room {
+                yank = yank[:room]
+            }
+        }
         saveUndo()
-        value = value[:cursor] + killBuffer + value[cursor:]
-        cursor = cursor + len(killBuffer)
+        value = value[:cursor] + yank + value[cursor:]
+        cursor = cursor + len(yank)
         adjustView()
         stopPropagation()
         return
     }
     if evt.Kind == input.EventKey && evt.Ctrl && evt.Rune == '/' {
+        if readonly {
+            stopPropagation()
+            return
+        }
         undo()
         stopPropagation()
         return
@@ -545,6 +628,10 @@ func handleEvent(evt input.Event) {
         return
     }
     if evt.Kind == input.EventKey && evt.Alt && evt.Rune == 'd' && cursor < len(value) {
+        if readonly {
+            stopPropagation()
+            return
+        }
         saveUndo()
         pos := wordRight()
         killText(value[cursor:pos])
@@ -554,6 +641,14 @@ func handleEvent(evt input.Event) {
         return
     }
     if evt.Kind == input.EventKey && !evt.Ctrl && !evt.Alt && evt.Rune >= 32 {
+        if readonly {
+            stopPropagation()
+            return
+        }
+        if maxlength > 0 && len(value) >= maxlength {
+            stopPropagation()
+            return
+        }
         saveUndo()
         value = value[:cursor] + string(evt.Rune) + value[cursor:]
         cursor = cursor + 1
