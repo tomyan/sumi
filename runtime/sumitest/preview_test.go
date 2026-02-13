@@ -62,6 +62,25 @@ func TestPreviewToWriterContainsClearScreen(t *testing.T) {
 	}
 }
 
+func TestPreviewToWriterRendersSnapshot(t *testing.T) {
+	// Given
+	s := counterScenario()
+	frames := RunScenario(s)
+
+	// When
+	var out bytes.Buffer
+	writePreviewFrame(&out, s, frames, 0)
+
+	// Then — should contain the snapshot section
+	result := out.String()
+	if !strings.Contains(result, "Snapshot:") {
+		t.Errorf("expected 'Snapshot:' label in output")
+	}
+	if !strings.Contains(result, "Count: 0") {
+		t.Errorf("expected styled text content in snapshot section")
+	}
+}
+
 func TestHarnessBufferReturnsBuffer(t *testing.T) {
 	// Given
 	app := createCounterApp(20, 3)
