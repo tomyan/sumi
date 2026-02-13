@@ -36,6 +36,7 @@ func generateFile(path string) error {
 }
 
 // generateDir uses two-pass compilation: parse all, build registry, generate all.
+// Embedded built-in components are automatically merged into the registry.
 func generateDir(dir string) error {
 	components, err := parseAllSumiFiles(dir)
 	if err != nil {
@@ -45,6 +46,9 @@ func generateDir(dir string) error {
 		return nil
 	}
 	registry := buildComponentRegistry(components)
+	if err := mergeEmbeddedComponents(registry); err != nil {
+		return err
+	}
 	if err := validateAllComponentRefs(components, registry); err != nil {
 		return err
 	}
@@ -135,15 +139,41 @@ func parseAllSumiFiles(dir string) ([]*parsedComponent, error) {
 }
 
 // buildComponentRegistry creates a registry of child components (those with props).
+// Registry keys are normalized via TagRegistryKey.
 func buildComponentRegistry(components []*parsedComponent) map[string]*codegen.ComponentInfo {
 	registry := make(map[string]*codegen.ComponentInfo)
 	for _, comp := range components {
 		if !isChildComponent(comp) {
 			continue
 		}
-		registry[comp.name] = buildComponentInfo(comp)
+		key := template.TagRegistryKey(comp.name)
+		registry[key] = buildComponentInfo(comp)
 	}
 	return registry
+}
+
+// mergeEmbeddedComponents parses all embedded .sumi files and adds them to the registry.
+// User-defined components with the same key take precedence (already in the registry).
+func mergeEmbeddedComponents(registry map[string]*codegen.ComponentInfo) error {
+	for _, tagName := range listEmbeddedComponents() {
+		key := template.TagRegistryKey(tagName)
+		if _, exists := registry[key]; exists {
+			continue // user-defined component takes precedence
+		}
+		src, err := readEmbeddedComponent(tagName)
+		if err != nil {
+			return err
+		}
+		comp, err := parseSumiSource("embedded:"+tagName, src)
+		if err != nil {
+			return err
+		}
+		if !isChildComponent(comp) {
+			continue
+		}
+		registry[key] = buildComponentInfo(comp)
+	}
+	return nil
 }
 
 // isChildComponent returns true if the component has prop declarations.
@@ -199,7 +229,8 @@ func walkValidateNodes(path string, nodes []template.Node, registry map[string]*
 func walkValidateNode(path string, node template.Node, registry map[string]*codegen.ComponentInfo) error {
 	switch n := node.(type) {
 	case *template.ComponentElement:
-		if _, ok := registry[n.Name]; !ok {
+		key := template.TagRegistryKey(n.Name)
+		if _, ok := registry[key]; !ok {
 			return fmt.Errorf("%s: unknown component <%s />", path, n.Name)
 		}
 	case *template.BoxElement:

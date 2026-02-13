@@ -8,6 +8,15 @@ import (
 	"github.com/tomyan/sumi/parser/template"
 )
 
+// tagVarName returns a Go-safe variable name base for a tag name.
+// "counter" → "counter", "sumi:TextInput" → "textinput"
+func tagVarName(tagName string) string {
+	if _, local, ok := template.SplitPrefix(tagName); ok {
+		return strings.ToLower(local)
+	}
+	return tagName
+}
+
 // componentInstance tracks a single component reference in the template.
 type componentInstance struct {
 	VarName string         // e.g. "counter0"
@@ -50,14 +59,16 @@ func walkNode(node template.Node, components map[string]*ComponentInfo, counts m
 
 // addComponentInstance creates an instance entry if the component is registered.
 func addComponentInstance(n *template.ComponentElement, components map[string]*ComponentInfo, counts map[string]int, instances *[]componentInstance) {
-	info, ok := components[n.Name]
+	key := template.TagRegistryKey(n.Name)
+	info, ok := components[key]
 	if !ok {
 		return
 	}
-	idx := counts[n.Name]
-	counts[n.Name]++
+	varBase := tagVarName(n.Name)
+	idx := counts[key]
+	counts[key]++
 	*instances = append(*instances, componentInstance{
-		VarName: fmt.Sprintf("%s%d", n.Name, idx),
+		VarName: fmt.Sprintf("%s%d", varBase, idx),
 		Info:    info,
 		Attrs:   n.Attributes,
 	})

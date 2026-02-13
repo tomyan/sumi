@@ -169,6 +169,29 @@ func TestGenerateDirUnknownComponentReturnsError(t *testing.T) {
 	}
 }
 
+func TestGenerateDirWithEmbeddedComponent(t *testing.T) {
+	// Given a directory with a root component referencing an embedded fundamental component
+	dir := t.TempDir()
+	appSrc := `<box>
+    <placeholder label="world" />
+</box>`
+	writeTestFile(t, dir, "app.sumi", appSrc)
+
+	// When generating the directory
+	err := generateDir(dir)
+
+	// Then the root generates with the embedded component inlined
+	if err != nil {
+		t.Fatalf("generateDir: %v", err)
+	}
+	src := readTestFile(t, filepath.Join(dir, "app_sumi.go"))
+	assertValidGoFile(t, filepath.Join(dir, "app_sumi.go"))
+	// The placeholder component should be inlined — its text content resolved
+	if !strings.Contains(src, `"world"`) {
+		t.Errorf("expected embedded placeholder prop resolved in output:\n%s", src)
+	}
+}
+
 // writeTestFile writes a file to the test directory.
 func writeTestFile(t *testing.T, dir, name, content string) {
 	t.Helper()
