@@ -1241,9 +1241,10 @@ func Run() {
 				Children: []*layout.Input{
 					node0,
 					{
-						Kind:      layout.KindBox,
-						CursorCol: -1,
-						CursorRow: -1,
+						Kind:       layout.KindBox,
+						FixedWidth: 24,
+						CursorCol:  -1,
+						CursorRow:  -1,
 						Children: []*layout.Input{
 							{
 								Kind:      layout.KindBox,
@@ -2716,9 +2717,10 @@ func CreateApp(w, h int) *tui.App {
 				Children: []*layout.Input{
 					node0,
 					{
-						Kind:      layout.KindBox,
-						CursorCol: -1,
-						CursorRow: -1,
+						Kind:       layout.KindBox,
+						FixedWidth: 24,
+						CursorCol:  -1,
+						CursorRow:  -1,
 						Children: []*layout.Input{
 							{
 								Kind:      layout.KindBox,

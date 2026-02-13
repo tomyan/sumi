@@ -41,7 +41,7 @@ func scrollbarVisible() bool {
 }
 </style>
 
-<box>
+<box width="24">
     <box direction="row">
         <text>[</text>
         <text class="indicator">{leftIndicator()}</text>
