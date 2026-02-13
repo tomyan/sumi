@@ -86,3 +86,66 @@ func TestHarnessStep(t *testing.T) {
 		t.Error("Step did not dispatch event")
 	}
 }
+
+func TestHarnessResizeUpdatesDimensions(t *testing.T) {
+	// Given
+	app := &tui.App{
+		TestWidth:  10,
+		TestHeight: 5,
+		TestBuffer: render.NewBuffer(10, 5),
+		OnRender:   func() {},
+	}
+	h := New(app)
+
+	// When
+	h.Resize(20, 10)
+
+	// Then
+	if app.TestWidth != 20 {
+		t.Errorf("TestWidth = %d, want 20", app.TestWidth)
+	}
+	if app.TestHeight != 10 {
+		t.Errorf("TestHeight = %d, want 10", app.TestHeight)
+	}
+}
+
+func TestHarnessResizeCallsOnResize(t *testing.T) {
+	// Given
+	var resized bool
+	app := &tui.App{
+		TestWidth:  10,
+		TestHeight: 5,
+		TestBuffer: render.NewBuffer(10, 5),
+		OnRender:   func() {},
+		OnResize:   func() { resized = true },
+	}
+	h := New(app)
+
+	// When
+	h.Resize(20, 10)
+
+	// Then
+	if !resized {
+		t.Error("OnResize was not called")
+	}
+}
+
+func TestHarnessResizeTriggersRender(t *testing.T) {
+	// Given
+	renderCount := 0
+	app := &tui.App{
+		TestWidth:  10,
+		TestHeight: 5,
+		TestBuffer: render.NewBuffer(10, 5),
+	}
+	app.OnRender = func() { renderCount++ }
+	h := New(app)
+
+	// When
+	h.Resize(20, 10)
+
+	// Then — at least one render after resize
+	if renderCount < 1 {
+		t.Errorf("renderCount = %d, want at least 1", renderCount)
+	}
+}

@@ -28,6 +28,16 @@ func (h *Harness) Text() string {
 	return h.app.TestBuffer.ToPlainText()
 }
 
+// Resize updates test dimensions, calls OnResize if set, and triggers a render.
+func (h *Harness) Resize(w, h2 int) {
+	h.app.TestWidth = w
+	h.app.TestHeight = h2
+	if h.app.OnResize != nil {
+		h.app.OnResize()
+	}
+	h.app.Render()
+}
+
 // StyledText returns the current buffer content as styled markup.
 func (h *Harness) StyledText() string {
 	if h.app.TestBuffer == nil {
