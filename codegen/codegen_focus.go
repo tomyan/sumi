@@ -191,6 +191,14 @@ func writeFocusDispatch(buf *bytes.Buffer, focusHandlers []focusableHandler,
 	}
 	buf.WriteString("\t\t\t}\n")
 
+	// Defocus on unhandled mouse click
+	buf.WriteString("\t\t\tif evt.Kind == input.EventMouse && evt.Mouse.Action == input.MousePress && !propagationStopped && focusIndex >= 0 {\n")
+	buf.WriteString("\t\t\t\tprev := focusIndex\n")
+	buf.WriteString("\t\t\t\tfocusIndex = -1\n")
+	buf.WriteString("\t\t\t\tdispatchToFocusable(prev, input.Event{Kind: input.EventBlur})\n")
+	buf.WriteString("\t\t\t\tapp.Dirty = true\n")
+	buf.WriteString("\t\t\t}\n")
+
 	// Bubbling to non-focusable handlers
 	for _, handler := range bubblingHandlers {
 		buf.WriteString("\t\t\tif !propagationStopped {\n")

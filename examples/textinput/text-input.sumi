@@ -335,6 +335,13 @@ func wordRightFrom(pos int) int {
     return pos
 }
 
+func wordEndFrom(pos int) int {
+    for pos < len(value) && value[pos] != ' ' {
+        pos = pos + 1
+    }
+    return pos
+}
+
 func mousePosToTextPos(mouseX int) int {
     relX := mouseX - selfX - 2
     pos := viewOffset + relX
@@ -554,7 +561,7 @@ func handleEvent(evt input.Event) {
     if evt.Kind == input.EventMouse && evt.Mouse.Action == input.MouseMotion && wordDragging {
         pos := mousePosToTextPos(evt.Mouse.X)
         wl := wordLeftFrom(pos)
-        wr := wordRightFrom(pos)
+        wr := wordEndFrom(pos)
         if wl < wordDragStart {
             selAnchor = wordDragEnd
             cursor = wl
@@ -602,7 +609,7 @@ func handleEvent(evt input.Event) {
         }
         if now - lastClickTime < 500 && evt.Mouse.X == lastClickX {
             wl := wordLeftFrom(clickPos)
-            wr := wordRightFrom(clickPos)
+            wr := wordEndFrom(clickPos)
             selAnchor = wl
             cursor = wr
             wordDragging = true
