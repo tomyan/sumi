@@ -381,6 +381,14 @@ func undo() {
     adjustView()
 }
 
+func deleteSelection() {
+    saveUndo()
+    value = value[:selStart()] + value[selEnd():]
+    cursor = selStart()
+    selAnchor = -1
+    adjustView()
+}
+
 func killText(text string) {
     killBuffer = text
 }
@@ -504,6 +512,15 @@ func handleEvent(evt input.Event) {
             stopPropagation()
             return
         }
+    }
+    if (evt.Special == input.KeyBackspace || evt.Special == input.KeyDelete) && selAnchor >= 0 {
+        if readonly {
+            stopPropagation()
+            return
+        }
+        deleteSelection()
+        stopPropagation()
+        return
     }
     if evt.Special == input.KeyBackspace && evt.Ctrl && cursor > 0 {
         if readonly {
@@ -667,6 +684,28 @@ func handleEvent(evt input.Event) {
         stopPropagation()
         return
     }
+    if evt.Kind == input.EventKey && evt.Ctrl && evt.Rune == 'c' && selAnchor >= 0 {
+        selected := value[selStart():selEnd()]
+        killText(selected)
+        render.CopyToClipboard(os.Stdout, selected)
+        stopPropagation()
+        return
+    }
+    if evt.Kind == input.EventKey && evt.Ctrl && evt.Rune == 'x' && selAnchor >= 0 {
+        if readonly {
+            selected := value[selStart():selEnd()]
+            killText(selected)
+            render.CopyToClipboard(os.Stdout, selected)
+            stopPropagation()
+            return
+        }
+        selected := value[selStart():selEnd()]
+        killText(selected)
+        render.CopyToClipboard(os.Stdout, selected)
+        deleteSelection()
+        stopPropagation()
+        return
+    }
     if evt.Kind == input.EventKey && evt.Ctrl && evt.Rune == 'd' && cursor < len(value) {
         if readonly {
             stopPropagation()
@@ -790,6 +829,9 @@ func handleEvent(evt input.Event) {
         if readonly {
             stopPropagation()
             return
+        }
+        if selAnchor >= 0 {
+            deleteSelection()
         }
         if maxlength > 0 && len(value) >= maxlength {
             stopPropagation()
