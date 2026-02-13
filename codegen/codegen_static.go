@@ -33,9 +33,10 @@ func writeImports(buf *bytes.Buffer, hasExprs bool, hasEvents bool, hasTime bool
 // writeStaticBody generates the static (non-reactive) function body.
 // Static apps have no state but still handle terminal resize and quit via tui.App.
 func writeStaticBody(buf *bytes.Buffer, doc *template.Document, stylesheet *style.Stylesheet) {
+	buf.WriteString("\tvar app *tui.App\n")
 	writeLayoutTree(buf, doc, stylesheet, false, nil, nil)
 	writeStaticRenderFunc(buf)
-	buf.WriteString("\tapp := &tui.App{\n")
+	buf.WriteString("\tapp = &tui.App{\n")
 	buf.WriteString("\t\tOnRender: doRender,\n")
 	buf.WriteString("\t}\n")
 	buf.WriteString("\tapp.Run()\n")
@@ -44,11 +45,10 @@ func writeStaticBody(buf *bytes.Buffer, doc *template.Document, stylesheet *styl
 // writeStaticRenderFunc writes the doRender closure for static apps.
 func writeStaticRenderFunc(buf *bytes.Buffer) {
 	buf.WriteString("\tdoRender := func() {\n")
-	buf.WriteString("\t\ttermW, termH := term.GetSize(int(os.Stdin.Fd()))\n")
+	writeTermSizeWithTestMode(buf)
 	buf.WriteString("\t\ttree := layout.Layout(root, termW, termH)\n")
 	buf.WriteString("\t\tbuf := render.NewBuffer(termW, termH)\n")
 	buf.WriteString("\t\tlayout.RenderTree(buf, tree, nil)\n")
-	buf.WriteString("\t\trender.ClearScreen(os.Stdout)\n")
-	buf.WriteString("\t\tbuf.RenderTo(os.Stdout)\n")
+	writeBufferOutputWithTestMode(buf)
 	buf.WriteString("\t}\n\n")
 }

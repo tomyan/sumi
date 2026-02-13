@@ -230,51 +230,28 @@ func writeRenderClosure(buf *bytes.Buffer, doc *template.Document, sc *script.Sc
 
 // writeCursorPositioning emits cursor show/hide logic at the end of doRender.
 func writeCursorPositioning(buf *bytes.Buffer) {
-	buf.WriteString("\t\tif cursorBox := layout.FindCursor(tree); cursorBox != nil {\n")
-	buf.WriteString("\t\t\trender.ShowCursor(os.Stdout, cursorBox.Y+cursorBox.CursorRow, cursorBox.X+cursorBox.CursorCol)\n")
-	buf.WriteString("\t\t} else {\n")
-	buf.WriteString("\t\t\trender.HideCursor(os.Stdout)\n")
-	buf.WriteString("\t\t}\n")
+	writeCursorPositioningWithTestMode(buf)
 }
 
 // writeStaticDoRender emits the doRender body for static documents (Pattern A).
 // Includes three fast paths: no-op skip, direct-write, and full layout fallback.
 func writeStaticDoRender(buf *bytes.Buffer, title *template.TitleElement) {
 	buf.WriteString("\t\tchanged := sync()\n")
-	buf.WriteString("\t\ttermW, termH := term.GetSize(int(os.Stdin.Fd()))\n")
+	writeTermSizeWithTestMode(buf)
 	// No-op skip: nothing changed and no resize
 	buf.WriteString("\t\tif prevTree != nil && len(changed) == 0 && termW == prevW && termH == prevH {\n")
 	buf.WriteString("\t\t\treturn\n")
 	buf.WriteString("\t\t}\n")
 	// Direct-write fast path: same-length text changes without relayout
-	writeDirectWriteFastPath(buf)
+	writeDirectWriteWithTestMode(buf)
 	writeFullLayoutAndDiff(buf, title)
-}
-
-// writeDirectWriteFastPath emits the direct-write block that skips Layout+Diff
-// when all changed nodes have same-length content and no overlap is present.
-func writeDirectWriteFastPath(buf *bytes.Buffer) {
-	buf.WriteString("\t\tif prevTree != nil && len(changed) > 0 && termW == prevW && termH == prevH && !prevTree.HasOverlap && nodeBoxMap != nil {\n")
-	buf.WriteString("\t\t\tallDirect := true\n")
-	buf.WriteString("\t\t\tfor _, inp := range changed {\n")
-	buf.WriteString("\t\t\t\tbox := nodeBoxMap[inp]\n")
-	buf.WriteString("\t\t\t\tif !layout.DirectWriteText(os.Stdout, box, inp.Content, box.Content) {\n")
-	buf.WriteString("\t\t\t\t\tallDirect = false\n")
-	buf.WriteString("\t\t\t\t\tbreak\n")
-	buf.WriteString("\t\t\t\t}\n")
-	buf.WriteString("\t\t\t\tbox.Content = inp.Content\n")
-	buf.WriteString("\t\t\t}\n")
-	buf.WriteString("\t\t\tif allDirect {\n")
-	buf.WriteString("\t\t\t\treturn\n")
-	buf.WriteString("\t\t\t}\n")
-	buf.WriteString("\t\t}\n")
 }
 
 // writeDynamicDoRender emits the doRender body for dynamic documents (Pattern B).
 // Sync is void; always runs full Layout+Diff.
 func writeDynamicDoRender(buf *bytes.Buffer, scrollBoxes []scrollableBox, title *template.TitleElement) {
 	buf.WriteString("\t\tsync()\n")
-	buf.WriteString("\t\ttermW, termH := term.GetSize(int(os.Stdin.Fd()))\n")
+	writeTermSizeWithTestMode(buf)
 	writeFullLayoutBody(buf, scrollBoxes, title)
 }
 
@@ -283,14 +260,7 @@ func writeFullLayoutBody(buf *bytes.Buffer, scrollBoxes []scrollableBox, title *
 	buf.WriteString("\t\ttree := layout.Layout(root, termW, termH)\n")
 	writeScrollTreeWiring(buf, scrollBoxes)
 	buf.WriteString("\t\tchanges, scrollChanged := layout.DiffTrees(prevTree, tree)\n")
-	buf.WriteString("\t\tif prevTree == nil || termW != prevW || termH != prevH || scrollChanged || tree.HasOverlap || prevTree.HasOverlap {\n")
-	buf.WriteString("\t\t\tbuf := render.NewBuffer(termW, termH)\n")
-	buf.WriteString("\t\t\tlayout.RenderTree(buf, tree, nil)\n")
-	buf.WriteString("\t\t\trender.ClearScreen(os.Stdout)\n")
-	buf.WriteString("\t\t\tbuf.RenderTo(os.Stdout)\n")
-	buf.WriteString("\t\t} else {\n")
-	buf.WriteString("\t\t\tlayout.ApplyChanges(os.Stdout, changes)\n")
-	buf.WriteString("\t\t}\n")
+	writeFullRedrawWithTestMode(buf)
 	writeTitleSet(buf, title)
 	buf.WriteString("\t\tprevTree = tree\n")
 	buf.WriteString("\t\tprevW = termW\n")
@@ -303,14 +273,7 @@ func writeFullLayoutAndDiff(buf *bytes.Buffer, title *template.TitleElement) {
 	buf.WriteString("\t\ttree := layout.Layout(root, termW, termH)\n")
 	buf.WriteString("\t\tnodeBoxMap = layout.MapInputToBox(root, tree)\n")
 	buf.WriteString("\t\tchanges, scrollChanged := layout.DiffTrees(prevTree, tree)\n")
-	buf.WriteString("\t\tif prevTree == nil || termW != prevW || termH != prevH || scrollChanged || tree.HasOverlap || prevTree.HasOverlap {\n")
-	buf.WriteString("\t\t\tbuf := render.NewBuffer(termW, termH)\n")
-	buf.WriteString("\t\t\tlayout.RenderTree(buf, tree, nil)\n")
-	buf.WriteString("\t\t\trender.ClearScreen(os.Stdout)\n")
-	buf.WriteString("\t\t\tbuf.RenderTo(os.Stdout)\n")
-	buf.WriteString("\t\t} else {\n")
-	buf.WriteString("\t\t\tlayout.ApplyChanges(os.Stdout, changes)\n")
-	buf.WriteString("\t\t}\n")
+	writeFullRedrawWithTestMode(buf)
 	writeTitleSet(buf, title)
 	buf.WriteString("\t\tprevTree = tree\n")
 	buf.WriteString("\t\tprevW = termW\n")
