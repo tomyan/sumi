@@ -24,6 +24,10 @@ undoCursors := $state([]int{})
 selAnchor := $state(-1)
 lastClickTime := $state(int64(0))
 lastClickX := $state(-1)
+mouseDragging := $state(false)
+wordDragging := $state(false)
+wordDragStart := $state(0)
+wordDragEnd := $state(0)
 
 func adjustView() {
     if contentW <= 0 {
@@ -331,6 +335,18 @@ func wordRightFrom(pos int) int {
     return pos
 }
 
+func mousePosToTextPos(mouseX int) int {
+    relX := mouseX - selfX - 2
+    pos := viewOffset + relX
+    if pos < 0 {
+        pos = 0
+    }
+    if pos > len(value) {
+        pos = len(value)
+    }
+    return pos
+}
+
 func clampCursorToView() {
     if cursor < viewOffset {
         cursor = viewOffset
@@ -518,11 +534,42 @@ func handleEvent(evt input.Event) {
             stopPropagation()
             return
         }
+        if mouseDragging || wordDragging {
+            mouseDragging = false
+            wordDragging = false
+            if selAnchor == cursor {
+                selAnchor = -1
+            }
+            stopPropagation()
+            return
+        }
     }
     if evt.Kind == input.EventMouse && evt.Mouse.Action == input.MouseMotion && scrollDragging {
         trackX := evt.Mouse.X - scrollTrackStart()
         viewOffset = viewOffsetForTrackX(trackX)
         clampCursorToView()
+        stopPropagation()
+        return
+    }
+    if evt.Kind == input.EventMouse && evt.Mouse.Action == input.MouseMotion && wordDragging {
+        pos := mousePosToTextPos(evt.Mouse.X)
+        wl := wordLeftFrom(pos)
+        wr := wordRightFrom(pos)
+        if wl < wordDragStart {
+            selAnchor = wordDragEnd
+            cursor = wl
+        } else {
+            selAnchor = wordDragStart
+            cursor = wr
+        }
+        adjustView()
+        stopPropagation()
+        return
+    }
+    if evt.Kind == input.EventMouse && evt.Mouse.Action == input.MouseMotion && mouseDragging {
+        pos := mousePosToTextPos(evt.Mouse.X)
+        cursor = pos
+        adjustView()
         stopPropagation()
         return
     }
@@ -541,20 +588,14 @@ func handleEvent(evt input.Event) {
         cancelAnimation()
     }
     if evt.Kind == input.EventMouse && evt.Mouse.Action == input.MousePress && evt.Mouse.Button == input.ButtonLeft {
-        relX := evt.Mouse.X - selfX - 2
-        clickPos := viewOffset + relX
-        if clickPos < 0 {
-            clickPos = 0
-        }
-        if clickPos > len(value) {
-            clickPos = len(value)
-        }
+        clickPos := mousePosToTextPos(evt.Mouse.X)
         now := time.Now().UnixMilli()
         if evt.Shift {
             if selAnchor == -1 {
                 selAnchor = cursor
             }
             cursor = clickPos
+            mouseDragging = true
             adjustView()
             stopPropagation()
             return
@@ -564,6 +605,9 @@ func handleEvent(evt input.Event) {
             wr := wordRightFrom(clickPos)
             selAnchor = wl
             cursor = wr
+            wordDragging = true
+            wordDragStart = wl
+            wordDragEnd = wr
             adjustView()
             lastClickTime = 0
             stopPropagation()
@@ -573,6 +617,8 @@ func handleEvent(evt input.Event) {
         lastClickX = evt.Mouse.X
         clearSelection()
         cursor = clickPos
+        selAnchor = clickPos
+        mouseDragging = true
         adjustView()
         stopPropagation()
         return
