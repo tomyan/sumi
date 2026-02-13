@@ -219,6 +219,13 @@ func visiblePlaceholder() string {
     return text + pad
 }
 
+func cursorX() int {
+    if selAnchor >= 0 {
+        return -1
+    }
+    return cursor - viewOffset + 2
+}
+
 func rightIndicator() string {
     if contentW <= 0 {
         return ""
@@ -1002,7 +1009,7 @@ func handleEvent(evt input.Event) {
 }
 </style>
 
-<box focusable="true" onkey="handleEvent" cursor-x={cursor - viewOffset + 2} cursor-y="0">
+<box focusable="true" onkey="handleEvent" cursor-x={cursorX()} cursor-y="0">
     <box direction="row">
         <text>[</text>
         <text class="indicator">{leftIndicator()}</text>
