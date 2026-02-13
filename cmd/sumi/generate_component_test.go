@@ -198,6 +198,34 @@ func handleEvent(evt input.Event) {
 	assertValidGoFile(t, filepath.Join(dir, "app_sumi.go"))
 }
 
+func TestGenerateDirWithTexteditComponent(t *testing.T) {
+	// Given a root app using the embedded textedit component
+	dir := t.TempDir()
+	appSrc := `<script>
+name := $state("")
+func handleEvent(evt input.Event) {
+}
+</script>
+<box focusable="true" onkey="handleEvent">
+    <textedit bind:value={name} placeholder="Enter name" />
+</box>`
+	writeTestFile(t, dir, "app.sumi", appSrc)
+
+	// When generating the directory
+	err := generateDir(dir)
+
+	// Then the app compiles with textedit inlined
+	if err != nil {
+		t.Fatalf("generateDir: %v", err)
+	}
+	src := readTestFile(t, filepath.Join(dir, "app_sumi.go"))
+	assertValidGoFile(t, filepath.Join(dir, "app_sumi.go"))
+	// The textedit's value should bind to parent's name variable
+	if !strings.Contains(src, "name") {
+		t.Errorf("expected parent variable 'name' in output:\n%s", src)
+	}
+}
+
 func TestGenerateDirWithEmbeddedComponent(t *testing.T) {
 	// Given a directory with a root component referencing an embedded fundamental component
 	dir := t.TempDir()
