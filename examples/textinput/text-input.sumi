@@ -20,6 +20,7 @@ focused := $state(false)
 killBuffer := $state("")
 undoValues := $state([]string{})
 undoCursors := $state([]int{})
+selAnchor := $state(-1)
 
 func adjustView() {
     if contentW <= 0 {
@@ -33,6 +34,30 @@ func adjustView() {
     }
     if viewOffset < 0 {
         viewOffset = 0
+    }
+}
+
+func clearSelection() {
+    selAnchor = -1
+}
+
+func selStart() int {
+    if selAnchor < cursor {
+        return selAnchor
+    }
+    return cursor
+}
+
+func selEnd() int {
+    if selAnchor > cursor {
+        return selAnchor
+    }
+    return cursor
+}
+
+func startSelection() {
+    if selAnchor == -1 {
+        selAnchor = cursor
     }
 }
 
@@ -94,16 +119,82 @@ func leftIndicator() string {
     return " "
 }
 
-func visibleValue() string {
+func visiblePreSel() string {
     if contentW <= 0 || len(value) == 0 {
         return ""
     }
-    visible := displayValue()[viewStart():viewEnd()]
+    dv := displayValue()
+    vs := viewStart()
+    ve := viewEnd()
+    if selAnchor == -1 {
+        visible := dv[vs:ve]
+        pad := ""
+        for i := len(visible); i < contentW; i++ {
+            pad = pad + " "
+        }
+        return visible + pad
+    }
+    ss := selStart()
+    end := ss
+    if end > ve {
+        end = ve
+    }
+    if end <= vs {
+        return ""
+    }
+    return dv[vs:end]
+}
+
+func visibleSel() string {
+    if contentW <= 0 || len(value) == 0 || selAnchor == -1 {
+        return ""
+    }
+    dv := displayValue()
+    vs := viewStart()
+    ve := viewEnd()
+    ss := selStart()
+    se := selEnd()
+    start := ss
+    if start < vs {
+        start = vs
+    }
+    end := se
+    if end > ve {
+        end = ve
+    }
+    if start >= end {
+        return ""
+    }
+    return dv[start:end]
+}
+
+func visiblePostSel() string {
+    if contentW <= 0 || len(value) == 0 || selAnchor == -1 {
+        return ""
+    }
+    dv := displayValue()
+    vs := viewStart()
+    ve := viewEnd()
+    se := selEnd()
+    start := se
+    if start < vs {
+        start = vs
+    }
+    if start >= ve {
+        totalVisible := ve - vs
+        pad := ""
+        for i := totalVisible; i < contentW; i++ {
+            pad = pad + " "
+        }
+        return pad
+    }
+    text := dv[start:ve]
+    totalVisible := ve - vs
     pad := ""
-    for i := len(visible); i < contentW; i++ {
+    for i := totalVisible; i < contentW; i++ {
         pad = pad + " "
     }
-    return visible + pad
+    return text + pad
 }
 
 func visiblePlaceholder() string {
@@ -380,6 +471,7 @@ func handleEvent(evt input.Event) {
         cancelAnimation()
     }
     if evt.Kind == input.EventMouse && evt.Mouse.Action == input.MousePress && evt.Mouse.Button == input.ButtonLeft {
+        clearSelection()
         relX := evt.Mouse.X - selfX - 2
         newCursor := viewOffset + relX
         if newCursor < 0 {
@@ -463,61 +555,113 @@ func handleEvent(evt input.Event) {
         stopPropagation()
         return
     }
+    if evt.Special == input.KeyLeft && evt.Shift && evt.Ctrl {
+        startSelection()
+        cursor = wordLeft()
+        adjustView()
+        stopPropagation()
+        return
+    }
+    if evt.Special == input.KeyLeft && evt.Shift && cursor > 0 {
+        startSelection()
+        cursor = cursor - 1
+        adjustView()
+        stopPropagation()
+        return
+    }
+    if evt.Special == input.KeyRight && evt.Shift && evt.Ctrl {
+        startSelection()
+        cursor = wordRight()
+        adjustView()
+        stopPropagation()
+        return
+    }
+    if evt.Special == input.KeyRight && evt.Shift && cursor < len(value) {
+        startSelection()
+        cursor = cursor + 1
+        adjustView()
+        stopPropagation()
+        return
+    }
+    if evt.Special == input.KeyHome && evt.Shift {
+        startSelection()
+        cursor = 0
+        adjustView()
+        stopPropagation()
+        return
+    }
+    if evt.Special == input.KeyEnd && evt.Shift {
+        startSelection()
+        cursor = len(value)
+        adjustView()
+        stopPropagation()
+        return
+    }
     if evt.Special == input.KeyLeft && evt.Ctrl && cursor > 0 {
+        clearSelection()
         cursor = wordLeft()
         adjustView()
         stopPropagation()
         return
     }
     if evt.Special == input.KeyLeft && cursor > 0 {
+        clearSelection()
         cursor = cursor - 1
         adjustView()
         stopPropagation()
         return
     }
     if evt.Special == input.KeyRight && evt.Ctrl && cursor < len(value) {
+        clearSelection()
         cursor = wordRight()
         adjustView()
         stopPropagation()
         return
     }
     if evt.Special == input.KeyRight && cursor < len(value) {
+        clearSelection()
         cursor = cursor + 1
         adjustView()
         stopPropagation()
         return
     }
     if evt.Special == input.KeyHome {
+        clearSelection()
         cursor = 0
         adjustView()
         stopPropagation()
         return
     }
     if evt.Special == input.KeyEnd {
+        clearSelection()
         cursor = len(value)
         adjustView()
         stopPropagation()
         return
     }
     if evt.Kind == input.EventKey && evt.Ctrl && evt.Rune == 'a' {
-        cursor = 0
+        selAnchor = 0
+        cursor = len(value)
         adjustView()
         stopPropagation()
         return
     }
     if evt.Kind == input.EventKey && evt.Ctrl && evt.Rune == 'e' {
+        clearSelection()
         cursor = len(value)
         adjustView()
         stopPropagation()
         return
     }
     if evt.Kind == input.EventKey && evt.Ctrl && evt.Rune == 'f' && cursor < len(value) {
+        clearSelection()
         cursor = cursor + 1
         adjustView()
         stopPropagation()
         return
     }
     if evt.Kind == input.EventKey && evt.Ctrl && evt.Rune == 'b' && cursor > 0 {
+        clearSelection()
         cursor = cursor - 1
         adjustView()
         stopPropagation()
@@ -616,12 +760,14 @@ func handleEvent(evt input.Event) {
         return
     }
     if evt.Kind == input.EventKey && evt.Alt && evt.Rune == 'f' && cursor < len(value) {
+        clearSelection()
         cursor = wordRight()
         adjustView()
         stopPropagation()
         return
     }
     if evt.Kind == input.EventKey && evt.Alt && evt.Rune == 'b' && cursor > 0 {
+        clearSelection()
         cursor = wordLeft()
         adjustView()
         stopPropagation()
@@ -672,13 +818,16 @@ func handleEvent(evt input.Event) {
 .placeholder {
     dim: true;
 }
+.selection {
+    inverse: true;
+}
 </style>
 
 <box focusable="true" onkey="handleEvent" cursor-x={cursor - viewOffset + 2} cursor-y="0">
     <box direction="row">
         <text>[</text>
         <text class="indicator">{leftIndicator()}</text>
-        <text>{visibleValue()}</text><text class="placeholder">{visiblePlaceholder()}</text>
+        <text>{visiblePreSel()}</text><text class="selection">{visibleSel()}</text><text>{visiblePostSel()}</text><text class="placeholder">{visiblePlaceholder()}</text>
         <text class="indicator">{rightIndicator()}</text>
         <text>]</text>
     </box>
