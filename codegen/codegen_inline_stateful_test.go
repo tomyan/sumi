@@ -533,6 +533,99 @@ func TestInlineExpressionPropMappedDirectly(t *testing.T) {
 	assertValidGo(t, out)
 }
 
+func TestRecursiveComponentInlining(t *testing.T) {
+	// Given:
+	// - Component "inner" has a prop and state
+	// - Component "outer" contains <inner /> and has its own state
+	// - Root doc uses <outer />
+	innerInfo := &ComponentInfo{
+		Name:         "inner",
+		ExportedName: "Inner",
+		Props:        []string{"label"},
+		HasState:     true,
+		Doc: &template.Document{
+			Children: []template.Node{
+				&template.TextElement{
+					Parts: []template.Part{
+						&template.ExprPart{Expr: "label"},
+						&template.StringPart{Value: ": "},
+						&template.ExprPart{Expr: "val"},
+					},
+				},
+			},
+		},
+		Script: &script.Script{
+			PropDecls:  []script.PropDecl{{Name: "label", DefaultExpr: `"X"`}},
+			StateDecls: []script.StateDecl{{Name: "val", InitExpr: `0`}},
+		},
+	}
+
+	outerInfo := &ComponentInfo{
+		Name:         "outer",
+		ExportedName: "Outer",
+		Props:        []string{"title"},
+		HasState:     true,
+		Doc: &template.Document{
+			Children: []template.Node{
+				&template.BoxElement{
+					Attributes: map[string]string{},
+					Children: []template.Node{
+						&template.TextElement{
+							Parts: []template.Part{
+								&template.ExprPart{Expr: "title"},
+							},
+						},
+						&template.ComponentElement{
+							Name:       "inner",
+							Attributes: map[string]string{"label": "nested"},
+						},
+					},
+				},
+			},
+		},
+		Script: &script.Script{
+			PropDecls:  []script.PropDecl{{Name: "title", DefaultExpr: `"T"`}},
+			StateDecls: []script.StateDecl{{Name: "count", InitExpr: `0`}},
+		},
+	}
+
+	doc := &template.Document{
+		Children: []template.Node{
+			&template.ComponentElement{
+				Name:       "outer",
+				Attributes: map[string]string{"title": "Main"},
+			},
+		},
+	}
+
+	// When generating with nested inlinable components
+	out, err := Generate(doc, nil, nil, Options{
+		PackageName: "main",
+		Components: map[string]*ComponentInfo{
+			"inner": innerInfo,
+			"outer": outerInfo,
+		},
+	})
+
+	// Then both layers of state are namespaced
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	src := string(out)
+
+	// Outer state: outer0_count
+	if !strings.Contains(src, "outer0_count := 0") {
+		t.Errorf("expected outer0_count state:\n%s", src)
+	}
+
+	// Inner state: outer0_inner0_val (nested under outer0)
+	if !strings.Contains(src, "outer0_inner0_val := 0") {
+		t.Errorf("expected outer0_inner0_val nested state:\n%s", src)
+	}
+
+	assertValidGo(t, out)
+}
+
 // assertValidGo checks that the output is valid Go source code.
 func assertValidGo(t *testing.T, out []byte) {
 	t.Helper()

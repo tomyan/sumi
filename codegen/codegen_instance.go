@@ -25,53 +25,63 @@ type componentInstance struct {
 }
 
 // collectComponentInstances walks the document and assigns unique variable names.
+// Recursively descends into inlined component templates to collect nested references.
 func collectComponentInstances(doc *template.Document, components map[string]*ComponentInfo) []componentInstance {
 	if len(components) == 0 {
 		return nil
 	}
 	var instances []componentInstance
 	counts := map[string]int{}
-	walkNodes(doc.Children, components, counts, &instances)
+	walkNodes(doc.Children, components, counts, &instances, "")
 	return instances
 }
 
 // walkNodes recursively collects ComponentElement instances from a node list.
-func walkNodes(nodes []template.Node, components map[string]*ComponentInfo, counts map[string]int, instances *[]componentInstance) {
+func walkNodes(nodes []template.Node, components map[string]*ComponentInfo, counts map[string]int, instances *[]componentInstance, prefix string) {
 	for _, node := range nodes {
-		walkNode(node, components, counts, instances)
+		walkNode(node, components, counts, instances, prefix)
 	}
 }
 
 // walkNode collects ComponentElement instances from a single node.
-func walkNode(node template.Node, components map[string]*ComponentInfo, counts map[string]int, instances *[]componentInstance) {
+func walkNode(node template.Node, components map[string]*ComponentInfo, counts map[string]int, instances *[]componentInstance, prefix string) {
 	switch n := node.(type) {
 	case *template.ComponentElement:
-		addComponentInstance(n, components, counts, instances)
+		addComponentInstance(n, components, counts, instances, prefix)
 	case *template.BoxElement:
-		walkNodes(n.Children, components, counts, instances)
+		walkNodes(n.Children, components, counts, instances, prefix)
 	case *template.IfNode:
-		walkNodes(n.Then, components, counts, instances)
-		walkNodes(n.Else, components, counts, instances)
+		walkNodes(n.Then, components, counts, instances, prefix)
+		walkNodes(n.Else, components, counts, instances, prefix)
 	case *template.ForNode:
-		walkNodes(n.Children, components, counts, instances)
+		walkNodes(n.Children, components, counts, instances, prefix)
 	}
 }
 
 // addComponentInstance creates an instance entry if the component is registered.
-func addComponentInstance(n *template.ComponentElement, components map[string]*ComponentInfo, counts map[string]int, instances *[]componentInstance) {
+// If the component has a Doc (will be inlined), recursively walks its template
+// to collect nested component references with prefixed variable names.
+func addComponentInstance(n *template.ComponentElement, components map[string]*ComponentInfo, counts map[string]int, instances *[]componentInstance, prefix string) {
 	key := template.TagRegistryKey(n.Name)
 	info, ok := components[key]
 	if !ok {
 		return
 	}
 	varBase := tagVarName(n.Name)
-	idx := counts[key]
-	counts[key]++
+	idx := counts[prefix+key]
+	counts[prefix+key]++
+	varName := fmt.Sprintf("%s%s%d", prefix, varBase, idx)
 	*instances = append(*instances, componentInstance{
-		VarName: fmt.Sprintf("%s%d", varBase, idx),
+		VarName: varName,
 		Info:    info,
 		Attrs:   n.Attributes,
 	})
+
+	// Recurse into the component's template to find nested component references
+	if info.Doc != nil {
+		nestedPrefix := varName + "_"
+		walkNodes(info.Doc.Children, components, counts, instances, nestedPrefix)
+	}
 }
 
 // writeComponentInits writes component instantiation statements.
