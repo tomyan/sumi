@@ -56,6 +56,15 @@ func writeCursorPositioningWithTestMode(buf *bytes.Buffer) {
 	buf.WriteString("\t\t}\n")
 }
 
+// writeCreateAppReturn emits the test setup and return for CreateApp.
+func writeCreateAppReturn(buf *bytes.Buffer) {
+	buf.WriteString("\tapp.TestWidth = w\n")
+	buf.WriteString("\tapp.TestHeight = h\n")
+	buf.WriteString("\tapp.TestBuffer = render.NewBuffer(w, h)\n")
+	buf.WriteString("\tapp.Render()\n")
+	buf.WriteString("\treturn app\n")
+}
+
 // writeDirectWriteWithTestMode emits the direct-write fast path with test-mode guard.
 func writeDirectWriteWithTestMode(buf *bytes.Buffer) {
 	buf.WriteString("\t\tif app.TestBuffer == nil && prevTree != nil && len(changed) > 0 && termW == prevW && termH == prevH && !prevTree.HasOverlap && nodeBoxMap != nil {\n")

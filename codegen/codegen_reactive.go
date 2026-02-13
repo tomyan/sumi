@@ -12,6 +12,20 @@ import (
 
 // writeReactiveBody generates the reactive function body with tui.App event loop.
 func writeReactiveBody(buf *bytes.Buffer, doc *template.Document, sc *script.Script, stylesheet *style.Stylesheet, instances []componentInstance) {
+	inlined, scrollBoxes, focusHandlers, title := writeReactiveSharedSetup(buf, doc, sc, stylesheet, instances)
+	writeAppRun(buf, doc, sc, instances, scrollBoxes, inlined, focusHandlers, title)
+}
+
+// writeReactiveCreateAppBody generates the reactive CreateApp body.
+func writeReactiveCreateAppBody(buf *bytes.Buffer, doc *template.Document, sc *script.Script, stylesheet *style.Stylesheet, instances []componentInstance) {
+	inlined, scrollBoxes, focusHandlers, title := writeReactiveSharedSetup(buf, doc, sc, stylesheet, instances)
+	writeAppConstruction(buf, doc, sc, instances, scrollBoxes, inlined, focusHandlers, title)
+	writeCreateAppReturn(buf)
+}
+
+// writeReactiveSharedSetup writes the shared setup for reactive Run and CreateApp:
+// state declarations, closures, tree, sync, and doRender.
+func writeReactiveSharedSetup(buf *bytes.Buffer, doc *template.Document, sc *script.Script, stylesheet *style.Stylesheet, instances []componentInstance) ([]inlinedStateful, []scrollableBox, []focusableHandler, *template.TitleElement) {
 	scrollBoxes := findAllScrollableBoxes(doc, stylesheet)
 	title := findTitleElement(doc)
 	inlined := collectInlinedStateful(instances)
@@ -33,7 +47,7 @@ func writeReactiveBody(buf *bytes.Buffer, doc *template.Document, sc *script.Scr
 	writeSuppressUnusedFuncs(buf, doc, sc)
 	writeSuppressInlinedFuncs(buf, inlined)
 	writeSuppressFocusVars(buf, focusHandlers)
-	writeAppRun(buf, doc, sc, instances, scrollBoxes, inlined, focusHandlers, title)
+	return inlined, scrollBoxes, focusHandlers, title
 }
 
 // writeStateAndEnvDecls writes state, env, self, and derived variable declarations.

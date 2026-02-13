@@ -29,15 +29,8 @@ type Options struct {
 }
 
 // Generate produces Go source code from a template AST, optional script, and optional stylesheet.
-// When sc is nil, generates static code (render once, wait for Enter).
-// When sc has state, generates reactive code with an event loop.
-// When stylesheet is non-nil, styles are resolved at codegen time and emitted as render.Style literals.
+// Emits both func Run() and func CreateApp(w, h int) *tui.App.
 func Generate(doc *template.Document, sc *script.Script, stylesheet *style.Stylesheet, opts Options) ([]byte, error) {
-	return generateRunFunc(doc, sc, stylesheet, opts)
-}
-
-// generateRunFunc generates the existing func Run() code path.
-func generateRunFunc(doc *template.Document, sc *script.Script, stylesheet *style.Stylesheet, opts Options) ([]byte, error) {
 	instances := collectComponentInstances(doc, opts.Components)
 	reactive := hasReactiveContent(sc, instances)
 	inlined := collectInlinedStateful(instances)
@@ -47,13 +40,25 @@ func generateRunFunc(doc *template.Document, sc *script.Script, stylesheet *styl
 	hasScroll := len(findAllScrollableBoxes(doc, stylesheet)) > 0
 	hasTime := needsTimeImport(sc, inlined)
 	writeImports(&buf, docHasExprs(doc) || hasTitle || hasScroll || docHasForKey(doc) || instancesHaveExprs(instances), reactive, hasTime)
+
+	// Emit Run()
 	buf.WriteString("func Run() {\n")
 	if reactive {
 		writeReactiveBody(&buf, doc, sc, stylesheet, instances)
 	} else {
 		writeStaticBody(&buf, doc, stylesheet)
 	}
+	buf.WriteString("}\n\n")
+
+	// Emit CreateApp()
+	buf.WriteString("func CreateApp(w, h int) *tui.App {\n")
+	if reactive {
+		writeReactiveCreateAppBody(&buf, doc, sc, stylesheet, instances)
+	} else {
+		writeStaticCreateAppBody(&buf, doc, stylesheet)
+	}
 	buf.WriteString("}\n")
+
 	return format.Source(buf.Bytes())
 }
 

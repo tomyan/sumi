@@ -488,7 +488,12 @@ func TestBuildOnceTreeNotInsideDoRender(t *testing.T) {
 	if doRenderIdx < 0 {
 		t.Fatalf("expected doRender closure:\n%s", src)
 	}
+	// Scope to just the Run() function (before CreateApp)
+	createAppIdx := strings.Index(src, "func CreateApp(")
 	doRenderBody := src[doRenderIdx:]
+	if createAppIdx > doRenderIdx {
+		doRenderBody = src[doRenderIdx:createAppIdx]
+	}
 
 	// The tree construction should NOT appear inside doRender
 	if strings.Contains(doRenderBody, "root := &layout.Input{") {

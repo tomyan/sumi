@@ -19,6 +19,15 @@ func writeAppRun(buf *bytes.Buffer, doc *template.Document, sc *script.Script,
 	instances []componentInstance, scrollBoxes []scrollableBox, inlined []inlinedStateful,
 	focusHandlers []focusableHandler, title *template.TitleElement) {
 
+	writeAppConstruction(buf, doc, sc, instances, scrollBoxes, inlined, focusHandlers, title)
+	buf.WriteString("\tapp.Run()\n")
+}
+
+// writeAppConstruction writes the tui.App struct construction without calling Run.
+func writeAppConstruction(buf *bytes.Buffer, doc *template.Document, sc *script.Script,
+	instances []componentInstance, scrollBoxes []scrollableBox, inlined []inlinedStateful,
+	focusHandlers []focusableHandler, title *template.TitleElement) {
+
 	buf.WriteString("\tapp = &tui.App{\n")
 
 	if len(scrollBoxes) > 0 || len(focusHandlers) > 0 {
@@ -31,7 +40,6 @@ func writeAppRun(buf *bytes.Buffer, doc *template.Document, sc *script.Script,
 	writeAppOnResize(buf, sc)
 
 	buf.WriteString("\t}\n")
-	buf.WriteString("\tapp.Run()\n")
 }
 
 // writeAppTitle writes the Title or SaveTitle field if a title element exists.
