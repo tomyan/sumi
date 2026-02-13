@@ -4,6 +4,7 @@ placeholder := $prop("")
 inputType := $prop("")
 maxlength := $prop(0)
 readonly := $prop(false)
+strip := $prop(false)
 cursor := $state(0)
 viewOffset := $state(0)
 selfW := $self(width)
@@ -21,6 +22,8 @@ killBuffer := $state("")
 undoValues := $state([]string{})
 undoCursors := $state([]int{})
 selAnchor := $state(-1)
+lastClickTime := $state(int64(0))
+lastClickX := $state(-1)
 
 func adjustView() {
     if contentW <= 0 {
@@ -308,6 +311,26 @@ func wordRight() int {
     return pos
 }
 
+func wordLeftFrom(pos int) int {
+    for pos > 0 && value[pos-1] == ' ' {
+        pos = pos - 1
+    }
+    for pos > 0 && value[pos-1] != ' ' {
+        pos = pos - 1
+    }
+    return pos
+}
+
+func wordRightFrom(pos int) int {
+    for pos < len(value) && value[pos] != ' ' {
+        pos = pos + 1
+    }
+    for pos < len(value) && value[pos] == ' ' {
+        pos = pos + 1
+    }
+    return pos
+}
+
 func clampCursorToView() {
     if cursor < viewOffset {
         cursor = viewOffset
@@ -439,6 +462,19 @@ func handleEvent(evt input.Event) {
     }
     if evt.Kind == input.EventBlur {
         focused = false
+        clearSelection()
+        if strip && !readonly {
+            for len(value) > 0 && value[0] == ' ' {
+                value = value[1:]
+            }
+            for len(value) > 0 && value[len(value)-1] == ' ' {
+                value = value[:len(value)-1]
+            }
+            if cursor > len(value) {
+                cursor = len(value)
+            }
+            adjustView()
+        }
         stopPropagation()
         return
     }
@@ -446,6 +482,32 @@ func handleEvent(evt input.Event) {
         if scrollAnimating {
             animateStep()
         }
+        stopPropagation()
+        return
+    }
+    if evt.Kind == input.EventPaste {
+        if readonly {
+            stopPropagation()
+            return
+        }
+        paste := evt.PasteText
+        if selAnchor >= 0 {
+            deleteSelection()
+        }
+        if maxlength > 0 {
+            room := maxlength - len(value)
+            if room <= 0 {
+                stopPropagation()
+                return
+            }
+            if len(paste) > room {
+                paste = paste[:room]
+            }
+        }
+        saveUndo()
+        value = value[:cursor] + paste + value[cursor:]
+        cursor = cursor + len(paste)
+        adjustView()
         stopPropagation()
         return
     }
@@ -479,16 +541,38 @@ func handleEvent(evt input.Event) {
         cancelAnimation()
     }
     if evt.Kind == input.EventMouse && evt.Mouse.Action == input.MousePress && evt.Mouse.Button == input.ButtonLeft {
-        clearSelection()
         relX := evt.Mouse.X - selfX - 2
-        newCursor := viewOffset + relX
-        if newCursor < 0 {
-            newCursor = 0
+        clickPos := viewOffset + relX
+        if clickPos < 0 {
+            clickPos = 0
         }
-        if newCursor > len(value) {
-            newCursor = len(value)
+        if clickPos > len(value) {
+            clickPos = len(value)
         }
-        cursor = newCursor
+        now := time.Now().UnixMilli()
+        if evt.Shift {
+            if selAnchor == -1 {
+                selAnchor = cursor
+            }
+            cursor = clickPos
+            adjustView()
+            stopPropagation()
+            return
+        }
+        if now - lastClickTime < 500 && evt.Mouse.X == lastClickX {
+            wl := wordLeftFrom(clickPos)
+            wr := wordRightFrom(clickPos)
+            selAnchor = wl
+            cursor = wr
+            adjustView()
+            lastClickTime = 0
+            stopPropagation()
+            return
+        }
+        lastClickTime = now
+        lastClickX = evt.Mouse.X
+        clearSelection()
+        cursor = clickPos
         adjustView()
         stopPropagation()
         return
