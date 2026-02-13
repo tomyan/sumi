@@ -25,6 +25,9 @@ func Run() {
 	textinput0_scrollAnimFrom := 0
 	textinput0_scrollAnimTo := 0
 	textinput0_focused := false
+	textinput0_killBuffer := ""
+	textinput0_undoValues := []string{}
+	textinput0_undoCursors := []int{}
 	textinput0_placeholder := "Enter your name..."
 	textinput0_selfW := 0
 	textinput0_selfX := 0
@@ -254,6 +257,46 @@ func Run() {
 		textinput0_scrollHeld = false
 		app.Dirty = true
 	}
+	textinput0_saveUndo := func() {
+		textinput0_undoValues = append(textinput0_undoValues, name)
+		app.Dirty = true
+		textinput0_undoCursors = append(textinput0_undoCursors, textinput0_cursor)
+		app.Dirty = true
+		if len(textinput0_undoValues) > 100 {
+			textinput0_undoValues = textinput0_undoValues[1:]
+			app.Dirty = true
+			textinput0_undoCursors = textinput0_undoCursors[1:]
+			app.Dirty = true
+		}
+	}
+	textinput0_undo := func() {
+		if len(textinput0_undoValues) == 0 {
+			return
+		}
+		last := len(textinput0_undoValues) - 1
+		name = textinput0_undoValues[last]
+		app.Dirty = true
+		textinput0_cursor = textinput0_undoCursors[last]
+		app.Dirty = true
+		textinput0_undoValues = textinput0_undoValues[:last]
+		app.Dirty = true
+		textinput0_undoCursors = textinput0_undoCursors[:last]
+		app.Dirty = true
+		textinput0_adjustView()
+	}
+	textinput0_killText := func(text string) {
+		textinput0_killBuffer = text
+		app.Dirty = true
+	}
+	textinput0_transposeChars := func() {
+		if textinput0_cursor < 2 {
+			return
+		}
+		a := name[textinput0_cursor-2]
+		b := name[textinput0_cursor-1]
+		name = name[:textinput0_cursor-2] + string(b) + string(a) + name[textinput0_cursor:]
+		app.Dirty = true
+	}
 	textinput0_animateStep := func() {
 		now := time.Now().UnixMilli()
 		elapsed := now - textinput0_scrollAnimStart
@@ -370,7 +413,9 @@ func Run() {
 			}
 		}
 		if evt.Special == input.KeyBackspace && evt.Ctrl && textinput0_cursor > 0 {
+			textinput0_saveUndo()
 			pos := textinput0_wordLeft()
+			textinput0_killText(name[pos:textinput0_cursor])
 			name = name[:pos] + name[textinput0_cursor:]
 			app.Dirty = true
 			textinput0_cursor = pos
@@ -380,6 +425,7 @@ func Run() {
 			return
 		}
 		if evt.Special == input.KeyBackspace && textinput0_cursor > 0 {
+			textinput0_saveUndo()
 			name = name[:textinput0_cursor-1] + name[textinput0_cursor:]
 			app.Dirty = true
 			textinput0_cursor = textinput0_cursor - 1
@@ -389,7 +435,9 @@ func Run() {
 			return
 		}
 		if evt.Special == input.KeyDelete && evt.Ctrl && textinput0_cursor < len(name) {
+			textinput0_saveUndo()
 			pos := textinput0_wordRight()
+			textinput0_killText(name[textinput0_cursor:pos])
 			name = name[:textinput0_cursor] + name[pos:]
 			app.Dirty = true
 			textinput0_adjustView()
@@ -397,6 +445,7 @@ func Run() {
 			return
 		}
 		if evt.Special == input.KeyDelete && textinput0_cursor < len(name) {
+			textinput0_saveUndo()
 			name = name[:textinput0_cursor] + name[textinput0_cursor+1:]
 			app.Dirty = true
 			textinput0_adjustView()
@@ -431,22 +480,80 @@ func Run() {
 			stopPropagation()
 			return
 		}
-		if evt.Special == input.KeyHome && textinput0_cursor > 0 {
+		if evt.Special == input.KeyHome {
 			textinput0_cursor = 0
 			app.Dirty = true
 			textinput0_adjustView()
 			stopPropagation()
 			return
 		}
-		if evt.Special == input.KeyEnd && textinput0_cursor < len(name) {
+		if evt.Special == input.KeyEnd {
 			textinput0_cursor = len(name)
 			app.Dirty = true
 			textinput0_adjustView()
 			stopPropagation()
 			return
 		}
+		if evt.Kind == input.EventKey && evt.Ctrl && evt.Rune == 'a' {
+			textinput0_cursor = 0
+			app.Dirty = true
+			textinput0_adjustView()
+			stopPropagation()
+			return
+		}
+		if evt.Kind == input.EventKey && evt.Ctrl && evt.Rune == 'e' {
+			textinput0_cursor = len(name)
+			app.Dirty = true
+			textinput0_adjustView()
+			stopPropagation()
+			return
+		}
+		if evt.Kind == input.EventKey && evt.Ctrl && evt.Rune == 'f' && textinput0_cursor < len(name) {
+			textinput0_cursor = textinput0_cursor + 1
+			app.Dirty = true
+			textinput0_adjustView()
+			stopPropagation()
+			return
+		}
+		if evt.Kind == input.EventKey && evt.Ctrl && evt.Rune == 'b' && textinput0_cursor > 0 {
+			textinput0_cursor = textinput0_cursor - 1
+			app.Dirty = true
+			textinput0_adjustView()
+			stopPropagation()
+			return
+		}
+		if evt.Kind == input.EventKey && evt.Ctrl && evt.Rune == 'd' && textinput0_cursor < len(name) {
+			textinput0_saveUndo()
+			name = name[:textinput0_cursor] + name[textinput0_cursor+1:]
+			app.Dirty = true
+			textinput0_adjustView()
+			stopPropagation()
+			return
+		}
+		if evt.Kind == input.EventKey && evt.Ctrl && evt.Rune == 'k' && textinput0_cursor < len(name) {
+			textinput0_saveUndo()
+			textinput0_killText(name[textinput0_cursor:])
+			name = name[:textinput0_cursor]
+			app.Dirty = true
+			textinput0_adjustView()
+			stopPropagation()
+			return
+		}
+		if evt.Kind == input.EventKey && evt.Ctrl && evt.Rune == 'u' && textinput0_cursor > 0 {
+			textinput0_saveUndo()
+			textinput0_killText(name[:textinput0_cursor])
+			name = name[textinput0_cursor:]
+			app.Dirty = true
+			textinput0_cursor = 0
+			app.Dirty = true
+			textinput0_adjustView()
+			stopPropagation()
+			return
+		}
 		if evt.Kind == input.EventKey && evt.Ctrl && evt.Rune == 'w' && textinput0_cursor > 0 {
+			textinput0_saveUndo()
 			pos := textinput0_wordLeft()
+			textinput0_killText(name[pos:textinput0_cursor])
 			name = name[:pos] + name[textinput0_cursor:]
 			app.Dirty = true
 			textinput0_cursor = pos
@@ -455,7 +562,53 @@ func Run() {
 			stopPropagation()
 			return
 		}
-		if evt.Kind == input.EventKey && !evt.Ctrl && evt.Rune >= 32 {
+		if evt.Kind == input.EventKey && evt.Ctrl && evt.Rune == 't' && textinput0_cursor >= 2 {
+			textinput0_saveUndo()
+			textinput0_transposeChars()
+			stopPropagation()
+			return
+		}
+		if evt.Kind == input.EventKey && evt.Ctrl && evt.Rune == 'y' && len(textinput0_killBuffer) > 0 {
+			textinput0_saveUndo()
+			name = name[:textinput0_cursor] + textinput0_killBuffer + name[textinput0_cursor:]
+			app.Dirty = true
+			textinput0_cursor = textinput0_cursor + len(textinput0_killBuffer)
+			app.Dirty = true
+			textinput0_adjustView()
+			stopPropagation()
+			return
+		}
+		if evt.Kind == input.EventKey && evt.Ctrl && evt.Rune == '/' {
+			textinput0_undo()
+			stopPropagation()
+			return
+		}
+		if evt.Kind == input.EventKey && evt.Alt && evt.Rune == 'f' && textinput0_cursor < len(name) {
+			textinput0_cursor = textinput0_wordRight()
+			app.Dirty = true
+			textinput0_adjustView()
+			stopPropagation()
+			return
+		}
+		if evt.Kind == input.EventKey && evt.Alt && evt.Rune == 'b' && textinput0_cursor > 0 {
+			textinput0_cursor = textinput0_wordLeft()
+			app.Dirty = true
+			textinput0_adjustView()
+			stopPropagation()
+			return
+		}
+		if evt.Kind == input.EventKey && evt.Alt && evt.Rune == 'd' && textinput0_cursor < len(name) {
+			textinput0_saveUndo()
+			pos := textinput0_wordRight()
+			textinput0_killText(name[textinput0_cursor:pos])
+			name = name[:textinput0_cursor] + name[pos:]
+			app.Dirty = true
+			textinput0_adjustView()
+			stopPropagation()
+			return
+		}
+		if evt.Kind == input.EventKey && !evt.Ctrl && !evt.Alt && evt.Rune >= 32 {
+			textinput0_saveUndo()
 			name = name[:textinput0_cursor] + string(evt.Rune) + name[textinput0_cursor:]
 			app.Dirty = true
 			textinput0_cursor = textinput0_cursor + 1
@@ -689,6 +842,10 @@ func Run() {
 	_ = textinput0_scrollTrackStart
 	_ = textinput0_viewOffsetForTrackX
 	_ = textinput0_cancelAnimation
+	_ = textinput0_saveUndo
+	_ = textinput0_undo
+	_ = textinput0_killText
+	_ = textinput0_transposeChars
 	_ = textinput0_animateStep
 	_ = textinput0_startScrollAnimation
 	_ = stopPropagation

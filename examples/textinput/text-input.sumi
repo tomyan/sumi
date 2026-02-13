@@ -14,6 +14,9 @@ scrollAnimStart := $state(int64(0))
 scrollAnimFrom := $state(0)
 scrollAnimTo := $state(0)
 focused := $state(false)
+killBuffer := $state("")
+undoValues := $state([]string{})
+undoCursors := $state([]int{})
 
 func adjustView() {
     if contentW <= 0 {
@@ -234,6 +237,40 @@ func cancelAnimation() {
     scrollHeld = false
 }
 
+func saveUndo() {
+    undoValues = append(undoValues, value)
+    undoCursors = append(undoCursors, cursor)
+    if len(undoValues) > 100 {
+        undoValues = undoValues[1:]
+        undoCursors = undoCursors[1:]
+    }
+}
+
+func undo() {
+    if len(undoValues) == 0 {
+        return
+    }
+    last := len(undoValues) - 1
+    value = undoValues[last]
+    cursor = undoCursors[last]
+    undoValues = undoValues[:last]
+    undoCursors = undoCursors[:last]
+    adjustView()
+}
+
+func killText(text string) {
+    killBuffer = text
+}
+
+func transposeChars() {
+    if cursor < 2 {
+        return
+    }
+    a := value[cursor-2]
+    b := value[cursor-1]
+    value = value[:cursor-2] + string(b) + string(a) + value[cursor:]
+}
+
 func animateStep() {
     now := time.Now().UnixMilli()
     elapsed := now - scrollAnimStart
@@ -335,7 +372,9 @@ func handleEvent(evt input.Event) {
         }
     }
     if evt.Special == input.KeyBackspace && evt.Ctrl && cursor > 0 {
+        saveUndo()
         pos := wordLeft()
+        killText(value[pos:cursor])
         value = value[:pos] + value[cursor:]
         cursor = pos
         adjustView()
@@ -343,6 +382,7 @@ func handleEvent(evt input.Event) {
         return
     }
     if evt.Special == input.KeyBackspace && cursor > 0 {
+        saveUndo()
         value = value[:cursor-1] + value[cursor:]
         cursor = cursor - 1
         adjustView()
@@ -350,13 +390,16 @@ func handleEvent(evt input.Event) {
         return
     }
     if evt.Special == input.KeyDelete && evt.Ctrl && cursor < len(value) {
+        saveUndo()
         pos := wordRight()
+        killText(value[cursor:pos])
         value = value[:cursor] + value[pos:]
         adjustView()
         stopPropagation()
         return
     }
     if evt.Special == input.KeyDelete && cursor < len(value) {
+        saveUndo()
         value = value[:cursor] + value[cursor+1:]
         adjustView()
         stopPropagation()
@@ -386,27 +429,118 @@ func handleEvent(evt input.Event) {
         stopPropagation()
         return
     }
-    if evt.Special == input.KeyHome && cursor > 0 {
+    if evt.Special == input.KeyHome {
         cursor = 0
         adjustView()
         stopPropagation()
         return
     }
-    if evt.Special == input.KeyEnd && cursor < len(value) {
+    if evt.Special == input.KeyEnd {
         cursor = len(value)
         adjustView()
         stopPropagation()
         return
     }
+    if evt.Kind == input.EventKey && evt.Ctrl && evt.Rune == 'a' {
+        cursor = 0
+        adjustView()
+        stopPropagation()
+        return
+    }
+    if evt.Kind == input.EventKey && evt.Ctrl && evt.Rune == 'e' {
+        cursor = len(value)
+        adjustView()
+        stopPropagation()
+        return
+    }
+    if evt.Kind == input.EventKey && evt.Ctrl && evt.Rune == 'f' && cursor < len(value) {
+        cursor = cursor + 1
+        adjustView()
+        stopPropagation()
+        return
+    }
+    if evt.Kind == input.EventKey && evt.Ctrl && evt.Rune == 'b' && cursor > 0 {
+        cursor = cursor - 1
+        adjustView()
+        stopPropagation()
+        return
+    }
+    if evt.Kind == input.EventKey && evt.Ctrl && evt.Rune == 'd' && cursor < len(value) {
+        saveUndo()
+        value = value[:cursor] + value[cursor+1:]
+        adjustView()
+        stopPropagation()
+        return
+    }
+    if evt.Kind == input.EventKey && evt.Ctrl && evt.Rune == 'k' && cursor < len(value) {
+        saveUndo()
+        killText(value[cursor:])
+        value = value[:cursor]
+        adjustView()
+        stopPropagation()
+        return
+    }
+    if evt.Kind == input.EventKey && evt.Ctrl && evt.Rune == 'u' && cursor > 0 {
+        saveUndo()
+        killText(value[:cursor])
+        value = value[cursor:]
+        cursor = 0
+        adjustView()
+        stopPropagation()
+        return
+    }
     if evt.Kind == input.EventKey && evt.Ctrl && evt.Rune == 'w' && cursor > 0 {
+        saveUndo()
         pos := wordLeft()
+        killText(value[pos:cursor])
         value = value[:pos] + value[cursor:]
         cursor = pos
         adjustView()
         stopPropagation()
         return
     }
-    if evt.Kind == input.EventKey && !evt.Ctrl && evt.Rune >= 32 {
+    if evt.Kind == input.EventKey && evt.Ctrl && evt.Rune == 't' && cursor >= 2 {
+        saveUndo()
+        transposeChars()
+        stopPropagation()
+        return
+    }
+    if evt.Kind == input.EventKey && evt.Ctrl && evt.Rune == 'y' && len(killBuffer) > 0 {
+        saveUndo()
+        value = value[:cursor] + killBuffer + value[cursor:]
+        cursor = cursor + len(killBuffer)
+        adjustView()
+        stopPropagation()
+        return
+    }
+    if evt.Kind == input.EventKey && evt.Ctrl && evt.Rune == '/' {
+        undo()
+        stopPropagation()
+        return
+    }
+    if evt.Kind == input.EventKey && evt.Alt && evt.Rune == 'f' && cursor < len(value) {
+        cursor = wordRight()
+        adjustView()
+        stopPropagation()
+        return
+    }
+    if evt.Kind == input.EventKey && evt.Alt && evt.Rune == 'b' && cursor > 0 {
+        cursor = wordLeft()
+        adjustView()
+        stopPropagation()
+        return
+    }
+    if evt.Kind == input.EventKey && evt.Alt && evt.Rune == 'd' && cursor < len(value) {
+        saveUndo()
+        pos := wordRight()
+        killText(value[cursor:pos])
+        value = value[:cursor] + value[pos:]
+        adjustView()
+        stopPropagation()
+        return
+    }
+    if evt.Kind == input.EventKey && !evt.Ctrl && !evt.Alt && evt.Rune >= 32 {
+        saveUndo()
         value = value[:cursor] + string(evt.Rune) + value[cursor:]
         cursor = cursor + 1
         adjustView()

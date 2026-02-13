@@ -71,6 +71,10 @@ func ReadEvent(r io.Reader) (Event, error) {
 	if ch >= 1 && ch <= 26 {
 		return Event{Kind: EventKey, Rune: 'a' + ch - 1, Ctrl: true}, nil
 	}
+	// Ctrl+/ and Ctrl+_ both send 0x1F
+	if ch == 0x1f {
+		return Event{Kind: EventKey, Rune: '/', Ctrl: true}, nil
+	}
 
 	if ch != 0x1b {
 		return Event{Kind: EventKey, Rune: ch}, nil
@@ -88,7 +92,10 @@ func parseEscapeSequence(r io.Reader) (Event, error) {
 	}
 
 	if b != '[' {
-		// ESC followed by something other than [
+		// ESC followed by a printable character is Alt+key
+		if b >= 32 && b < 127 {
+			return Event{Kind: EventKey, Rune: rune(b), Alt: true}, nil
+		}
 		return Event{Kind: EventSpecial, Special: KeyEscape}, nil
 	}
 
