@@ -27,7 +27,7 @@ func ClassifyTag(name string) TagTier {
 	if primitives[name] {
 		return TierPrimitive
 	}
-	if prefix, _, ok := splitPrefix(name); ok {
+	if prefix, _, ok := SplitPrefix(name); ok {
 		if prefix == "sumi" {
 			return TierStdlib
 		}
@@ -39,7 +39,7 @@ func ClassifyTag(name string) TagTier {
 // TagRegistryKey returns the lowercase registry key for a tag name.
 // Fundamental tags pass through unchanged. Prefixed tags are lowercased.
 func TagRegistryKey(name string) string {
-	if prefix, local, ok := splitPrefix(name); ok {
+	if prefix, local, ok := SplitPrefix(name); ok {
 		return prefix + ":" + strings.ToLower(local)
 	}
 	return name
@@ -49,15 +49,15 @@ func TagRegistryKey(name string) string {
 // Fundamental tags: "textedit" → "textedit.sumi".
 // Prefixed tags: "sumi:TextInput" → "text-input.sumi" (PascalCase to kebab-case).
 func TagComponentFile(name string) string {
-	if _, local, ok := splitPrefix(name); ok {
+	if _, local, ok := SplitPrefix(name); ok {
 		return pascalToKebab(local) + ".sumi"
 	}
 	return name + ".sumi"
 }
 
-// splitPrefix splits "prefix:Local" into ("prefix", "Local", true).
+// SplitPrefix splits "prefix:Local" into ("prefix", "Local", true).
 // Returns ("", "", false) if there is no colon.
-func splitPrefix(name string) (prefix, local string, ok bool) {
+func SplitPrefix(name string) (prefix, local string, ok bool) {
 	idx := strings.IndexByte(name, ':')
 	if idx < 0 {
 		return "", "", false

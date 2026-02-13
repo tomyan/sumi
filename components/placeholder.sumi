@@ -1,0 +1,4 @@
+<script>
+label := $prop("hello")
+</script>
+<text>{label}</text>

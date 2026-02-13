@@ -1,6 +1,5 @@
 # Build artifacts (binaries in repo root)
 /sumi
 /counter
-/components
 /flexbox
 /responsive
