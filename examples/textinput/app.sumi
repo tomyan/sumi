@@ -36,6 +36,6 @@ func handleKey(evt input.Event) {
     <text class="title">Text Input Demo</text>
     <text class="hint">Type to enter your name, Tab to focus</text>
     <text class="label">Name:</text>
-    <textinput bind:value="name" placeholder="Enter your name..." />
+    <sumi:TextInput bind:value={name} placeholder="Enter your name..." />
     <text>You typed: {name}</text>
 </box>

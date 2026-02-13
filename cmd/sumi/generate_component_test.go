@@ -258,6 +258,12 @@ func handleEvent(evt input.Event) {
 	if !strings.Contains(src, `"["`) {
 		t.Errorf("expected bracket '[' in output:\n%s", src)
 	}
+
+	// Nested component attrs should be namespaced through the outer stateMap.
+	// textedit's function bodies should reference textinput0_viewOffset (not bare viewOffset).
+	if !strings.Contains(src, "cursor < textinput0_viewOffset") {
+		t.Errorf("expected nested component to namespace outer vars (cursor < textinput0_viewOffset):\n%s", src)
+	}
 }
 
 func TestGenerateDirWithEmbeddedComponent(t *testing.T) {

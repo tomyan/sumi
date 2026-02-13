@@ -16,25 +16,43 @@ func Run() {
 	name := ""
 
 	var app *tui.App
-	textinput0_cursor := 0
 	textinput0_viewOffset := 0
-	textinput0_scrollAnimating := false
-	textinput0_scrollDragging := false
-	textinput0_scrollHeld := false
-	textinput0_scrollAnimStart := int64(0)
-	textinput0_scrollAnimFrom := 0
-	textinput0_scrollAnimTo := 0
 	textinput0_focused := false
-	textinput0_killBuffer := ""
-	textinput0_undoValues := []string{}
-	textinput0_undoCursors := []int{}
 	textinput0_placeholder := "Enter your name..."
+	textinput0_inputType := ""
+	textinput0_maxlength := 0
+	textinput0_readonly := false
+	textinput0_strip := false
 	textinput0_selfW := 0
-	textinput0_selfX := 0
-	textinput0_selfY := 0
 	textinput0_contentW := textinput0_selfW - 4
+	textinput0_textedit0_cursor := 0
+	textinput0_textedit0_killBuffer := ""
+	textinput0_textedit0_undoValues := []string{}
+	textinput0_textedit0_undoCursors := []int{}
+	textinput0_textedit0_selAnchor := -1
+	textinput0_textedit0_lastClickTime := int64(0)
+	textinput0_textedit0_lastClickX := -1
+	textinput0_textedit0_mouseDragging := false
+	textinput0_textedit0_wordDragging := false
+	textinput0_textedit0_wordDragStart := 0
+	textinput0_textedit0_wordDragEnd := 0
+	textinput0_textedit0_selfW := 0
+	textinput0_textedit0_selfX := 0
+	textinput0_textedit0_selfY := 0
+	textinput0_textedit0_contentW := textinput0_textedit0_selfW
+	textinput0_scrollbar0_animating := false
+	textinput0_scrollbar0_dragging := false
+	textinput0_scrollbar0_held := false
+	textinput0_scrollbar0_animStart := int64(0)
+	textinput0_scrollbar0_animFrom := 0
+	textinput0_scrollbar0_animTo := 0
+	textinput0_scrollbar0_direction := "horizontal"
+	textinput0_scrollbar0_selfX := 0
+	textinput0_scrollbar0_selfY := 0
+	textinput0_scrollbar0_selfW := 0
+	textinput0_scrollbar0_selfH := 0
 	focusIndex := -1
-	focusCount := 1
+	focusCount := 2
 	propagationStopped := false
 	stopPropagation := func() { propagationStopped = true }
 
@@ -49,92 +67,20 @@ func Run() {
 		}
 	}
 
-	textinput0_adjustView := func() {
-		if textinput0_contentW <= 0 {
-			return
-		}
-		if textinput0_cursor < textinput0_viewOffset {
-			textinput0_viewOffset = textinput0_cursor
-			app.Dirty = true
-		}
-		if textinput0_cursor > textinput0_viewOffset+textinput0_contentW {
-			textinput0_viewOffset = textinput0_cursor - textinput0_contentW
-			app.Dirty = true
-		}
-		if textinput0_viewOffset < 0 {
-			textinput0_viewOffset = 0
-			app.Dirty = true
-		}
-	}
-	textinput0_displayText := func() string {
-		text := name
-		if len(text) == 0 && len(textinput0_placeholder) > 0 {
-			text = textinput0_placeholder
-		}
-		return text
-	}
-	textinput0_viewStart := func() int {
-		vo := textinput0_viewOffset
-		if len(name) == 0 {
-			vo = 0
-		}
-		if vo < 0 {
-			vo = 0
-		}
-		text := textinput0_displayText()
-		if vo > len(text) {
-			vo = len(text)
-		}
-		return vo
-	}
-	textinput0_viewEnd := func() int {
-		vo := textinput0_viewStart()
-		end := vo + textinput0_contentW
-		text := textinput0_displayText()
-		if end > len(text) {
-			end = len(text)
-		}
-		return end
-	}
 	textinput0_leftIndicator := func() string {
 		if textinput0_contentW <= 0 {
 			return ""
 		}
-		if textinput0_viewStart() > 0 {
+		if textinput0_viewOffset > 0 {
 			return "<"
 		}
 		return " "
-	}
-	textinput0_visibleValue := func() string {
-		if textinput0_contentW <= 0 || len(name) == 0 {
-			return ""
-		}
-		visible := name[textinput0_viewStart():textinput0_viewEnd()]
-		pad := ""
-		for i := len(visible); i < textinput0_contentW; i++ {
-			pad = pad + " "
-		}
-		return visible + pad
-	}
-	textinput0_visiblePlaceholder := func() string {
-		if textinput0_contentW <= 0 || len(name) > 0 || len(textinput0_placeholder) == 0 {
-			return ""
-		}
-		text := textinput0_placeholder
-		if len(text) > textinput0_contentW {
-			text = text[:textinput0_contentW]
-		}
-		pad := ""
-		for i := len(text); i < textinput0_contentW; i++ {
-			pad = pad + " "
-		}
-		return text + pad
 	}
 	textinput0_rightIndicator := func() string {
 		if textinput0_contentW <= 0 {
 			return ""
 		}
-		if textinput0_viewEnd() < len(textinput0_displayText()) {
+		if textinput0_viewOffset+textinput0_contentW < len(name) {
 			return ">"
 		}
 		return " "
@@ -142,63 +88,185 @@ func Run() {
 	textinput0_scrollbarVisible := func() bool {
 		return textinput0_focused && len(name) > textinput0_contentW && textinput0_contentW > 0
 	}
-	textinput0_scrollLeftArrow := func() string {
-		if !textinput0_scrollbarVisible() {
-			return ""
+	textinput0_textedit0_adjustView := func() {
+		if textinput0_textedit0_contentW <= 0 {
+			return
 		}
-		return "<"
+		if textinput0_textedit0_cursor < textinput0_viewOffset {
+			textinput0_viewOffset = textinput0_textedit0_cursor
+			app.Dirty = true
+		}
+		if textinput0_textedit0_cursor > textinput0_viewOffset+textinput0_textedit0_contentW {
+			textinput0_viewOffset = textinput0_textedit0_cursor - textinput0_textedit0_contentW
+			app.Dirty = true
+		}
+		if textinput0_viewOffset < 0 {
+			textinput0_viewOffset = 0
+			app.Dirty = true
+		}
 	}
-	textinput0_scrollTrackW := func() int {
-		totalW := textinput0_contentW + 4
-		return totalW - 2 - 4
+	textinput0_textedit0_clearSelection := func() {
+		textinput0_textedit0_selAnchor = -1
+		app.Dirty = true
 	}
-	textinput0_scrollTrack := func() string {
-		if !textinput0_scrollbarVisible() {
-			return ""
+	textinput0_textedit0_selStart := func() int {
+		if textinput0_textedit0_selAnchor < textinput0_textedit0_cursor {
+			return textinput0_textedit0_selAnchor
 		}
-		trackW := textinput0_scrollTrackW()
-		if trackW < 1 {
-			return ""
+		return textinput0_textedit0_cursor
+	}
+	textinput0_textedit0_selEnd := func() int {
+		if textinput0_textedit0_selAnchor > textinput0_textedit0_cursor {
+			return textinput0_textedit0_selAnchor
 		}
-		thumbSize := trackW * textinput0_contentW / len(name)
-		if thumbSize < 1 {
-			thumbSize = 1
+		return textinput0_textedit0_cursor
+	}
+	textinput0_textedit0_startSelection := func() {
+		if textinput0_textedit0_selAnchor == -1 {
+			textinput0_textedit0_selAnchor = textinput0_textedit0_cursor
+			app.Dirty = true
 		}
-		maxOff := len(name) - textinput0_contentW
-		thumbPos := 0
-		if maxOff > 0 {
-			thumbPos = (trackW - thumbSize) * textinput0_viewOffset / maxOff
-		}
-		if thumbPos < 0 {
-			thumbPos = 0
-		}
-		if thumbPos+thumbSize > trackW {
-			thumbPos = trackW - thumbSize
-		}
+	}
+	textinput0_textedit0_maskedValue := func() string {
 		result := ""
-		for i := 0; i < trackW; i++ {
-			if i >= thumbPos && i < thumbPos+thumbSize {
-				result = result + "#"
-			} else {
-				result = result + "-"
-			}
+		for i := 0; i < len(name); i++ {
+			result = result + "*"
 		}
 		return result
 	}
-	textinput0_scrollSpacer := func() string {
-		if !textinput0_scrollbarVisible() {
+	textinput0_textedit0_displayValue := func() string {
+		if textinput0_inputType == "password" {
+			return textinput0_textedit0_maskedValue()
+		}
+		return name
+	}
+	textinput0_textedit0_displayText := func() string {
+		text := textinput0_textedit0_displayValue()
+		if len(text) == 0 && len(textinput0_placeholder) > 0 {
+			text = textinput0_placeholder
+		}
+		return text
+	}
+	textinput0_textedit0_viewStart := func() int {
+		vo := textinput0_viewOffset
+		if len(name) == 0 {
+			vo = 0
+		}
+		if vo < 0 {
+			vo = 0
+		}
+		text := textinput0_textedit0_displayText()
+		if vo > len(text) {
+			vo = len(text)
+		}
+		return vo
+	}
+	textinput0_textedit0_viewEnd := func() int {
+		vo := textinput0_textedit0_viewStart()
+		end := vo + textinput0_textedit0_contentW
+		text := textinput0_textedit0_displayText()
+		if end > len(text) {
+			end = len(text)
+		}
+		return end
+	}
+	textinput0_textedit0_visiblePreSel := func() string {
+		if textinput0_textedit0_contentW <= 0 || len(name) == 0 {
 			return ""
 		}
-		return "  "
-	}
-	textinput0_scrollRightArrow := func() string {
-		if !textinput0_scrollbarVisible() {
+		dv := textinput0_textedit0_displayValue()
+		vs := textinput0_textedit0_viewStart()
+		ve := textinput0_textedit0_viewEnd()
+		if textinput0_textedit0_selAnchor == -1 {
+			visible := dv[vs:ve]
+			pad := ""
+			for i := len(visible); i < textinput0_textedit0_contentW; i++ {
+				pad = pad + " "
+			}
+			return visible + pad
+		}
+		ss := textinput0_textedit0_selStart()
+		end := ss
+		if end > ve {
+			end = ve
+		}
+		if end <= vs {
 			return ""
 		}
-		return ">"
+		return dv[vs:end]
 	}
-	textinput0_wordLeft := func() int {
-		pos := textinput0_cursor
+	textinput0_textedit0_visibleSel := func() string {
+		if textinput0_textedit0_contentW <= 0 || len(name) == 0 || textinput0_textedit0_selAnchor == -1 {
+			return ""
+		}
+		dv := textinput0_textedit0_displayValue()
+		vs := textinput0_textedit0_viewStart()
+		ve := textinput0_textedit0_viewEnd()
+		ss := textinput0_textedit0_selStart()
+		se := textinput0_textedit0_selEnd()
+		start := ss
+		if start < vs {
+			start = vs
+		}
+		end := se
+		if end > ve {
+			end = ve
+		}
+		if start >= end {
+			return ""
+		}
+		return dv[start:end]
+	}
+	textinput0_textedit0_visiblePostSel := func() string {
+		if textinput0_textedit0_contentW <= 0 || len(name) == 0 || textinput0_textedit0_selAnchor == -1 {
+			return ""
+		}
+		dv := textinput0_textedit0_displayValue()
+		vs := textinput0_textedit0_viewStart()
+		ve := textinput0_textedit0_viewEnd()
+		se := textinput0_textedit0_selEnd()
+		start := se
+		if start < vs {
+			start = vs
+		}
+		if start >= ve {
+			totalVisible := ve - vs
+			pad := ""
+			for i := totalVisible; i < textinput0_textedit0_contentW; i++ {
+				pad = pad + " "
+			}
+			return pad
+		}
+		text := dv[start:ve]
+		totalVisible := ve - vs
+		pad := ""
+		for i := totalVisible; i < textinput0_textedit0_contentW; i++ {
+			pad = pad + " "
+		}
+		return text + pad
+	}
+	textinput0_textedit0_visiblePlaceholder := func() string {
+		if textinput0_textedit0_contentW <= 0 || len(name) > 0 || len(textinput0_placeholder) == 0 {
+			return ""
+		}
+		text := textinput0_placeholder
+		if len(text) > textinput0_textedit0_contentW {
+			text = text[:textinput0_textedit0_contentW]
+		}
+		pad := ""
+		for i := len(text); i < textinput0_textedit0_contentW; i++ {
+			pad = pad + " "
+		}
+		return text + pad
+	}
+	textinput0_textedit0_cursorX := func() int {
+		if textinput0_textedit0_selAnchor >= 0 {
+			return -1
+		}
+		return textinput0_textedit0_cursor - textinput0_viewOffset
+	}
+	textinput0_textedit0_wordLeft := func() int {
+		pos := textinput0_textedit0_cursor
 		for pos > 0 && name[pos-1] == ' ' {
 			pos = pos - 1
 		}
@@ -207,8 +275,8 @@ func Run() {
 		}
 		return pos
 	}
-	textinput0_wordRight := func() int {
-		pos := textinput0_cursor
+	textinput0_textedit0_wordRight := func() int {
+		pos := textinput0_textedit0_cursor
 		for pos < len(name) && name[pos] != ' ' {
 			pos = pos + 1
 		}
@@ -217,187 +285,236 @@ func Run() {
 		}
 		return pos
 	}
-	textinput0_clampCursorToView := func() {
-		if textinput0_cursor < textinput0_viewOffset {
-			textinput0_cursor = textinput0_viewOffset
-			app.Dirty = true
+	textinput0_textedit0_wordLeftFrom := func(pos int) int {
+		for pos > 0 && name[pos-1] == ' ' {
+			pos = pos - 1
 		}
-		if textinput0_cursor > textinput0_viewOffset+textinput0_contentW {
-			textinput0_cursor = textinput0_viewOffset + textinput0_contentW
-			app.Dirty = true
+		for pos > 0 && name[pos-1] != ' ' {
+			pos = pos - 1
 		}
-		if textinput0_cursor > len(name) {
-			textinput0_cursor = len(name)
-			app.Dirty = true
-		}
-		if textinput0_cursor < 0 {
-			textinput0_cursor = 0
-			app.Dirty = true
-		}
+		return pos
 	}
-	textinput0_maxOffset := func() int {
-		return len(name) - textinput0_contentW
-	}
-	textinput0_scrollbarY := func() int {
-		return textinput0_selfY + 1
-	}
-	textinput0_scrollTrackStart := func() int {
-		return textinput0_selfX + 1 + 2
-	}
-	textinput0_viewOffsetForTrackX := func(trackX int) int {
-		trackW := textinput0_scrollTrackW()
-		if trackW <= 0 {
-			return textinput0_viewOffset
+	textinput0_textedit0_wordRightFrom := func(pos int) int {
+		for pos < len(name) && name[pos] != ' ' {
+			pos = pos + 1
 		}
-		maxOff := textinput0_maxOffset()
-		if maxOff <= 0 {
-			return 0
+		for pos < len(name) && name[pos] == ' ' {
+			pos = pos + 1
 		}
-		target := trackX * maxOff / trackW
-		if target < 0 {
-			target = 0
-		}
-		if target > maxOff {
-			target = maxOff
-		}
-		return target
+		return pos
 	}
-	textinput0_cancelAnimation := func() {
-		textinput0_scrollAnimating = false
+	textinput0_textedit0_wordEndFrom := func(pos int) int {
+		for pos < len(name) && name[pos] != ' ' {
+			pos = pos + 1
+		}
+		return pos
+	}
+	textinput0_textedit0_mousePosToTextPos := func(mouseX int) int {
+		relX := mouseX - textinput0_textedit0_selfX
+		pos := textinput0_viewOffset + relX
+		if pos < 0 {
+			pos = 0
+		}
+		if pos > len(name) {
+			pos = len(name)
+		}
+		return pos
+	}
+	textinput0_textedit0_saveUndo := func() {
+		textinput0_textedit0_undoValues = append(textinput0_textedit0_undoValues, name)
 		app.Dirty = true
-		textinput0_scrollDragging = false
+		textinput0_textedit0_undoCursors = append(textinput0_textedit0_undoCursors, textinput0_textedit0_cursor)
 		app.Dirty = true
-		textinput0_scrollHeld = false
-		app.Dirty = true
-	}
-	textinput0_saveUndo := func() {
-		textinput0_undoValues = append(textinput0_undoValues, name)
-		app.Dirty = true
-		textinput0_undoCursors = append(textinput0_undoCursors, textinput0_cursor)
-		app.Dirty = true
-		if len(textinput0_undoValues) > 100 {
-			textinput0_undoValues = textinput0_undoValues[1:]
+		if len(textinput0_textedit0_undoValues) > 100 {
+			textinput0_textedit0_undoValues = textinput0_textedit0_undoValues[1:]
 			app.Dirty = true
-			textinput0_undoCursors = textinput0_undoCursors[1:]
+			textinput0_textedit0_undoCursors = textinput0_textedit0_undoCursors[1:]
 			app.Dirty = true
 		}
 	}
-	textinput0_undo := func() {
-		if len(textinput0_undoValues) == 0 {
+	textinput0_textedit0_undo := func() {
+		if len(textinput0_textedit0_undoValues) == 0 {
 			return
 		}
-		last := len(textinput0_undoValues) - 1
-		name = textinput0_undoValues[last]
+		last := len(textinput0_textedit0_undoValues) - 1
+		name = textinput0_textedit0_undoValues[last]
 		app.Dirty = true
-		textinput0_cursor = textinput0_undoCursors[last]
+		textinput0_textedit0_cursor = textinput0_textedit0_undoCursors[last]
 		app.Dirty = true
-		textinput0_undoValues = textinput0_undoValues[:last]
+		textinput0_textedit0_undoValues = textinput0_textedit0_undoValues[:last]
 		app.Dirty = true
-		textinput0_undoCursors = textinput0_undoCursors[:last]
+		textinput0_textedit0_undoCursors = textinput0_textedit0_undoCursors[:last]
 		app.Dirty = true
-		textinput0_adjustView()
+		textinput0_textedit0_adjustView()
 	}
-	textinput0_killText := func(text string) {
-		textinput0_killBuffer = text
+	textinput0_textedit0_deleteSelection := func() {
+		textinput0_textedit0_saveUndo()
+		name = name[:textinput0_textedit0_selStart()] + name[textinput0_textedit0_selEnd():]
+		app.Dirty = true
+		textinput0_textedit0_cursor = textinput0_textedit0_selStart()
+		app.Dirty = true
+		textinput0_textedit0_selAnchor = -1
+		app.Dirty = true
+		textinput0_textedit0_adjustView()
+	}
+	textinput0_textedit0_killText := func(text string) {
+		textinput0_textedit0_killBuffer = text
 		app.Dirty = true
 	}
-	textinput0_transposeChars := func() {
-		if textinput0_cursor < 2 {
+	textinput0_textedit0_transposeChars := func() {
+		if textinput0_textedit0_cursor < 2 {
 			return
 		}
-		a := name[textinput0_cursor-2]
-		b := name[textinput0_cursor-1]
-		name = name[:textinput0_cursor-2] + string(b) + string(a) + name[textinput0_cursor:]
+		a := name[textinput0_textedit0_cursor-2]
+		b := name[textinput0_textedit0_cursor-1]
+		name = name[:textinput0_textedit0_cursor-2] + string(b) + string(a) + name[textinput0_textedit0_cursor:]
 		app.Dirty = true
 	}
-	textinput0_animateStep := func() {
-		now := time.Now().UnixMilli()
-		elapsed := now - textinput0_scrollAnimStart
-		duration := int64(200)
-		if elapsed >= duration {
-			textinput0_viewOffset = textinput0_scrollAnimTo
+	textinput0_textedit0_handleEvent := func(evt input.Event) {
+		if evt.Kind == input.EventFocus {
+			textinput0_focused = true
 			app.Dirty = true
-			textinput0_scrollAnimating = false
+			stopPropagation()
+			return
+		}
+		if evt.Kind == input.EventBlur {
+			textinput0_focused = false
 			app.Dirty = true
-			if textinput0_scrollHeld {
-				textinput0_scrollDragging = true
-				app.Dirty = true
+			textinput0_textedit0_clearSelection()
+			if textinput0_strip && !textinput0_readonly {
+				for len(name) > 0 && name[0] == ' ' {
+					name = name[1:]
+					app.Dirty = true
+				}
+				for len(name) > 0 && name[len(name)-1] == ' ' {
+					name = name[:len(name)-1]
+					app.Dirty = true
+				}
+				if textinput0_textedit0_cursor > len(name) {
+					textinput0_textedit0_cursor = len(name)
+					app.Dirty = true
+				}
+				textinput0_textedit0_adjustView()
 			}
-			textinput0_clampCursorToView()
+			stopPropagation()
 			return
 		}
-		t := float64(elapsed) / float64(duration)
-		inv := 1.0 - t
-		eased := 1.0 - inv*inv*inv
-		textinput0_viewOffset = textinput0_scrollAnimFrom + int(eased*float64(textinput0_scrollAnimTo-textinput0_scrollAnimFrom))
-		app.Dirty = true
-		textinput0_clampCursorToView()
-		app.RequestFrame()
-	}
-	textinput0_startScrollAnimation := func(target int) {
-		textinput0_scrollAnimating = true
-		app.Dirty = true
-		textinput0_scrollAnimStart = time.Now().UnixMilli()
-		app.Dirty = true
-		textinput0_scrollAnimFrom = textinput0_viewOffset
-		app.Dirty = true
-		textinput0_scrollAnimTo = target
-		app.Dirty = true
-		app.RequestFrame()
-	}
-	textinput0_handleEvent := func(evt input.Event) {
-		if evt.Kind == input.EventFrame {
-			if textinput0_scrollAnimating {
-				textinput0_animateStep()
+		if evt.Kind == input.EventPaste {
+			if textinput0_readonly {
+				stopPropagation()
+				return
 			}
+			paste := evt.PasteText
+			if textinput0_textedit0_selAnchor >= 0 {
+				textinput0_textedit0_deleteSelection()
+			}
+			if textinput0_maxlength > 0 {
+				room := textinput0_maxlength - len(name)
+				if room <= 0 {
+					stopPropagation()
+					return
+				}
+				if len(paste) > room {
+					paste = paste[:room]
+				}
+			}
+			textinput0_textedit0_saveUndo()
+			name = name[:textinput0_textedit0_cursor] + paste + name[textinput0_textedit0_cursor:]
+			app.Dirty = true
+			textinput0_textedit0_cursor = textinput0_textedit0_cursor + len(paste)
+			app.Dirty = true
+			textinput0_textedit0_adjustView()
 			stopPropagation()
 			return
 		}
 		if evt.Kind == input.EventMouse && evt.Mouse.Action == input.MouseRelease {
-			if textinput0_scrollHeld || textinput0_scrollDragging {
-				textinput0_scrollHeld = false
+			if textinput0_textedit0_mouseDragging || textinput0_textedit0_wordDragging {
+				textinput0_textedit0_mouseDragging = false
 				app.Dirty = true
-				textinput0_scrollDragging = false
+				textinput0_textedit0_wordDragging = false
 				app.Dirty = true
+				if textinput0_textedit0_selAnchor == textinput0_textedit0_cursor {
+					textinput0_textedit0_selAnchor = -1
+					app.Dirty = true
+				}
 				stopPropagation()
 				return
 			}
 		}
-		if evt.Kind == input.EventMouse && evt.Mouse.Action == input.MouseMotion && textinput0_scrollDragging {
-			trackX := evt.Mouse.X - textinput0_scrollTrackStart()
-			textinput0_viewOffset = textinput0_viewOffsetForTrackX(trackX)
-			app.Dirty = true
-			textinput0_clampCursorToView()
+		if evt.Kind == input.EventMouse && evt.Mouse.Action == input.MouseMotion && textinput0_textedit0_wordDragging {
+			pos := textinput0_textedit0_mousePosToTextPos(evt.Mouse.X)
+			wl := textinput0_textedit0_wordLeftFrom(pos)
+			wr := textinput0_textedit0_wordEndFrom(pos)
+			if wl < textinput0_textedit0_wordDragStart {
+				textinput0_textedit0_selAnchor = textinput0_textedit0_wordDragEnd
+				app.Dirty = true
+				textinput0_textedit0_cursor = wl
+				app.Dirty = true
+			} else {
+				textinput0_textedit0_selAnchor = textinput0_textedit0_wordDragStart
+				app.Dirty = true
+				textinput0_textedit0_cursor = wr
+				app.Dirty = true
+			}
+			textinput0_textedit0_adjustView()
 			stopPropagation()
 			return
 		}
-		if evt.Kind == input.EventMouse && evt.Mouse.Action == input.MousePress && evt.Mouse.Button == input.ButtonLeft && evt.Mouse.Y == textinput0_scrollbarY() && textinput0_scrollbarVisible() {
-			trackX := evt.Mouse.X - textinput0_scrollTrackStart()
-			trackW := textinput0_scrollTrackW()
-			if trackX >= 0 && trackX < trackW {
-				target := textinput0_viewOffsetForTrackX(trackX)
-				textinput0_scrollHeld = true
+		if evt.Kind == input.EventMouse && evt.Mouse.Action == input.MouseMotion && textinput0_textedit0_mouseDragging {
+			pos := textinput0_textedit0_mousePosToTextPos(evt.Mouse.X)
+			textinput0_textedit0_cursor = pos
+			app.Dirty = true
+			textinput0_textedit0_adjustView()
+			stopPropagation()
+			return
+		}
+		if evt.Kind == input.EventMouse && evt.Mouse.Action == input.MousePress && evt.Mouse.Button == input.ButtonLeft {
+			clickPos := textinput0_textedit0_mousePosToTextPos(evt.Mouse.X)
+			now := time.Now().UnixMilli()
+			if evt.Shift {
+				if textinput0_textedit0_selAnchor == -1 {
+					textinput0_textedit0_selAnchor = textinput0_textedit0_cursor
+					app.Dirty = true
+				}
+				textinput0_textedit0_cursor = clickPos
 				app.Dirty = true
-				textinput0_startScrollAnimation(target)
+				textinput0_textedit0_mouseDragging = true
+				app.Dirty = true
+				textinput0_textedit0_adjustView()
 				stopPropagation()
 				return
 			}
-		}
-		if textinput0_scrollAnimating {
-			textinput0_cancelAnimation()
-		}
-		if evt.Kind == input.EventMouse && evt.Mouse.Action == input.MousePress && evt.Mouse.Button == input.ButtonLeft {
-			relX := evt.Mouse.X - textinput0_selfX - 2
-			newCursor := textinput0_viewOffset + relX
-			if newCursor < 0 {
-				newCursor = 0
+			if now-textinput0_textedit0_lastClickTime < 500 && evt.Mouse.X == textinput0_textedit0_lastClickX {
+				wl := textinput0_textedit0_wordLeftFrom(clickPos)
+				wr := textinput0_textedit0_wordEndFrom(clickPos)
+				textinput0_textedit0_selAnchor = wl
+				app.Dirty = true
+				textinput0_textedit0_cursor = wr
+				app.Dirty = true
+				textinput0_textedit0_wordDragging = true
+				app.Dirty = true
+				textinput0_textedit0_wordDragStart = wl
+				app.Dirty = true
+				textinput0_textedit0_wordDragEnd = wr
+				app.Dirty = true
+				textinput0_textedit0_adjustView()
+				textinput0_textedit0_lastClickTime = 0
+				app.Dirty = true
+				stopPropagation()
+				return
 			}
-			if newCursor > len(name) {
-				newCursor = len(name)
-			}
-			textinput0_cursor = newCursor
+			textinput0_textedit0_lastClickTime = now
 			app.Dirty = true
-			textinput0_adjustView()
+			textinput0_textedit0_lastClickX = evt.Mouse.X
+			app.Dirty = true
+			textinput0_textedit0_clearSelection()
+			textinput0_textedit0_cursor = clickPos
+			app.Dirty = true
+			textinput0_textedit0_selAnchor = clickPos
+			app.Dirty = true
+			textinput0_textedit0_mouseDragging = true
+			app.Dirty = true
+			textinput0_textedit0_adjustView()
 			stopPropagation()
 			return
 		}
@@ -409,226 +526,607 @@ func Run() {
 					textinput0_viewOffset = 0
 					app.Dirty = true
 				}
-				textinput0_clampCursorToView()
 				stopPropagation()
 				return
 			}
-			if evt.Mouse.Button == input.ScrollDown && textinput0_viewOffset < len(name)-textinput0_contentW {
+			if evt.Mouse.Button == input.ScrollDown && textinput0_viewOffset < len(name)-textinput0_textedit0_contentW {
 				textinput0_viewOffset = textinput0_viewOffset + 3
 				app.Dirty = true
-				if textinput0_viewOffset > len(name)-textinput0_contentW {
-					textinput0_viewOffset = len(name) - textinput0_contentW
+				if textinput0_viewOffset > len(name)-textinput0_textedit0_contentW {
+					textinput0_viewOffset = len(name) - textinput0_textedit0_contentW
 					app.Dirty = true
 				}
-				textinput0_clampCursorToView()
 				stopPropagation()
 				return
 			}
 		}
-		if evt.Special == input.KeyBackspace && evt.Ctrl && textinput0_cursor > 0 {
-			textinput0_saveUndo()
-			pos := textinput0_wordLeft()
-			textinput0_killText(name[pos:textinput0_cursor])
-			name = name[:pos] + name[textinput0_cursor:]
-			app.Dirty = true
-			textinput0_cursor = pos
-			app.Dirty = true
-			textinput0_adjustView()
+		if (evt.Special == input.KeyBackspace || evt.Special == input.KeyDelete) && textinput0_textedit0_selAnchor >= 0 {
+			if textinput0_readonly {
+				stopPropagation()
+				return
+			}
+			textinput0_textedit0_deleteSelection()
 			stopPropagation()
 			return
 		}
-		if evt.Special == input.KeyBackspace && textinput0_cursor > 0 {
-			textinput0_saveUndo()
-			name = name[:textinput0_cursor-1] + name[textinput0_cursor:]
+		if evt.Special == input.KeyBackspace && evt.Ctrl && textinput0_textedit0_cursor > 0 {
+			if textinput0_readonly {
+				stopPropagation()
+				return
+			}
+			textinput0_textedit0_saveUndo()
+			pos := textinput0_textedit0_wordLeft()
+			textinput0_textedit0_killText(name[pos:textinput0_textedit0_cursor])
+			name = name[:pos] + name[textinput0_textedit0_cursor:]
 			app.Dirty = true
-			textinput0_cursor = textinput0_cursor - 1
+			textinput0_textedit0_cursor = pos
 			app.Dirty = true
-			textinput0_adjustView()
+			textinput0_textedit0_adjustView()
 			stopPropagation()
 			return
 		}
-		if evt.Special == input.KeyDelete && evt.Ctrl && textinput0_cursor < len(name) {
-			textinput0_saveUndo()
-			pos := textinput0_wordRight()
-			textinput0_killText(name[textinput0_cursor:pos])
-			name = name[:textinput0_cursor] + name[pos:]
+		if evt.Special == input.KeyBackspace && textinput0_textedit0_cursor > 0 {
+			if textinput0_readonly {
+				stopPropagation()
+				return
+			}
+			textinput0_textedit0_saveUndo()
+			name = name[:textinput0_textedit0_cursor-1] + name[textinput0_textedit0_cursor:]
 			app.Dirty = true
-			textinput0_adjustView()
+			textinput0_textedit0_cursor = textinput0_textedit0_cursor - 1
+			app.Dirty = true
+			textinput0_textedit0_adjustView()
 			stopPropagation()
 			return
 		}
-		if evt.Special == input.KeyDelete && textinput0_cursor < len(name) {
-			textinput0_saveUndo()
-			name = name[:textinput0_cursor] + name[textinput0_cursor+1:]
+		if evt.Special == input.KeyDelete && evt.Ctrl && textinput0_textedit0_cursor < len(name) {
+			if textinput0_readonly {
+				stopPropagation()
+				return
+			}
+			textinput0_textedit0_saveUndo()
+			pos := textinput0_textedit0_wordRight()
+			textinput0_textedit0_killText(name[textinput0_textedit0_cursor:pos])
+			name = name[:textinput0_textedit0_cursor] + name[pos:]
 			app.Dirty = true
-			textinput0_adjustView()
+			textinput0_textedit0_adjustView()
 			stopPropagation()
 			return
 		}
-		if evt.Special == input.KeyLeft && evt.Ctrl && textinput0_cursor > 0 {
-			textinput0_cursor = textinput0_wordLeft()
+		if evt.Special == input.KeyDelete && textinput0_textedit0_cursor < len(name) {
+			if textinput0_readonly {
+				stopPropagation()
+				return
+			}
+			textinput0_textedit0_saveUndo()
+			name = name[:textinput0_textedit0_cursor] + name[textinput0_textedit0_cursor+1:]
 			app.Dirty = true
-			textinput0_adjustView()
+			textinput0_textedit0_adjustView()
 			stopPropagation()
 			return
 		}
-		if evt.Special == input.KeyLeft && textinput0_cursor > 0 {
-			textinput0_cursor = textinput0_cursor - 1
+		if evt.Special == input.KeyLeft && evt.Shift && evt.Ctrl {
+			textinput0_textedit0_startSelection()
+			textinput0_textedit0_cursor = textinput0_textedit0_wordLeft()
 			app.Dirty = true
-			textinput0_adjustView()
+			textinput0_textedit0_adjustView()
 			stopPropagation()
 			return
 		}
-		if evt.Special == input.KeyRight && evt.Ctrl && textinput0_cursor < len(name) {
-			textinput0_cursor = textinput0_wordRight()
+		if evt.Special == input.KeyLeft && evt.Shift && textinput0_textedit0_cursor > 0 {
+			textinput0_textedit0_startSelection()
+			textinput0_textedit0_cursor = textinput0_textedit0_cursor - 1
 			app.Dirty = true
-			textinput0_adjustView()
+			textinput0_textedit0_adjustView()
 			stopPropagation()
 			return
 		}
-		if evt.Special == input.KeyRight && textinput0_cursor < len(name) {
-			textinput0_cursor = textinput0_cursor + 1
+		if evt.Special == input.KeyRight && evt.Shift && evt.Ctrl {
+			textinput0_textedit0_startSelection()
+			textinput0_textedit0_cursor = textinput0_textedit0_wordRight()
 			app.Dirty = true
-			textinput0_adjustView()
+			textinput0_textedit0_adjustView()
+			stopPropagation()
+			return
+		}
+		if evt.Special == input.KeyRight && evt.Shift && textinput0_textedit0_cursor < len(name) {
+			textinput0_textedit0_startSelection()
+			textinput0_textedit0_cursor = textinput0_textedit0_cursor + 1
+			app.Dirty = true
+			textinput0_textedit0_adjustView()
+			stopPropagation()
+			return
+		}
+		if evt.Special == input.KeyHome && evt.Shift {
+			textinput0_textedit0_startSelection()
+			textinput0_textedit0_cursor = 0
+			app.Dirty = true
+			textinput0_textedit0_adjustView()
+			stopPropagation()
+			return
+		}
+		if evt.Special == input.KeyEnd && evt.Shift {
+			textinput0_textedit0_startSelection()
+			textinput0_textedit0_cursor = len(name)
+			app.Dirty = true
+			textinput0_textedit0_adjustView()
+			stopPropagation()
+			return
+		}
+		if evt.Special == input.KeyLeft && evt.Ctrl && textinput0_textedit0_cursor > 0 {
+			textinput0_textedit0_clearSelection()
+			textinput0_textedit0_cursor = textinput0_textedit0_wordLeft()
+			app.Dirty = true
+			textinput0_textedit0_adjustView()
+			stopPropagation()
+			return
+		}
+		if evt.Special == input.KeyLeft && textinput0_textedit0_cursor > 0 {
+			textinput0_textedit0_clearSelection()
+			textinput0_textedit0_cursor = textinput0_textedit0_cursor - 1
+			app.Dirty = true
+			textinput0_textedit0_adjustView()
+			stopPropagation()
+			return
+		}
+		if evt.Special == input.KeyRight && evt.Ctrl && textinput0_textedit0_cursor < len(name) {
+			textinput0_textedit0_clearSelection()
+			textinput0_textedit0_cursor = textinput0_textedit0_wordRight()
+			app.Dirty = true
+			textinput0_textedit0_adjustView()
+			stopPropagation()
+			return
+		}
+		if evt.Special == input.KeyRight && textinput0_textedit0_cursor < len(name) {
+			textinput0_textedit0_clearSelection()
+			textinput0_textedit0_cursor = textinput0_textedit0_cursor + 1
+			app.Dirty = true
+			textinput0_textedit0_adjustView()
 			stopPropagation()
 			return
 		}
 		if evt.Special == input.KeyHome {
-			textinput0_cursor = 0
+			textinput0_textedit0_clearSelection()
+			textinput0_textedit0_cursor = 0
 			app.Dirty = true
-			textinput0_adjustView()
+			textinput0_textedit0_adjustView()
 			stopPropagation()
 			return
 		}
 		if evt.Special == input.KeyEnd {
-			textinput0_cursor = len(name)
+			textinput0_textedit0_clearSelection()
+			textinput0_textedit0_cursor = len(name)
 			app.Dirty = true
-			textinput0_adjustView()
+			textinput0_textedit0_adjustView()
 			stopPropagation()
 			return
 		}
 		if evt.Kind == input.EventKey && evt.Ctrl && evt.Rune == 'a' {
-			textinput0_cursor = 0
+			textinput0_textedit0_selAnchor = 0
 			app.Dirty = true
-			textinput0_adjustView()
+			textinput0_textedit0_cursor = len(name)
+			app.Dirty = true
+			textinput0_textedit0_adjustView()
 			stopPropagation()
 			return
 		}
 		if evt.Kind == input.EventKey && evt.Ctrl && evt.Rune == 'e' {
-			textinput0_cursor = len(name)
+			textinput0_textedit0_clearSelection()
+			textinput0_textedit0_cursor = len(name)
 			app.Dirty = true
-			textinput0_adjustView()
+			textinput0_textedit0_adjustView()
 			stopPropagation()
 			return
 		}
-		if evt.Kind == input.EventKey && evt.Ctrl && evt.Rune == 'f' && textinput0_cursor < len(name) {
-			textinput0_cursor = textinput0_cursor + 1
+		if evt.Kind == input.EventKey && evt.Ctrl && evt.Rune == 'f' && textinput0_textedit0_cursor < len(name) {
+			textinput0_textedit0_clearSelection()
+			textinput0_textedit0_cursor = textinput0_textedit0_cursor + 1
 			app.Dirty = true
-			textinput0_adjustView()
+			textinput0_textedit0_adjustView()
 			stopPropagation()
 			return
 		}
-		if evt.Kind == input.EventKey && evt.Ctrl && evt.Rune == 'b' && textinput0_cursor > 0 {
-			textinput0_cursor = textinput0_cursor - 1
+		if evt.Kind == input.EventKey && evt.Ctrl && evt.Rune == 'b' && textinput0_textedit0_cursor > 0 {
+			textinput0_textedit0_clearSelection()
+			textinput0_textedit0_cursor = textinput0_textedit0_cursor - 1
 			app.Dirty = true
-			textinput0_adjustView()
+			textinput0_textedit0_adjustView()
 			stopPropagation()
 			return
 		}
-		if evt.Kind == input.EventKey && evt.Ctrl && evt.Rune == 'd' && textinput0_cursor < len(name) {
-			textinput0_saveUndo()
-			name = name[:textinput0_cursor] + name[textinput0_cursor+1:]
-			app.Dirty = true
-			textinput0_adjustView()
+		if evt.Kind == input.EventKey && evt.Ctrl && evt.Rune == 'c' && textinput0_textedit0_selAnchor >= 0 {
+			selected := name[textinput0_textedit0_selStart():textinput0_textedit0_selEnd()]
+			textinput0_textedit0_killText(selected)
+			render.CopyToClipboard(os.Stdout, selected)
 			stopPropagation()
 			return
 		}
-		if evt.Kind == input.EventKey && evt.Ctrl && evt.Rune == 'k' && textinput0_cursor < len(name) {
-			textinput0_saveUndo()
-			textinput0_killText(name[textinput0_cursor:])
-			name = name[:textinput0_cursor]
-			app.Dirty = true
-			textinput0_adjustView()
+		if evt.Kind == input.EventKey && evt.Ctrl && evt.Rune == 'x' && textinput0_textedit0_selAnchor >= 0 {
+			if textinput0_readonly {
+				selected := name[textinput0_textedit0_selStart():textinput0_textedit0_selEnd()]
+				textinput0_textedit0_killText(selected)
+				render.CopyToClipboard(os.Stdout, selected)
+				stopPropagation()
+				return
+			}
+			selected := name[textinput0_textedit0_selStart():textinput0_textedit0_selEnd()]
+			textinput0_textedit0_killText(selected)
+			render.CopyToClipboard(os.Stdout, selected)
+			textinput0_textedit0_deleteSelection()
 			stopPropagation()
 			return
 		}
-		if evt.Kind == input.EventKey && evt.Ctrl && evt.Rune == 'u' && textinput0_cursor > 0 {
-			textinput0_saveUndo()
-			textinput0_killText(name[:textinput0_cursor])
-			name = name[textinput0_cursor:]
+		if evt.Kind == input.EventKey && evt.Ctrl && evt.Rune == 'd' && textinput0_textedit0_cursor < len(name) {
+			if textinput0_readonly {
+				stopPropagation()
+				return
+			}
+			textinput0_textedit0_saveUndo()
+			name = name[:textinput0_textedit0_cursor] + name[textinput0_textedit0_cursor+1:]
 			app.Dirty = true
-			textinput0_cursor = 0
-			app.Dirty = true
-			textinput0_adjustView()
+			textinput0_textedit0_adjustView()
 			stopPropagation()
 			return
 		}
-		if evt.Kind == input.EventKey && evt.Ctrl && evt.Rune == 'w' && textinput0_cursor > 0 {
-			textinput0_saveUndo()
-			pos := textinput0_wordLeft()
-			textinput0_killText(name[pos:textinput0_cursor])
-			name = name[:pos] + name[textinput0_cursor:]
+		if evt.Kind == input.EventKey && evt.Ctrl && evt.Rune == 'k' && textinput0_textedit0_cursor < len(name) {
+			if textinput0_readonly {
+				stopPropagation()
+				return
+			}
+			textinput0_textedit0_saveUndo()
+			textinput0_textedit0_killText(name[textinput0_textedit0_cursor:])
+			name = name[:textinput0_textedit0_cursor]
 			app.Dirty = true
-			textinput0_cursor = pos
-			app.Dirty = true
-			textinput0_adjustView()
+			textinput0_textedit0_adjustView()
 			stopPropagation()
 			return
 		}
-		if evt.Kind == input.EventKey && evt.Ctrl && evt.Rune == 't' && textinput0_cursor >= 2 {
-			textinput0_saveUndo()
-			textinput0_transposeChars()
+		if evt.Kind == input.EventKey && evt.Ctrl && evt.Rune == 'u' && textinput0_textedit0_cursor > 0 {
+			if textinput0_readonly {
+				stopPropagation()
+				return
+			}
+			textinput0_textedit0_saveUndo()
+			textinput0_textedit0_killText(name[:textinput0_textedit0_cursor])
+			name = name[textinput0_textedit0_cursor:]
+			app.Dirty = true
+			textinput0_textedit0_cursor = 0
+			app.Dirty = true
+			textinput0_textedit0_adjustView()
 			stopPropagation()
 			return
 		}
-		if evt.Kind == input.EventKey && evt.Ctrl && evt.Rune == 'y' && len(textinput0_killBuffer) > 0 {
-			textinput0_saveUndo()
-			name = name[:textinput0_cursor] + textinput0_killBuffer + name[textinput0_cursor:]
+		if evt.Kind == input.EventKey && evt.Ctrl && evt.Rune == 'w' && textinput0_textedit0_cursor > 0 {
+			if textinput0_readonly {
+				stopPropagation()
+				return
+			}
+			textinput0_textedit0_saveUndo()
+			pos := textinput0_textedit0_wordLeft()
+			textinput0_textedit0_killText(name[pos:textinput0_textedit0_cursor])
+			name = name[:pos] + name[textinput0_textedit0_cursor:]
 			app.Dirty = true
-			textinput0_cursor = textinput0_cursor + len(textinput0_killBuffer)
+			textinput0_textedit0_cursor = pos
 			app.Dirty = true
-			textinput0_adjustView()
+			textinput0_textedit0_adjustView()
+			stopPropagation()
+			return
+		}
+		if evt.Kind == input.EventKey && evt.Ctrl && evt.Rune == 't' && textinput0_textedit0_cursor >= 2 {
+			if textinput0_readonly {
+				stopPropagation()
+				return
+			}
+			textinput0_textedit0_saveUndo()
+			textinput0_textedit0_transposeChars()
+			stopPropagation()
+			return
+		}
+		if evt.Kind == input.EventKey && evt.Ctrl && evt.Rune == 'y' && len(textinput0_textedit0_killBuffer) > 0 {
+			if textinput0_readonly {
+				stopPropagation()
+				return
+			}
+			yank := textinput0_textedit0_killBuffer
+			if textinput0_maxlength > 0 {
+				room := textinput0_maxlength - len(name)
+				if room <= 0 {
+					stopPropagation()
+					return
+				}
+				if len(yank) > room {
+					yank = yank[:room]
+				}
+			}
+			textinput0_textedit0_saveUndo()
+			name = name[:textinput0_textedit0_cursor] + yank + name[textinput0_textedit0_cursor:]
+			app.Dirty = true
+			textinput0_textedit0_cursor = textinput0_textedit0_cursor + len(yank)
+			app.Dirty = true
+			textinput0_textedit0_adjustView()
 			stopPropagation()
 			return
 		}
 		if evt.Kind == input.EventKey && evt.Ctrl && evt.Rune == '/' {
-			textinput0_undo()
+			if textinput0_readonly {
+				stopPropagation()
+				return
+			}
+			textinput0_textedit0_undo()
 			stopPropagation()
 			return
 		}
-		if evt.Kind == input.EventKey && evt.Alt && evt.Rune == 'f' && textinput0_cursor < len(name) {
-			textinput0_cursor = textinput0_wordRight()
+		if evt.Kind == input.EventKey && evt.Alt && evt.Rune == 'f' && textinput0_textedit0_cursor < len(name) {
+			textinput0_textedit0_clearSelection()
+			textinput0_textedit0_cursor = textinput0_textedit0_wordRight()
 			app.Dirty = true
-			textinput0_adjustView()
+			textinput0_textedit0_adjustView()
 			stopPropagation()
 			return
 		}
-		if evt.Kind == input.EventKey && evt.Alt && evt.Rune == 'b' && textinput0_cursor > 0 {
-			textinput0_cursor = textinput0_wordLeft()
+		if evt.Kind == input.EventKey && evt.Alt && evt.Rune == 'b' && textinput0_textedit0_cursor > 0 {
+			textinput0_textedit0_clearSelection()
+			textinput0_textedit0_cursor = textinput0_textedit0_wordLeft()
 			app.Dirty = true
-			textinput0_adjustView()
+			textinput0_textedit0_adjustView()
 			stopPropagation()
 			return
 		}
-		if evt.Kind == input.EventKey && evt.Alt && evt.Rune == 'd' && textinput0_cursor < len(name) {
-			textinput0_saveUndo()
-			pos := textinput0_wordRight()
-			textinput0_killText(name[textinput0_cursor:pos])
-			name = name[:textinput0_cursor] + name[pos:]
+		if evt.Kind == input.EventKey && evt.Alt && evt.Rune == 'd' && textinput0_textedit0_cursor < len(name) {
+			if textinput0_readonly {
+				stopPropagation()
+				return
+			}
+			textinput0_textedit0_saveUndo()
+			pos := textinput0_textedit0_wordRight()
+			textinput0_textedit0_killText(name[textinput0_textedit0_cursor:pos])
+			name = name[:textinput0_textedit0_cursor] + name[pos:]
 			app.Dirty = true
-			textinput0_adjustView()
+			textinput0_textedit0_adjustView()
 			stopPropagation()
 			return
 		}
 		if evt.Kind == input.EventKey && !evt.Ctrl && !evt.Alt && evt.Rune >= 32 {
-			textinput0_saveUndo()
-			name = name[:textinput0_cursor] + string(evt.Rune) + name[textinput0_cursor:]
+			if textinput0_readonly {
+				stopPropagation()
+				return
+			}
+			if textinput0_textedit0_selAnchor >= 0 {
+				textinput0_textedit0_deleteSelection()
+			}
+			if textinput0_maxlength > 0 && len(name) >= textinput0_maxlength {
+				stopPropagation()
+				return
+			}
+			textinput0_textedit0_saveUndo()
+			name = name[:textinput0_textedit0_cursor] + string(evt.Rune) + name[textinput0_textedit0_cursor:]
 			app.Dirty = true
-			textinput0_cursor = textinput0_cursor + 1
+			textinput0_textedit0_cursor = textinput0_textedit0_cursor + 1
 			app.Dirty = true
-			textinput0_adjustView()
+			textinput0_textedit0_adjustView()
 			stopPropagation()
 			return
+		}
+	}
+	textinput0_scrollbar0_isVisible := func() bool {
+		return textinput0_scrollbarVisible() && len(name) > textinput0_contentW && textinput0_contentW > 0
+	}
+	textinput0_scrollbar0_trackChar := func() string {
+		if textinput0_scrollbar0_direction == "vertical" {
+			return "|"
+		}
+		return "-"
+	}
+	textinput0_scrollbar0_thumbChar := func() string {
+		return "#"
+	}
+	textinput0_scrollbar0_startArrow := func() string {
+		if !textinput0_scrollbar0_isVisible() {
+			return ""
+		}
+		if textinput0_scrollbar0_direction == "vertical" {
+			return "^"
+		}
+		return "<"
+	}
+	textinput0_scrollbar0_endArrow := func() string {
+		if !textinput0_scrollbar0_isVisible() {
+			return ""
+		}
+		if textinput0_scrollbar0_direction == "vertical" {
+			return "v"
+		}
+		return ">"
+	}
+	textinput0_scrollbar0_trackSize := func() int {
+		if textinput0_scrollbar0_direction == "vertical" {
+			return textinput0_scrollbar0_selfH - 2
+		}
+		return textinput0_scrollbar0_selfW - 2
+	}
+	textinput0_scrollbar0_thumbSize := func() int {
+		ts := textinput0_scrollbar0_trackSize()
+		if ts < 1 {
+			return 1
+		}
+		size := ts * textinput0_contentW / len(name)
+		if size < 1 {
+			size = 1
+		}
+		return size
+	}
+	textinput0_scrollbar0_thumbPos := func() int {
+		ts := textinput0_scrollbar0_trackSize()
+		ths := textinput0_scrollbar0_thumbSize()
+		maxOff := len(name) - textinput0_contentW
+		if maxOff <= 0 {
+			return 0
+		}
+		pos := (ts - ths) * textinput0_viewOffset / maxOff
+		if pos < 0 {
+			pos = 0
+		}
+		if pos+ths > ts {
+			pos = ts - ths
+		}
+		return pos
+	}
+	textinput0_scrollbar0_trackText := func() string {
+		if !textinput0_scrollbar0_isVisible() {
+			return ""
+		}
+		ts := textinput0_scrollbar0_trackSize()
+		if ts < 1 {
+			return ""
+		}
+		tp := textinput0_scrollbar0_thumbPos()
+		ths := textinput0_scrollbar0_thumbSize()
+		tc := textinput0_scrollbar0_trackChar()
+		thc := textinput0_scrollbar0_thumbChar()
+		result := ""
+		for i := 0; i < ts; i++ {
+			if i >= tp && i < tp+ths {
+				result = result + thc
+			} else {
+				result = result + tc
+			}
+		}
+		return result
+	}
+	textinput0_scrollbar0_spacer := func() string {
+		if !textinput0_scrollbar0_isVisible() {
+			return ""
+		}
+		return " "
+	}
+	textinput0_scrollbar0_maxOffset := func() int {
+		return len(name) - textinput0_contentW
+	}
+	textinput0_scrollbar0_offsetForTrackPos := func(pos int) int {
+		ts := textinput0_scrollbar0_trackSize()
+		if ts <= 0 {
+			return textinput0_viewOffset
+		}
+		maxOff := textinput0_scrollbar0_maxOffset()
+		if maxOff <= 0 {
+			return 0
+		}
+		target := pos * maxOff / ts
+		if target < 0 {
+			target = 0
+		}
+		if target > maxOff {
+			target = maxOff
+		}
+		return target
+	}
+	textinput0_scrollbar0_trackStart := func() int {
+		if textinput0_scrollbar0_direction == "vertical" {
+			return textinput0_scrollbar0_selfY + 1
+		}
+		return textinput0_scrollbar0_selfX + 1 + 1
+	}
+	textinput0_scrollbar0_mouseToTrackPos := func(mousePos int) int {
+		return mousePos - textinput0_scrollbar0_trackStart()
+	}
+	textinput0_scrollbar0_isOnTrack := func(evt input.Event) bool {
+		if textinput0_scrollbar0_direction == "vertical" {
+			return evt.Mouse.X == textinput0_scrollbar0_selfX
+		}
+		return evt.Mouse.Y == textinput0_scrollbar0_selfY
+	}
+	textinput0_scrollbar0_mouseTrackPos := func(evt input.Event) int {
+		if textinput0_scrollbar0_direction == "vertical" {
+			return textinput0_scrollbar0_mouseToTrackPos(evt.Mouse.Y)
+		}
+		return textinput0_scrollbar0_mouseToTrackPos(evt.Mouse.X)
+	}
+	textinput0_scrollbar0_cancelAnimation := func() {
+		textinput0_scrollbar0_animating = false
+		app.Dirty = true
+		textinput0_scrollbar0_dragging = false
+		app.Dirty = true
+		textinput0_scrollbar0_held = false
+		app.Dirty = true
+	}
+	textinput0_scrollbar0_animateStep := func() {
+		now := time.Now().UnixMilli()
+		elapsed := now - textinput0_scrollbar0_animStart
+		duration := int64(200)
+		if elapsed >= duration {
+			textinput0_viewOffset = textinput0_scrollbar0_animTo
+			app.Dirty = true
+			textinput0_scrollbar0_animating = false
+			app.Dirty = true
+			if textinput0_scrollbar0_held {
+				textinput0_scrollbar0_dragging = true
+				app.Dirty = true
+			}
+			return
+		}
+		t := float64(elapsed) / float64(duration)
+		inv := 1.0 - t
+		eased := 1.0 - inv*inv*inv
+		textinput0_viewOffset = textinput0_scrollbar0_animFrom + int(eased*float64(textinput0_scrollbar0_animTo-textinput0_scrollbar0_animFrom))
+		app.Dirty = true
+		app.RequestFrame()
+	}
+	textinput0_scrollbar0_startAnimation := func(target int) {
+		textinput0_scrollbar0_animating = true
+		app.Dirty = true
+		textinput0_scrollbar0_animStart = time.Now().UnixMilli()
+		app.Dirty = true
+		textinput0_scrollbar0_animFrom = textinput0_viewOffset
+		app.Dirty = true
+		textinput0_scrollbar0_animTo = target
+		app.Dirty = true
+		app.RequestFrame()
+	}
+	textinput0_scrollbar0_handleEvent := func(evt input.Event) {
+		if evt.Kind == input.EventFrame {
+			if textinput0_scrollbar0_animating {
+				textinput0_scrollbar0_animateStep()
+			}
+			stopPropagation()
+			return
+		}
+		if evt.Kind == input.EventMouse && evt.Mouse.Action == input.MouseRelease {
+			if textinput0_scrollbar0_held || textinput0_scrollbar0_dragging {
+				textinput0_scrollbar0_held = false
+				app.Dirty = true
+				textinput0_scrollbar0_dragging = false
+				app.Dirty = true
+				stopPropagation()
+				return
+			}
+		}
+		if evt.Kind == input.EventMouse && evt.Mouse.Action == input.MouseMotion && textinput0_scrollbar0_dragging {
+			pos := textinput0_scrollbar0_mouseTrackPos(evt)
+			textinput0_viewOffset = textinput0_scrollbar0_offsetForTrackPos(pos)
+			app.Dirty = true
+			stopPropagation()
+			return
+		}
+		if evt.Kind == input.EventMouse && evt.Mouse.Action == input.MousePress && evt.Mouse.Button == input.ButtonLeft && textinput0_scrollbar0_isOnTrack(evt) {
+			pos := textinput0_scrollbar0_mouseTrackPos(evt)
+			ts := textinput0_scrollbar0_trackSize()
+			if pos >= 0 && pos < ts {
+				target := textinput0_scrollbar0_offsetForTrackPos(pos)
+				textinput0_scrollbar0_held = true
+				app.Dirty = true
+				textinput0_scrollbar0_startAnimation(target)
+				stopPropagation()
+				return
+			}
+		}
+	}
+
+	dispatchToFocusable := func(idx int, evt input.Event) {
+		switch idx {
+		case 0:
+			textinput0_textedit0_handleEvent(evt)
+		case 1:
+			textinput0_scrollbar0_handleEvent(evt)
 		}
 	}
 
@@ -639,63 +1137,32 @@ func Run() {
 			Dim: true,
 		},
 	}
-	textinput0_node1 := &layout.Input{
+	textinput0_textedit0_node0 := &layout.Input{
 		Kind:    layout.KindText,
-		Content: fmt.Sprintf("%v", textinput0_visibleValue()),
+		Content: fmt.Sprintf("%v", textinput0_textedit0_visiblePreSel()),
 	}
-	textinput0_node2 := &layout.Input{
+	textinput0_textedit0_node1 := &layout.Input{
 		Kind:    layout.KindText,
-		Content: fmt.Sprintf("%v", textinput0_visiblePlaceholder()),
+		Content: fmt.Sprintf("%v", textinput0_textedit0_visibleSel()),
+		Style: render.Style{
+			Inverse: true,
+		},
+	}
+	textinput0_textedit0_node2 := &layout.Input{
+		Kind:    layout.KindText,
+		Content: fmt.Sprintf("%v", textinput0_textedit0_visiblePostSel()),
+	}
+	textinput0_textedit0_node3 := &layout.Input{
+		Kind:    layout.KindText,
+		Content: fmt.Sprintf("%v", textinput0_textedit0_visiblePlaceholder()),
 		Style: render.Style{
 			Dim: true,
 		},
 	}
-	textinput0_node3 := &layout.Input{
-		Kind:    layout.KindText,
-		Content: fmt.Sprintf("%v", textinput0_rightIndicator()),
-		Style: render.Style{
-			Dim: true,
-		},
-	}
-	textinput0_node4 := &layout.Input{
-		Kind:    layout.KindText,
-		Content: fmt.Sprintf("%v", textinput0_scrollSpacer()),
-		Style: render.Style{
-			Dim: true,
-		},
-	}
-	textinput0_node5 := &layout.Input{
-		Kind:    layout.KindText,
-		Content: fmt.Sprintf("%v", textinput0_scrollLeftArrow()),
-		Style: render.Style{
-			Dim: true,
-		},
-	}
-	textinput0_node6 := &layout.Input{
-		Kind:    layout.KindText,
-		Content: fmt.Sprintf("%v", textinput0_scrollTrack()),
-		Style: render.Style{
-			Dim: true,
-		},
-	}
-	textinput0_node7 := &layout.Input{
-		Kind:    layout.KindText,
-		Content: fmt.Sprintf("%v", textinput0_scrollRightArrow()),
-		Style: render.Style{
-			Dim: true,
-		},
-	}
-	textinput0_node8 := &layout.Input{
-		Kind:    layout.KindText,
-		Content: fmt.Sprintf("%v", textinput0_scrollSpacer()),
-		Style: render.Style{
-			Dim: true,
-		},
-	}
-	textinput0_box0 := &layout.Input{
+	textinput0_textedit0_box0 := &layout.Input{
 		Kind:      layout.KindBox,
 		Focusable: true,
-		CursorCol: textinput0_cursor - textinput0_viewOffset + 2,
+		CursorCol: textinput0_textedit0_cursorX(),
 		CursorRow: 0,
 		Children: []*layout.Input{
 			{
@@ -704,38 +1171,59 @@ func Run() {
 				CursorCol: -1,
 				CursorRow: -1,
 				Children: []*layout.Input{
-					{
-						Kind:    layout.KindText,
-						Content: "[",
-					},
-					textinput0_node0,
-					textinput0_node1,
-					textinput0_node2,
-					textinput0_node3,
-					{
-						Kind:    layout.KindText,
-						Content: "]",
-					},
-				},
-			},
-			{
-				Kind:      layout.KindBox,
-				Direction: "row",
-				CursorCol: -1,
-				CursorRow: -1,
-				Children: []*layout.Input{
-					textinput0_node4,
-					textinput0_node5,
-					textinput0_node6,
-					textinput0_node7,
-					textinput0_node8,
+					textinput0_textedit0_node0,
+					textinput0_textedit0_node1,
+					textinput0_textedit0_node2,
+					textinput0_textedit0_node3,
 				},
 			},
 		},
 	}
-	textinput0_box0.SelfW = &textinput0_selfW
-	textinput0_box0.SelfX = &textinput0_selfX
-	textinput0_box0.SelfY = &textinput0_selfY
+	textinput0_textedit0_box0.SelfW = &textinput0_textedit0_selfW
+	textinput0_textedit0_box0.SelfX = &textinput0_textedit0_selfX
+	textinput0_textedit0_box0.SelfY = &textinput0_textedit0_selfY
+	textinput0_node1 := &layout.Input{
+		Kind:    layout.KindText,
+		Content: fmt.Sprintf("%v", textinput0_rightIndicator()),
+		Style: render.Style{
+			Dim: true,
+		},
+	}
+	textinput0_scrollbar0_node0 := &layout.Input{
+		Kind:    layout.KindText,
+		Content: fmt.Sprintf("%v", textinput0_scrollbar0_spacer()),
+		Style: render.Style{
+			Dim: true,
+		},
+	}
+	textinput0_scrollbar0_node1 := &layout.Input{
+		Kind:    layout.KindText,
+		Content: fmt.Sprintf("%v", textinput0_scrollbar0_startArrow()),
+		Style: render.Style{
+			Dim: true,
+		},
+	}
+	textinput0_scrollbar0_node2 := &layout.Input{
+		Kind:    layout.KindText,
+		Content: fmt.Sprintf("%v", textinput0_scrollbar0_trackText()),
+		Style: render.Style{
+			Dim: true,
+		},
+	}
+	textinput0_scrollbar0_node3 := &layout.Input{
+		Kind:    layout.KindText,
+		Content: fmt.Sprintf("%v", textinput0_scrollbar0_endArrow()),
+		Style: render.Style{
+			Dim: true,
+		},
+	}
+	textinput0_scrollbar0_node4 := &layout.Input{
+		Kind:    layout.KindText,
+		Content: fmt.Sprintf("%v", textinput0_scrollbar0_spacer()),
+		Style: render.Style{
+			Dim: true,
+		},
+	}
 	node0 := &layout.Input{
 		Kind:    layout.KindText,
 		Content: fmt.Sprintf("You typed: %v", name),
@@ -777,7 +1265,46 @@ func Run() {
 							Bold: true,
 						},
 					},
-					textinput0_box0,
+					{
+						Kind:      layout.KindBox,
+						CursorCol: -1,
+						CursorRow: -1,
+						Children: []*layout.Input{
+							{
+								Kind:      layout.KindBox,
+								Direction: "row",
+								CursorCol: -1,
+								CursorRow: -1,
+								Children: []*layout.Input{
+									{
+										Kind:    layout.KindText,
+										Content: "[",
+									},
+									textinput0_node0,
+									textinput0_textedit0_box0,
+									textinput0_node1,
+									{
+										Kind:    layout.KindText,
+										Content: "]",
+									},
+								},
+							},
+							{
+								Kind:      layout.KindBox,
+								Direction: "row",
+								Focusable: true,
+								CursorCol: -1,
+								CursorRow: -1,
+								Children: []*layout.Input{
+									textinput0_scrollbar0_node0,
+									textinput0_scrollbar0_node1,
+									textinput0_scrollbar0_node2,
+									textinput0_scrollbar0_node3,
+									textinput0_scrollbar0_node4,
+								},
+							},
+						},
+					},
 					node0,
 				},
 			},
@@ -785,29 +1312,37 @@ func Run() {
 	}
 	sync := func() {
 		textinput0_contentW = textinput0_selfW - 4
+		textinput0_textedit0_contentW = textinput0_textedit0_selfW
 		textinput0_focused = focusIndex == 0
 		textinput0_node0.Content = fmt.Sprintf("%v", textinput0_leftIndicator())
-		textinput0_node1.Content = fmt.Sprintf("%v", textinput0_visibleValue())
-		textinput0_node2.Content = fmt.Sprintf("%v", textinput0_visiblePlaceholder())
-		textinput0_node3.Content = fmt.Sprintf("%v", textinput0_rightIndicator())
-		textinput0_node4.Content = fmt.Sprintf("%v", textinput0_scrollSpacer())
-		textinput0_node5.Content = fmt.Sprintf("%v", textinput0_scrollLeftArrow())
-		textinput0_node6.Content = fmt.Sprintf("%v", textinput0_scrollTrack())
-		textinput0_node7.Content = fmt.Sprintf("%v", textinput0_scrollRightArrow())
-		textinput0_node8.Content = fmt.Sprintf("%v", textinput0_scrollSpacer())
+		textinput0_textedit0_node0.Content = fmt.Sprintf("%v", textinput0_textedit0_visiblePreSel())
+		textinput0_textedit0_node1.Content = fmt.Sprintf("%v", textinput0_textedit0_visibleSel())
+		textinput0_textedit0_node2.Content = fmt.Sprintf("%v", textinput0_textedit0_visiblePostSel())
+		textinput0_textedit0_node3.Content = fmt.Sprintf("%v", textinput0_textedit0_visiblePlaceholder())
+		textinput0_node1.Content = fmt.Sprintf("%v", textinput0_rightIndicator())
+		textinput0_scrollbar0_node0.Content = fmt.Sprintf("%v", textinput0_scrollbar0_spacer())
+		textinput0_scrollbar0_node1.Content = fmt.Sprintf("%v", textinput0_scrollbar0_startArrow())
+		textinput0_scrollbar0_node2.Content = fmt.Sprintf("%v", textinput0_scrollbar0_trackText())
+		textinput0_scrollbar0_node3.Content = fmt.Sprintf("%v", textinput0_scrollbar0_endArrow())
+		textinput0_scrollbar0_node4.Content = fmt.Sprintf("%v", textinput0_scrollbar0_spacer())
 		node0.Content = fmt.Sprintf("You typed: %v", name)
 		if focusIndex == 0 {
-			textinput0_box0.CursorCol = textinput0_cursor - textinput0_viewOffset + 2
+			textinput0_textedit0_box0.CursorCol = textinput0_textedit0_cursorX()
 		} else {
-			textinput0_box0.CursorCol = -1
+			textinput0_textedit0_box0.CursorCol = -1
 		}
 	}
 
 	var prevTree *layout.Box
 	var prevW, prevH int
 	var prevTextinput0_selfW int
-	var prevTextinput0_selfX int
-	var prevTextinput0_selfY int
+	var prevTextinput0_textedit0_selfW int
+	var prevTextinput0_textedit0_selfX int
+	var prevTextinput0_textedit0_selfY int
+	var prevTextinput0_scrollbar0_selfX int
+	var prevTextinput0_scrollbar0_selfY int
+	var prevTextinput0_scrollbar0_selfW int
+	var prevTextinput0_scrollbar0_selfH int
 	doRender := func() {
 		sync()
 		termW, termH := term.GetSize(int(os.Stdin.Fd()))
@@ -828,12 +1363,32 @@ func Run() {
 			prevTextinput0_selfW = textinput0_selfW
 			app.Dirty = true
 		}
-		if textinput0_selfX != prevTextinput0_selfX {
-			prevTextinput0_selfX = textinput0_selfX
+		if textinput0_textedit0_selfW != prevTextinput0_textedit0_selfW {
+			prevTextinput0_textedit0_selfW = textinput0_textedit0_selfW
 			app.Dirty = true
 		}
-		if textinput0_selfY != prevTextinput0_selfY {
-			prevTextinput0_selfY = textinput0_selfY
+		if textinput0_textedit0_selfX != prevTextinput0_textedit0_selfX {
+			prevTextinput0_textedit0_selfX = textinput0_textedit0_selfX
+			app.Dirty = true
+		}
+		if textinput0_textedit0_selfY != prevTextinput0_textedit0_selfY {
+			prevTextinput0_textedit0_selfY = textinput0_textedit0_selfY
+			app.Dirty = true
+		}
+		if textinput0_scrollbar0_selfX != prevTextinput0_scrollbar0_selfX {
+			prevTextinput0_scrollbar0_selfX = textinput0_scrollbar0_selfX
+			app.Dirty = true
+		}
+		if textinput0_scrollbar0_selfY != prevTextinput0_scrollbar0_selfY {
+			prevTextinput0_scrollbar0_selfY = textinput0_scrollbar0_selfY
+			app.Dirty = true
+		}
+		if textinput0_scrollbar0_selfW != prevTextinput0_scrollbar0_selfW {
+			prevTextinput0_scrollbar0_selfW = textinput0_scrollbar0_selfW
+			app.Dirty = true
+		}
+		if textinput0_scrollbar0_selfH != prevTextinput0_scrollbar0_selfH {
+			prevTextinput0_scrollbar0_selfH = textinput0_scrollbar0_selfH
 			app.Dirty = true
 		}
 		if cursorBox := layout.FindCursor(tree); cursorBox != nil {
@@ -843,34 +1398,54 @@ func Run() {
 		}
 	}
 
-	_ = textinput0_adjustView
-	_ = textinput0_displayText
-	_ = textinput0_viewStart
-	_ = textinput0_viewEnd
 	_ = textinput0_leftIndicator
-	_ = textinput0_visibleValue
-	_ = textinput0_visiblePlaceholder
 	_ = textinput0_rightIndicator
 	_ = textinput0_scrollbarVisible
-	_ = textinput0_scrollLeftArrow
-	_ = textinput0_scrollTrackW
-	_ = textinput0_scrollTrack
-	_ = textinput0_scrollSpacer
-	_ = textinput0_scrollRightArrow
-	_ = textinput0_wordLeft
-	_ = textinput0_wordRight
-	_ = textinput0_clampCursorToView
-	_ = textinput0_maxOffset
-	_ = textinput0_scrollbarY
-	_ = textinput0_scrollTrackStart
-	_ = textinput0_viewOffsetForTrackX
-	_ = textinput0_cancelAnimation
-	_ = textinput0_saveUndo
-	_ = textinput0_undo
-	_ = textinput0_killText
-	_ = textinput0_transposeChars
-	_ = textinput0_animateStep
-	_ = textinput0_startScrollAnimation
+	_ = textinput0_textedit0_adjustView
+	_ = textinput0_textedit0_clearSelection
+	_ = textinput0_textedit0_selStart
+	_ = textinput0_textedit0_selEnd
+	_ = textinput0_textedit0_startSelection
+	_ = textinput0_textedit0_maskedValue
+	_ = textinput0_textedit0_displayValue
+	_ = textinput0_textedit0_displayText
+	_ = textinput0_textedit0_viewStart
+	_ = textinput0_textedit0_viewEnd
+	_ = textinput0_textedit0_visiblePreSel
+	_ = textinput0_textedit0_visibleSel
+	_ = textinput0_textedit0_visiblePostSel
+	_ = textinput0_textedit0_visiblePlaceholder
+	_ = textinput0_textedit0_cursorX
+	_ = textinput0_textedit0_wordLeft
+	_ = textinput0_textedit0_wordRight
+	_ = textinput0_textedit0_wordLeftFrom
+	_ = textinput0_textedit0_wordRightFrom
+	_ = textinput0_textedit0_wordEndFrom
+	_ = textinput0_textedit0_mousePosToTextPos
+	_ = textinput0_textedit0_saveUndo
+	_ = textinput0_textedit0_undo
+	_ = textinput0_textedit0_deleteSelection
+	_ = textinput0_textedit0_killText
+	_ = textinput0_textedit0_transposeChars
+	_ = textinput0_scrollbar0_isVisible
+	_ = textinput0_scrollbar0_trackChar
+	_ = textinput0_scrollbar0_thumbChar
+	_ = textinput0_scrollbar0_startArrow
+	_ = textinput0_scrollbar0_endArrow
+	_ = textinput0_scrollbar0_trackSize
+	_ = textinput0_scrollbar0_thumbSize
+	_ = textinput0_scrollbar0_thumbPos
+	_ = textinput0_scrollbar0_trackText
+	_ = textinput0_scrollbar0_spacer
+	_ = textinput0_scrollbar0_maxOffset
+	_ = textinput0_scrollbar0_offsetForTrackPos
+	_ = textinput0_scrollbar0_trackStart
+	_ = textinput0_scrollbar0_mouseToTrackPos
+	_ = textinput0_scrollbar0_isOnTrack
+	_ = textinput0_scrollbar0_mouseTrackPos
+	_ = textinput0_scrollbar0_cancelAnimation
+	_ = textinput0_scrollbar0_animateStep
+	_ = textinput0_scrollbar0_startAnimation
 	_ = stopPropagation
 	app = &tui.App{
 		HasMouse: true,
@@ -878,12 +1453,26 @@ func Run() {
 		OnEvent: func(evt input.Event) {
 			if evt.Kind == input.EventSpecial {
 				if evt.Special == input.KeyTab {
+					prev := focusIndex
 					focusIndex = (focusIndex+2)%(focusCount+1) - 1
+					if prev >= 0 {
+						dispatchToFocusable(prev, input.Event{Kind: input.EventBlur})
+					}
+					if focusIndex >= 0 {
+						dispatchToFocusable(focusIndex, input.Event{Kind: input.EventFocus})
+					}
 					app.Dirty = true
 					return
 				}
 				if evt.Special == input.KeyShiftTab {
+					prev := focusIndex
 					focusIndex = (focusIndex+focusCount+1)%(focusCount+1) - 1
+					if prev >= 0 {
+						dispatchToFocusable(prev, input.Event{Kind: input.EventBlur})
+					}
+					if focusIndex >= 0 {
+						dispatchToFocusable(focusIndex, input.Event{Kind: input.EventFocus})
+					}
 					app.Dirty = true
 					return
 				}
@@ -891,7 +1480,15 @@ func Run() {
 			propagationStopped = false
 			switch focusIndex {
 			case 0:
-				textinput0_handleEvent(evt)
+				textinput0_textedit0_handleEvent(evt)
+			case 1:
+				textinput0_scrollbar0_handleEvent(evt)
+			}
+			if evt.Kind == input.EventMouse && evt.Mouse.Action == input.MousePress && !propagationStopped && focusIndex >= 0 {
+				prev := focusIndex
+				focusIndex = -1
+				dispatchToFocusable(prev, input.Event{Kind: input.EventBlur})
+				app.Dirty = true
 			}
 			if !propagationStopped {
 				handleKey(evt)

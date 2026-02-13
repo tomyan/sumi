@@ -26,42 +26,47 @@ type componentInstance struct {
 
 // collectComponentInstances walks the document and assigns unique variable names.
 // Recursively descends into inlined component templates to collect nested references.
+// Nested component attrs are namespaced through parent stateMaps during collection
+// so that all attrs reference root-scope variables by the time code generation begins.
 func collectComponentInstances(doc *template.Document, components map[string]*ComponentInfo) []componentInstance {
 	if len(components) == 0 {
 		return nil
 	}
 	var instances []componentInstance
 	counts := map[string]int{}
-	walkNodes(doc.Children, components, counts, &instances, "")
+	walkNodes(doc.Children, components, counts, &instances, "", nil)
 	return instances
 }
 
 // walkNodes recursively collects ComponentElement instances from a node list.
-func walkNodes(nodes []template.Node, components map[string]*ComponentInfo, counts map[string]int, instances *[]componentInstance, prefix string) {
+// parentStateMap is the enclosing component's stateMap (nil for root-level nodes).
+func walkNodes(nodes []template.Node, components map[string]*ComponentInfo, counts map[string]int, instances *[]componentInstance, prefix string, parentStateMap map[string]string) {
 	for _, node := range nodes {
-		walkNode(node, components, counts, instances, prefix)
+		walkNode(node, components, counts, instances, prefix, parentStateMap)
 	}
 }
 
 // walkNode collects ComponentElement instances from a single node.
-func walkNode(node template.Node, components map[string]*ComponentInfo, counts map[string]int, instances *[]componentInstance, prefix string) {
+func walkNode(node template.Node, components map[string]*ComponentInfo, counts map[string]int, instances *[]componentInstance, prefix string, parentStateMap map[string]string) {
 	switch n := node.(type) {
 	case *template.ComponentElement:
-		addComponentInstance(n, components, counts, instances, prefix)
+		addComponentInstance(n, components, counts, instances, prefix, parentStateMap)
 	case *template.BoxElement:
-		walkNodes(n.Children, components, counts, instances, prefix)
+		walkNodes(n.Children, components, counts, instances, prefix, parentStateMap)
 	case *template.IfNode:
-		walkNodes(n.Then, components, counts, instances, prefix)
-		walkNodes(n.Else, components, counts, instances, prefix)
+		walkNodes(n.Then, components, counts, instances, prefix, parentStateMap)
+		walkNodes(n.Else, components, counts, instances, prefix, parentStateMap)
 	case *template.ForNode:
-		walkNodes(n.Children, components, counts, instances, prefix)
+		walkNodes(n.Children, components, counts, instances, prefix, parentStateMap)
 	}
 }
 
 // addComponentInstance creates an instance entry if the component is registered.
+// If parentStateMap is non-nil, the component's attrs are namespaced through it
+// so that references to the parent's scope resolve to root-scope variables.
 // If the component has a Doc (will be inlined), recursively walks its template
 // to collect nested component references with prefixed variable names.
-func addComponentInstance(n *template.ComponentElement, components map[string]*ComponentInfo, counts map[string]int, instances *[]componentInstance, prefix string) {
+func addComponentInstance(n *template.ComponentElement, components map[string]*ComponentInfo, counts map[string]int, instances *[]componentInstance, prefix string, parentStateMap map[string]string) {
 	key := template.TagRegistryKey(n.Name)
 	info, ok := components[key]
 	if !ok {
@@ -71,16 +76,28 @@ func addComponentInstance(n *template.ComponentElement, components map[string]*C
 	idx := counts[prefix+key]
 	counts[prefix+key]++
 	varName := fmt.Sprintf("%s%s%d", prefix, varBase, idx)
-	*instances = append(*instances, componentInstance{
+
+	attrs := n.Attributes
+	if parentStateMap != nil {
+		attrs = namespaceExprAttrs(attrs, parentStateMap)
+	}
+
+	inst := componentInstance{
 		VarName: varName,
 		Info:    info,
-		Attrs:   n.Attributes,
-	})
+		Attrs:   attrs,
+	}
+	*instances = append(*instances, inst)
 
-	// Recurse into the component's template to find nested component references
+	// Recurse into the component's template to find nested component references.
+	// Build this instance's stateMap so children's attrs get namespaced correctly.
 	if info.Doc != nil {
+		var childStateMap map[string]string
+		if info.HasState {
+			childStateMap = buildStateNameMap(&inst)
+		}
 		nestedPrefix := varName + "_"
-		walkNodes(info.Doc.Children, components, counts, instances, nestedPrefix)
+		walkNodes(info.Doc.Children, components, counts, instances, nestedPrefix, childStateMap)
 	}
 }
 

@@ -62,7 +62,19 @@ func writeInlinedNode(buf *bytes.Buffer, node template.Node, stylesheet *style.S
 		writeInlinedTextInput(buf, n, stylesheet, indent, propMap, stateMap, ext)
 	case *template.BoxElement:
 		writeInlinedBoxInput(buf, n, stylesheet, indent, propMap, stateMap, tracker, ext)
+	case *template.ComponentElement:
+		writeNestedInlinedComponent(buf, n, indent, tracker, ext)
 	}
+}
+
+// writeNestedInlinedComponent handles a ComponentElement encountered during inlining.
+// The instance's attrs are already namespaced during collection (see resolveNestedAttrs).
+func writeNestedInlinedComponent(buf *bytes.Buffer, n *template.ComponentElement, indent int, tracker *instanceTracker, ext *extractionCtx) {
+	inst := tracker.nextInstance()
+	if inst == nil {
+		return
+	}
+	writeInlinedComponent(buf, inst, indent, tracker, ext)
 }
 
 // writeInlinedTextInput writes a text input with prop values substituted and state vars namespaced.
