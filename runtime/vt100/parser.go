@@ -4,10 +4,12 @@ import "github.com/tomyan/sumi/runtime/render"
 
 // parser state machine states
 const (
-	stateGround = iota
-	stateEscape // saw ESC
-	stateCSI    // saw ESC[
-	stateParam  // reading CSI parameters
+	stateGround  = iota
+	stateEscape  // saw ESC
+	stateCSI     // saw ESC[
+	stateParam   // reading CSI parameters
+	statePrivate // saw ESC[? — private mode sequence
+	stateOSC     // saw ESC] — operating system command
 )
 
 // Write implements io.Writer — feeds raw ANSI bytes into the screen.
@@ -15,6 +17,7 @@ func (s *Screen) Write(p []byte) (int, error) {
 	state := stateGround
 	var params []int
 	cur := 0
+	var oscBuf []byte
 
 	for i := 0; i < len(p); i++ {
 		b := p[i]
@@ -27,21 +30,25 @@ func (s *Screen) Write(p []byte) (int, error) {
 			}
 
 		case stateEscape:
-			if b == '[' {
+			switch b {
+			case '[':
 				state = stateCSI
 				params = params[:0]
 				cur = 0
-			} else {
-				// Unknown escape — ignore
+			case ']':
+				state = stateOSC
+				oscBuf = oscBuf[:0]
+			default:
 				state = stateGround
 			}
 
 		case stateCSI:
-			if isDigit(b) {
+			if b == '?' {
+				state = statePrivate
+			} else if isDigit(b) {
 				cur = int(b - '0')
 				state = stateParam
 			} else {
-				// No params — dispatch immediately
 				s.dispatchCSI(params, b)
 				state = stateGround
 			}
@@ -57,9 +64,32 @@ func (s *Screen) Write(p []byte) (int, error) {
 				s.dispatchCSI(params, b)
 				state = stateGround
 			}
+
+		case statePrivate:
+			// Consume everything until a letter (h/l/t etc)
+			if b >= 0x40 && b <= 0x7e {
+				state = stateGround
+			}
+			// digits and semicolons are silently consumed
+
+		case stateOSC:
+			if b == 0x07 { // BEL terminates OSC
+				s.handleOSC(oscBuf)
+				state = stateGround
+			} else {
+				oscBuf = append(oscBuf, b)
+			}
 		}
 	}
 	return len(p), nil
+}
+
+// handleOSC processes an OSC payload (everything between ESC] and BEL).
+func (s *Screen) handleOSC(payload []byte) {
+	if string(payload) == "999;done" {
+		s.sentinel = true
+	}
+	// OSC 2 (title) and others are silently ignored.
 }
 
 // dispatchCSI handles a complete CSI sequence with params and final byte.
@@ -81,6 +111,8 @@ func (s *Screen) dispatchCSI(params []int, final byte) {
 		}
 	case 'm': // SGR — select graphic rendition
 		s.applySGR(params)
+	case 't': // window manipulation — consume and ignore
+		// e.g. ESC[22;2t (save title), ESC[23;2t (restore title)
 	}
 }
 
@@ -107,16 +139,15 @@ func (s *Screen) applySGR(params []int) {
 		case code == 9:
 			s.style.Strikethrough = true
 		case code >= 30 && code <= 37:
-			s.style.FG = render.Color{Name: fgNames[code-30]}
+			s.style.FG = render.Color{Name: colorNames[code-30]}
 		case code >= 40 && code <= 47:
-			s.style.BG = render.Color{Name: bgNames[code-40]}
+			s.style.BG = render.Color{Name: colorNames[code-40]}
 		}
 	}
 }
 
-// ANSI color names indexed by offset from 30 (FG) or 40 (BG).
-var fgNames = [8]string{"black", "red", "green", "yellow", "blue", "magenta", "cyan", "white"}
-var bgNames = [8]string{"black", "red", "green", "yellow", "blue", "magenta", "cyan", "white"}
+// colorNames maps ANSI offset (0-7) to color name.
+var colorNames = [8]string{"black", "red", "green", "yellow", "blue", "magenta", "cyan", "white"}
 
 // putChar writes a character at the current cursor position and advances.
 func (s *Screen) putChar(ch rune) {

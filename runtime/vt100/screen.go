@@ -6,10 +6,11 @@ import "github.com/tomyan/sumi/runtime/render"
 // It tracks cursor position and current style state, updated by
 // feeding ANSI byte streams via the Write method.
 type Screen struct {
-	buf    *render.Buffer
-	curRow int
-	curCol int
-	style  render.Style
+	buf      *render.Buffer
+	curRow   int
+	curCol   int
+	style    render.Style
+	sentinel bool // true after \x1b]999;done\x07 is seen
 }
 
 // NewScreen creates a screen with the given dimensions.
@@ -30,3 +31,9 @@ func (s *Screen) Height() int { return s.buf.Height() }
 
 // Buffer returns the underlying render buffer.
 func (s *Screen) Buffer() *render.Buffer { return s.buf }
+
+// SentinelSeen returns true if the frame sentinel was detected.
+func (s *Screen) SentinelSeen() bool { return s.sentinel }
+
+// ResetSentinel clears the sentinel flag for the next frame.
+func (s *Screen) ResetSentinel() { s.sentinel = false }
