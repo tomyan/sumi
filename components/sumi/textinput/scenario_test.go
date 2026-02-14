@@ -59,3 +59,10 @@ func TestTextInputPreview(t *testing.T) {
 	}
 	sumitest.Preview(textInputScenario())
 }
+
+func TestTextInputServe(t *testing.T) {
+	if !sumitest.ServeMode() {
+		t.Skip("run with -serve for external preview control")
+	}
+	sumitest.Serve(textInputScenario())
+}
