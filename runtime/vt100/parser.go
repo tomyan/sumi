@@ -1,5 +1,7 @@
 package vt100
 
+import "github.com/tomyan/sumi/runtime/render"
+
 // parser state machine states
 const (
 	stateGround = iota
@@ -77,8 +79,44 @@ func (s *Screen) dispatchCSI(params []int, final byte) {
 		if len(params) >= 1 && params[0] == 2 {
 			s.clear()
 		}
+	case 'm': // SGR — select graphic rendition
+		s.applySGR(params)
 	}
 }
+
+// applySGR processes SGR parameters and updates the current style.
+func (s *Screen) applySGR(params []int) {
+	if len(params) == 0 {
+		s.style = render.Style{}
+		return
+	}
+	for _, code := range params {
+		switch {
+		case code == 0:
+			s.style = render.Style{}
+		case code == 1:
+			s.style.Bold = true
+		case code == 2:
+			s.style.Dim = true
+		case code == 3:
+			s.style.Italic = true
+		case code == 4:
+			s.style.Underline = true
+		case code == 7:
+			s.style.Inverse = true
+		case code == 9:
+			s.style.Strikethrough = true
+		case code >= 30 && code <= 37:
+			s.style.FG = render.Color{Name: fgNames[code-30]}
+		case code >= 40 && code <= 47:
+			s.style.BG = render.Color{Name: bgNames[code-40]}
+		}
+	}
+}
+
+// ANSI color names indexed by offset from 30 (FG) or 40 (BG).
+var fgNames = [8]string{"black", "red", "green", "yellow", "blue", "magenta", "cyan", "white"}
+var bgNames = [8]string{"black", "red", "green", "yellow", "blue", "magenta", "cyan", "white"}
 
 // putChar writes a character at the current cursor position and advances.
 func (s *Screen) putChar(ch rune) {
