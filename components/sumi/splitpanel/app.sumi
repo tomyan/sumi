@@ -1,0 +1,16 @@
+<script>
+func handleKey(evt input.Event) {
+    if evt.Kind == input.EventSignal {
+        app.Quit()
+        return
+    }
+    if evt.Ctrl && evt.Rune == 'c' {
+        app.Quit()
+        return
+    }
+}
+</script>
+
+<box onkey="handleKey">
+    <sumi:SplitPanel leftTitle="Actual" rightTitle="Expected" panelHeight={5} />
+</box>

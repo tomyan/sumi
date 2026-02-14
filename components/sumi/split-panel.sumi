@@ -1,0 +1,22 @@
+<script>
+leftTitle := $prop("")
+rightTitle := $prop("")
+panelHeight := $prop(0)
+</script>
+
+<style>
+.root {
+    direction: row;
+    border-collapse: collapse;
+}
+.panel {
+    flex-grow: 1;
+    border: single;
+    padding: 0 1;
+}
+</style>
+
+<box class="root">
+    <box class="panel" border-title={leftTitle} height={panelHeight}></box>
+    <box class="panel" border-title={rightTitle} height={panelHeight}></box>
+</box>
