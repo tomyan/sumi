@@ -62,7 +62,7 @@ func testPreview(dir string) error {
 	// Resize the PTY to match the component's dimensions.
 	pty.SetSize(master, info.Height, info.Width)
 
-	if err := runPreviewTUI(client, master, info); err != nil {
+	if err := runPreviewTUI(client, master, info, absDir); err != nil {
 		return fmt.Errorf("preview: %w", err)
 	}
 

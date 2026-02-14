@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"path/filepath"
 	"strings"
 	"time"
 
@@ -17,15 +18,17 @@ import (
 const headerRows = 3
 
 type previewTUI struct {
-	client  *sumitest.Client
-	master  *os.File
-	info    *sumitest.InfoResponse
-	screen  *vt100.Screen
-	current int // current step index
-	w       io.Writer
+	client    *sumitest.Client
+	master    *os.File
+	info      *sumitest.InfoResponse
+	screen    *vt100.Screen
+	current   int
+	actual    string             // styled text from step response
+	snapshots []sumitest.Frame   // loaded from snapshot file
+	w         io.Writer
 }
 
-func runPreviewTUI(client *sumitest.Client, master *os.File, info *sumitest.InfoResponse) error {
+func runPreviewTUI(client *sumitest.Client, master *os.File, info *sumitest.InfoResponse, compDir string) error {
 	tui := &previewTUI{
 		client: client,
 		master: master,
@@ -33,7 +36,17 @@ func runPreviewTUI(client *sumitest.Client, master *os.File, info *sumitest.Info
 		screen: vt100.NewScreen(info.Width, info.Height),
 		w:      os.Stdout,
 	}
+	tui.loadSnapshots(compDir)
 	return tui.run()
+}
+
+func (p *previewTUI) loadSnapshots(compDir string) {
+	path := filepath.Join(compDir, "testdata", p.info.Name+".snapshot")
+	frames, err := sumitest.ReadSnapshot(path)
+	if err != nil {
+		return // no snapshot file — that's fine
+	}
+	p.snapshots = frames
 }
 
 func (p *previewTUI) run() error {
@@ -42,12 +55,10 @@ func (p *previewTUI) run() error {
 	render.EnterAlternateScreen(p.w)
 	defer render.ExitAlternateScreen(p.w)
 
-	// Render initial step.
 	if err := p.stepTo(0); err != nil {
 		return fmt.Errorf("initial step: %w", err)
 	}
 
-	// Input loop.
 	for {
 		evt, err := input.ReadEvent(os.Stdin)
 		if err != nil {
@@ -80,7 +91,7 @@ func (p *previewTUI) stepTo(index int) error {
 	if err != nil {
 		return fmt.Errorf("step %d: %w", index, err)
 	}
-	_ = resp
+	p.actual = resp.StyledText
 
 	if err := p.readUntilSentinel(); err != nil {
 		return fmt.Errorf("read pty: %w", err)
@@ -115,22 +126,74 @@ func (p *previewTUI) render() {
 	termW, _ := term.GetSize(int(os.Stdout.Fd()))
 	render.ClearScreen(p.w)
 
-	// Header.
 	stepName := p.info.Steps[p.current]
-	header := fmt.Sprintf(" %s  |  Frame %d/%d  |  %s",
-		p.info.Name, p.current+1, len(p.info.Steps), stepName)
-	render.WriteAt(p.w, 0, 0, header, render.Style{Bold: true})
-	render.WriteAt(p.w, 1, 0, strings.Repeat("─", min(termW, 60)), render.Style{Dim: true})
+	match := p.snapshotMatches()
+	statusIcon := "?"
+	if len(p.snapshots) > 0 {
+		if match {
+			statusIcon = "✓"
+		} else {
+			statusIcon = "✗"
+		}
+	}
 
-	// Component area — copy VT100 screen cells to terminal at offset.
-	compBuf := p.screen.Buffer()
-	compBuf.RenderToOffset(p.w, headerRows-1, 0)
+	// Header.
+	header := fmt.Sprintf(" %s  |  Frame %d/%d  |  %s  [%s]",
+		p.info.Name, p.current+1, len(p.info.Steps), stepName, statusIcon)
+	render.WriteAt(p.w, 0, 0, header, render.Style{Bold: true})
+	render.WriteAt(p.w, 1, 0, strings.Repeat("─", min(termW, 80)), render.Style{Dim: true})
+
+	// Side-by-side panels.
+	panelW := p.info.Width + 2
+	p.renderActualPanel(headerRows, 0, panelW)
+	p.renderExpectedPanel(headerRows, panelW+1)
 
 	// Footer.
-	footerRow := headerRows + p.info.Height
-	render.WriteAt(p.w, footerRow, 0, strings.Repeat("─", min(termW, 60)), render.Style{Dim: true})
+	footerRow := headerRows + p.info.Height + 1
+	render.WriteAt(p.w, footerRow, 0, strings.Repeat("─", min(termW, 80)), render.Style{Dim: true})
 	controls := " ←/→ step  |  q quit"
 	render.WriteAt(p.w, footerRow+1, 0, controls, render.Style{Dim: true})
+}
+
+func (p *previewTUI) renderActualPanel(startRow, startCol, width int) {
+	// Label.
+	render.WriteAt(p.w, startRow-1, startCol, " Actual", render.Style{Dim: true})
+
+	// Render VT100 screen cells at offset.
+	compBuf := p.screen.Buffer()
+	compBuf.RenderToOffset(p.w, startRow-1, startCol)
+}
+
+func (p *previewTUI) renderExpectedPanel(startRow, startCol int) {
+	render.WriteAt(p.w, startRow-1, startCol, " Expected", render.Style{Dim: true})
+
+	expected := p.expectedText()
+	if expected == "" {
+		render.WriteAt(p.w, startRow, startCol+1, "(no snapshot)", render.Style{Dim: true})
+		return
+	}
+	lines := strings.Split(expected, "\n")
+	for i, line := range lines {
+		if i >= p.info.Height {
+			break
+		}
+		render.WriteAt(p.w, startRow+i, startCol+1, line, render.Style{})
+	}
+}
+
+func (p *previewTUI) expectedText() string {
+	if p.current >= len(p.snapshots) {
+		return ""
+	}
+	return p.snapshots[p.current].StyledText
+}
+
+func (p *previewTUI) snapshotMatches() bool {
+	expected := p.expectedText()
+	if expected == "" {
+		return false
+	}
+	return p.actual == expected
 }
 
 func isQuitKey(evt input.Event) bool {
