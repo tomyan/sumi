@@ -42,7 +42,11 @@ const headerHeight = 3
 func previewHeight(s Scenario, frame Frame) int {
 	snapshotLines := strings.Count(frame.StyledText, "\n") + 1
 	// header + rendered component + separator + "Snapshot:" label + snapshot lines + blank
-	return headerHeight + s.Height + 1 + 1 + snapshotLines + 1
+	h := headerHeight + s.Height + 1 + 1 + snapshotLines + 1
+	if s.SourceFile != "" {
+		h += 1 + sourceLineCount(s.SourceFile) + 1 // separator + source + blank
+	}
+	return h
 }
 
 // writePreviewFrame renders a single preview frame to a writer.
@@ -72,6 +76,11 @@ func writePreviewFrame(w io.Writer, s Scenario, frames []Frame, index int) {
 	for _, line := range strings.Split(frame.StyledText, "\n") {
 		fmt.Fprintf(w, "  %s\n", line)
 	}
+
+	// Source code section
+	if s.SourceFile != "" {
+		writeSourceSection(w, s.SourceFile)
+	}
 }
 
 // replayToFrame creates a fresh app and replays steps up to the given index.
@@ -84,6 +93,29 @@ func replayToFrame(s Scenario, index int) *Harness {
 		}
 	}
 	return h
+}
+
+// writeSourceSection reads and displays a .sumi source file.
+func writeSourceSection(w io.Writer, path string) {
+	data, err := os.ReadFile(path)
+	if err != nil {
+		fmt.Fprintf(w, "\x1b[2mSource: %v\x1b[0m\n", err)
+		return
+	}
+	fmt.Fprintf(w, "%s\n", repeatChar('─', 60))
+	fmt.Fprintf(w, "Source: %s\n", path)
+	for _, line := range strings.Split(strings.TrimRight(string(data), "\n"), "\n") {
+		fmt.Fprintf(w, "\x1b[2m  %s\x1b[0m\n", line)
+	}
+}
+
+// sourceLineCount returns the number of lines in a file, or 0 on error.
+func sourceLineCount(path string) int {
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return 0
+	}
+	return strings.Count(string(data), "\n") + 1
 }
 
 func repeatChar(ch rune, count int) string {

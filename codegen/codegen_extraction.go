@@ -22,6 +22,7 @@ type extractionCtx struct {
 	boxCount       int
 	prefix         string // namespace prefix, e.g., "counter0_" (empty for root)
 	hasCursor      bool   // true when any box has dynamic cursor attributes
+	extractRootBox bool   // true when the first box should be extracted (for $self wiring)
 	focusablesSeen int    // counts focusable boxes seen during tree walk (for cursor-focus correlation)
 	declBuf        bytes.Buffer
 	preSyncBuf     bytes.Buffer // code that must run before node content updates (e.g., focused state)

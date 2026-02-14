@@ -1155,6 +1155,7 @@ func Run() {
 	}
 	textinput0_textedit0_box0 := &layout.Input{
 		Kind:      layout.KindBox,
+		FlexGrow:  1,
 		Focusable: true,
 		CursorCol: textinput0_textedit0_cursorX(),
 		CursorRow: 0,
@@ -1218,6 +1219,53 @@ func Run() {
 			Dim: true,
 		},
 	}
+	textinput0_scrollbar0_box0 := &layout.Input{
+		Kind:      layout.KindBox,
+		Direction: "row",
+		Focusable: true,
+		CursorCol: -1,
+		CursorRow: -1,
+		Children: []*layout.Input{
+			textinput0_scrollbar0_node0,
+			textinput0_scrollbar0_node1,
+			textinput0_scrollbar0_node2,
+			textinput0_scrollbar0_node3,
+			textinput0_scrollbar0_node4,
+		},
+	}
+	textinput0_scrollbar0_box0.SelfX = &textinput0_scrollbar0_selfX
+	textinput0_scrollbar0_box0.SelfY = &textinput0_scrollbar0_selfY
+	textinput0_scrollbar0_box0.SelfW = &textinput0_scrollbar0_selfW
+	textinput0_scrollbar0_box0.SelfH = &textinput0_scrollbar0_selfH
+	textinput0_box0 := &layout.Input{
+		Kind:       layout.KindBox,
+		FixedWidth: 24,
+		CursorCol:  -1,
+		CursorRow:  -1,
+		Children: []*layout.Input{
+			{
+				Kind:      layout.KindBox,
+				Direction: "row",
+				CursorCol: -1,
+				CursorRow: -1,
+				Children: []*layout.Input{
+					{
+						Kind:    layout.KindText,
+						Content: "[",
+					},
+					textinput0_node0,
+					textinput0_textedit0_box0,
+					textinput0_node1,
+					{
+						Kind:    layout.KindText,
+						Content: "]",
+					},
+				},
+			},
+			textinput0_scrollbar0_box0,
+		},
+	}
+	textinput0_box0.SelfW = &textinput0_selfW
 	node0 := &layout.Input{
 		Kind:    layout.KindText,
 		Content: fmt.Sprintf("You typed: %v", name),
@@ -1259,47 +1307,7 @@ func Run() {
 							Bold: true,
 						},
 					},
-					{
-						Kind:       layout.KindBox,
-						FixedWidth: 24,
-						CursorCol:  -1,
-						CursorRow:  -1,
-						Children: []*layout.Input{
-							{
-								Kind:      layout.KindBox,
-								Direction: "row",
-								CursorCol: -1,
-								CursorRow: -1,
-								Children: []*layout.Input{
-									{
-										Kind:    layout.KindText,
-										Content: "[",
-									},
-									textinput0_node0,
-									textinput0_textedit0_box0,
-									textinput0_node1,
-									{
-										Kind:    layout.KindText,
-										Content: "]",
-									},
-								},
-							},
-							{
-								Kind:      layout.KindBox,
-								Direction: "row",
-								Focusable: true,
-								CursorCol: -1,
-								CursorRow: -1,
-								Children: []*layout.Input{
-									textinput0_scrollbar0_node0,
-									textinput0_scrollbar0_node1,
-									textinput0_scrollbar0_node2,
-									textinput0_scrollbar0_node3,
-									textinput0_scrollbar0_node4,
-								},
-							},
-						},
-					},
+					textinput0_box0,
 					node0,
 				},
 			},
@@ -2651,6 +2659,7 @@ func CreateApp(w, h int) *tui.App {
 	}
 	textinput0_textedit0_box0 := &layout.Input{
 		Kind:      layout.KindBox,
+		FlexGrow:  1,
 		Focusable: true,
 		CursorCol: textinput0_textedit0_cursorX(),
 		CursorRow: 0,
@@ -2714,6 +2723,53 @@ func CreateApp(w, h int) *tui.App {
 			Dim: true,
 		},
 	}
+	textinput0_scrollbar0_box0 := &layout.Input{
+		Kind:      layout.KindBox,
+		Direction: "row",
+		Focusable: true,
+		CursorCol: -1,
+		CursorRow: -1,
+		Children: []*layout.Input{
+			textinput0_scrollbar0_node0,
+			textinput0_scrollbar0_node1,
+			textinput0_scrollbar0_node2,
+			textinput0_scrollbar0_node3,
+			textinput0_scrollbar0_node4,
+		},
+	}
+	textinput0_scrollbar0_box0.SelfX = &textinput0_scrollbar0_selfX
+	textinput0_scrollbar0_box0.SelfY = &textinput0_scrollbar0_selfY
+	textinput0_scrollbar0_box0.SelfW = &textinput0_scrollbar0_selfW
+	textinput0_scrollbar0_box0.SelfH = &textinput0_scrollbar0_selfH
+	textinput0_box0 := &layout.Input{
+		Kind:       layout.KindBox,
+		FixedWidth: 24,
+		CursorCol:  -1,
+		CursorRow:  -1,
+		Children: []*layout.Input{
+			{
+				Kind:      layout.KindBox,
+				Direction: "row",
+				CursorCol: -1,
+				CursorRow: -1,
+				Children: []*layout.Input{
+					{
+						Kind:    layout.KindText,
+						Content: "[",
+					},
+					textinput0_node0,
+					textinput0_textedit0_box0,
+					textinput0_node1,
+					{
+						Kind:    layout.KindText,
+						Content: "]",
+					},
+				},
+			},
+			textinput0_scrollbar0_box0,
+		},
+	}
+	textinput0_box0.SelfW = &textinput0_selfW
 	node0 := &layout.Input{
 		Kind:    layout.KindText,
 		Content: fmt.Sprintf("You typed: %v", name),
@@ -2755,47 +2811,7 @@ func CreateApp(w, h int) *tui.App {
 							Bold: true,
 						},
 					},
-					{
-						Kind:       layout.KindBox,
-						FixedWidth: 24,
-						CursorCol:  -1,
-						CursorRow:  -1,
-						Children: []*layout.Input{
-							{
-								Kind:      layout.KindBox,
-								Direction: "row",
-								CursorCol: -1,
-								CursorRow: -1,
-								Children: []*layout.Input{
-									{
-										Kind:    layout.KindText,
-										Content: "[",
-									},
-									textinput0_node0,
-									textinput0_textedit0_box0,
-									textinput0_node1,
-									{
-										Kind:    layout.KindText,
-										Content: "]",
-									},
-								},
-							},
-							{
-								Kind:      layout.KindBox,
-								Direction: "row",
-								Focusable: true,
-								CursorCol: -1,
-								CursorRow: -1,
-								Children: []*layout.Input{
-									textinput0_scrollbar0_node0,
-									textinput0_scrollbar0_node1,
-									textinput0_scrollbar0_node2,
-									textinput0_scrollbar0_node3,
-									textinput0_scrollbar0_node4,
-								},
-							},
-						},
-					},
+					textinput0_box0,
 					node0,
 				},
 			},

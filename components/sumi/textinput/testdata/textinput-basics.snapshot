@@ -1,20 +1,38 @@
 === Frame: initial ===
-Value: 
-[<<dim>> Type here...             <</>>]
+Value (0): 
+[<<dim>> Type here...         <</>>]
 
 === Frame: focus ===
-Value: 
-[<<dim>> Type here...             <</>>]
+Value (0): 
+[<<dim>> Type here...         <</>>]
 
 === Frame: type-hello ===
-Value: Hello
-[<<dim>> <</>>Hello                   <<dim>> <</>>]
+Value (5): Hello
+[<<dim>> <</>>Hello               <<dim>> <</>>]
 
 === Frame: type-world ===
-Value: Hello World
-[<<dim>> <</>>Hello World             <<dim>> <</>>]
+Value (11): Hello World
+[<<dim>> <</>>Hello World         <<dim>> <</>>]
 
 === Frame: backspace ===
-Value: Hello Worl
-[<<dim>> <</>>Hello Worl              <<dim>> <</>>]
+Value (10): Hello Worl
+[<<dim>> <</>>Hello Worl          <<dim>> <</>>]
+
+=== Frame: overflow-right ===
+Value (30): Hello Worl is a long
+sentence!
+[<<dim>><<</>> is a long sentence!<<dim>> <</>>]
+<<dim>> <--------##############> <</>>
+
+=== Frame: home ===
+Value (30): Hello Worl is a long
+sentence!
+[<<dim>> <</>>Hello Worl is a long<<dim>>><</>>]
+<<dim>> <##############--------> <</>>
+
+=== Frame: end ===
+Value (30): Hello Worl is a long
+sentence!
+[<<dim>><<</>> is a long sentence!<<dim>> <</>>]
+<<dim>> <--------##############> <</>>
 

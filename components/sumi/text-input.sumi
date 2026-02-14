@@ -40,6 +40,7 @@ func scrollbarVisible() bool {
         <text>[</text>
         <text class="indicator">{leftIndicator()}</text>
         <textedit
+            flex-grow="1"
             bind:value={value}
             bind:viewOffset={viewOffset}
             bind:focused={focused}

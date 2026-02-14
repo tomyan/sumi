@@ -27,13 +27,23 @@ func writeInlinedComponent(buf *bytes.Buffer, inst *componentInstance, indent in
 	var subExt *extractionCtx
 	if ext != nil && info.HasState {
 		subExt = newExtractionCtx(inst.VarName + "_")
+		// When the component has $self declarations, extract the root box
+		// so SelfW/SelfH pointers can be wired to it.
+		if info.Script != nil && len(info.Script.SelfDecls) > 0 {
+			subExt.extractRootBox = true
+		}
 	} else {
 		subExt = ext
 	}
 
 	children := info.Doc.Children
+	fwdAttrs := buildForwardedAttrs(inst)
 	if len(children) == 1 {
-		writeInlinedNode(buf, children[0], info.Stylesheet, indent, propMap, stateMap, tracker, subExt)
+		root := children[0]
+		if len(fwdAttrs) > 0 {
+			root = mergeRootBoxAttrs(root, fwdAttrs)
+		}
+		writeInlinedNode(buf, root, info.Stylesheet, indent, propMap, stateMap, tracker, subExt)
 	} else {
 		for _, child := range children {
 			writeInlinedNode(buf, child, info.Stylesheet, indent, propMap, stateMap, tracker, subExt)
@@ -120,6 +130,12 @@ func writeInlinedBoxInput(buf *bytes.Buffer, n *template.BoxElement, stylesheet 
 		return
 	}
 
+	// Extract root box as a named variable when $self wiring is needed
+	if ext != nil && ext.extractRootBox && ext.boxCount == 0 {
+		writeExtractedInlinedRootBox(buf, n, stylesheet, indent, attrs, propMap, stateMap, tracker, ext, focusIdx)
+		return
+	}
+
 	// Emit focused state sync for focusable boxes without a dynamic cursor
 	if ext != nil && focusIdx >= 0 {
 		writeFocusedStateSync(&ext.preSyncBuf, stateMap["focused"], focusIdx)
@@ -136,6 +152,34 @@ func writeInlinedBoxInput(buf *bytes.Buffer, n *template.BoxElement, stylesheet 
 	}
 	writeInlinedBoxChildren(buf, n.Children, stylesheet, indent, tabs, propMap, stateMap, tracker, ext)
 	fmt.Fprintf(buf, "%s},\n", tabs)
+}
+
+// writeExtractedInlinedRootBox extracts the inlined component's root box as a named variable.
+// This is needed when the component has $self declarations so SelfW/SelfH pointers can be wired.
+func writeExtractedInlinedRootBox(treeBuf *bytes.Buffer, n *template.BoxElement, stylesheet *style.Stylesheet, indent int, attrs map[string]string, propMap, stateMap map[string]string, tracker *instanceTracker, ext *extractionCtx, focusIdx int) {
+	tabs := indentStr(indent)
+	name := ext.nextBoxName()
+	props := resolveProps(stylesheet, "box", attrs)
+
+	// Process children first — text extractions go to ext.declBuf
+	var childBuf bytes.Buffer
+	writeInlinedBoxChildren(&childBuf, n.Children, stylesheet, 1, "\t", propMap, stateMap, tracker, ext)
+
+	// Write box declaration after child extractions
+	fmt.Fprintf(&ext.declBuf, "\t%s := &layout.Input{\n", name)
+	fmt.Fprintf(&ext.declBuf, "\t\tKind: layout.KindBox,\n")
+	writeBoxAttributes(&ext.declBuf, "\t", attrs, props)
+	if props != nil {
+		writeStyleLiteral(&ext.declBuf, "\t", props)
+	}
+	ext.declBuf.Write(childBuf.Bytes())
+	fmt.Fprintf(&ext.declBuf, "\t}\n")
+
+	if focusIdx >= 0 {
+		writeFocusedStateSync(&ext.preSyncBuf, stateMap["focused"], focusIdx)
+	}
+
+	fmt.Fprintf(treeBuf, "%s%s,\n", tabs, name)
 }
 
 // writeExtractedInlinedCursorBox extracts an inlined box with dynamic cursor as a named variable.
@@ -197,6 +241,60 @@ func writeInlinedBoxChildren(buf *bytes.Buffer, children []template.Node, styles
 		writeInlinedNode(buf, child, stylesheet, indent+2, propMap, stateMap, tracker, ext)
 	}
 	fmt.Fprintf(buf, "%s\t},\n", tabs)
+}
+
+// buildForwardedAttrs returns usage-site attributes that are not props, bind:, or
+// callback props. These layout attributes (flex-grow, width, etc.) should be
+// forwarded to the inlined component's root box element.
+func buildForwardedAttrs(inst *componentInstance) map[string]string {
+	if len(inst.Attrs) == 0 {
+		return nil
+	}
+	propSet := make(map[string]bool, len(inst.Info.Props))
+	for _, p := range inst.Info.Props {
+		propSet[p] = true
+	}
+	// Collect callback prop names from the component's script
+	if inst.Info.Script != nil {
+		for _, fd := range inst.Info.Script.FuncDecls {
+			propSet[fd.Name] = true
+		}
+	}
+	var fwd map[string]string
+	for k, v := range inst.Attrs {
+		if strings.HasPrefix(k, "bind:") {
+			continue
+		}
+		if propSet[k] {
+			continue
+		}
+		if fwd == nil {
+			fwd = make(map[string]string)
+		}
+		fwd[k] = v
+	}
+	return fwd
+}
+
+// mergeRootBoxAttrs returns a shallow clone of the root template node with
+// the forwarded attributes merged in. If the node is not a BoxElement, it
+// is returned unchanged.
+func mergeRootBoxAttrs(node template.Node, fwd map[string]string) template.Node {
+	box, ok := node.(*template.BoxElement)
+	if !ok {
+		return node
+	}
+	merged := make(map[string]string, len(box.Attributes)+len(fwd))
+	for k, v := range box.Attributes {
+		merged[k] = v
+	}
+	for k, v := range fwd {
+		merged[k] = v
+	}
+	return &template.BoxElement{
+		Attributes: merged,
+		Children:   box.Children,
+	}
 }
 
 // buildPropMap creates a map from prop name to literal value for an instance.
