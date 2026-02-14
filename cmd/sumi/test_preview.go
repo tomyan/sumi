@@ -59,11 +59,11 @@ func testPreview(dir string) error {
 		return fmt.Errorf("info: %w", err)
 	}
 
-	fmt.Printf("Scenario: %s\n", info.Name)
-	fmt.Printf("Size:     %dx%d\n", info.Width, info.Height)
-	fmt.Printf("Steps:    %s\n", strings.Join(info.Steps, ", "))
-	if info.SourceFile != "" {
-		fmt.Printf("Source:   %s\n", info.SourceFile)
+	// Resize the PTY to match the component's dimensions.
+	pty.SetSize(master, info.Height, info.Width)
+
+	if err := runPreviewTUI(client, master, info); err != nil {
+		return fmt.Errorf("preview: %w", err)
 	}
 
 	client.Quit()
