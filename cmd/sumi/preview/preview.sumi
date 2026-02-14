@@ -1,0 +1,75 @@
+<style>
+.status { direction: row; }
+.match { color: green; bold: true; }
+.diff { color: red; bold: true; }
+.no-snap { color: yellow; bold: true; }
+.info { bold: true; }
+.key { inverse: true; }
+.label { dim: true; }
+.source { border: single; overflow: scroll; }
+.line-num { color: cyan; dim: true; }
+</style>
+
+<script>
+current := $state(0)
+matchStatus := $state(0)
+
+func doStep(index int) {
+    pvStepTo(index)
+    matchStatus = pvMatches(index)
+    current = index
+}
+
+func handleKey(evt input.Event) {
+    if evt.Kind == input.EventSignal { app.Quit(); return }
+    if evt.Rune == 'q' || (evt.Ctrl && evt.Rune == 'c') { app.Quit(); return }
+
+    if (evt.Kind == input.EventSpecial && evt.Special == input.KeyRight) || (evt.Kind == input.EventKey && (evt.Rune == 'l' || evt.Rune == '\r')) {
+        if current < pvStepCount()-1 { doStep(current + 1) }
+        return
+    }
+    if (evt.Kind == input.EventSpecial && evt.Special == input.KeyLeft) || (evt.Kind == input.EventKey && evt.Rune == 'h') {
+        if current > 0 { doStep(current - 1) }
+        return
+    }
+
+    if evt.Kind == input.EventKey && evt.Rune == 'u' {
+        pvUpdateSnapshot(current)
+        matchStatus = pvMatches(current)
+        return
+    }
+}
+</script>
+
+<box onkey="handleKey">
+    <sumi:SplitPanel
+        leftTitle="Actual" rightTitle="Expected"
+        panelHeight={pvComponentHeight()}
+    />
+    <box class="source" border-title={pvSourceTitle()}>
+        {for i, line := range pvSourceLines}
+            <box direction="row">
+                <text class="line-num">{fmt.Sprintf("%3d ", i+1)}</text>
+                <text>{line}</text>
+            </box>
+        {/for}
+    </box>
+    <box class="status">
+        {if matchStatus == 1}
+            <text class="match"> MATCH </text>
+        {else}
+            {if matchStatus == 0}
+                <text class="no-snap"> NO SNAPSHOT </text>
+            {else}
+                <text class="diff"> DIFF </text>
+            {/if}
+        {/if}
+        <text class="info">  {pvScenarioName()}  Frame {current+1}/{pvStepCount()}  {pvStepName(current)}</text>
+    </box>
+    <box direction="row">
+        <text class="key">h</text><text class="label"> Prev  </text>
+        <text class="key">l</text><text class="label"> Next  </text>
+        <text class="key">u</text><text class="label"> Update  </text>
+        <text class="key">q</text><text class="label"> Quit</text>
+    </box>
+</box>
