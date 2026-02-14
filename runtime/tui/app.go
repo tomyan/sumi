@@ -21,9 +21,10 @@ type App struct {
 	HasMouse  bool              // enable SGR mouse mode
 	Title     string            // static terminal title (saved/set/restored around Run)
 	SaveTitle bool              // save/restore terminal title only (for dynamic titles set in doRender)
-	Dirty     bool              // set by handlers to trigger re-render
-	quitCh    chan struct{}      // closed by Quit() to exit the event loop
-	wakeCh    chan struct{}      // receives from RequestFrame() to wake the event loop
+	Dirty        bool              // set by handlers to trigger re-render
+	OnPostRender func()            // called after each converge() cycle (if non-nil)
+	quitCh       chan struct{}     // closed by Quit() to exit the event loop
+	wakeCh       chan struct{}     // receives from RequestFrame() to wake the event loop
 
 	// Test mode fields — set by CreateApp for synchronous stepping.
 	TestWidth  int            // test viewport width (0 = use real terminal)
@@ -74,11 +75,24 @@ func (a *App) Render() {
 	a.converge()
 }
 
-// converge runs up to 3 render passes while Dirty remains true.
+// converge runs up to 3 render passes while Dirty remains true,
+// then calls OnPostRender if any rendering occurred.
 func (a *App) converge() {
+	rendered := false
 	for i := 0; i < 3 && a.Dirty; i++ {
 		a.Dirty = false
 		a.OnRender()
+		rendered = true
+	}
+	if rendered {
+		a.postRender()
+	}
+}
+
+// postRender calls OnPostRender if set.
+func (a *App) postRender() {
+	if a.OnPostRender != nil {
+		a.OnPostRender()
 	}
 }
 
