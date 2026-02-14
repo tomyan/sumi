@@ -23,8 +23,9 @@ type previewTUI struct {
 	info      *sumitest.InfoResponse
 	screen    *vt100.Screen
 	current   int
-	actual    string             // styled text from step response
-	snapshots []sumitest.Frame   // loaded from snapshot file
+	actual    string           // styled text from step response
+	snapshots []sumitest.Frame // loaded from snapshot file
+	source    *sourcePanel
 	w         io.Writer
 }
 
@@ -37,6 +38,7 @@ func runPreviewTUI(client *sumitest.Client, master *os.File, info *sumitest.Info
 		w:      os.Stdout,
 	}
 	tui.loadSnapshots(compDir)
+	tui.source = loadSource(compDir, info.SourceFile)
 	return tui.run()
 }
 
@@ -79,6 +81,16 @@ func (p *previewTUI) run() error {
 				if err := p.stepTo(p.current - 1); err != nil {
 					return err
 				}
+			}
+		case isScrollDown(evt):
+			if p.source != nil {
+				p.source.scrollDown(scrollAmount(evt))
+				p.render()
+			}
+		case isScrollUp(evt):
+			if p.source != nil {
+				p.source.scrollUp(scrollAmount(evt))
+				p.render()
 			}
 		}
 	}
@@ -148,11 +160,16 @@ func (p *previewTUI) render() {
 	p.renderActualPanel(headerRows, 0, panelW)
 	p.renderExpectedPanel(headerRows, panelW+1)
 
-	// Footer.
-	footerRow := headerRows + p.info.Height + 1
-	render.WriteAt(p.w, footerRow, 0, strings.Repeat("─", min(termW, 80)), render.Style{Dim: true})
-	controls := " ←/→ step  |  q quit"
-	render.WriteAt(p.w, footerRow+1, 0, controls, render.Style{Dim: true})
+	// Source panel.
+	sourceStart := headerRows + p.info.Height + 1
+	if p.source != nil {
+		p.source.renderSource(p.w, sourceStart)
+	} else {
+		// Footer when no source.
+		render.WriteAt(p.w, sourceStart, 0, strings.Repeat("─", min(termW, 80)), render.Style{Dim: true})
+		controls := " ←/→ step  |  q quit"
+		render.WriteAt(p.w, sourceStart+1, 0, controls, render.Style{Dim: true})
+	}
 }
 
 func (p *previewTUI) renderActualPanel(startRow, startCol, width int) {
@@ -194,38 +211,6 @@ func (p *previewTUI) snapshotMatches() bool {
 		return false
 	}
 	return p.actual == expected
-}
-
-func isQuitKey(evt input.Event) bool {
-	return evt.Kind == input.EventKey && evt.Rune == 'q'
-}
-
-func isNextKey(evt input.Event) bool {
-	if evt.Kind == input.EventKey && (evt.Rune == '\r' || evt.Rune == '\n' || evt.Rune == 'l') {
-		return true
-	}
-	if evt.Kind == input.EventSpecial && evt.Special == input.KeyRight {
-		return true
-	}
-	return false
-}
-
-func isPrevKey(evt input.Event) bool {
-	if evt.Kind == input.EventKey && evt.Rune == 'h' {
-		return true
-	}
-	if evt.Kind == input.EventSpecial && evt.Special == input.KeyLeft {
-		return true
-	}
-	return false
-}
-
-func isTimeout(err error) bool {
-	if err == nil {
-		return false
-	}
-	return strings.Contains(err.Error(), "timeout") ||
-		strings.Contains(err.Error(), "deadline")
 }
 
 func min(a, b int) int {
