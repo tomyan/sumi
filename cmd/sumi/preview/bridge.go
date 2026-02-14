@@ -23,6 +23,7 @@ var (
 	pvSnapPath     string
 	pvActualStyled string
 	pvSourceLines  []string
+	pvCurrent      int // current step index, updated by pvStepTo
 )
 
 // Setup stores subprocess handles and loads snapshots and source.
@@ -57,6 +58,7 @@ func pvStepTo(index int) error {
 		return fmt.Errorf("step %d: %w", index, err)
 	}
 	pvActualStyled = resp.StyledText
+	pvCurrent = index
 
 	if err := readUntilSentinel(); err != nil {
 		return fmt.Errorf("read pty: %w", err)
@@ -185,14 +187,12 @@ func pvRenderExpected(w *os.File, startRow, startCol int) {
 	}
 }
 
-// expectedText returns the snapshot text for the current step (by matching actual styled text).
+// expectedText returns the snapshot text for the current step.
 func expectedText() string {
-	for i, snap := range pvSnapshots {
-		if i < len(pvInfo.Steps) && pvInfo.Steps[i] == snap.Name {
-			return snap.StyledText
-		}
+	if pvCurrent >= len(pvSnapshots) {
+		return ""
 	}
-	return ""
+	return pvSnapshots[pvCurrent].StyledText
 }
 
 // isTimeout checks if an error is a read timeout.

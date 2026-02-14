@@ -9,6 +9,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/tomyan/sumi/cmd/sumi/preview"
 	"github.com/tomyan/sumi/runtime/pty"
 	"github.com/tomyan/sumi/runtime/sumitest"
 )
@@ -31,7 +32,7 @@ func testPreview(dir string) error {
 	cmd := exec.Command("go", "test",
 		"./"+relPath(absDir),
 		"-run", "^"+testFunc+"$",
-		"-serve", "-count=1", "-timeout=60s",
+		"-serve", "-count=1", "-timeout=0",
 	)
 	cmd.Dir = findModuleRoot(absDir)
 	cmd.Env = append(os.Environ(), "SUMI_CONTROL_SOCKET="+socketPath)
@@ -62,9 +63,8 @@ func testPreview(dir string) error {
 	// Resize the PTY to match the component's dimensions.
 	pty.SetSize(master, info.Height, info.Width)
 
-	if err := runPreviewTUI(client, master, info, absDir); err != nil {
-		return fmt.Errorf("preview: %w", err)
-	}
+	preview.Setup(client, master, info, absDir)
+	preview.RunPreview()
 
 	client.Quit()
 	cmd.Wait()
