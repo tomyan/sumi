@@ -301,7 +301,11 @@ func writeBoxAttributes(buf *bytes.Buffer, tabs string, attrs map[string]string,
 		fmt.Fprintf(buf, "%s\tBorder: %q,\n", tabs, b)
 	}
 	if bt, ok := mergedAttr(attrs, props, "border-title"); ok {
-		fmt.Fprintf(buf, "%s\tBorderTitle: %q,\n", tabs, bt)
+		if isExprValue(bt) {
+			fmt.Fprintf(buf, "%s\tBorderTitle: %s,\n", tabs, extractExprValue(bt))
+		} else {
+			fmt.Fprintf(buf, "%s\tBorderTitle: %q,\n", tabs, bt)
+		}
 	}
 	if bc, ok := mergedAttr(attrs, props, "border-collapse"); ok && bc == "collapse" {
 		fmt.Fprintf(buf, "%s\tBorderCollapse: true,\n", tabs)
@@ -364,10 +368,15 @@ func extractExprValue(val string) string {
 	return val[1 : len(val)-1]
 }
 
-// writeIntAttr writes an integer attribute field if present and parseable.
+// writeIntAttr writes an integer attribute field if present.
+// Handles both static integers ("10") and expression values ("{expr}").
 func writeIntAttr(buf *bytes.Buffer, tabs string, attrs, props map[string]string, attrKey, fieldName string) {
 	val, ok := mergedAttr(attrs, props, attrKey)
 	if !ok {
+		return
+	}
+	if isExprValue(val) {
+		fmt.Fprintf(buf, "%s\t%s: %s,\n", tabs, fieldName, extractExprValue(val))
 		return
 	}
 	v, err := strconv.Atoi(val)

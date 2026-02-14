@@ -15,12 +15,27 @@ type inlinedStateful struct {
 	Instance *componentInstance
 }
 
-// collectInlinedStateful returns inlined instances that have state (need closures + state decls).
+// needsNameMap returns true if a component has declarations that need namespacing.
+// This includes components with state, derived, self, func, or prop declarations.
+func needsNameMap(info *ComponentInfo) bool {
+	if info.Script == nil {
+		return false
+	}
+	sc := info.Script
+	return len(sc.StateDecls) > 0 ||
+		len(sc.DerivedDecls) > 0 ||
+		len(sc.SelfDecls) > 0 ||
+		len(sc.FuncDecls) > 0 ||
+		len(sc.PropDecls) > 0
+}
+
+// collectInlinedStateful returns inlined instances that need namespaced declarations
+// (state vars, props, closures, derived, self-measurement).
 func collectInlinedStateful(instances []componentInstance) []inlinedStateful {
 	var result []inlinedStateful
 	for i := range instances {
 		inst := &instances[i]
-		if inst.Info.Doc == nil || !inst.Info.HasState {
+		if inst.Info.Doc == nil || !needsNameMap(inst.Info) {
 			continue
 		}
 		result = append(result, inlinedStateful{

@@ -93,7 +93,7 @@ func addComponentInstance(n *template.ComponentElement, components map[string]*C
 	// Build this instance's stateMap so children's attrs get namespaced correctly.
 	if info.Doc != nil {
 		var childStateMap map[string]string
-		if info.HasState {
+		if needsNameMap(info) {
 			childStateMap = buildStateNameMap(&inst)
 		}
 		nestedPrefix := varName + "_"

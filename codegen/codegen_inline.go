@@ -25,7 +25,7 @@ func writeInlinedComponent(buf *bytes.Buffer, inst *componentInstance, indent in
 	// Use a sub-extraction context with the instance's namespace prefix
 	// so extracted nodes get names like "counter0_node0"
 	var subExt *extractionCtx
-	if ext != nil && info.HasState {
+	if ext != nil && needsNameMap(info) {
 		subExt = newExtractionCtx(inst.VarName + "_")
 		// When the component has $self declarations, extract the root box
 		// so SelfW/SelfH pointers can be wired to it.
@@ -312,7 +312,7 @@ func buildPropMap(inst *componentInstance) map[string]string {
 // e.g., "count" → "counter0_count" when the instance VarName is "counter0".
 // For bind: attributes, the child's variable maps to the parent's variable instead.
 func buildStateNameMap(inst *componentInstance) map[string]string {
-	if inst.Info.Script == nil || !inst.Info.HasState {
+	if inst.Info.Script == nil || !needsNameMap(inst.Info) {
 		return nil
 	}
 	m := make(map[string]string)
