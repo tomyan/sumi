@@ -14,6 +14,7 @@ import (
 func Run() {
 	current := 0
 	matchStatus := 0
+	interactive := false
 
 	var app *tui.App
 	splitpanel0_leftTitle := "Actual"
@@ -28,6 +29,21 @@ func Run() {
 	handleKey := func(evt input.Event) {
 		if evt.Kind == input.EventSignal {
 			app.Quit()
+			return
+		}
+		if interactive {
+			if evt.Kind == input.EventSpecial && evt.Special == input.KeyEscape {
+				pvExitInteractive()
+				interactive = false
+				app.Dirty = true
+				pvStepTo(current)
+				matchStatus = pvMatches(current)
+				app.Dirty = true
+				return
+			}
+			pvSendInput(evt)
+			matchStatus = 0
+			app.Dirty = true
 			return
 		}
 		if evt.Rune == 'q' || (evt.Ctrl && evt.Rune == 'c') {
@@ -52,21 +68,28 @@ func Run() {
 			app.Dirty = true
 			return
 		}
+		if evt.Kind == input.EventKey && evt.Rune == 'i' {
+			pvEnterInteractive()
+			interactive = true
+			app.Dirty = true
+			return
+		}
 	}
 
 	box0 := &layout.Input{
+		Kind:      layout.KindBox,
+		Direction: "row",
+		CursorCol: -1,
+		CursorRow: -1,
+	}
+	box1 := &layout.Input{
 		Kind:        layout.KindBox,
+		FlexGrow:    1,
 		Border:      "single",
 		BorderTitle: pvSourceTitle(),
 		Overflow:    "scroll",
 		CursorCol:   -1,
 		CursorRow:   -1,
-	}
-	box1 := &layout.Input{
-		Kind:      layout.KindBox,
-		Direction: "row",
-		CursorCol: -1,
-		CursorRow: -1,
 	}
 	root := &layout.Input{
 		Kind:      layout.KindBox,
@@ -110,76 +133,155 @@ func Run() {
 					},
 					box0,
 					box1,
-					{
-						Kind:      layout.KindBox,
-						Direction: "row",
-						CursorCol: -1,
-						CursorRow: -1,
-						Children: []*layout.Input{
-							{
-								Kind:    layout.KindText,
-								Content: "h",
-								Style: render.Style{
-									Inverse: true,
-								},
-							},
-							{
-								Kind:    layout.KindText,
-								Content: " Prev  ",
-								Style: render.Style{
-									Dim: true,
-								},
-							},
-							{
-								Kind:    layout.KindText,
-								Content: "l",
-								Style: render.Style{
-									Inverse: true,
-								},
-							},
-							{
-								Kind:    layout.KindText,
-								Content: " Next  ",
-								Style: render.Style{
-									Dim: true,
-								},
-							},
-							{
-								Kind:    layout.KindText,
-								Content: "u",
-								Style: render.Style{
-									Inverse: true,
-								},
-							},
-							{
-								Kind:    layout.KindText,
-								Content: " Update  ",
-								Style: render.Style{
-									Dim: true,
-								},
-							},
-							{
-								Kind:    layout.KindText,
-								Content: "q",
-								Style: render.Style{
-									Inverse: true,
-								},
-							},
-							{
-								Kind:    layout.KindText,
-								Content: " Quit",
-								Style: render.Style{
-									Dim: true,
-								},
-							},
-						},
-					},
 				},
 			},
 		},
 	}
 	sync := func() {
 		box0.Children = func() []*layout.Input {
+			var cs []*layout.Input
+			if interactive {
+				cs = append(cs, &layout.Input{
+					Kind:    layout.KindText,
+					Content: "esc",
+					Style: render.Style{
+						Inverse: true,
+					},
+				})
+				cs = append(cs, &layout.Input{
+					Kind:    layout.KindText,
+					Content: " Exit  ",
+					Style: render.Style{
+						Dim: true,
+					},
+				})
+				cs = append(cs, &layout.Input{
+					Kind:    layout.KindText,
+					Content: " INTERACTIVE ",
+					Style: render.Style{
+						FG:   render.Color{Name: "magenta"},
+						Bold: true,
+					},
+				})
+				cs = append(cs, &layout.Input{
+					Kind:    layout.KindText,
+					Content: fmt.Sprintf("  %v  Frame %v/%v  %v", pvScenarioName(), current+1, pvStepCount(), pvStepName(current)),
+					Style: render.Style{
+						Bold: true,
+					},
+				})
+			} else {
+				cs = append(cs, &layout.Input{
+					Kind:    layout.KindText,
+					Content: "h",
+					Style: render.Style{
+						Inverse: true,
+					},
+				})
+				cs = append(cs, &layout.Input{
+					Kind:    layout.KindText,
+					Content: " Prev  ",
+					Style: render.Style{
+						Dim: true,
+					},
+				})
+				cs = append(cs, &layout.Input{
+					Kind:    layout.KindText,
+					Content: "l",
+					Style: render.Style{
+						Inverse: true,
+					},
+				})
+				cs = append(cs, &layout.Input{
+					Kind:    layout.KindText,
+					Content: " Next  ",
+					Style: render.Style{
+						Dim: true,
+					},
+				})
+				cs = append(cs, &layout.Input{
+					Kind:    layout.KindText,
+					Content: "u",
+					Style: render.Style{
+						Inverse: true,
+					},
+				})
+				cs = append(cs, &layout.Input{
+					Kind:    layout.KindText,
+					Content: " Update  ",
+					Style: render.Style{
+						Dim: true,
+					},
+				})
+				cs = append(cs, &layout.Input{
+					Kind:    layout.KindText,
+					Content: "i",
+					Style: render.Style{
+						Inverse: true,
+					},
+				})
+				cs = append(cs, &layout.Input{
+					Kind:    layout.KindText,
+					Content: " Interactive  ",
+					Style: render.Style{
+						Dim: true,
+					},
+				})
+				cs = append(cs, &layout.Input{
+					Kind:    layout.KindText,
+					Content: "q",
+					Style: render.Style{
+						Inverse: true,
+					},
+				})
+				cs = append(cs, &layout.Input{
+					Kind:    layout.KindText,
+					Content: " Quit  ",
+					Style: render.Style{
+						Dim: true,
+					},
+				})
+				if matchStatus == 1 {
+					cs = append(cs, &layout.Input{
+						Kind:    layout.KindText,
+						Content: " MATCH ",
+						Style: render.Style{
+							FG:   render.Color{Name: "green"},
+							Bold: true,
+						},
+					})
+				} else {
+					if matchStatus == 0 {
+						cs = append(cs, &layout.Input{
+							Kind:    layout.KindText,
+							Content: " NO SNAPSHOT ",
+							Style: render.Style{
+								FG:   render.Color{Name: "yellow"},
+								Bold: true,
+							},
+						})
+					} else {
+						cs = append(cs, &layout.Input{
+							Kind:    layout.KindText,
+							Content: " DIFF ",
+							Style: render.Style{
+								FG:   render.Color{Name: "red"},
+								Bold: true,
+							},
+						})
+					}
+				}
+				cs = append(cs, &layout.Input{
+					Kind:    layout.KindText,
+					Content: fmt.Sprintf("  %v  Frame %v/%v  %v", pvScenarioName(), current+1, pvStepCount(), pvStepName(current)),
+					Style: render.Style{
+						Bold: true,
+					},
+				})
+			}
+			return cs
+		}()
+		box1.Children = func() []*layout.Input {
 			var cs []*layout.Input
 			for i, line := range pvSourceLines {
 				cs = append(cs, &layout.Input{
@@ -203,47 +305,6 @@ func Run() {
 					},
 				})
 			}
-			return cs
-		}()
-		box1.Children = func() []*layout.Input {
-			var cs []*layout.Input
-			if matchStatus == 1 {
-				cs = append(cs, &layout.Input{
-					Kind:    layout.KindText,
-					Content: " MATCH ",
-					Style: render.Style{
-						FG:   render.Color{Name: "green"},
-						Bold: true,
-					},
-				})
-			} else {
-				if matchStatus == 0 {
-					cs = append(cs, &layout.Input{
-						Kind:    layout.KindText,
-						Content: " NO SNAPSHOT ",
-						Style: render.Style{
-							FG:   render.Color{Name: "yellow"},
-							Bold: true,
-						},
-					})
-				} else {
-					cs = append(cs, &layout.Input{
-						Kind:    layout.KindText,
-						Content: " DIFF ",
-						Style: render.Style{
-							FG:   render.Color{Name: "red"},
-							Bold: true,
-						},
-					})
-				}
-			}
-			cs = append(cs, &layout.Input{
-				Kind:    layout.KindText,
-				Content: fmt.Sprintf("  %v  Frame %v/%v  %v", pvScenarioName(), current+1, pvStepCount(), pvStepName(current)),
-				Style: render.Style{
-					Bold: true,
-				},
-			})
 			return cs
 		}()
 	}
@@ -294,6 +355,7 @@ func Run() {
 func CreateApp(w, h int) *tui.App {
 	current := 0
 	matchStatus := 0
+	interactive := false
 
 	var app *tui.App
 	splitpanel0_leftTitle := "Actual"
@@ -308,6 +370,21 @@ func CreateApp(w, h int) *tui.App {
 	handleKey := func(evt input.Event) {
 		if evt.Kind == input.EventSignal {
 			app.Quit()
+			return
+		}
+		if interactive {
+			if evt.Kind == input.EventSpecial && evt.Special == input.KeyEscape {
+				pvExitInteractive()
+				interactive = false
+				app.Dirty = true
+				pvStepTo(current)
+				matchStatus = pvMatches(current)
+				app.Dirty = true
+				return
+			}
+			pvSendInput(evt)
+			matchStatus = 0
+			app.Dirty = true
 			return
 		}
 		if evt.Rune == 'q' || (evt.Ctrl && evt.Rune == 'c') {
@@ -332,21 +409,28 @@ func CreateApp(w, h int) *tui.App {
 			app.Dirty = true
 			return
 		}
+		if evt.Kind == input.EventKey && evt.Rune == 'i' {
+			pvEnterInteractive()
+			interactive = true
+			app.Dirty = true
+			return
+		}
 	}
 
 	box0 := &layout.Input{
+		Kind:      layout.KindBox,
+		Direction: "row",
+		CursorCol: -1,
+		CursorRow: -1,
+	}
+	box1 := &layout.Input{
 		Kind:        layout.KindBox,
+		FlexGrow:    1,
 		Border:      "single",
 		BorderTitle: pvSourceTitle(),
 		Overflow:    "scroll",
 		CursorCol:   -1,
 		CursorRow:   -1,
-	}
-	box1 := &layout.Input{
-		Kind:      layout.KindBox,
-		Direction: "row",
-		CursorCol: -1,
-		CursorRow: -1,
 	}
 	root := &layout.Input{
 		Kind:      layout.KindBox,
@@ -390,76 +474,155 @@ func CreateApp(w, h int) *tui.App {
 					},
 					box0,
 					box1,
-					{
-						Kind:      layout.KindBox,
-						Direction: "row",
-						CursorCol: -1,
-						CursorRow: -1,
-						Children: []*layout.Input{
-							{
-								Kind:    layout.KindText,
-								Content: "h",
-								Style: render.Style{
-									Inverse: true,
-								},
-							},
-							{
-								Kind:    layout.KindText,
-								Content: " Prev  ",
-								Style: render.Style{
-									Dim: true,
-								},
-							},
-							{
-								Kind:    layout.KindText,
-								Content: "l",
-								Style: render.Style{
-									Inverse: true,
-								},
-							},
-							{
-								Kind:    layout.KindText,
-								Content: " Next  ",
-								Style: render.Style{
-									Dim: true,
-								},
-							},
-							{
-								Kind:    layout.KindText,
-								Content: "u",
-								Style: render.Style{
-									Inverse: true,
-								},
-							},
-							{
-								Kind:    layout.KindText,
-								Content: " Update  ",
-								Style: render.Style{
-									Dim: true,
-								},
-							},
-							{
-								Kind:    layout.KindText,
-								Content: "q",
-								Style: render.Style{
-									Inverse: true,
-								},
-							},
-							{
-								Kind:    layout.KindText,
-								Content: " Quit",
-								Style: render.Style{
-									Dim: true,
-								},
-							},
-						},
-					},
 				},
 			},
 		},
 	}
 	sync := func() {
 		box0.Children = func() []*layout.Input {
+			var cs []*layout.Input
+			if interactive {
+				cs = append(cs, &layout.Input{
+					Kind:    layout.KindText,
+					Content: "esc",
+					Style: render.Style{
+						Inverse: true,
+					},
+				})
+				cs = append(cs, &layout.Input{
+					Kind:    layout.KindText,
+					Content: " Exit  ",
+					Style: render.Style{
+						Dim: true,
+					},
+				})
+				cs = append(cs, &layout.Input{
+					Kind:    layout.KindText,
+					Content: " INTERACTIVE ",
+					Style: render.Style{
+						FG:   render.Color{Name: "magenta"},
+						Bold: true,
+					},
+				})
+				cs = append(cs, &layout.Input{
+					Kind:    layout.KindText,
+					Content: fmt.Sprintf("  %v  Frame %v/%v  %v", pvScenarioName(), current+1, pvStepCount(), pvStepName(current)),
+					Style: render.Style{
+						Bold: true,
+					},
+				})
+			} else {
+				cs = append(cs, &layout.Input{
+					Kind:    layout.KindText,
+					Content: "h",
+					Style: render.Style{
+						Inverse: true,
+					},
+				})
+				cs = append(cs, &layout.Input{
+					Kind:    layout.KindText,
+					Content: " Prev  ",
+					Style: render.Style{
+						Dim: true,
+					},
+				})
+				cs = append(cs, &layout.Input{
+					Kind:    layout.KindText,
+					Content: "l",
+					Style: render.Style{
+						Inverse: true,
+					},
+				})
+				cs = append(cs, &layout.Input{
+					Kind:    layout.KindText,
+					Content: " Next  ",
+					Style: render.Style{
+						Dim: true,
+					},
+				})
+				cs = append(cs, &layout.Input{
+					Kind:    layout.KindText,
+					Content: "u",
+					Style: render.Style{
+						Inverse: true,
+					},
+				})
+				cs = append(cs, &layout.Input{
+					Kind:    layout.KindText,
+					Content: " Update  ",
+					Style: render.Style{
+						Dim: true,
+					},
+				})
+				cs = append(cs, &layout.Input{
+					Kind:    layout.KindText,
+					Content: "i",
+					Style: render.Style{
+						Inverse: true,
+					},
+				})
+				cs = append(cs, &layout.Input{
+					Kind:    layout.KindText,
+					Content: " Interactive  ",
+					Style: render.Style{
+						Dim: true,
+					},
+				})
+				cs = append(cs, &layout.Input{
+					Kind:    layout.KindText,
+					Content: "q",
+					Style: render.Style{
+						Inverse: true,
+					},
+				})
+				cs = append(cs, &layout.Input{
+					Kind:    layout.KindText,
+					Content: " Quit  ",
+					Style: render.Style{
+						Dim: true,
+					},
+				})
+				if matchStatus == 1 {
+					cs = append(cs, &layout.Input{
+						Kind:    layout.KindText,
+						Content: " MATCH ",
+						Style: render.Style{
+							FG:   render.Color{Name: "green"},
+							Bold: true,
+						},
+					})
+				} else {
+					if matchStatus == 0 {
+						cs = append(cs, &layout.Input{
+							Kind:    layout.KindText,
+							Content: " NO SNAPSHOT ",
+							Style: render.Style{
+								FG:   render.Color{Name: "yellow"},
+								Bold: true,
+							},
+						})
+					} else {
+						cs = append(cs, &layout.Input{
+							Kind:    layout.KindText,
+							Content: " DIFF ",
+							Style: render.Style{
+								FG:   render.Color{Name: "red"},
+								Bold: true,
+							},
+						})
+					}
+				}
+				cs = append(cs, &layout.Input{
+					Kind:    layout.KindText,
+					Content: fmt.Sprintf("  %v  Frame %v/%v  %v", pvScenarioName(), current+1, pvStepCount(), pvStepName(current)),
+					Style: render.Style{
+						Bold: true,
+					},
+				})
+			}
+			return cs
+		}()
+		box1.Children = func() []*layout.Input {
 			var cs []*layout.Input
 			for i, line := range pvSourceLines {
 				cs = append(cs, &layout.Input{
@@ -483,47 +646,6 @@ func CreateApp(w, h int) *tui.App {
 					},
 				})
 			}
-			return cs
-		}()
-		box1.Children = func() []*layout.Input {
-			var cs []*layout.Input
-			if matchStatus == 1 {
-				cs = append(cs, &layout.Input{
-					Kind:    layout.KindText,
-					Content: " MATCH ",
-					Style: render.Style{
-						FG:   render.Color{Name: "green"},
-						Bold: true,
-					},
-				})
-			} else {
-				if matchStatus == 0 {
-					cs = append(cs, &layout.Input{
-						Kind:    layout.KindText,
-						Content: " NO SNAPSHOT ",
-						Style: render.Style{
-							FG:   render.Color{Name: "yellow"},
-							Bold: true,
-						},
-					})
-				} else {
-					cs = append(cs, &layout.Input{
-						Kind:    layout.KindText,
-						Content: " DIFF ",
-						Style: render.Style{
-							FG:   render.Color{Name: "red"},
-							Bold: true,
-						},
-					})
-				}
-			}
-			cs = append(cs, &layout.Input{
-				Kind:    layout.KindText,
-				Content: fmt.Sprintf("  %v  Frame %v/%v  %v", pvScenarioName(), current+1, pvStepCount(), pvStepName(current)),
-				Style: render.Style{
-					Bold: true,
-				},
-			})
 			return cs
 		}()
 	}

@@ -7,6 +7,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/tomyan/sumi/runtime/input"
 	"github.com/tomyan/sumi/runtime/render"
 	"github.com/tomyan/sumi/runtime/sumitest"
 	"github.com/tomyan/sumi/runtime/term"
@@ -23,7 +24,8 @@ var (
 	pvSnapPath     string
 	pvActualStyled string
 	pvSourceLines  []string
-	pvCurrent      int // current step index, updated by pvStepTo
+	pvCurrent      int  // current step index, updated by pvStepTo
+	pvInteractive  bool // true when in interactive mode
 )
 
 // Setup stores subprocess handles and loads snapshots and source.
@@ -65,6 +67,28 @@ func pvStepTo(index int) error {
 	}
 	return nil
 }
+
+// pvSendInput sends an input event to the subprocess and reads the updated output.
+func pvSendInput(evt input.Event) error {
+	pvScreen.ResetSentinel()
+
+	resp, err := pvClient.Input(evt)
+	if err != nil {
+		return fmt.Errorf("input: %w", err)
+	}
+	pvActualStyled = resp.StyledText
+
+	return readUntilSentinel()
+}
+
+// pvEnterInteractive enters interactive mode.
+func pvEnterInteractive() { pvInteractive = true }
+
+// pvExitInteractive exits interactive mode.
+func pvExitInteractive() { pvInteractive = false }
+
+// pvIsInteractive returns whether interactive mode is active.
+func pvIsInteractive() bool { return pvInteractive }
 
 // readUntilSentinel reads PTY output until the VT100 sentinel is seen.
 func readUntilSentinel() error {
@@ -154,6 +178,7 @@ func RunPreview() {
 	}
 
 	app := CreateApp(0, 0)
+	app.TestBuffer = nil
 	app.OnPostRender = pvInjectContent
 	app.Run()
 }

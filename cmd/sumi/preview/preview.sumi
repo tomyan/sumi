@@ -8,11 +8,13 @@
 .label { dim: true; }
 .source { border: single; overflow: scroll; }
 .line-num { color: cyan; dim: true; }
+.interactive { color: magenta; bold: true; }
 </style>
 
 <script>
 current := $state(0)
 matchStatus := $state(0)
+interactive := $state(false)
 
 func doStep(index int) {
     pvStepTo(index)
@@ -22,6 +24,20 @@ func doStep(index int) {
 
 func handleKey(evt input.Event) {
     if evt.Kind == input.EventSignal { app.Quit(); return }
+
+    if interactive {
+        if evt.Kind == input.EventSpecial && evt.Special == input.KeyEscape {
+            pvExitInteractive()
+            interactive = false
+            pvStepTo(current)
+            matchStatus = pvMatches(current)
+            return
+        }
+        pvSendInput(evt)
+        matchStatus = 0
+        return
+    }
+
     if evt.Rune == 'q' || (evt.Ctrl && evt.Rune == 'c') { app.Quit(); return }
 
     if (evt.Kind == input.EventSpecial && evt.Special == input.KeyRight) || (evt.Kind == input.EventKey && (evt.Rune == 'l' || evt.Rune == '\r')) {
@@ -38,6 +54,12 @@ func handleKey(evt input.Event) {
         matchStatus = pvMatches(current)
         return
     }
+
+    if evt.Kind == input.EventKey && evt.Rune == 'i' {
+        pvEnterInteractive()
+        interactive = true
+        return
+    }
 }
 </script>
 
@@ -46,30 +68,35 @@ func handleKey(evt input.Event) {
         leftTitle="Actual" rightTitle="Expected"
         panelHeight={pvComponentHeight()}
     />
-    <box class="source" border-title={pvSourceTitle()}>
+    <box direction="row">
+        {if interactive}
+            <text class="key">esc</text><text class="label"> Exit  </text>
+            <text class="interactive"> INTERACTIVE </text>
+            <text class="info">  {pvScenarioName()}  Frame {current+1}/{pvStepCount()}  {pvStepName(current)}</text>
+        {else}
+            <text class="key">h</text><text class="label"> Prev  </text>
+            <text class="key">l</text><text class="label"> Next  </text>
+            <text class="key">u</text><text class="label"> Update  </text>
+            <text class="key">i</text><text class="label"> Interactive  </text>
+            <text class="key">q</text><text class="label"> Quit  </text>
+            {if matchStatus == 1}
+                <text class="match"> MATCH </text>
+            {else}
+                {if matchStatus == 0}
+                    <text class="no-snap"> NO SNAPSHOT </text>
+                {else}
+                    <text class="diff"> DIFF </text>
+                {/if}
+            {/if}
+            <text class="info">  {pvScenarioName()}  Frame {current+1}/{pvStepCount()}  {pvStepName(current)}</text>
+        {/if}
+    </box>
+    <box class="source" border-title={pvSourceTitle()} flex-grow="1">
         {for i, line := range pvSourceLines}
             <box direction="row">
                 <text class="line-num">{fmt.Sprintf("%3d ", i+1)}</text>
                 <text>{line}</text>
             </box>
         {/for}
-    </box>
-    <box class="status">
-        {if matchStatus == 1}
-            <text class="match"> MATCH </text>
-        {else}
-            {if matchStatus == 0}
-                <text class="no-snap"> NO SNAPSHOT </text>
-            {else}
-                <text class="diff"> DIFF </text>
-            {/if}
-        {/if}
-        <text class="info">  {pvScenarioName()}  Frame {current+1}/{pvStepCount()}  {pvStepName(current)}</text>
-    </box>
-    <box direction="row">
-        <text class="key">h</text><text class="label"> Prev  </text>
-        <text class="key">l</text><text class="label"> Next  </text>
-        <text class="key">u</text><text class="label"> Update  </text>
-        <text class="key">q</text><text class="label"> Quit</text>
     </box>
 </box>

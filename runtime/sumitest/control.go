@@ -4,12 +4,15 @@ import (
 	"encoding/json"
 	"fmt"
 	"net"
+
+	"github.com/tomyan/sumi/runtime/input"
 )
 
 // Request is a command sent from the parent to the serve subprocess.
 type Request struct {
-	Cmd   string `json:"cmd"`             // "info", "step", "quit"
-	Index int    `json:"index,omitempty"` // step index for "step" cmd
+	Cmd   string       `json:"cmd"`             // "info", "step", "input", "quit"
+	Index int          `json:"index,omitempty"` // step index for "step" cmd
+	Event *input.Event `json:"event,omitempty"` // event for "input" cmd
 }
 
 // InfoResponse is the response to an "info" command.
@@ -68,6 +71,18 @@ func (c *Client) Step(index int) (*StepResponse, error) {
 	var resp StepResponse
 	if err := c.dec.Decode(&resp); err != nil {
 		return nil, fmt.Errorf("read step: %w", err)
+	}
+	return &resp, nil
+}
+
+// Input sends an "input" command with an event and returns the updated state.
+func (c *Client) Input(evt input.Event) (*StepResponse, error) {
+	if err := c.enc.Encode(Request{Cmd: "input", Event: &evt}); err != nil {
+		return nil, fmt.Errorf("send input: %w", err)
+	}
+	var resp StepResponse
+	if err := c.dec.Decode(&resp); err != nil {
+		return nil, fmt.Errorf("read input: %w", err)
 	}
 	return &resp, nil
 }

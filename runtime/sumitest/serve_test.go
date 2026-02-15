@@ -53,26 +53,11 @@ func testScenario() Scenario {
 
 func TestServeInfo(t *testing.T) {
 	// Given — a serve listener with a test scenario
-	socketPath := filepath.Join(t.TempDir(), "test.sock")
-	listener, err := net.Listen("unix", socketPath)
-	if err != nil {
-		t.Fatalf("listen: %v", err)
-	}
-	defer listener.Close()
-
-	stdout := createTempFile(t)
-	defer stdout.Close()
-
-	scenario := testScenario()
-	go ServeOnListener(listener, scenario, stdout)
+	client, stdout, cleanup := startServe(t, testScenario())
+	defer cleanup()
+	_ = stdout
 
 	// When — connect and send info
-	client, err := Connect(socketPath)
-	if err != nil {
-		t.Fatalf("connect: %v", err)
-	}
-	defer client.Close()
-
 	info, err := client.Info()
 	if err != nil {
 		t.Fatalf("info: %v", err)
@@ -97,30 +82,12 @@ func TestServeInfo(t *testing.T) {
 	if info.SourceFile != "test.sumi" {
 		t.Errorf("source: got %q, want %q", info.SourceFile, "test.sumi")
 	}
-
-	client.Quit()
 }
 
 func TestServeStep(t *testing.T) {
 	// Given — a serve listener with a test scenario
-	socketPath := filepath.Join(t.TempDir(), "test.sock")
-	listener, err := net.Listen("unix", socketPath)
-	if err != nil {
-		t.Fatalf("listen: %v", err)
-	}
-	defer listener.Close()
-
-	stdout := createTempFile(t)
-	defer stdout.Close()
-
-	scenario := testScenario()
-	go ServeOnListener(listener, scenario, stdout)
-
-	client, err := Connect(socketPath)
-	if err != nil {
-		t.Fatalf("connect: %v", err)
-	}
-	defer client.Close()
+	client, stdout, cleanup := startServe(t, testScenario())
+	defer cleanup()
 
 	// When — send step 0
 	resp, err := client.Step(0)
@@ -136,15 +103,64 @@ func TestServeStep(t *testing.T) {
 		t.Error("styled_text: expected non-empty")
 	}
 
-	// Verify ANSI was written to stdout (should contain content)
+	// Verify ANSI was written to stdout
 	stdout.Seek(0, 0)
 	data := make([]byte, 4096)
 	n, _ := stdout.Read(data)
 	if n == 0 {
 		t.Error("stdout: expected ANSI output")
 	}
+}
 
-	client.Quit()
+func TestServeInputCommand(t *testing.T) {
+	// Given — a stateful scenario stepped to initial state
+	client, _, cleanup := startServe(t, statefulScenario())
+	defer cleanup()
+
+	_, err := client.Step(0)
+	if err != nil {
+		t.Fatalf("step 0: %v", err)
+	}
+
+	// When — send an input event (type 'x')
+	resp, err := client.Input(KeyEvent('x'))
+	if err != nil {
+		t.Fatalf("input: %v", err)
+	}
+
+	// Then — the app state changes to reflect the key press
+	if resp.StyledText == "" || !strContains(resp.StyledText, "typed-x") {
+		t.Errorf("styled: expected to contain 'typed-x', got %q", resp.StyledText)
+	}
+}
+
+// startServe creates a listener, starts ServeOnListener, and connects a client.
+// Returns the client, stdout file, and a cleanup function.
+func startServe(t *testing.T, s Scenario) (*Client, *os.File, func()) {
+	t.Helper()
+	socketPath := filepath.Join(t.TempDir(), "test.sock")
+	listener, err := net.Listen("unix", socketPath)
+	if err != nil {
+		t.Fatalf("listen: %v", err)
+	}
+
+	stdout := createTempFile(t)
+	go ServeOnListener(listener, s, stdout)
+
+	client, err := Connect(socketPath)
+	if err != nil {
+		listener.Close()
+		stdout.Close()
+		t.Fatalf("connect: %v", err)
+	}
+
+	cleanup := func() {
+		client.Quit()
+		client.Close()
+		listener.Close()
+		stdout.Close()
+	}
+	return client, stdout, cleanup
 }
 
 func createTempFile(t *testing.T) *os.File {
@@ -154,4 +170,14 @@ func createTempFile(t *testing.T) *os.File {
 		t.Fatalf("create temp: %v", err)
 	}
 	return f
+}
+
+// strContains checks if s contains substr.
+func strContains(s, substr string) bool {
+	for i := 0; i <= len(s)-len(substr); i++ {
+		if s[i:i+len(substr)] == substr {
+			return true
+		}
+	}
+	return false
 }

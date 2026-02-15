@@ -5,6 +5,9 @@ import (
 	"fmt"
 	"net"
 	"os"
+
+	"github.com/tomyan/sumi/runtime/input"
+	"github.com/tomyan/sumi/runtime/tui"
 )
 
 // sentinel is the OSC sequence written after each rendered frame to signal
@@ -35,7 +38,7 @@ func Serve(s Scenario) {
 	}
 	defer conn.Close()
 
-	handleConnection(conn, s)
+	handleConnectionTo(conn, s, os.Stdout)
 }
 
 // ServeOnListener is like Serve but uses a provided listener, for testing.
@@ -49,13 +52,76 @@ func ServeOnListener(listener net.Listener, s Scenario, stdout *os.File) {
 	handleConnectionTo(conn, s, stdout)
 }
 
-func handleConnection(conn net.Conn, s Scenario) {
-	handleConnectionTo(conn, s, os.Stdout)
+// serveState holds persistent app/harness state across step commands.
+type serveState struct {
+	scenario Scenario
+	stdout   *os.File
+	app      *tui.App
+	harness  *Harness
+	current  int // last applied step index, -1 = pristine
+}
+
+func newServeState(s Scenario, stdout *os.File) *serveState {
+	return &serveState{scenario: s, stdout: stdout, current: -1}
+}
+
+// stepTo applies the scenario up to the given index and returns the response.
+// Forward steps reuse the existing app; backward steps reset from scratch.
+func (st *serveState) stepTo(index int) StepResponse {
+	limit := index
+	if limit >= len(st.scenario.Steps) {
+		limit = len(st.scenario.Steps) - 1
+	}
+
+	if st.app == nil || index <= st.current {
+		// First call or going backward: create fresh app.
+		st.app = st.scenario.NewApp(st.scenario.Width, st.scenario.Height)
+		st.harness = New(st.app)
+		st.current = -1
+	}
+
+	// Apply steps from current+1 to limit.
+	for i := st.current + 1; i <= limit; i++ {
+		if st.scenario.Steps[i].Action != nil {
+			st.scenario.Steps[i].Action(st.harness)
+		}
+	}
+	st.current = limit
+
+	if buf := st.harness.Buffer(); buf != nil {
+		buf.RenderTo(st.stdout)
+	}
+	fmt.Fprint(st.stdout, sentinel)
+
+	return StepResponse{
+		Name:       st.scenario.Steps[limit].Name,
+		StyledText: st.harness.StyledText(),
+	}
+}
+
+// dispatchInput sends an event to the live app and returns the updated state.
+func (st *serveState) dispatchInput(evt *input.Event) StepResponse {
+	if evt == nil || st.harness == nil {
+		return StepResponse{Name: "input"}
+	}
+
+	st.harness.Step(*evt)
+
+	if buf := st.harness.Buffer(); buf != nil {
+		buf.RenderTo(st.stdout)
+	}
+	fmt.Fprint(st.stdout, sentinel)
+
+	return StepResponse{
+		Name:       "input",
+		StyledText: st.harness.StyledText(),
+	}
 }
 
 func handleConnectionTo(conn net.Conn, s Scenario, stdout *os.File) {
 	dec := json.NewDecoder(conn)
 	enc := json.NewEncoder(conn)
+	st := newServeState(s, stdout)
 
 	for {
 		var req Request
@@ -67,7 +133,10 @@ func handleConnectionTo(conn net.Conn, s Scenario, stdout *os.File) {
 		case "info":
 			enc.Encode(buildInfoResponse(s))
 		case "step":
-			resp := executeStep(s, req.Index, stdout)
+			resp := st.stepTo(req.Index)
+			enc.Encode(resp)
+		case "input":
+			resp := st.dispatchInput(req.Event)
 			enc.Encode(resp)
 		case "quit":
 			return
@@ -86,32 +155,5 @@ func buildInfoResponse(s Scenario) InfoResponse {
 		Height:     s.Height,
 		Steps:      stepNames,
 		SourceFile: s.SourceFile,
-	}
-}
-
-func executeStep(s Scenario, index int, stdout *os.File) StepResponse {
-	app := s.NewApp(s.Width, s.Height)
-	h := New(app)
-
-	// Replay all steps up to and including the requested index.
-	limit := index
-	if limit >= len(s.Steps) {
-		limit = len(s.Steps) - 1
-	}
-	for i := 0; i <= limit; i++ {
-		if s.Steps[i].Action != nil {
-			s.Steps[i].Action(h)
-		}
-	}
-
-	// Write ANSI rendering to stdout (the PTY), followed by sentinel.
-	if buf := h.Buffer(); buf != nil {
-		buf.RenderTo(stdout)
-	}
-	fmt.Fprint(stdout, sentinel)
-
-	return StepResponse{
-		Name:       s.Steps[limit].Name,
-		StyledText: h.StyledText(),
 	}
 }
