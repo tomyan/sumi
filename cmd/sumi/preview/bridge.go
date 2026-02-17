@@ -30,6 +30,8 @@ var (
 	pvCompDir      string
 	pvEditors      [3]*Editor // source, snapshot, scenario
 	pvApp          *tui.App   // reference for Wake()
+	pvWatcher      *Watcher
+	pvOnReload     func() // callback when source/scenario files change (set by caller)
 )
 
 // Setup stores subprocess handles and loads snapshots and source.
@@ -192,10 +194,20 @@ func RunPreview() {
 	SetupEditors()
 	defer CleanupEditors()
 
+	pvStartWatcher()
+	defer pvStopWatcher()
+
 	app := CreateApp(0, 0)
 	pvApp = app
 	app.TestBuffer = nil
 	app.OnPostRender = pvInjectContent
+	existingResize := app.OnResize
+	app.OnResize = func() {
+		if existingResize != nil {
+			existingResize()
+		}
+		pvResizeEditors()
+	}
 	app.Run()
 }
 
@@ -425,4 +437,61 @@ func pvFocusName() string {
 // pvIsEditorFocused returns true if any editor is focused.
 func pvIsEditorFocused() bool {
 	return pvFocus >= FocusEditor1 && pvFocus <= FocusEditor3
+}
+
+// SetOnReload sets a callback for when source/scenario files are modified.
+// The callback should regenerate code, restart the subprocess, and re-step.
+func SetOnReload(fn func()) {
+	pvOnReload = fn
+}
+
+// pvStartWatcher starts the file watcher for source, snapshot, and scenario files.
+func pvStartWatcher() {
+	var paths []string
+	if pvInfo.SourceFile != "" {
+		paths = append(paths, filepath.Join(pvCompDir, pvInfo.SourceFile))
+	}
+	paths = append(paths, pvSnapPath)
+	if pvInfo.ScenarioFile != "" {
+		paths = append(paths, filepath.Join(pvCompDir, pvInfo.ScenarioFile))
+	}
+
+	if len(paths) == 0 {
+		return
+	}
+
+	pvWatcher = NewWatcher(paths, 500*time.Millisecond, pvHandleFileChange)
+}
+
+// pvStopWatcher stops the file watcher.
+func pvStopWatcher() {
+	if pvWatcher != nil {
+		pvWatcher.Stop()
+		pvWatcher = nil
+	}
+}
+
+// pvHandleFileChange is called when a watched file's mtime changes.
+func pvHandleFileChange(path string) {
+	// Snapshot file changed — re-read snapshots and update match status.
+	if path == pvSnapPath {
+		frames, err := sumitest.ReadSnapshot(pvSnapPath)
+		if err == nil {
+			pvSnapshots = frames
+		}
+		if pvApp != nil {
+			pvApp.Dirty = true
+			pvApp.Wake()
+		}
+		return
+	}
+
+	// Source or scenario file changed — trigger reload callback.
+	if pvOnReload != nil {
+		pvOnReload()
+	}
+	if pvApp != nil {
+		pvApp.Dirty = true
+		pvApp.Wake()
+	}
 }
