@@ -37,3 +37,11 @@ func (s *Screen) SentinelSeen() bool { return s.sentinel }
 
 // ResetSentinel clears the sentinel flag for the next frame.
 func (s *Screen) ResetSentinel() { s.sentinel = false }
+
+// Resize creates a new buffer with the given dimensions, resetting cursor and style.
+func (s *Screen) Resize(width, height int) {
+	s.buf = render.NewBuffer(width, height)
+	s.curRow = 0
+	s.curCol = 0
+	s.style = render.Style{}
+}

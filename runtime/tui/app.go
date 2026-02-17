@@ -40,6 +40,15 @@ func (a *App) Quit() {
 	}
 }
 
+// Wake immediately wakes the event loop to trigger a re-render.
+// Used by background goroutines (e.g. editor PTY readers) to signal new content.
+func (a *App) Wake() {
+	select {
+	case a.wakeCh <- struct{}{}:
+	default:
+	}
+}
+
 // RequestFrame schedules an animation frame tick after ~16ms.
 // When the tick fires, the event loop dispatches EventFrame to OnEvent.
 func (a *App) RequestFrame() {
@@ -112,7 +121,11 @@ func (a *App) Run() {
 	}
 
 	restore, _ := input.EnableRawMode(int(os.Stdin.Fd()))
-	defer restore()
+	defer func() {
+		if restore != nil {
+			restore()
+		}
+	}()
 	render.EnterAlternateScreen(os.Stdout)
 	defer render.ExitAlternateScreen(os.Stdout)
 
