@@ -1,20 +1,26 @@
 <style>
-.status { direction: row; }
+.panels { direction: row; }
+.actual { flex-grow: 1; border: single; border-color: cyan; padding: 0 1; }
+.expected { flex-grow: 1; border: single; border-color: blue; padding: 0 1; }
+.editors { direction: row; }
+.editor-left { flex-grow: 1; }
+.editor-right { flex-grow: 1; }
+.scenario-editor { }
 .match { color: green; bold: true; }
 .diff { color: red; bold: true; }
 .no-snap { color: yellow; bold: true; }
 .info { bold: true; }
 .key { inverse: true; }
 .label { dim: true; }
-.source { border: single; overflow: scroll; }
-.line-num { color: cyan; dim: true; }
-.interactive { color: magenta; bold: true; }
+.interactive { color: green; bold: true; }
+.focus-indicator { color: cyan; bold: true; }
 </style>
 
 <script>
 current := $state(0)
 matchStatus := $state(0)
 interactive := $state(false)
+focusState := $state(0)
 
 func doStep(index int) {
     pvStepTo(index)
@@ -22,19 +28,69 @@ func doStep(index int) {
     current = index
 }
 
+func doCommand(cmd string) {
+    if cmd == "quit" { app.Quit(); return }
+    if cmd == "next" {
+        if current < pvStepCount()-1 { doStep(current + 1) }
+        return
+    }
+    if cmd == "prev" {
+        if current > 0 { doStep(current - 1) }
+        return
+    }
+    if cmd == "update" {
+        pvUpdateSnapshot(current)
+        matchStatus = pvMatches(current)
+        return
+    }
+    if cmd == "interactive" {
+        pvEnterInteractive()
+        interactive = true
+        pvFocus = FocusInteractive
+        focusState = int(FocusInteractive)
+        return
+    }
+}
+
 func handleKey(evt input.Event) {
     if evt.Kind == input.EventSignal { app.Quit(); return }
 
-    if interactive {
-        if evt.Kind == input.EventSpecial && evt.Special == input.KeyEscape {
+    if pvPrefixPending {
+        pvPrefixPending = false
+        cmd := prefixCommand(evt)
+        if cmd != "" { doCommand(cmd) }
+        return
+    }
+
+    if pvFocus == FocusInteractive {
+        if (evt.Kind == input.EventSpecial && evt.Special == input.KeyEscape) || evt.Alt {
             pvExitInteractive()
             interactive = false
+            pvFocus = FocusControls
+            focusState = int(FocusControls)
             pvStepTo(current)
             matchStatus = pvMatches(current)
             return
         }
         pvSendInput(evt)
         matchStatus = 0
+        return
+    }
+
+    if pvIsEditorFocused() {
+        if isCtrlBackslash(evt) {
+            pvPrefixPending = true
+            return
+        }
+        if evt.Kind == input.EventSpecial && evt.Special == input.KeyEscape {
+            pvFocus = FocusControls
+            focusState = int(FocusControls)
+            return
+        }
+        idx := editorIndex(pvFocus)
+        if idx >= 0 && pvEditors[idx] != nil {
+            pvEditors[idx].SendEvent(evt)
+        }
         return
     }
 
@@ -58,27 +114,44 @@ func handleKey(evt input.Event) {
     if evt.Kind == input.EventKey && evt.Rune == 'i' {
         pvEnterInteractive()
         interactive = true
+        pvFocus = FocusInteractive
+        focusState = int(FocusInteractive)
+        return
+    }
+
+    if evt.Kind == input.EventKey && (evt.Rune == '1' || evt.Rune == '2' || evt.Rune == '3') {
+        pvFocus = focusForDigit(evt.Rune)
+        focusState = int(pvFocus)
         return
     }
 }
 </script>
 
 <box onkey="handleKey">
-    <sumi:SplitPanel
-        leftTitle="Actual" rightTitle="Expected"
-        panelHeight={pvComponentHeight()}
-    />
+    <box class="panels">
+        <box class="actual" border-title="Actual" height={pvComponentHeight()}></box>
+        <box class="expected" border-title="Expected" height={pvComponentHeight()}></box>
+    </box>
     <box direction="row">
         {if interactive}
             <text class="key">esc</text><text class="label"> Exit  </text>
             <text class="interactive"> INTERACTIVE </text>
             <text class="info">  {pvScenarioName()}  Frame {current+1}/{pvStepCount()}  {pvStepName(current)}</text>
         {else}
-            <text class="key">h</text><text class="label"> Prev  </text>
-            <text class="key">l</text><text class="label"> Next  </text>
-            <text class="key">u</text><text class="label"> Update  </text>
-            <text class="key">i</text><text class="label"> Interactive  </text>
-            <text class="key">q</text><text class="label"> Quit  </text>
+            {if pvIsEditorFocused()}
+                <text class="focus-indicator"> {pvFocusName()} </text>
+                <text class="key">C-\</text><text class="label"> Cmd  </text>
+                <text class="key">esc</text><text class="label"> Controls  </text>
+            {else}
+                <text class="key">h</text><text class="label"> Prev  </text>
+                <text class="key">l</text><text class="label"> Next  </text>
+                <text class="key">u</text><text class="label"> Update  </text>
+                <text class="key">i</text><text class="label"> Interactive  </text>
+                <text class="key">1</text><text class="label"> Source  </text>
+                <text class="key">2</text><text class="label"> Snap  </text>
+                <text class="key">3</text><text class="label"> Scenario  </text>
+                <text class="key">q</text><text class="label"> Quit  </text>
+            {/if}
             {if matchStatus == 1}
                 <text class="match"> MATCH </text>
             {else}
@@ -91,12 +164,9 @@ func handleKey(evt input.Event) {
             <text class="info">  {pvScenarioName()}  Frame {current+1}/{pvStepCount()}  {pvStepName(current)}</text>
         {/if}
     </box>
-    <box class="source" border-title={pvSourceTitle()} flex-grow="1">
-        {for i, line := range pvSourceLines}
-            <box direction="row">
-                <text class="line-num">{fmt.Sprintf("%3d ", i+1)}</text>
-                <text>{line}</text>
-            </box>
-        {/for}
+    <box class="editors" height={pvEditorHeight()}>
+        <box class="editor-left"></box>
+        <box class="editor-right"></box>
     </box>
+    <box class="scenario-editor" height={pvEditorHeight()}></box>
 </box>

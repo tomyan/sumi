@@ -150,10 +150,11 @@ func buildInfoResponse(s Scenario) InfoResponse {
 		stepNames[i] = step.Name
 	}
 	return InfoResponse{
-		Name:       s.Name,
-		Width:      s.Width,
-		Height:     s.Height,
-		Steps:      stepNames,
-		SourceFile: s.SourceFile,
+		Name:         s.Name,
+		Width:        s.Width,
+		Height:       s.Height,
+		Steps:        stepNames,
+		SourceFile:   s.SourceFile,
+		ScenarioFile: s.ScenarioFile,
 	}
 }

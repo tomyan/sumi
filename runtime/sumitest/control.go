@@ -17,11 +17,12 @@ type Request struct {
 
 // InfoResponse is the response to an "info" command.
 type InfoResponse struct {
-	Name       string   `json:"name"`
-	Width      int      `json:"width"`
-	Height     int      `json:"height"`
-	Steps      []string `json:"steps"`
-	SourceFile string   `json:"source_file,omitempty"`
+	Name         string   `json:"name"`
+	Width        int      `json:"width"`
+	Height       int      `json:"height"`
+	Steps        []string `json:"steps"`
+	SourceFile   string   `json:"source_file,omitempty"`
+	ScenarioFile string   `json:"scenario_file,omitempty"`
 }
 
 // StepResponse is the response to a "step" command.

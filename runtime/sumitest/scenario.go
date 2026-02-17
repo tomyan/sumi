@@ -4,12 +4,13 @@ import "github.com/tomyan/sumi/runtime/tui"
 
 // Scenario defines a sequence of interaction steps against a component.
 type Scenario struct {
-	Name       string
-	Width      int
-	Height     int
-	NewApp     func(w, h int) *tui.App
-	Steps      []Step
-	SourceFile string // optional path to .sumi source shown in preview
+	Name         string
+	Width        int
+	Height       int
+	NewApp       func(w, h int) *tui.App
+	Steps        []Step
+	SourceFile   string // optional path to .sumi source shown in preview
+	ScenarioFile string // optional path to scenario.go shown in preview
 }
 
 // Step is a single named interaction within a scenario.

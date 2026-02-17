@@ -11,6 +11,7 @@ import (
 	"github.com/tomyan/sumi/runtime/render"
 	"github.com/tomyan/sumi/runtime/sumitest"
 	"github.com/tomyan/sumi/runtime/term"
+	"github.com/tomyan/sumi/runtime/tui"
 	"github.com/tomyan/sumi/runtime/vt100"
 )
 
@@ -26,6 +27,9 @@ var (
 	pvSourceLines  []string
 	pvCurrent      int  // current step index, updated by pvStepTo
 	pvInteractive  bool // true when in interactive mode
+	pvCompDir      string
+	pvEditors      [3]*Editor // source, snapshot, scenario
+	pvApp          *tui.App   // reference for Wake()
 )
 
 // Setup stores subprocess handles and loads snapshots and source.
@@ -34,6 +38,7 @@ func Setup(client *sumitest.Client, master *os.File, info *sumitest.InfoResponse
 	pvMaster = master
 	pvInfo = info
 	pvScreen = vt100.NewScreen(info.Width, info.Height)
+	pvCompDir = compDir
 
 	// Load snapshots.
 	pvSnapPath = filepath.Join(compDir, "testdata", info.Name+".snapshot")
@@ -42,7 +47,7 @@ func Setup(client *sumitest.Client, master *os.File, info *sumitest.InfoResponse
 		pvSnapshots = frames
 	}
 
-	// Load source file.
+	// Load source file (for fallback display).
 	if info.SourceFile != "" {
 		absPath := filepath.Join(compDir, info.SourceFile)
 		if data, err := os.ReadFile(absPath); err == nil {
@@ -78,7 +83,10 @@ func pvSendInput(evt input.Event) error {
 	}
 	pvActualStyled = resp.StyledText
 
-	return readUntilSentinel()
+	if err := readUntilSentinel(); err != nil {
+		return err
+	}
+	return nil
 }
 
 // pvEnterInteractive enters interactive mode.
@@ -156,9 +164,13 @@ func pvScenarioName() string {
 	return pvInfo.Name
 }
 
-// pvComponentHeight returns the panel height (component height + 2 for borders).
+// pvComponentHeight returns the panel height (component height + 2 for borders, min 10).
 func pvComponentHeight() int {
-	return pvInfo.Height + 2
+	h := pvInfo.Height + 2
+	if h < 10 {
+		return 10
+	}
+	return h
 }
 
 // pvSourceTitle returns the title for the source panel.
@@ -177,7 +189,11 @@ func RunPreview() {
 		return
 	}
 
+	SetupEditors()
+	defer CleanupEditors()
+
 	app := CreateApp(0, 0)
+	pvApp = app
 	app.TestBuffer = nil
 	app.OnPostRender = pvInjectContent
 	app.Run()
@@ -186,13 +202,54 @@ func RunPreview() {
 // pvInjectContent writes rich content into the panel areas after sumi renders.
 func pvInjectContent() {
 	termW, _ := term.GetSize(int(os.Stdout.Fd()))
-	leftPanelW := (termW - 3) / 2 // 3 border chars
+	leftBoxW := termW / 2
 
 	// Render VT100 buffer into left panel (actual).
 	pvScreen.Buffer().RenderToOffset(os.Stdout, 1, 2)
 
 	// Render styled text into right panel (expected).
-	pvRenderExpected(os.Stdout, 1, leftPanelW+3)
+	pvRenderExpected(os.Stdout, 1, leftBoxW+2)
+
+	// Highlight left panel border when in interactive mode.
+	if pvInteractive {
+		pvHighlightBorder(os.Stdout, leftBoxW)
+	}
+
+	// Render editor screens into placeholder areas.
+	pvInjectEditors(os.Stdout, termW)
+}
+
+// pvHighlightBorder redraws the left panel border in green to indicate interactive mode.
+func pvHighlightBorder(w *os.File, boxW int) {
+	h := pvComponentHeight()
+	style := render.Style{FG: render.Color{Name: "green"}, Bold: true}
+
+	// Top edge.
+	top := make([]rune, boxW)
+	top[0] = '┌'
+	for i := 1; i < boxW-1; i++ {
+		top[i] = '─'
+	}
+	top[boxW-1] = '┐'
+	render.WriteAt(w, 0, 0, string(top), style)
+
+	// Redraw title over top edge.
+	render.WriteAt(w, 0, 2, " Actual ", style)
+
+	// Bottom edge.
+	bottom := make([]rune, boxW)
+	bottom[0] = '└'
+	for i := 1; i < boxW-1; i++ {
+		bottom[i] = '─'
+	}
+	bottom[boxW-1] = '┘'
+	render.WriteAt(w, h-1, 0, string(bottom), style)
+
+	// Side edges.
+	for r := 1; r < h-1; r++ {
+		render.WriteAt(w, r, 0, "│", style)
+		render.WriteAt(w, r, boxW-1, "│", style)
+	}
 }
 
 // pvRenderExpected writes styled text lines into the expected panel area.
@@ -227,4 +284,145 @@ func isTimeout(err error) bool {
 	}
 	return strings.Contains(err.Error(), "timeout") ||
 		strings.Contains(err.Error(), "deadline")
+}
+
+// pvEditorHeight returns the height for each editor row.
+func pvEditorHeight() int {
+	_, termH := term.GetSize(int(os.Stdout.Fd()))
+	// Layout: component panels + status bar (1) + 2 editor rows
+	used := pvComponentHeight() + 1
+	remaining := termH - used
+	if remaining < 6 {
+		return 3
+	}
+	return remaining / 2
+}
+
+// pvEditorWidth returns the width of each side-by-side editor.
+func pvEditorWidth() int {
+	termW, _ := term.GetSize(int(os.Stdout.Fd()))
+	return termW / 2
+}
+
+// pvScenarioEditorWidth returns the width of the full-width scenario editor.
+func pvScenarioEditorWidth() int {
+	termW, _ := term.GetSize(int(os.Stdout.Fd()))
+	return termW
+}
+
+// SetupEditors starts nvim instances for source, snapshot, and scenario files.
+func SetupEditors() {
+	edH := pvEditorHeight()
+	edW := pvEditorWidth()
+	scenW := pvScenarioEditorWidth()
+
+	wake := func() {
+		if pvApp != nil {
+			pvApp.Wake()
+		}
+	}
+
+	// Editor 1: source file.
+	if pvInfo.SourceFile != "" {
+		path := filepath.Join(pvCompDir, pvInfo.SourceFile)
+		ed, err := NewEditor(path, edH, edW, wake)
+		if err == nil {
+			pvEditors[0] = ed
+		}
+	}
+
+	// Editor 2: snapshot file.
+	snapPath := filepath.Join(pvCompDir, "testdata", pvInfo.Name+".snapshot")
+	ed, err := NewEditor(snapPath, edH, edW, wake)
+	if err == nil {
+		pvEditors[1] = ed
+	}
+
+	// Editor 3: scenario file.
+	if pvInfo.ScenarioFile != "" {
+		path := filepath.Join(pvCompDir, pvInfo.ScenarioFile)
+		ed, err := NewEditor(path, edH, scenW, wake)
+		if err == nil {
+			pvEditors[2] = ed
+		}
+	}
+}
+
+// CleanupEditors terminates all nvim processes.
+func CleanupEditors() {
+	for i, ed := range pvEditors {
+		if ed != nil {
+			ed.Close()
+			pvEditors[i] = nil
+		}
+	}
+}
+
+// pvResizeEditors recalculates editor dimensions and resizes all PTYs.
+func pvResizeEditors() {
+	edH := pvEditorHeight()
+	edW := pvEditorWidth()
+	scenW := pvScenarioEditorWidth()
+
+	if pvEditors[0] != nil {
+		pvEditors[0].Resize(edH, edW)
+	}
+	if pvEditors[1] != nil {
+		pvEditors[1].Resize(edH, edW)
+	}
+	if pvEditors[2] != nil {
+		pvEditors[2].Resize(edH, scenW)
+	}
+}
+
+// pvInjectEditors renders editor screens into placeholder areas.
+func pvInjectEditors(w *os.File, termW int) {
+	startRow := pvComponentHeight()
+	leftW := termW / 2
+
+	// Editor 1 (source) — top-left.
+	if pvEditors[0] != nil {
+		pvEditors[0].mu.Lock()
+		pvEditors[0].screen.Buffer().RenderToOffset(w, startRow, 0)
+		pvEditors[0].mu.Unlock()
+	}
+
+	// Editor 2 (snapshot) — top-right.
+	if pvEditors[1] != nil {
+		pvEditors[1].mu.Lock()
+		pvEditors[1].screen.Buffer().RenderToOffset(w, startRow, leftW)
+		pvEditors[1].mu.Unlock()
+	}
+
+	// Editor 3 (scenario) — below the two side-by-side editors.
+	edH := pvEditorHeight()
+	scenRow := startRow + edH
+	if pvEditors[2] != nil {
+		pvEditors[2].mu.Lock()
+		pvEditors[2].screen.Buffer().RenderToOffset(w, scenRow, 0)
+		pvEditors[2].mu.Unlock()
+	}
+}
+
+// pvSnapshotTitle returns the title for the snapshot editor panel.
+func pvSnapshotTitle() string {
+	return pvInfo.Name + ".snapshot"
+}
+
+// pvScenarioTitle returns the title for the scenario editor panel.
+func pvScenarioTitle() string {
+	if pvInfo.ScenarioFile != "" {
+		return pvInfo.ScenarioFile
+	}
+	return "scenario.go"
+}
+
+// pvFocusName returns the current focus state name for the status bar.
+func pvFocusName() string {
+	return pvFocus.Name()
+}
+
+// pvIsEditorFocused returns true if any editor is focused.
+func pvIsEditorFocused() bool {
+	return pvFocus >= FocusEditor1 && pvFocus <= FocusEditor3
 }
