@@ -9,6 +9,8 @@ type Script struct {
 	DerivedDecls []DerivedDecl
 	SelfDecls    []SelfDecl
 	FuncDecls    []FuncDecl
+	SignalDecls  []SignalDecl  // signal.New() declarations (new reactive model)
+	ComputedDecls []ComputedDecl // signal.From() declarations (new reactive model)
 }
 
 // StateDecl represents a reactive state declaration: name := $state(initExpr)
@@ -45,6 +47,18 @@ type DerivedDecl struct {
 type SelfDecl struct {
 	Name string // variable name
 	Key  string // measurement key, e.g. "width", "height"
+}
+
+// SignalDecl represents a signal declaration: name := sumi.New(expr) or signal.New(expr)
+type SignalDecl struct {
+	Name     string // variable name
+	InitExpr string // initial value expression
+}
+
+// ComputedDecl represents a computed signal: name := sumi.From(func() T { expr }) or signal.From(...)
+type ComputedDecl struct {
+	Name string // variable name
+	Expr string // the full function literal expression
 }
 
 // FuncDecl represents a function declaration within the script block.

@@ -7,6 +7,18 @@ import (
 	"github.com/tomyan/sumi/parser/template"
 )
 
+// contentExprSignals generates the Go expression for a TextElement's content,
+// auto-unwrapping signal variables with .Get() in expressions.
+func contentExprSignals(parts []template.Part, signals map[string]bool) string {
+	if len(parts) == 0 {
+		return `""`
+	}
+	if allStringParts(parts) {
+		return fmt.Sprintf("%q", concatStringParts(parts))
+	}
+	return buildSprintfExprSignals(parts, signals)
+}
+
 // contentExpr generates the Go expression for a TextElement's content.
 // Pure string parts produce a quoted string literal.
 // Mixed parts with expressions produce a fmt.Sprintf call.
@@ -37,6 +49,31 @@ func concatStringParts(parts []template.Part) string {
 		sb.WriteString(p.(*template.StringPart).Value)
 	}
 	return sb.String()
+}
+
+// buildSprintfExprSignals builds a fmt.Sprintf call, auto-unwrapping signal variables.
+func buildSprintfExprSignals(parts []template.Part, signals map[string]bool) string {
+	var fmtStr strings.Builder
+	var args []string
+	for _, p := range parts {
+		switch pt := p.(type) {
+		case *template.StringPart:
+			fmtStr.WriteString(strings.ReplaceAll(pt.Value, "%", "%%"))
+		case *template.ExprPart:
+			fmtStr.WriteString("%v")
+			args = append(args, unwrapSignals(pt.Expr, signals))
+		}
+	}
+	return fmt.Sprintf("fmt.Sprintf(%q, %s)", fmtStr.String(), strings.Join(args, ", "))
+}
+
+// unwrapSignals replaces signal variable references in an expression with .Get() calls.
+func unwrapSignals(expr string, signals map[string]bool) string {
+	result := expr
+	for name := range signals {
+		result = replaceIdentifier(result, name, name+".Get()")
+	}
+	return result
 }
 
 // buildSprintfExpr builds a fmt.Sprintf call from mixed string/expr parts.

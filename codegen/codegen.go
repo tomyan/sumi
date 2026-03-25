@@ -39,11 +39,13 @@ func Generate(doc *template.Document, sc *script.Script, stylesheet *style.Style
 	hasTitle := findTitleElement(doc) != nil
 	hasScroll := len(findAllScrollableBoxes(doc, stylesheet)) > 0
 	hasTime := needsTimeImport(sc, inlined)
-	writeImports(&buf, docHasExprs(doc) || hasTitle || hasScroll || docHasForKey(doc) || instancesHaveExprs(instances), reactive, hasTime)
+	writeImports(&buf, docHasExprs(doc) || hasTitle || hasScroll || docHasForKey(doc) || instancesHaveExprs(instances), reactive, hasTime, usesSignals(sc))
 
 	// Emit Run()
 	buf.WriteString("func Run() {\n")
-	if reactive {
+	if usesSignals(sc) {
+		writeSignalBody(&buf, doc, sc, stylesheet)
+	} else if reactive {
 		writeReactiveBody(&buf, doc, sc, stylesheet, instances)
 	} else {
 		writeStaticBody(&buf, doc, stylesheet)
@@ -52,7 +54,9 @@ func Generate(doc *template.Document, sc *script.Script, stylesheet *style.Style
 
 	// Emit CreateApp()
 	buf.WriteString("func CreateApp(w, h int) *tui.App {\n")
-	if reactive {
+	if usesSignals(sc) {
+		writeSignalBody(&buf, doc, sc, stylesheet) // TODO: CreateApp variant
+	} else if reactive {
 		writeReactiveCreateAppBody(&buf, doc, sc, stylesheet, instances)
 	} else {
 		writeStaticCreateAppBody(&buf, doc, stylesheet)
@@ -67,7 +71,30 @@ func hasReactiveContent(sc *script.Script, instances []componentInstance) bool {
 	if sc != nil && (len(sc.StateDecls) > 0 || len(sc.EnvDecls) > 0 || len(sc.DerivedDecls) > 0 || len(sc.SelfDecls) > 0) {
 		return true
 	}
+	if usesSignals(sc) {
+		return true
+	}
 	return len(instances) > 0
+}
+
+// usesSignals returns true if the script uses the new signal-based reactive model.
+func usesSignals(sc *script.Script) bool {
+	return sc != nil && (len(sc.SignalDecls) > 0 || len(sc.ComputedDecls) > 0)
+}
+
+// signalVarNames returns the set of variable names that are signals (need .Get() in templates).
+func signalVarNames(sc *script.Script) map[string]bool {
+	names := make(map[string]bool)
+	if sc == nil {
+		return names
+	}
+	for _, d := range sc.SignalDecls {
+		names[d.Name] = true
+	}
+	for _, d := range sc.ComputedDecls {
+		names[d.Name] = true
+	}
+	return names
 }
 
 // needsTimeImport returns true if any function body references the time package.
