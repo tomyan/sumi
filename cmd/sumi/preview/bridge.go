@@ -189,15 +189,15 @@ func RunPreview() {
 		return
 	}
 
+	app := CreateApp(0, 0)
+	pvApp = app
+	app.TestBuffer = nil
+
 	SetupEditors()
 	defer CleanupEditors()
 
 	pvStartWatcher()
 	defer pvStopWatcher()
-
-	app := CreateApp(0, 0)
-	pvApp = app
-	app.TestBuffer = nil
 	app.OnPostRender = pvInjectContent
 	existingResize := app.OnResize
 	app.OnResize = func() {

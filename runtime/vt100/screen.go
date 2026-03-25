@@ -11,11 +11,29 @@ type Screen struct {
 	curCol   int
 	style    render.Style
 	sentinel bool // true after \x1b]999;done\x07 is seen
+
+	// Saved cursor position (DECSC/DECRC).
+	savedRow int
+	savedCol int
+
+	// Scroll region (DECSTBM). 0-based inclusive range.
+	// scrollTop=0, scrollBot=height-1 means full screen (default).
+	scrollTop int
+	scrollBot int
+
+	// Parser state — persists across Write() calls so split sequences work.
+	pState  int
+	pParams []int
+	pCur    int
+	pOSCBuf []byte
 }
 
 // NewScreen creates a screen with the given dimensions.
 func NewScreen(width, height int) *Screen {
-	return &Screen{buf: render.NewBuffer(width, height)}
+	return &Screen{
+		buf:       render.NewBuffer(width, height),
+		scrollBot: height - 1,
+	}
 }
 
 // Cell returns the cell at (row, col).
@@ -44,4 +62,6 @@ func (s *Screen) Resize(width, height int) {
 	s.curRow = 0
 	s.curCol = 0
 	s.style = render.Style{}
+	s.scrollTop = 0
+	s.scrollBot = height - 1
 }

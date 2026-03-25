@@ -3,9 +3,9 @@
 .actual { flex-grow: 1; border: single; border-color: cyan; padding: 0 1; }
 .expected { flex-grow: 1; border: single; border-color: blue; padding: 0 1; }
 .editors { direction: row; }
-.editor-left { flex-grow: 1; }
-.editor-right { flex-grow: 1; }
-.scenario-editor { }
+.editor-left { flex-grow: 1; border: single; border-color: magenta; }
+.editor-right { flex-grow: 1; border: single; border-color: magenta; }
+.scenario-editor { border: single; border-color: magenta; }
 .match { color: green; bold: true; }
 .diff { color: red; bold: true; }
 .no-snap { color: yellow; bold: true; }
@@ -30,6 +30,17 @@ func doStep(index int) {
 
 func doCommand(cmd string) {
     if cmd == "quit" { app.Quit(); return }
+    if cmd == "exit" {
+        if pvFocus == FocusInteractive {
+            pvExitInteractive()
+            interactive = false
+            pvStepTo(current)
+            matchStatus = pvMatches(current)
+        }
+        pvFocus = FocusControls
+        focusState = int(FocusControls)
+        return
+    }
     if cmd == "next" {
         if current < pvStepCount()-1 { doStep(current + 1) }
         return
@@ -58,11 +69,20 @@ func handleKey(evt input.Event) {
     if pvPrefixPending {
         pvPrefixPending = false
         cmd := prefixCommand(evt)
-        if cmd != "" { doCommand(cmd) }
+        if cmd == "" {
+            pvFocus = FocusControls
+            focusState = int(FocusControls)
+        } else {
+            doCommand(cmd)
+        }
         return
     }
 
     if pvFocus == FocusInteractive {
+        if isCtrlBackslash(evt) {
+            pvPrefixPending = true
+            return
+        }
         if (evt.Kind == input.EventSpecial && evt.Special == input.KeyEscape) || evt.Alt {
             pvExitInteractive()
             interactive = false
@@ -80,11 +100,6 @@ func handleKey(evt input.Event) {
     if pvIsEditorFocused() {
         if isCtrlBackslash(evt) {
             pvPrefixPending = true
-            return
-        }
-        if evt.Kind == input.EventSpecial && evt.Special == input.KeyEscape {
-            pvFocus = FocusControls
-            focusState = int(FocusControls)
             return
         }
         idx := editorIndex(pvFocus)
@@ -140,8 +155,9 @@ func handleKey(evt input.Event) {
         {else}
             {if pvIsEditorFocused()}
                 <text class="focus-indicator"> {pvFocusName()} </text>
-                <text class="key">C-\</text><text class="label"> Cmd  </text>
-                <text class="key">esc</text><text class="label"> Controls  </text>
+                <text class="key">C-\</text><text class="label"> Exit  </text>
+                <text class="key">C-\ h</text><text class="label"> Prev  </text>
+                <text class="key">C-\ l</text><text class="label"> Next  </text>
             {else}
                 <text class="key">h</text><text class="label"> Prev  </text>
                 <text class="key">l</text><text class="label"> Next  </text>
@@ -165,8 +181,8 @@ func handleKey(evt input.Event) {
         {/if}
     </box>
     <box class="editors" height={pvEditorHeight()}>
-        <box class="editor-left"></box>
-        <box class="editor-right"></box>
+        <box class="editor-left" border-title={pvSourceTitle()}></box>
+        <box class="editor-right" border-title={pvSnapshotTitle()}></box>
     </box>
-    <box class="scenario-editor" height={pvEditorHeight()}></box>
+    <box class="scenario-editor" height={pvEditorHeight()} border-title={pvScenarioTitle()}></box>
 </box>

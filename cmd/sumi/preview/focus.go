@@ -54,6 +54,9 @@ func focusForDigit(r rune) FocusState {
 // prefixCommand interprets a key event as a Ctrl+\ prefix command.
 // Returns the command name or "" if unrecognized.
 func prefixCommand(evt input.Event) string {
+	if isCtrlBackslash(evt) {
+		return "exit"
+	}
 	if evt.Kind != input.EventKey {
 		return ""
 	}

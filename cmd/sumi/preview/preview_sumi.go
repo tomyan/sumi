@@ -16,6 +16,7 @@ func Run() {
 	matchStatus := 0
 	interactive := false
 	focusState := 0
+	_ = focusState
 
 	var app *tui.App
 	doStep := func(index int) {
@@ -28,6 +29,20 @@ func Run() {
 	doCommand := func(cmd string) {
 		if cmd == "quit" {
 			app.Quit()
+			return
+		}
+		if cmd == "exit" {
+			if pvFocus == FocusInteractive {
+				pvExitInteractive()
+				interactive = false
+				app.Dirty = true
+				pvStepTo(current)
+				matchStatus = pvMatches(current)
+				app.Dirty = true
+			}
+			pvFocus = FocusControls
+			focusState = int(FocusControls)
+			app.Dirty = true
 			return
 		}
 		if cmd == "next" {
@@ -66,12 +81,20 @@ func Run() {
 		if pvPrefixPending {
 			pvPrefixPending = false
 			cmd := prefixCommand(evt)
-			if cmd != "" {
+			if cmd == "" {
+				pvFocus = FocusControls
+				focusState = int(FocusControls)
+				app.Dirty = true
+			} else {
 				doCommand(cmd)
 			}
 			return
 		}
 		if pvFocus == FocusInteractive {
+			if isCtrlBackslash(evt) {
+				pvPrefixPending = true
+				return
+			}
 			if (evt.Kind == input.EventSpecial && evt.Special == input.KeyEscape) || evt.Alt {
 				pvExitInteractive()
 				interactive = false
@@ -92,12 +115,6 @@ func Run() {
 		if pvIsEditorFocused() {
 			if isCtrlBackslash(evt) {
 				pvPrefixPending = true
-				return
-			}
-			if evt.Kind == input.EventSpecial && evt.Special == input.KeyEscape {
-				pvFocus = FocusControls
-				focusState = int(FocusControls)
-				app.Dirty = true
 				return
 			}
 			idx := editorIndex(pvFocus)
@@ -205,24 +222,39 @@ func Run() {
 						CursorRow:   -1,
 						Children: []*layout.Input{
 							{
-								Kind:      layout.KindBox,
-								FlexGrow:  1,
-								CursorCol: -1,
-								CursorRow: -1,
+								Kind:        layout.KindBox,
+								FlexGrow:    1,
+								Border:      "single",
+								BorderTitle: pvSourceTitle(),
+								CursorCol:   -1,
+								CursorRow:   -1,
+								Style: render.Style{
+									FG: render.Color{Name: "magenta"},
+								},
 							},
 							{
-								Kind:      layout.KindBox,
-								FlexGrow:  1,
-								CursorCol: -1,
-								CursorRow: -1,
+								Kind:        layout.KindBox,
+								FlexGrow:    1,
+								Border:      "single",
+								BorderTitle: pvSnapshotTitle(),
+								CursorCol:   -1,
+								CursorRow:   -1,
+								Style: render.Style{
+									FG: render.Color{Name: "magenta"},
+								},
 							},
 						},
 					},
 					{
 						Kind:        layout.KindBox,
 						FixedHeight: pvEditorHeight(),
+						Border:      "single",
+						BorderTitle: pvScenarioTitle(),
 						CursorCol:   -1,
 						CursorRow:   -1,
+						Style: render.Style{
+							FG: render.Color{Name: "magenta"},
+						},
 					},
 				},
 			},
@@ -280,21 +312,35 @@ func Run() {
 					})
 					cs = append(cs, &layout.Input{
 						Kind:    layout.KindText,
-						Content: " Cmd  ",
+						Content: " Exit  ",
 						Style: render.Style{
 							Dim: true,
 						},
 					})
 					cs = append(cs, &layout.Input{
 						Kind:    layout.KindText,
-						Content: "esc",
+						Content: "C-\\ h",
 						Style: render.Style{
 							Inverse: true,
 						},
 					})
 					cs = append(cs, &layout.Input{
 						Kind:    layout.KindText,
-						Content: " Controls  ",
+						Content: " Prev  ",
+						Style: render.Style{
+							Dim: true,
+						},
+					})
+					cs = append(cs, &layout.Input{
+						Kind:    layout.KindText,
+						Content: "C-\\ l",
+						Style: render.Style{
+							Inverse: true,
+						},
+					})
+					cs = append(cs, &layout.Input{
+						Kind:    layout.KindText,
+						Content: " Next  ",
 						Style: render.Style{
 							Dim: true,
 						},
@@ -490,7 +536,6 @@ func Run() {
 
 	_ = doStep
 	_ = doCommand
-	_ = focusState
 	app = &tui.App{
 		OnRender: doRender,
 		OnEvent: func(evt input.Event) {
@@ -505,6 +550,7 @@ func CreateApp(w, h int) *tui.App {
 	matchStatus := 0
 	interactive := false
 	focusState := 0
+	_ = focusState
 
 	var app *tui.App
 	doStep := func(index int) {
@@ -517,6 +563,20 @@ func CreateApp(w, h int) *tui.App {
 	doCommand := func(cmd string) {
 		if cmd == "quit" {
 			app.Quit()
+			return
+		}
+		if cmd == "exit" {
+			if pvFocus == FocusInteractive {
+				pvExitInteractive()
+				interactive = false
+				app.Dirty = true
+				pvStepTo(current)
+				matchStatus = pvMatches(current)
+				app.Dirty = true
+			}
+			pvFocus = FocusControls
+			focusState = int(FocusControls)
+			app.Dirty = true
 			return
 		}
 		if cmd == "next" {
@@ -555,12 +615,20 @@ func CreateApp(w, h int) *tui.App {
 		if pvPrefixPending {
 			pvPrefixPending = false
 			cmd := prefixCommand(evt)
-			if cmd != "" {
+			if cmd == "" {
+				pvFocus = FocusControls
+				focusState = int(FocusControls)
+				app.Dirty = true
+			} else {
 				doCommand(cmd)
 			}
 			return
 		}
 		if pvFocus == FocusInteractive {
+			if isCtrlBackslash(evt) {
+				pvPrefixPending = true
+				return
+			}
 			if (evt.Kind == input.EventSpecial && evt.Special == input.KeyEscape) || evt.Alt {
 				pvExitInteractive()
 				interactive = false
@@ -581,12 +649,6 @@ func CreateApp(w, h int) *tui.App {
 		if pvIsEditorFocused() {
 			if isCtrlBackslash(evt) {
 				pvPrefixPending = true
-				return
-			}
-			if evt.Kind == input.EventSpecial && evt.Special == input.KeyEscape {
-				pvFocus = FocusControls
-				focusState = int(FocusControls)
-				app.Dirty = true
 				return
 			}
 			idx := editorIndex(pvFocus)
@@ -694,24 +756,39 @@ func CreateApp(w, h int) *tui.App {
 						CursorRow:   -1,
 						Children: []*layout.Input{
 							{
-								Kind:      layout.KindBox,
-								FlexGrow:  1,
-								CursorCol: -1,
-								CursorRow: -1,
+								Kind:        layout.KindBox,
+								FlexGrow:    1,
+								Border:      "single",
+								BorderTitle: pvSourceTitle(),
+								CursorCol:   -1,
+								CursorRow:   -1,
+								Style: render.Style{
+									FG: render.Color{Name: "magenta"},
+								},
 							},
 							{
-								Kind:      layout.KindBox,
-								FlexGrow:  1,
-								CursorCol: -1,
-								CursorRow: -1,
+								Kind:        layout.KindBox,
+								FlexGrow:    1,
+								Border:      "single",
+								BorderTitle: pvSnapshotTitle(),
+								CursorCol:   -1,
+								CursorRow:   -1,
+								Style: render.Style{
+									FG: render.Color{Name: "magenta"},
+								},
 							},
 						},
 					},
 					{
 						Kind:        layout.KindBox,
 						FixedHeight: pvEditorHeight(),
+						Border:      "single",
+						BorderTitle: pvScenarioTitle(),
 						CursorCol:   -1,
 						CursorRow:   -1,
+						Style: render.Style{
+							FG: render.Color{Name: "magenta"},
+						},
 					},
 				},
 			},
@@ -769,21 +846,35 @@ func CreateApp(w, h int) *tui.App {
 					})
 					cs = append(cs, &layout.Input{
 						Kind:    layout.KindText,
-						Content: " Cmd  ",
+						Content: " Exit  ",
 						Style: render.Style{
 							Dim: true,
 						},
 					})
 					cs = append(cs, &layout.Input{
 						Kind:    layout.KindText,
-						Content: "esc",
+						Content: "C-\\ h",
 						Style: render.Style{
 							Inverse: true,
 						},
 					})
 					cs = append(cs, &layout.Input{
 						Kind:    layout.KindText,
-						Content: " Controls  ",
+						Content: " Prev  ",
+						Style: render.Style{
+							Dim: true,
+						},
+					})
+					cs = append(cs, &layout.Input{
+						Kind:    layout.KindText,
+						Content: "C-\\ l",
+						Style: render.Style{
+							Inverse: true,
+						},
+					})
+					cs = append(cs, &layout.Input{
+						Kind:    layout.KindText,
+						Content: " Next  ",
 						Style: render.Style{
 							Dim: true,
 						},
@@ -979,7 +1070,6 @@ func CreateApp(w, h int) *tui.App {
 
 	_ = doStep
 	_ = doCommand
-	_ = focusState
 	app = &tui.App{
 		OnRender: doRender,
 		OnEvent: func(evt input.Event) {

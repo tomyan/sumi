@@ -42,7 +42,13 @@ func (a *App) Quit() {
 
 // Wake immediately wakes the event loop to trigger a re-render.
 // Used by background goroutines (e.g. editor PTY readers) to signal new content.
+// Safe to call before Run() — the wake will be picked up once the loop starts.
 func (a *App) Wake() {
+	if a.wakeCh == nil {
+		a.Dirty = true
+		return
+	}
+	a.Dirty = true
 	select {
 	case a.wakeCh <- struct{}{}:
 	default:

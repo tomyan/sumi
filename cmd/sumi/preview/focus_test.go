@@ -33,7 +33,7 @@ func TestFocusTransitionBackToControls(t *testing.T) {
 	// Given
 	pvFocus = FocusEditor1
 
-	// When — pressing Escape returns to controls
+	// When — Ctrl+\ exits to controls
 	pvFocus = FocusControls
 
 	// Then
@@ -87,6 +87,7 @@ func TestHandlePrefixCommand(t *testing.T) {
 		{"next", 'l', "next"},
 		{"prev", 'h', "prev"},
 		{"update", 'u', "update"},
+		{"interactive", 'i', "interactive"},
 		{"unknown", 'x', ""},
 	}
 
@@ -100,6 +101,19 @@ func TestHandlePrefixCommand(t *testing.T) {
 				t.Errorf("prefixCommand(%c) = %q, want %q", tc.rune, cmd, tc.want)
 			}
 		})
+	}
+}
+
+func TestPrefixCommandCtrlBackslashReturnsExit(t *testing.T) {
+	// Given
+	evt := input.Event{Kind: input.EventKey, Rune: 0x1c}
+
+	// When
+	cmd := prefixCommand(evt)
+
+	// Then
+	if cmd != "exit" {
+		t.Errorf("prefixCommand(Ctrl+\\) = %q, want %q", cmd, "exit")
 	}
 }
 

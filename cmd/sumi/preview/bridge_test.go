@@ -95,12 +95,16 @@ func TestPvScenarioName(t *testing.T) {
 }
 
 func TestPvComponentHeight(t *testing.T) {
-	// Given
+	// Given — small component uses minimum of 10
 	pvInfo = &sumitest.InfoResponse{Height: 5}
+	if pvComponentHeight() != 10 {
+		t.Errorf("pvComponentHeight = %d, want 10 (min height)", pvComponentHeight())
+	}
 
-	// When/Then — height + 2 for borders
-	if pvComponentHeight() != 7 {
-		t.Errorf("pvComponentHeight = %d, want 7", pvComponentHeight())
+	// Given — large component uses actual height + 2
+	pvInfo = &sumitest.InfoResponse{Height: 20}
+	if pvComponentHeight() != 22 {
+		t.Errorf("pvComponentHeight = %d, want 22", pvComponentHeight())
 	}
 }
 

@@ -26,8 +26,10 @@ func NewEditor(filePath string, rows, cols int, wake func()) (*Editor, error) {
 	cmd := exec.Command("nvim",
 		"--noplugin", "-u", "NONE",
 		"+set updatetime=300", "+set autowriteall",
+		"+syntax on", "+filetype on",
 		filePath,
 	)
+	cmd.Env = append(os.Environ(), "TERM=xterm-256color")
 
 	master, err := pty.Start(cmd, rows, cols)
 	if err != nil {

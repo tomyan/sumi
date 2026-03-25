@@ -87,30 +87,31 @@ func expectedText() string {
 }
 
 // pvInjectEditors renders editor screens into placeholder areas.
+// Each editor box has a single-line border, so content starts 1 row down and 1 col right.
 func pvInjectEditors(w *os.File, termW int) {
-	startRow := pvComponentHeight()
+	startRow := pvComponentHeight() + 1 // +1 for status bar row
 	leftW := termW / 2
 
-	// Editor 1 (source) — top-left.
+	// Editor 1 (source) — top-left, offset by border.
 	if pvEditors[0] != nil {
 		pvEditors[0].mu.Lock()
-		pvEditors[0].screen.Buffer().RenderToOffset(w, startRow, 0)
+		pvEditors[0].screen.Buffer().RenderToOffset(w, startRow+1, 1)
 		pvEditors[0].mu.Unlock()
 	}
 
-	// Editor 2 (snapshot) — top-right.
+	// Editor 2 (snapshot) — top-right, offset by border.
 	if pvEditors[1] != nil {
 		pvEditors[1].mu.Lock()
-		pvEditors[1].screen.Buffer().RenderToOffset(w, startRow, leftW)
+		pvEditors[1].screen.Buffer().RenderToOffset(w, startRow+1, leftW+1)
 		pvEditors[1].mu.Unlock()
 	}
 
-	// Editor 3 (scenario) — below the two side-by-side editors.
+	// Editor 3 (scenario) — below the two side-by-side editors, offset by border.
 	edH := pvEditorHeight()
 	scenRow := startRow + edH
 	if pvEditors[2] != nil {
 		pvEditors[2].mu.Lock()
-		pvEditors[2].screen.Buffer().RenderToOffset(w, scenRow, 0)
+		pvEditors[2].screen.Buffer().RenderToOffset(w, scenRow+1, 1)
 		pvEditors[2].mu.Unlock()
 	}
 }
