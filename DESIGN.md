@@ -1,14 +1,15 @@
 # Sumi Design
 
-A declarative TTY framework for Go. Inspired by Ink (terminal UI) and Svelte (reactivity model).
+A declarative TTY framework for Go. Inspired by Ink (terminal UI), Solid.js (runtime fine-grained reactivity), and Svelte (single-file components).
 
 ## Overview
 
 Sumi lets you build terminal user interfaces using `.sumi` single-file components that compile to Go source code. It combines:
 
-- **Svelte's approach to reactivity** — explicit reactive primitives (`$state`, `$derived`, `$effect`), compile-time transformation, fine-grained updates
+- **Solid-style runtime signals** — fine-grained reactivity via a Go-native API (`sumi.New()`, `sumi.From()`, `sumi.Effect()`), composable by default, no compiler magic for reactivity
 - **Ink's idea** — declarative, component-based terminal UIs — but without React's virtual DOM or its rendering bugs
 - **A curated subset of CSS** — scoped styling, responsive design via media queries, adapted for the terminal
+- **Marketplace-ready** — reactive utilities and components are just Go packages, importable with `go get`
 
 ## Architecture
 
@@ -16,7 +17,9 @@ Sumi lets you build terminal user interfaces using `.sumi` single-file component
 .sumi files → sumi compiler → .go files → go build → binary
 ```
 
-The sumi compiler parses `.sumi` files and generates Go source code. It integrates into the Go toolchain via `go generate`. The generated code uses a sumi runtime library for rendering, layout, and reactivity.
+The sumi compiler parses `.sumi` files and generates Go source code. It integrates into the Go toolchain via `go generate`. The generated code uses a sumi runtime library for rendering, layout, and the signals runtime.
+
+The **reactive signals runtime** (`runtime/signal/`) is a standalone Go library. It provides fine-grained dependency tracking at runtime — no compiler involvement. This means reactive logic works in plain `.go` files, not just `.sumi` files. Marketplace authors can publish reactive utilities as standard Go packages.
 
 ## .sumi File Format
 
@@ -39,46 +42,57 @@ Each `.sumi` file is a single component with three optional sections:
 
 ### Script Block
 
-The `<script>` block contains component logic. It uses Go syntax extended with reactive primitives (runes):
+The `<script>` block contains component logic. It is **valid Go code** — no compiler transformation of the script is needed. Reactivity uses the `sumi.Signal` runtime library with a Solid-style API:
 
 ```html
 <script>
-name := $state("world")
-upper := $derived(strings.ToUpper(name))
+name := sumi.New("world")
+upper := sumi.From(func() string { return strings.ToUpper(name.Get()) })
 
-$effect(func() {
-    log.Println("name changed:", name)
+sumi.Effect(func() {
+    log.Println("name changed:", name.Get())
 })
 
 func reset() {
-    name = "world"
+    name.Set("world")
 }
 </script>
 ```
 
-**Runes:**
+**Signal API:**
 
-| Rune | Purpose | Example |
-|------|---------|---------|
-| `$state(initial)` | Declare reactive state | `count := $state(0)` |
-| `$derived(expr)` | Computed value, updates when dependencies change | `doubled := $derived(count * 2)` |
-| `$effect(fn)` | Side effect, runs when dependencies change | `$effect(func() { ... })` |
-| `$prop(default)` | Component input from parent | `label := $prop("Click me")` |
-| `$env(key)` | Reactive environment value (terminal width, height, theme) | `width := $env(width)` |
+| Function | Purpose | Example |
+|----------|---------|---------|
+| `sumi.New[T](initial)` | Create reactive state | `count := sumi.New(0)` |
+| `sumi.From[T](fn)` | Derived value, auto-tracks dependencies | `doubled := sumi.From(func() int { return count.Get() * 2 })` |
+| `sumi.Effect(fn)` | Side effect, runs when dependencies change | `sumi.Effect(func() { ... })` |
+| `signal.Get()` | Read current value (tracks dependency) | `v := count.Get()` |
+| `signal.Set(v)` | Write new value (notifies dependents) | `count.Set(42)` |
+| `signal.Update(fn)` | Read-modify-write | `count.Update(func(n int) int { return n + 1 })` |
 
-**Reactivity rule: reassignment triggers updates.** The compiler tracks variables declared with `$state` and `$prop`, and rewrites assignments to those variables to include invalidation. Mutation (e.g. struct field access) is not tracked — the compiler rejects untrackable mutations with a compile error.
+**Why Go-native, not compiler runes:**
+
+The script block is valid Go. This means:
+- `gopls` works — autocompletion, type checking, go-to-definition
+- Reactive utilities can live in plain `.go` files, not just `.sumi` components
+- Marketplace components are standard Go packages (`go get`)
+- One mental model everywhere — same API in components, utilities, and libraries
+
+**Reactivity rule: `.Set()` triggers updates.** The signals runtime tracks which `From`/`Effect` computations called `.Get()` on which signals, and re-runs them when those signals change via `.Set()`. No compiler involvement — dependency tracking is fully automatic at runtime.
 
 ```html
 <script>
-items := $state([]string{"a", "b"})
+items := sumi.New([]string{"a", "b"})
 
 func addItem(s string) {
-    items = append(items, s)  // reassignment — reactive, works
+    items.Update(func(xs []string) []string {
+        return append(xs, s)
+    })
 }
 </script>
 ```
 
-This keeps the model simple and predictable: if you want reactivity, reassign the variable.
+**Template expression sugar:** The template compiler automatically unwraps signals. `{count}` in a template generates `count.Get()` in the compiled code. This is the only compiler magic — and it only applies to templates, not Go code.
 
 ### Style Block
 
@@ -201,11 +215,11 @@ Each `.sumi` file is one component. Components compose naturally:
 ```html
 <!-- counter.sumi -->
 <script>
-label := $prop("Count")
-count := $state(0)
+label := sumi.New("Count")
+count := sumi.New(0)
 
 func increment() {
-    count++
+    count.Update(func(n int) int { return n + 1 })
 }
 </script>
 
@@ -233,19 +247,61 @@ func increment() {
 </box>
 ```
 
-**Props** are declared with `$prop(default)`. Each prop is an independent reactive variable.
+**Props** are signals passed from parent to child. When a parent passes `label="Clicks"`, the compiler creates a signal and passes it to the child component. The child receives it as a `*Signal[string]`.
 
-**Env values** are available via `$env()`:
+**Env values** are framework-provided signals:
 ```html
 <script>
-width := $env(width)
-height := $env(height)
-theme := $env(theme)
-colorDepth := $env(colorDepth)
+width := sumi.Env[int]("width")
+height := sumi.Env[int]("height")
+theme := sumi.Env[string]("theme")
 </script>
 ```
 
 These are reactive — components re-render when the terminal resizes or theme changes.
+
+### Composable Reactive Utilities
+
+Because the signal API is plain Go, reactive logic can live outside `.sumi` files:
+
+```go
+// Published as github.com/someone/sumi-pagination
+package pagination
+
+import "github.com/tomyan/sumi/runtime/signal"
+
+type Pagination[T any] struct {
+    Page    *signal.Signal[int]
+    Visible *signal.Computed[[]T]
+}
+
+func New[T any](items *signal.Signal[[]T], pageSize int) *Pagination[T] {
+    page := signal.New(0)
+    visible := signal.From(func() []T {
+        all := items.Get()
+        start := page.Get() * pageSize
+        return all[start:min(start+pageSize, len(all))]
+    })
+    return &Pagination[T]{Page: page, Visible: visible}
+}
+```
+
+A `.sumi` component uses it like any Go import:
+
+```html
+<script>
+items := sumi.New([]string{"a", "b", "c", "d", "e"})
+pager := pagination.New(items, 2)
+</script>
+
+<box>
+    {for i, item := range pager.Visible.Get()}
+        <text>{item}</text>
+    {/for}
+</box>
+```
+
+No special sumi compiler support needed. The pagination package is a standard Go module.
 
 ## Layout Engine
 
@@ -269,10 +325,12 @@ The layout engine maps the component tree to a grid of terminal cells, assigning
 
 The renderer maintains a virtual screen buffer — a 2D grid of cells, where each cell holds a character and its style (color, bold, etc.). On each reactive update:
 
-1. The reactivity system identifies which components are dirty
-2. Those components re-layout and re-render into the buffer
+1. Signal changes propagate through the dependency graph (runtime)
+2. Effects subscribed to changed signals trigger re-layout of affected subtrees
 3. The renderer diffs the new buffer against the previous one
 4. Only changed cells are written to the terminal via cursor-addressed escape sequences
+
+The signals runtime enables **fine-grained updates**: when a single signal changes, only the template nodes that depend on it (via `.Get()`) need to re-render. This scales to large UIs — appending a line to a log doesn't re-layout the entire screen.
 
 This avoids Ink's "clear N lines and rewrite everything" approach, which is the root cause of its scrollback bugs.
 
@@ -321,10 +379,12 @@ For each `foo.sumi`, it produces `foo_sumi.go` in the same package. Intended to 
 
 The compiler:
 1. Parses the `.sumi` file into script, style, and template sections
-2. Parses the script block as Go + runes, building a reactive dependency graph
+2. Passes the script block through as valid Go (identifying signal variables for template sugar)
 3. Parses the style block as terminal CSS
 4. Parses the template as a component tree
-5. Generates Go code that wires up the reactivity, layout, and rendering
+5. Generates Go code that wires up the layout, rendering, and signal subscriptions
+
+The compiler does **not** transform the script block's Go code. Its only role with signals is identifying which variables are `*signal.Signal` or `*signal.Computed` so that template expressions like `{count}` can generate `count.Get()`. All reactive dependency tracking happens at runtime via the signals library.
 
 ## Project Structure
 
@@ -332,16 +392,23 @@ The compiler:
 sumi/
   cmd/sumi/          # compiler CLI
   runtime/            # runtime library used by generated code
-    reactivity/       # $state, $derived, $effect implementation
+    signal/           # reactive signals runtime (New, From, Effect)
     layout/           # flexbox layout engine
     render/           # cell buffer, terminal output, screen modes
     css/              # terminal CSS parser and resolver
+    tui/              # app lifecycle, event loop, terminal setup
+    input/            # keyboard/mouse input parsing
+    term/             # terminal size, capabilities
+    vt100/            # VT100 terminal emulator (for embedded editors)
   parser/             # .sumi file parser
-    script/           # script block parser (Go + runes)
+    script/           # script block parser (valid Go, extracts signal info)
     style/            # style block parser (terminal CSS)
     template/         # template parser (markup + control flow)
   codegen/            # Go code generator
+  components/         # first-party component library
 ```
+
+The `runtime/signal/` package is independently usable — it has no dependency on the rest of sumi. Third-party packages can import it directly to build reactive utilities.
 
 ## Iteration Plan
 
@@ -360,9 +427,9 @@ Thin slices, each delivering something you can see working in the terminal.
 - **You see:** bordered boxes with text inside, stacked vertically
 
 ### Iteration 3: Reactive state
-- `<script>` block parsing with `$state` rune
-- Compiler rewrites assignments to trigger invalidation
-- Template expressions `{variable}` bound to state
+- `<script>` block parsing (valid Go with `sumi.New()` signals)
+- Template compiler auto-unwraps signals in expressions (`{count}` → `count.Get()`)
+- `runtime/signal/` package: `New`, `Get`, `Set`, `Update`
 - Keyboard input (basic — read stdin)
 - **You see:** a counter you can increment with a keypress, updating in place
 
@@ -374,7 +441,7 @@ Thin slices, each delivering something you can see working in the terminal.
 
 ### Iteration 5: Components
 - Multiple `.sumi` files composing together
-- `$prop` rune for component inputs
+- Props as signals passed between parent and child
 - **You see:** parent-child component composition working
 
 ### Iteration 6: Flexbox layout
@@ -384,14 +451,15 @@ Thin slices, each delivering something you can see working in the terminal.
 - **You see:** components laid out in flexible rows and columns
 
 ### Iteration 7: Responsive design
-- `$env(width)`, `$env(height)` reactive environment
+- `sumi.Env[int]("width")`, `sumi.Env[int]("height")` reactive environment signals
 - CSS `@media` queries for terminal dimensions
 - `SIGWINCH` handling, re-layout on resize
 - **You see:** layout adapting as you resize the terminal
 
 ### Iteration 8: Derived state and effects
-- `$derived` rune
-- `$effect` rune
+- `signal.From()` for computed values
+- `signal.Effect()` for side effects
+- Fine-grained dependency tracking — only recompute what changed
 - **You see:** computed values updating automatically, side effects running
 
 ### Iteration 9: Inline rendering mode
