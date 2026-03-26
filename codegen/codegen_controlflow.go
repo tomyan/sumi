@@ -9,9 +9,6 @@ import (
 	"github.com/tomyan/sumi/parser/template"
 )
 
-// activeSignals holds signal names during code generation for auto-unwrapping.
-var activeSignals map[string]bool
-
 // hasDynamicChildren checks if any immediate child is an IfNode or ForNode.
 func hasDynamicChildren(children []template.Node) bool {
 	for _, child := range children {
@@ -24,34 +21,34 @@ func hasDynamicChildren(children []template.Node) bool {
 }
 
 // writeDynamicChildrenSync writes a sync assignment: varName.Children = func() []*layout.Input{...}().
-func writeDynamicChildrenSync(buf *bytes.Buffer, varName string, children []template.Node, stylesheet *style.Stylesheet) {
+func writeDynamicChildrenSync(buf *bytes.Buffer, varName string, children []template.Node, stylesheet *style.Stylesheet, signals map[string]bool) {
 	fmt.Fprintf(buf, "\t\t%s.Children = func() []*layout.Input {\n", varName)
 	fmt.Fprintf(buf, "\t\t\tvar cs []*layout.Input\n")
 	for _, child := range children {
-		writeDynamicChild(buf, child, stylesheet, 3, "\t\t\t")
+		writeDynamicChild(buf, child, stylesheet, 3, "\t\t\t", signals)
 	}
 	fmt.Fprintf(buf, "\t\t\treturn cs\n")
 	fmt.Fprintf(buf, "\t\t}()\n")
 }
 
 // writeDynamicChildren emits an IIFE that builds the children slice dynamically.
-func writeDynamicChildren(buf *bytes.Buffer, children []template.Node, stylesheet *style.Stylesheet, indent int, tabs string) {
+func writeDynamicChildren(buf *bytes.Buffer, children []template.Node, stylesheet *style.Stylesheet, indent int, tabs string, signals map[string]bool) {
 	fmt.Fprintf(buf, "%s\tChildren: func() []*layout.Input {\n", tabs)
 	fmt.Fprintf(buf, "%s\t\tvar cs []*layout.Input\n", tabs)
 	for _, child := range children {
-		writeDynamicChild(buf, child, stylesheet, indent+2, tabs+"\t\t")
+		writeDynamicChild(buf, child, stylesheet, indent+2, tabs+"\t\t", signals)
 	}
 	fmt.Fprintf(buf, "%s\t\treturn cs\n", tabs)
 	fmt.Fprintf(buf, "%s\t}(),\n", tabs)
 }
 
 // writeDynamicChild dispatches a single child inside an IIFE.
-func writeDynamicChild(buf *bytes.Buffer, child template.Node, stylesheet *style.Stylesheet, indent int, tabs string) {
+func writeDynamicChild(buf *bytes.Buffer, child template.Node, stylesheet *style.Stylesheet, indent int, tabs string, signals map[string]bool) {
 	switch n := child.(type) {
 	case *template.IfNode:
-		writeIfBlock(buf, n, stylesheet, indent, tabs)
+		writeIfBlock(buf, n, stylesheet, indent, tabs, signals)
 	case *template.ForNode:
-		writeForBlock(buf, n, stylesheet, indent, tabs)
+		writeForBlock(buf, n, stylesheet, indent, tabs, signals)
 	default:
 		writeAppendNode(buf, child, stylesheet, indent, tabs)
 	}
@@ -59,14 +56,15 @@ func writeDynamicChild(buf *bytes.Buffer, child template.Node, stylesheet *style
 
 // writeAppendNode emits cs = append(cs, &layout.Input{...}) for a static child.
 func writeAppendNode(buf *bytes.Buffer, child template.Node, stylesheet *style.Stylesheet, indent int, tabs string) {
-	fmt.Fprintf(buf, "%scs = append(cs, ", tabs)
 	var nodeBuf bytes.Buffer
-	writeInputNode(&nodeBuf, child, stylesheet, 0, nil, nil)
-	// Trim trailing comma and newline from the node literal.
-	nodeStr := nodeBuf.String()
-	nodeStr = trimTrailingComma(nodeStr)
-	buf.WriteString(nodeStr)
-	buf.WriteString(")\n")
+	writeInputNode(&nodeBuf, child, stylesheet, 0, nil)
+	nodeStr := trimTrailingComma(nodeBuf.String())
+	// writeInputNode emits "{...}" for slice literal context.
+	// For append, we need "&layout.Input{...}".
+	if strings.HasPrefix(strings.TrimSpace(nodeStr), "{") {
+		nodeStr = "&layout.Input" + strings.TrimSpace(nodeStr)
+	}
+	fmt.Fprintf(buf, "%scs = append(cs, %s)\n", tabs, nodeStr)
 }
 
 func trimTrailingComma(s string) string {
@@ -78,27 +76,27 @@ func trimTrailingComma(s string) string {
 }
 
 // writeIfBlock emits an if/else block inside an IIFE.
-func writeIfBlock(buf *bytes.Buffer, n *template.IfNode, stylesheet *style.Stylesheet, indent int, tabs string) {
-	cond := unwrapSignals(n.Condition, activeSignals)
-	fmt.Fprintf(buf, "%sif %s {\n", tabs, cond)
+func writeIfBlock(buf *bytes.Buffer, n *template.IfNode, stylesheet *style.Stylesheet, indent int, tabs string, signals map[string]bool) {
+	// Don't unwrap signals in conditions — the user writes .Get() explicitly in .sumi files.
+	fmt.Fprintf(buf, "%sif %s {\n", tabs, n.Condition)
 	for _, child := range n.Then {
-		writeDynamicChild(buf, child, stylesheet, indent+1, tabs+"\t")
+		writeDynamicChild(buf, child, stylesheet, indent+1, tabs+"\t", signals)
 	}
 	if n.Else != nil {
 		fmt.Fprintf(buf, "%s} else {\n", tabs)
 		for _, child := range n.Else {
-			writeDynamicChild(buf, child, stylesheet, indent+1, tabs+"\t")
+			writeDynamicChild(buf, child, stylesheet, indent+1, tabs+"\t", signals)
 		}
 	}
 	fmt.Fprintf(buf, "%s}\n", tabs)
 }
 
 // writeForBlock emits a for loop inside an IIFE.
-func writeForBlock(buf *bytes.Buffer, n *template.ForNode, stylesheet *style.Stylesheet, indent int, tabs string) {
-	clause := unwrapSignals(n.Clause, activeSignals)
-	fmt.Fprintf(buf, "%sfor %s {\n", tabs, clause)
+func writeForBlock(buf *bytes.Buffer, n *template.ForNode, stylesheet *style.Stylesheet, indent int, tabs string, signals map[string]bool) {
+	// Don't unwrap signals in for clauses — the user writes .Get() explicitly in .sumi files.
+	fmt.Fprintf(buf, "%sfor %s {\n", tabs, n.Clause)
 	for _, child := range n.Children {
-		writeDynamicChild(buf, child, stylesheet, indent+1, tabs+"\t")
+		writeDynamicChild(buf, child, stylesheet, indent+1, tabs+"\t", signals)
 	}
 	if n.Key != "" {
 		fmt.Fprintf(buf, "%s\tcs[len(cs)-1].Key = fmt.Sprint(%s)\n", tabs, n.Key)

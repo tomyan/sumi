@@ -13,13 +13,12 @@ import (
 // writeLayoutTree writes the layout.Input tree construction code.
 // When inClosure is true, adds an extra tab of indentation.
 // When ext is non-nil, expression text nodes are extracted as named variables.
-func writeLayoutTree(buf *bytes.Buffer, doc *template.Document, stylesheet *style.Stylesheet, inClosure bool, instances []componentInstance, ext *extractionCtx) {
+func writeLayoutTree(buf *bytes.Buffer, doc *template.Document, stylesheet *style.Stylesheet, inClosure bool, ext *extractionCtx) {
 	baseIndent := 1
 	if inClosure {
 		baseIndent = 2
 	}
 	tabs := indentStr(baseIndent)
-	tracker := newInstanceTracker(instances)
 	rootProps := resolveProps(stylesheet, "root", nil)
 
 	fmt.Fprintf(buf, "%sroot := &layout.Input{\n", tabs)
@@ -33,17 +32,17 @@ func writeLayoutTree(buf *bytes.Buffer, doc *template.Document, stylesheet *styl
 		if ext != nil {
 			// Build-once: root.Children rebuilt in sync
 			fmt.Fprintf(buf, "%s}\n", tabs)
-			writeDynamicChildrenSync(&ext.syncBuf, "root", doc.Children, stylesheet)
+			writeDynamicChildrenSync(&ext.syncBuf, "root", doc.Children, stylesheet, ext.signals)
 			return
 		}
-		writeDynamicChildren(buf, doc.Children, stylesheet, baseIndent, tabs)
+		writeDynamicChildren(buf, doc.Children, stylesheet, baseIndent, tabs, nil)
 	} else if hasSlotChild(doc.Children) {
 		// Slot children require dynamic construction (can't spread in a literal).
-		writeSlotChildren(buf, doc.Children, stylesheet, baseIndent, tabs, tracker, ext)
+		writeSlotChildren(buf, doc.Children, stylesheet, baseIndent, tabs, ext)
 	} else {
 		fmt.Fprintf(buf, "%s\tChildren: []*layout.Input{\n", tabs)
 		for _, child := range doc.Children {
-			writeInputNode(buf, child, stylesheet, baseIndent+2, tracker, ext)
+			writeInputNode(buf, child, stylesheet, baseIndent+2, ext)
 		}
 		fmt.Fprintf(buf, "%s\t},\n", tabs)
 	}
@@ -51,27 +50,19 @@ func writeLayoutTree(buf *bytes.Buffer, doc *template.Document, stylesheet *styl
 }
 
 // writeInputNode writes a layout.Input literal for a template AST node.
-func writeInputNode(buf *bytes.Buffer, node template.Node, stylesheet *style.Stylesheet, indent int, tracker *instanceTracker, ext *extractionCtx) {
+func writeInputNode(buf *bytes.Buffer, node template.Node, stylesheet *style.Stylesheet, indent int, ext *extractionCtx) {
 	switch n := node.(type) {
 	case *template.TextElement:
 		writeTextInput(buf, n, stylesheet, indent, ext)
 	case *template.BoxElement:
-		writeBoxInput(buf, n, stylesheet, indent, tracker, ext)
+		writeBoxInput(buf, n, stylesheet, indent, ext)
 	case *template.ComponentElement:
 		if ext != nil && len(ext.componentChildren) > 0 {
 			writeSignalComponentRef(buf, n, indent, ext)
-		} else {
-			writeComponentElement(buf, indent, tracker, ext)
 		}
 	case *template.SlotElement:
 		writeSlotReference(buf, n, indent)
 	}
-}
-
-// writeComponentElement is a no-op in the new signal model.
-// Component inlining has been removed. Components are separate packages.
-func writeComponentElement(buf *bytes.Buffer, indent int, tracker *instanceTracker, ext *extractionCtx) {
-	// No-op — old inlining removed.
 }
 
 // writeSignalComponentRef writes a child component's .Tree as a layout tree entry.
@@ -95,7 +86,7 @@ func writeSlotReference(buf *bytes.Buffer, slot *template.SlotElement, indent in
 
 // writeSlotChildren emits Children referencing slot props.
 // For simple cases (only slots), emits direct props references.
-func writeSlotChildren(buf *bytes.Buffer, children []template.Node, stylesheet *style.Stylesheet, baseIndent int, tabs string, tracker *instanceTracker, ext *extractionCtx) {
+func writeSlotChildren(buf *bytes.Buffer, children []template.Node, stylesheet *style.Stylesheet, baseIndent int, tabs string, ext *extractionCtx) {
 	// Check if only slot children (no mixed content).
 	allSlots := true
 	for _, c := range children {
@@ -203,7 +194,7 @@ func hasExprParts(parts []template.Part) bool {
 // writeBoxInput writes a layout.Input literal for a box element.
 // When ext is non-nil and the box has dynamic children or cursor, the box is extracted
 // as a named variable for sync patching.
-func writeBoxInput(buf *bytes.Buffer, n *template.BoxElement, stylesheet *style.Stylesheet, indent int, tracker *instanceTracker, ext *extractionCtx) {
+func writeBoxInput(buf *bytes.Buffer, n *template.BoxElement, stylesheet *style.Stylesheet, indent int, ext *extractionCtx) {
 	// Track focusable index for cursor-focus correlation
 	focusIdx := -1
 	if ext != nil && isFocusableBox(n.Attributes) {
@@ -212,11 +203,11 @@ func writeBoxInput(buf *bytes.Buffer, n *template.BoxElement, stylesheet *style.
 	}
 
 	if ext != nil && hasDynamicChildren(n.Children) {
-		writeExtractedDynamicBox(buf, n, stylesheet, indent, tracker, ext)
+		writeExtractedDynamicBox(buf, n, stylesheet, indent, ext)
 		return
 	}
 	if ext != nil && hasDynamicCursor(n.Attributes) {
-		writeExtractedCursorBox(buf, n, stylesheet, indent, tracker, ext, focusIdx)
+		writeExtractedCursorBox(buf, n, stylesheet, indent, ext, focusIdx)
 		return
 	}
 	tabs := indentStr(indent)
@@ -228,7 +219,7 @@ func writeBoxInput(buf *bytes.Buffer, n *template.BoxElement, stylesheet *style.
 	if props != nil {
 		writeStyleLiteral(buf, tabs, props)
 	}
-	writeBoxChildren(buf, n.Children, stylesheet, indent, tabs, tracker, ext)
+	writeBoxChildren(buf, n.Children, stylesheet, indent, tabs, ext)
 	fmt.Fprintf(buf, "%s},\n", tabs)
 }
 
@@ -251,7 +242,7 @@ func isFocusableBox(attrs map[string]string) bool {
 
 // writeExtractedCursorBox extracts a box with dynamic cursor as a named variable.
 // Cursor fields are patched in sync. focusIdx >= 0 means cursor is conditional on focus.
-func writeExtractedCursorBox(treeBuf *bytes.Buffer, n *template.BoxElement, stylesheet *style.Stylesheet, indent int, tracker *instanceTracker, ext *extractionCtx, focusIdx int) {
+func writeExtractedCursorBox(treeBuf *bytes.Buffer, n *template.BoxElement, stylesheet *style.Stylesheet, indent int, ext *extractionCtx, focusIdx int) {
 	tabs := indentStr(indent)
 	name := ext.nextBoxName()
 	props := resolveProps(stylesheet, "box", n.Attributes)
@@ -268,7 +259,7 @@ func writeExtractedCursorBox(treeBuf *bytes.Buffer, n *template.BoxElement, styl
 	if len(n.Children) > 0 {
 		fmt.Fprintf(&ext.declBuf, "\t\tChildren: []*layout.Input{\n")
 		for _, child := range n.Children {
-			writeInputNode(&ext.declBuf, child, stylesheet, 3, tracker, ext)
+			writeInputNode(&ext.declBuf, child, stylesheet, 3, ext)
 		}
 		fmt.Fprintf(&ext.declBuf, "\t\t},\n")
 	}
@@ -322,7 +313,7 @@ func writeFocusConditionalCursor(buf *bytes.Buffer, name string, attrs map[strin
 
 // writeExtractedDynamicBox extracts a box with dynamic children as a named variable.
 // The box declaration (without Children) goes to declBuf; Children are rebuilt in syncBuf.
-func writeExtractedDynamicBox(treeBuf *bytes.Buffer, n *template.BoxElement, stylesheet *style.Stylesheet, indent int, tracker *instanceTracker, ext *extractionCtx) {
+func writeExtractedDynamicBox(treeBuf *bytes.Buffer, n *template.BoxElement, stylesheet *style.Stylesheet, indent int, ext *extractionCtx) {
 	tabs := indentStr(indent)
 	name := ext.nextBoxName()
 	props := resolveProps(stylesheet, "box", n.Attributes)
@@ -337,7 +328,7 @@ func writeExtractedDynamicBox(treeBuf *bytes.Buffer, n *template.BoxElement, sty
 	fmt.Fprintf(&ext.declBuf, "\t}\n")
 
 	// Write dynamic children rebuild to syncBuf
-	writeDynamicChildrenSync(&ext.syncBuf, name, n.Children, stylesheet)
+	writeDynamicChildrenSync(&ext.syncBuf, name, n.Children, stylesheet, ext.signals)
 
 	// Write reference in tree
 	fmt.Fprintf(treeBuf, "%s%s,\n", tabs, name)
@@ -451,21 +442,25 @@ func writeIntAttr(buf *bytes.Buffer, tabs string, attrs, props map[string]string
 }
 
 // writeBoxChildren writes the Children field of a box input if there are children.
-func writeBoxChildren(buf *bytes.Buffer, children []template.Node, stylesheet *style.Stylesheet, indent int, tabs string, tracker *instanceTracker, ext *extractionCtx) {
+func writeBoxChildren(buf *bytes.Buffer, children []template.Node, stylesheet *style.Stylesheet, indent int, tabs string, ext *extractionCtx) {
 	if len(children) == 0 {
 		return
 	}
 	if hasSlotChild(children) {
-		writeSlotChildren(buf, children, stylesheet, indent, tabs, tracker, ext)
+		writeSlotChildren(buf, children, stylesheet, indent, tabs, ext)
 		return
 	}
 	if hasDynamicChildren(children) {
-		writeDynamicChildren(buf, children, stylesheet, indent, tabs)
+		var signals map[string]bool
+		if ext != nil {
+			signals = ext.signals
+		}
+		writeDynamicChildren(buf, children, stylesheet, indent, tabs, signals)
 		return
 	}
 	fmt.Fprintf(buf, "%s\tChildren: []*layout.Input{\n", tabs)
 	for _, child := range children {
-		writeInputNode(buf, child, stylesheet, indent+2, tracker, ext)
+		writeInputNode(buf, child, stylesheet, indent+2, ext)
 	}
 	fmt.Fprintf(buf, "%s\t},\n", tabs)
 }

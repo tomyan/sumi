@@ -17,7 +17,7 @@ func TestGenerateWithNilStylesheetBackwardCompat(t *testing.T) {
 	}
 
 	// When
-	out, err := Generate(doc, nil, nil, Options{PackageName: "main"})
+	out, err := Generate(doc, nil, nil, "main")
 
 	// Then
 	if err != nil {
@@ -52,7 +52,7 @@ func TestGenerateWithStylesheetAndClassOnText(t *testing.T) {
 	}
 
 	// When
-	out, err := Generate(doc, nil, ss, Options{PackageName: "main"})
+	out, err := Generate(doc, nil, ss, "main")
 
 	// Then
 	if err != nil {
@@ -95,7 +95,7 @@ func TestGenerateStylesheetLayoutProperties(t *testing.T) {
 	}
 
 	// When
-	out, err := Generate(doc, nil, ss, Options{PackageName: "main"})
+	out, err := Generate(doc, nil, ss, "main")
 
 	// Then
 	if err != nil {
@@ -135,7 +135,7 @@ func TestGenerateInlineAttributeOverridesStylesheet(t *testing.T) {
 	}
 
 	// When
-	out, err := Generate(doc, nil, ss, Options{PackageName: "main"})
+	out, err := Generate(doc, nil, ss, "main")
 
 	// Then
 	if err != nil {
@@ -173,7 +173,7 @@ func TestGenerateElementSelectorStylesheet(t *testing.T) {
 	}
 
 	// When
-	out, err := Generate(doc, nil, ss, Options{PackageName: "main"})
+	out, err := Generate(doc, nil, ss, "main")
 
 	// Then
 	if err != nil {
@@ -200,7 +200,7 @@ func TestGenerateUsesLayoutRenderTreeForStyling(t *testing.T) {
 	}
 
 	// When
-	out, err := Generate(doc, nil, nil, Options{PackageName: "main"})
+	out, err := Generate(doc, nil, nil, "main")
 
 	// Then
 	if err != nil {

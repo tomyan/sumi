@@ -21,7 +21,7 @@ func TestGenerateSingleTextElementIsValidGo(t *testing.T) {
 	}
 
 	// When
-	out, err := Generate(doc, nil, nil, Options{PackageName: "main"})
+	out, err := Generate(doc, nil, nil, "main")
 
 	// Then
 	if err != nil {
@@ -41,7 +41,7 @@ func TestGenerateTextElementUsesLayout(t *testing.T) {
 	}
 
 	// When
-	out, err := Generate(doc, nil, nil, Options{PackageName: "main"})
+	out, err := Generate(doc, nil, nil, "main")
 
 	// Then
 	if err != nil {
@@ -66,7 +66,7 @@ func TestGenerateMultipleTextElements(t *testing.T) {
 	}
 
 	// When
-	out, err := Generate(doc, nil, nil, Options{PackageName: "main"})
+	out, err := Generate(doc, nil, nil, "main")
 
 	// Then
 	if err != nil {
@@ -88,7 +88,7 @@ func TestGenerateContainsCorrectImports(t *testing.T) {
 	}
 
 	// When
-	out, err := Generate(doc, nil, nil, Options{PackageName: "main"})
+	out, err := Generate(doc, nil, nil, "main")
 
 	// Then
 	if err != nil {
@@ -116,7 +116,7 @@ func TestGenerateReferencesRuntimeRender(t *testing.T) {
 	}
 
 	// When
-	out, err := Generate(doc, nil, nil, Options{PackageName: "main"})
+	out, err := Generate(doc, nil, nil, "main")
 
 	// Then
 	if err != nil {
@@ -135,7 +135,7 @@ func TestStaticCodeUsesApp(t *testing.T) {
 	}
 
 	// When
-	out, err := Generate(doc, nil, nil, Options{PackageName: "main"})
+	out, err := Generate(doc, nil, nil, "main")
 
 	// Then
 	if err != nil {
@@ -157,7 +157,7 @@ func TestStaticCodeNoInlineEventLoop(t *testing.T) {
 	}
 
 	// When
-	out, err := Generate(doc, nil, nil, Options{PackageName: "main"})
+	out, err := Generate(doc, nil, nil, "main")
 
 	// Then
 	if err != nil {
@@ -183,7 +183,7 @@ func TestGenerateRespectsPackageName(t *testing.T) {
 	}
 
 	// When
-	out, err := Generate(doc, nil, nil, Options{PackageName: "myapp"})
+	out, err := Generate(doc, nil, nil, "myapp")
 
 	// Then
 	if err != nil {

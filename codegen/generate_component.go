@@ -166,7 +166,7 @@ func writeConstructor(buf *bytes.Buffer, name string, info *script.ScriptInfo, d
 	ext.signals = info.Signals
 	ext.componentChildren = opts.Components
 	var treeBuf bytes.Buffer
-	writeLayoutTree(&treeBuf, doc, stylesheet, false, nil, ext)
+	writeLayoutTree(&treeBuf, doc, stylesheet, false, ext)
 	buf.Write(ext.declBuf.Bytes())
 	buf.Write(treeBuf.Bytes())
 

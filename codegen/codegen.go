@@ -11,19 +11,14 @@ import (
 	"github.com/tomyan/sumi/parser/template"
 )
 
-// Options configures code generation for the legacy static path.
-type Options struct {
-	PackageName string
-}
-
 // Generate produces Go source code for static (non-reactive) components.
 // Used for .sumi files with no <script> block or no signal declarations.
 // Emits func Run() and func CreateApp(w, h int) *tui.App.
-func Generate(doc *template.Document, sc *script.Script, stylesheet *style.Stylesheet, opts Options) ([]byte, error) {
+func Generate(doc *template.Document, sc *script.Script, stylesheet *style.Stylesheet, packageName string) ([]byte, error) {
 	var buf bytes.Buffer
-	fmt.Fprintf(&buf, "package %s\n\n", opts.PackageName)
+	fmt.Fprintf(&buf, "package %s\n\n", packageName)
 	hasExprs := docHasExprs(doc)
-	writeImports(&buf, hasExprs, false, false, false)
+	writeImports(&buf, hasExprs, false, false)
 
 	buf.WriteString("func Run() {\n")
 	writeStaticBody(&buf, doc, stylesheet)

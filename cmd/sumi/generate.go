@@ -140,8 +140,7 @@ func generateComponent(comp *parsedComponent) error {
 		return generateSignalComponent(comp)
 	}
 	// Static path (no reactive state).
-	opts := codegen.Options{PackageName: packageName(comp.path)}
-	out, err := codegen.Generate(comp.doc, comp.script, comp.stylesheet, opts)
+	out, err := codegen.Generate(comp.doc, comp.script, comp.stylesheet, packageName(comp.path))
 	if err != nil {
 		return fmt.Errorf("%s: %w", comp.path, err)
 	}
@@ -167,7 +166,6 @@ func generateSignalComponent(comp *parsedComponent) error {
 	return writeOutput(comp.path, out)
 }
 
-// buildCodegenOptions builds codegen.Options for a component.
 // writeOutput writes generated Go source to the output file.
 func writeOutput(path string, out []byte) error {
 	outPath := outputPath(path)

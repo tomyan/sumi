@@ -10,7 +10,7 @@ import (
 // writeImports writes the import block for the generated code.
 // hasEvents indicates whether the generated code references input.Event types
 // (reactive path with event handlers).
-func writeImports(buf *bytes.Buffer, hasExprs bool, hasEvents bool, hasTime bool, hasSignals bool) {
+func writeImports(buf *bytes.Buffer, hasExprs bool, hasEvents bool, hasTime bool) {
 	buf.WriteString("import (\n")
 	if hasExprs {
 		buf.WriteString("\t\"fmt\"\n")
@@ -25,9 +25,6 @@ func writeImports(buf *bytes.Buffer, hasExprs bool, hasEvents bool, hasTime bool
 	}
 	buf.WriteString("\t\"github.com/tomyan/sumi/runtime/layout\"\n")
 	buf.WriteString("\t\"github.com/tomyan/sumi/runtime/render\"\n")
-	if hasSignals {
-		buf.WriteString("\t\"github.com/tomyan/sumi/runtime/signal\"\n")
-	}
 	buf.WriteString("\t\"github.com/tomyan/sumi/runtime/term\"\n")
 	buf.WriteString("\t\"github.com/tomyan/sumi/runtime/tui\"\n")
 	buf.WriteString(")\n\n")
@@ -49,7 +46,7 @@ func writeStaticCreateAppBody(buf *bytes.Buffer, doc *template.Document, stylesh
 // writeStaticSharedSetup writes the shared setup for static Run and CreateApp.
 func writeStaticSharedSetup(buf *bytes.Buffer, doc *template.Document, stylesheet *style.Stylesheet) {
 	buf.WriteString("\tvar app *tui.App\n")
-	writeLayoutTree(buf, doc, stylesheet, false, nil, nil)
+	writeLayoutTree(buf, doc, stylesheet, false, nil)
 	writeStaticRenderFunc(buf)
 	buf.WriteString("\tapp = &tui.App{\n")
 	buf.WriteString("\t\tOnRender: doRender,\n")

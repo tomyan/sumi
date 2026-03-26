@@ -190,24 +190,19 @@ func RunPreview() {
 	}
 
 	comp := NewPreview(PreviewProps{})
-	app := tui.TestApp(comp, 0, 0)
-	app.TestBuffer = nil
-	pvApp = app
 
 	SetupEditors()
 	defer CleanupEditors()
 
 	pvStartWatcher()
 	defer pvStopWatcher()
-	app.OnPostRender = pvInjectContent
-	existingResize := app.OnResize
-	app.OnResize = func() {
-		if existingResize != nil {
-			existingResize()
-		}
-		pvResizeEditors()
-	}
-	app.Run()
+
+	// Run with post-render injection for editors and content.
+	tui.RunWithOptions(comp, tui.RunOptions{
+		OnPostRender: pvInjectContent,
+		OnResize:     pvResizeEditors,
+		SetApp:       func(a *tui.App) { pvApp = a },
+	})
 }
 
 // isTimeout checks if an error is a read timeout.

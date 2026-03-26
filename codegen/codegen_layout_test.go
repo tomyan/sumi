@@ -21,7 +21,7 @@ func TestGenerateBoxContainingTextIsValidGo(t *testing.T) {
 	}
 
 	// When
-	out, err := Generate(doc, nil, nil, Options{PackageName: "main"})
+	out, err := Generate(doc, nil, nil, "main")
 
 	// Then
 	if err != nil {
@@ -46,7 +46,7 @@ func TestGenerateBoxUsesLayoutKindBox(t *testing.T) {
 	}
 
 	// When
-	out, err := Generate(doc, nil, nil, Options{PackageName: "main"})
+	out, err := Generate(doc, nil, nil, "main")
 
 	// Then
 	if err != nil {
@@ -70,7 +70,7 @@ func TestGenerateBoxWithAttributesDirection(t *testing.T) {
 	}
 
 	// When
-	out, err := Generate(doc, nil, nil, Options{PackageName: "main"})
+	out, err := Generate(doc, nil, nil, "main")
 
 	// Then
 	if err != nil {
@@ -94,7 +94,7 @@ func TestGenerateBoxWithBorder(t *testing.T) {
 	}
 
 	// When
-	out, err := Generate(doc, nil, nil, Options{PackageName: "main"})
+	out, err := Generate(doc, nil, nil, "main")
 
 	// Then
 	if err != nil {
@@ -118,7 +118,7 @@ func TestGenerateBoxWithPadding(t *testing.T) {
 	}
 
 	// When
-	out, err := Generate(doc, nil, nil, Options{PackageName: "main"})
+	out, err := Generate(doc, nil, nil, "main")
 
 	// Then
 	if err != nil {
@@ -142,7 +142,7 @@ func TestGenerateBoxWithWidthAndHeight(t *testing.T) {
 	}
 
 	// When
-	out, err := Generate(doc, nil, nil, Options{PackageName: "main"})
+	out, err := Generate(doc, nil, nil, "main")
 
 	// Then
 	if err != nil {
@@ -169,7 +169,7 @@ func TestGenerateBoxWithGap(t *testing.T) {
 	}
 
 	// When
-	out, err := Generate(doc, nil, nil, Options{PackageName: "main"})
+	out, err := Generate(doc, nil, nil, "main")
 
 	// Then
 	if err != nil {
@@ -198,7 +198,7 @@ func TestGenerateBoxWithFlexGrow(t *testing.T) {
 	}
 
 	// When
-	out, err := Generate(doc, nil, nil, Options{PackageName: "main"})
+	out, err := Generate(doc, nil, nil, "main")
 
 	// Then
 	if err != nil {
@@ -227,7 +227,7 @@ func TestGenerateNestedBoxesIsValidGo(t *testing.T) {
 	}
 
 	// When
-	out, err := Generate(doc, nil, nil, Options{PackageName: "main"})
+	out, err := Generate(doc, nil, nil, "main")
 
 	// Then
 	if err != nil {
@@ -247,7 +247,7 @@ func TestGenerateCallsLayoutRenderTreeFromLayoutTest(t *testing.T) {
 	}
 
 	// When
-	out, err := Generate(doc, nil, nil, Options{PackageName: "main"})
+	out, err := Generate(doc, nil, nil, "main")
 
 	// Then
 	if err != nil {

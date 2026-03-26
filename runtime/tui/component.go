@@ -68,6 +68,67 @@ func Quit() {
 	}
 }
 
+// RunOptions configures optional behaviors for Run.
+type RunOptions struct {
+	OnPostRender func()       // called after each render
+	OnResize     func()       // called on terminal resize
+	SetApp       func(a *App) // called with the app reference before Run
+}
+
+// RunWithOptions runs a component with additional configuration.
+func RunWithOptions(comp *Component, opts RunOptions) {
+	app := &App{}
+	if opts.SetApp != nil {
+		opts.SetApp(app)
+	}
+
+	var prevTree *layout.Box
+	var prevW, prevH int
+
+	app.OnRender = func() {
+		termW, termH := term.GetSize(int(os.Stdout.Fd()))
+		tree := layout.Layout(comp.Tree, termW, termH)
+		if comp.AfterLayout != nil {
+			comp.AfterLayout()
+		}
+		changes, scrollChanged := layout.DiffTrees(prevTree, tree)
+		if prevTree == nil || termW != prevW || termH != prevH || scrollChanged {
+			buf := render.NewBuffer(termW, termH)
+			layout.RenderTree(buf, tree, nil)
+			render.ClearScreen(os.Stdout)
+			buf.RenderTo(os.Stdout)
+		} else {
+			layout.ApplyChanges(os.Stdout, changes)
+		}
+		prevTree = tree
+		prevW = termW
+		prevH = termH
+	}
+
+	app.OnEvent = func(evt input.Event) {
+		if comp.OnEvent != nil {
+			comp.OnEvent(evt)
+		}
+		app.Dirty = true
+	}
+
+	if opts.OnPostRender != nil {
+		app.OnPostRender = opts.OnPostRender
+	}
+	if opts.OnResize != nil {
+		app.OnResize = opts.OnResize
+	}
+
+	app.componentDispose = comp.Dispose
+	activeApp = app
+	app.Run()
+	activeApp = nil
+
+	if comp.Dispose != nil {
+		comp.Dispose()
+	}
+}
+
 // Run runs a component as a full-screen terminal application.
 func Run(comp *Component) {
 	app := &App{}
