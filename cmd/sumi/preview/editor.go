@@ -3,6 +3,7 @@ package preview
 import (
 	"os"
 	"os/exec"
+	"path/filepath"
 	"sync"
 	"syscall"
 
@@ -10,6 +11,33 @@ import (
 	"github.com/tomyan/sumi/runtime/pty"
 	"github.com/tomyan/sumi/runtime/vt100"
 )
+
+// findSumiPluginDir locates the editors/nvim directory relative to the binary or working directory.
+func findSumiPluginDir() string {
+	// Try relative to working directory (development).
+	candidates := []string{
+		"editors/nvim",
+		"../../editors/nvim", // from examples/*/
+	}
+	// Try relative to the executable (installed).
+	if exe, err := os.Executable(); err == nil {
+		dir := filepath.Dir(exe)
+		candidates = append(candidates,
+			filepath.Join(dir, "editors/nvim"),
+			filepath.Join(dir, "../editors/nvim"),
+		)
+	}
+	for _, c := range candidates {
+		abs, err := filepath.Abs(c)
+		if err != nil {
+			continue
+		}
+		if _, err := os.Stat(filepath.Join(abs, "syntax", "sumi.vim")); err == nil {
+			return abs
+		}
+	}
+	return ""
+}
 
 // Editor wraps an nvim process on a PTY with a VT100 screen.
 type Editor struct {
@@ -23,12 +51,17 @@ type Editor struct {
 // NewEditor starts nvim editing filePath on a PTY of the given size.
 // The optional wake callback is called after each PTY read to trigger re-render.
 func NewEditor(filePath string, rows, cols int, wake func()) (*Editor, error) {
-	cmd := exec.Command("nvim",
+	args := []string{
 		"--noplugin", "-u", "NONE",
 		"+set updatetime=300", "+set autowriteall",
 		"+syntax on", "+filetype on",
-		filePath,
-	)
+	}
+	// Add sumi syntax highlighting if the plugin directory exists.
+	if pluginDir := findSumiPluginDir(); pluginDir != "" {
+		args = append(args, "+set runtimepath+="+pluginDir)
+	}
+	args = append(args, filePath)
+	cmd := exec.Command("nvim", args...)
 	cmd.Env = append(os.Environ(), "TERM=xterm-256color")
 
 	master, err := pty.Start(cmd, rows, cols)
