@@ -168,7 +168,7 @@ syntax region sumiComment start=/<!--/ end=/-->/
 " ============================================================================
 
 " Section tags: <script>, </script>, <style>, </style>
-highlight default link sumiSectionTag    Keyword
+highlight default sumiSectionTag guifg=#7dcfff gui=bold ctermfg=117 cterm=bold
 
 " Signal API — make these stand out as the core reactive primitives
 highlight default sumiSignalNew    guifg=#ff9e64 gui=bold ctermfg=215 cterm=bold
