@@ -11,9 +11,10 @@ import (
 
 // Component represents a sumi component — a layout tree with event handling and lifecycle.
 type Component struct {
-	Tree    *layout.Input
-	OnEvent func(input.Event)
-	Dispose func()
+	Tree        *layout.Input
+	OnEvent     func(input.Event)
+	AfterLayout func() // called after layout to sync self-measurement signals
+	Dispose     func()
 }
 
 // TestApp creates a test-mode App from a Component with the given viewport dimensions.
@@ -32,6 +33,9 @@ func TestApp(comp *Component, w, h int) *App {
 			termW, termH = term.GetSize(int(os.Stdin.Fd()))
 		}
 		tree := layout.Layout(comp.Tree, termW, termH)
+		if comp.AfterLayout != nil {
+			comp.AfterLayout()
+		}
 		buf := render.NewBuffer(termW, termH)
 		layout.RenderTree(buf, tree, nil)
 		if app.TestBuffer != nil {
@@ -74,6 +78,9 @@ func Run(comp *Component) {
 	app.OnRender = func() {
 		termW, termH := term.GetSize(int(os.Stdout.Fd()))
 		tree := layout.Layout(comp.Tree, termW, termH)
+		if comp.AfterLayout != nil {
+			comp.AfterLayout()
+		}
 		changes, scrollChanged := layout.DiffTrees(prevTree, tree)
 		if prevTree == nil || termW != prevW || termH != prevH || scrollChanged {
 			buf := render.NewBuffer(termW, termH)

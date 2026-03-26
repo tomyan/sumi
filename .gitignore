@@ -3,3 +3,6 @@
 /counter
 /flexbox
 /responsive
+
+# Temp dirs from test-preview
+.sumi-preview-*

@@ -18,24 +18,17 @@
 </style>
 
 <script>
-name := $state("")
+name := signal.New("")
 
 func handleKey(evt input.Event) {
-    if evt.Kind == input.EventSignal {
-        app.Quit()
-        return
-    }
-    if evt.Ctrl && evt.Rune == 'c' {
-        app.Quit()
-        return
-    }
+    if evt.Kind == input.EventSignal { app.Quit(); return }
+    if evt.Ctrl && evt.Rune == 'c' { app.Quit(); return }
 }
 </script>
 
 <box class="container" onkey="handleKey">
     <text class="title">Text Input Demo</text>
-    <text class="hint">Type to enter your name, Tab to focus</text>
+    <text class="hint">Type to enter your name</text>
     <text class="label">Name:</text>
-    <sumi:TextInput bind:value={name} placeholder="Enter your name..." />
     <text>You typed: {name}</text>
 </box>

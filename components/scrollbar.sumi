@@ -1,19 +1,19 @@
 <script>
-contentSize := $prop(0)
-viewSize := $prop(0)
-offset := $prop(0)
-direction := $prop("horizontal")
-visible := $prop(true)
-selfX := $self(x)
-selfY := $self(y)
-selfW := $self(width)
-selfH := $self(height)
-animating := $state(false)
-dragging := $state(false)
-held := $state(false)
-animStart := $state(int64(0))
-animFrom := $state(0)
-animTo := $state(0)
+var contentSize int
+var viewSize int
+var offset int
+var direction string = "horizontal"
+var visible bool = true
+selfX := signal.New(0)
+selfY := signal.New(0)
+selfW := signal.New(0)
+selfH := signal.New(0)
+animating := signal.New(false)
+dragging := signal.New(false)
+held := signal.New(false)
+animStart := signal.New(int64(0))
+animFrom := signal.New(0)
+animTo := signal.New(0)
 
 func isVisible() bool {
     return visible && contentSize > viewSize && viewSize > 0
@@ -52,9 +52,9 @@ func endArrow() string {
 
 func trackSize() int {
     if direction == "vertical" {
-        return selfH - 2
+        return selfH.Get() - 2
     }
-    return selfW - 2
+    return selfW.Get() - 2
 }
 
 func thumbSize() int {
@@ -141,9 +141,9 @@ func offsetForTrackPos(pos int) int {
 
 func trackStart() int {
     if direction == "vertical" {
-        return selfY + 1
+        return selfY.Get() + 1
     }
-    return selfX + 1 + 1
+    return selfX.Get() + 1 + 1
 }
 
 func mouseToTrackPos(mousePos int) int {
@@ -152,9 +152,9 @@ func mouseToTrackPos(mousePos int) int {
 
 func isOnTrack(evt input.Event) bool {
     if direction == "vertical" {
-        return evt.Mouse.X == selfX
+        return evt.Mouse.X == selfX.Get()
     }
-    return evt.Mouse.Y == selfY
+    return evt.Mouse.Y == selfY.Get()
 }
 
 func mouseTrackPos(evt input.Event) int {
@@ -165,55 +165,55 @@ func mouseTrackPos(evt input.Event) int {
 }
 
 func cancelAnimation() {
-    animating = false
-    dragging = false
-    held = false
+    animating.Set(false)
+    dragging.Set(false)
+    held.Set(false)
 }
 
 func animateStep() {
     now := time.Now().UnixMilli()
-    elapsed := now - animStart
+    elapsed := now - animStart.Get()
     duration := int64(200)
     if elapsed >= duration {
-        offset = animTo
-        animating = false
-        if held {
-            dragging = true
+        offset = animTo.Get()
+        animating.Set(false)
+        if held.Get() {
+            dragging.Set(true)
         }
         return
     }
     t := float64(elapsed) / float64(duration)
     inv := 1.0 - t
     eased := 1.0 - inv*inv*inv
-    offset = animFrom + int(eased*float64(animTo-animFrom))
+    offset = animFrom.Get() + int(eased*float64(animTo.Get()-animFrom.Get()))
     app.RequestFrame()
 }
 
 func startAnimation(target int) {
-    animating = true
-    animStart = time.Now().UnixMilli()
-    animFrom = offset
-    animTo = target
+    animating.Set(true)
+    animStart.Set(time.Now().UnixMilli())
+    animFrom.Set(offset)
+    animTo.Set(target)
     app.RequestFrame()
 }
 
 func handleEvent(evt input.Event) {
     if evt.Kind == input.EventFrame {
-        if animating {
+        if animating.Get() {
             animateStep()
         }
         stopPropagation()
         return
     }
     if evt.Kind == input.EventMouse && evt.Mouse.Action == input.MouseRelease {
-        if held || dragging {
-            held = false
-            dragging = false
+        if held.Get() || dragging.Get() {
+            held.Set(false)
+            dragging.Set(false)
             stopPropagation()
             return
         }
     }
-    if evt.Kind == input.EventMouse && evt.Mouse.Action == input.MouseMotion && dragging {
+    if evt.Kind == input.EventMouse && evt.Mouse.Action == input.MouseMotion && dragging.Get() {
         pos := mouseTrackPos(evt)
         offset = offsetForTrackPos(pos)
         stopPropagation()
@@ -224,7 +224,7 @@ func handleEvent(evt input.Event) {
         ts := trackSize()
         if pos >= 0 && pos < ts {
             target := offsetForTrackPos(pos)
-            held = true
+            held.Set(true)
             startAnimation(target)
             stopPropagation()
             return

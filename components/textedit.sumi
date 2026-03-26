@@ -1,64 +1,64 @@
 <script>
-value := $prop("")
-placeholder := $prop("")
-inputType := $prop("")
-maxlength := $prop(0)
-readonly := $prop(false)
-strip := $prop(false)
-viewOffset := $state(0)
-focused := $state(false)
-cursor := $state(0)
-selfW := $self(width)
-selfX := $self(x)
-selfY := $self(y)
-contentW := $derived(selfW)
-killBuffer := $state("")
-undoValues := $state([]string{})
-undoCursors := $state([]int{})
-selAnchor := $state(-1)
-lastClickTime := $state(int64(0))
-lastClickX := $state(-1)
-mouseDragging := $state(false)
-wordDragging := $state(false)
-wordDragStart := $state(0)
-wordDragEnd := $state(0)
+var value string = ""
+var placeholder string = ""
+var inputType string = ""
+var maxlength int = 0
+var readonly bool = false
+var strip bool = false
+viewOffset := signal.New(0)
+focused := signal.New(false)
+cursor := signal.New(0)
+selfW := signal.New(0)
+selfX := signal.New(0)
+selfY := signal.New(0)
+contentW := signal.From(func() int { return selfW.Get() })
+killBuffer := signal.New("")
+undoValues := signal.New([]string{})
+undoCursors := signal.New([]int{})
+selAnchor := signal.New(-1)
+lastClickTime := signal.New(int64(0))
+lastClickX := signal.New(-1)
+mouseDragging := signal.New(false)
+wordDragging := signal.New(false)
+wordDragStart := signal.New(0)
+wordDragEnd := signal.New(0)
 
 func adjustView() {
-    if contentW <= 0 {
+    if contentW.Get() <= 0 {
         return
     }
-    if cursor < viewOffset {
-        viewOffset = cursor
+    if cursor.Get() < viewOffset.Get() {
+        viewOffset.Set(cursor.Get())
     }
-    if cursor > viewOffset + contentW {
-        viewOffset = cursor - contentW
+    if cursor.Get() > viewOffset.Get() + contentW.Get() {
+        viewOffset.Set(cursor.Get() - contentW.Get())
     }
-    if viewOffset < 0 {
-        viewOffset = 0
+    if viewOffset.Get() < 0 {
+        viewOffset.Set(0)
     }
 }
 
 func clearSelection() {
-    selAnchor = -1
+    selAnchor.Set(-1)
 }
 
 func selStart() int {
-    if selAnchor < cursor {
-        return selAnchor
+    if selAnchor.Get() < cursor.Get() {
+        return selAnchor.Get()
     }
-    return cursor
+    return cursor.Get()
 }
 
 func selEnd() int {
-    if selAnchor > cursor {
-        return selAnchor
+    if selAnchor.Get() > cursor.Get() {
+        return selAnchor.Get()
     }
-    return cursor
+    return cursor.Get()
 }
 
 func startSelection() {
-    if selAnchor == -1 {
-        selAnchor = cursor
+    if selAnchor.Get() == -1 {
+        selAnchor.Set(cursor.Get())
     }
 }
 
@@ -86,7 +86,7 @@ func displayText() string {
 }
 
 func viewStart() int {
-    vo := viewOffset
+    vo := viewOffset.Get()
     if len(value) == 0 {
         vo = 0
     }
@@ -102,7 +102,7 @@ func viewStart() int {
 
 func viewEnd() int {
     vo := viewStart()
-    end := vo + contentW
+    end := vo + contentW.Get()
     text := displayText()
     if end > len(text) {
         end = len(text)
@@ -111,16 +111,16 @@ func viewEnd() int {
 }
 
 func visiblePreSel() string {
-    if contentW <= 0 || len(value) == 0 {
+    if contentW.Get() <= 0 || len(value) == 0 {
         return ""
     }
     dv := displayValue()
     vs := viewStart()
     ve := viewEnd()
-    if selAnchor == -1 {
+    if selAnchor.Get() == -1 {
         visible := dv[vs:ve]
         pad := ""
-        for i := len(visible); i < contentW; i++ {
+        for i := len(visible); i < contentW.Get(); i++ {
             pad = pad + " "
         }
         return visible + pad
@@ -137,7 +137,7 @@ func visiblePreSel() string {
 }
 
 func visibleSel() string {
-    if contentW <= 0 || len(value) == 0 || selAnchor == -1 {
+    if contentW.Get() <= 0 || len(value) == 0 || selAnchor.Get() == -1 {
         return ""
     }
     dv := displayValue()
@@ -160,7 +160,7 @@ func visibleSel() string {
 }
 
 func visiblePostSel() string {
-    if contentW <= 0 || len(value) == 0 || selAnchor == -1 {
+    if contentW.Get() <= 0 || len(value) == 0 || selAnchor.Get() == -1 {
         return ""
     }
     dv := displayValue()
@@ -174,7 +174,7 @@ func visiblePostSel() string {
     if start >= ve {
         totalVisible := ve - vs
         pad := ""
-        for i := totalVisible; i < contentW; i++ {
+        for i := totalVisible; i < contentW.Get(); i++ {
             pad = pad + " "
         }
         return pad
@@ -182,36 +182,36 @@ func visiblePostSel() string {
     text := dv[start:ve]
     totalVisible := ve - vs
     pad := ""
-    for i := totalVisible; i < contentW; i++ {
+    for i := totalVisible; i < contentW.Get(); i++ {
         pad = pad + " "
     }
     return text + pad
 }
 
 func visiblePlaceholder() string {
-    if contentW <= 0 || len(value) > 0 || len(placeholder) == 0 {
+    if contentW.Get() <= 0 || len(value) > 0 || len(placeholder) == 0 {
         return ""
     }
     text := placeholder
-    if len(text) > contentW {
-        text = text[:contentW]
+    if len(text) > contentW.Get() {
+        text = text[:contentW.Get()]
     }
     pad := ""
-    for i := len(text); i < contentW; i++ {
+    for i := len(text); i < contentW.Get(); i++ {
         pad = pad + " "
     }
     return text + pad
 }
 
 func cursorX() int {
-    if selAnchor >= 0 {
+    if selAnchor.Get() >= 0 {
         return -1
     }
-    return cursor - viewOffset
+    return cursor.Get() - viewOffset.Get()
 }
 
 func wordLeft() int {
-    pos := cursor
+    pos := cursor.Get()
     for pos > 0 && value[pos-1] == ' ' {
         pos = pos - 1
     }
@@ -222,7 +222,7 @@ func wordLeft() int {
 }
 
 func wordRight() int {
-    pos := cursor
+    pos := cursor.Get()
     for pos < len(value) && value[pos] != ' ' {
         pos = pos + 1
     }
@@ -260,8 +260,8 @@ func wordEndFrom(pos int) int {
 }
 
 func mousePosToTextPos(mouseX int) int {
-    relX := mouseX - selfX
-    pos := viewOffset + relX
+    relX := mouseX - selfX.Get()
+    pos := viewOffset.Get() + relX
     if pos < 0 {
         pos = 0
     }
@@ -272,55 +272,55 @@ func mousePosToTextPos(mouseX int) int {
 }
 
 func saveUndo() {
-    undoValues = append(undoValues, value)
-    undoCursors = append(undoCursors, cursor)
-    if len(undoValues) > 100 {
-        undoValues = undoValues[1:]
-        undoCursors = undoCursors[1:]
+    undoValues.Set(append(undoValues.Get(), value))
+    undoCursors.Set(append(undoCursors.Get(), cursor.Get()))
+    if len(undoValues.Get()) > 100 {
+        undoValues.Set(undoValues.Get()[1:])
+        undoCursors.Set(undoCursors.Get()[1:])
     }
 }
 
 func undo() {
-    if len(undoValues) == 0 {
+    if len(undoValues.Get()) == 0 {
         return
     }
-    last := len(undoValues) - 1
-    value = undoValues[last]
-    cursor = undoCursors[last]
-    undoValues = undoValues[:last]
-    undoCursors = undoCursors[:last]
+    last := len(undoValues.Get()) - 1
+    value = undoValues.Get()[last]
+    cursor.Set(undoCursors.Get()[last])
+    undoValues.Set(undoValues.Get()[:last])
+    undoCursors.Set(undoCursors.Get()[:last])
     adjustView()
 }
 
 func deleteSelection() {
     saveUndo()
     value = value[:selStart()] + value[selEnd():]
-    cursor = selStart()
-    selAnchor = -1
+    cursor.Set(selStart())
+    selAnchor.Set(-1)
     adjustView()
 }
 
 func killText(text string) {
-    killBuffer = text
+    killBuffer.Set(text)
 }
 
 func transposeChars() {
-    if cursor < 2 {
+    if cursor.Get() < 2 {
         return
     }
-    a := value[cursor-2]
-    b := value[cursor-1]
-    value = value[:cursor-2] + string(b) + string(a) + value[cursor:]
+    a := value[cursor.Get()-2]
+    b := value[cursor.Get()-1]
+    value = value[:cursor.Get()-2] + string(b) + string(a) + value[cursor.Get():]
 }
 
 func handleEvent(evt input.Event) {
     if evt.Kind == input.EventFocus {
-        focused = true
+        focused.Set(true)
         stopPropagation()
         return
     }
     if evt.Kind == input.EventBlur {
-        focused = false
+        focused.Set(false)
         clearSelection()
         if strip && !readonly {
             for len(value) > 0 && value[0] == ' ' {
@@ -329,8 +329,8 @@ func handleEvent(evt input.Event) {
             for len(value) > 0 && value[len(value)-1] == ' ' {
                 value = value[:len(value)-1]
             }
-            if cursor > len(value) {
-                cursor = len(value)
+            if cursor.Get() > len(value) {
+                cursor.Set(len(value))
             }
             adjustView()
         }
@@ -343,7 +343,7 @@ func handleEvent(evt input.Event) {
             return
         }
         paste := evt.PasteText
-        if selAnchor >= 0 {
+        if selAnchor.Get() >= 0 {
             deleteSelection()
         }
         if maxlength > 0 {
@@ -357,41 +357,41 @@ func handleEvent(evt input.Event) {
             }
         }
         saveUndo()
-        value = value[:cursor] + paste + value[cursor:]
-        cursor = cursor + len(paste)
+        value = value[:cursor.Get()] + paste + value[cursor.Get():]
+        cursor.Set(cursor.Get() + len(paste))
         adjustView()
         stopPropagation()
         return
     }
     if evt.Kind == input.EventMouse && evt.Mouse.Action == input.MouseRelease {
-        if mouseDragging || wordDragging {
-            mouseDragging = false
-            wordDragging = false
-            if selAnchor == cursor {
-                selAnchor = -1
+        if mouseDragging.Get() || wordDragging.Get() {
+            mouseDragging.Set(false)
+            wordDragging.Set(false)
+            if selAnchor.Get() == cursor.Get() {
+                selAnchor.Set(-1)
             }
             stopPropagation()
             return
         }
     }
-    if evt.Kind == input.EventMouse && evt.Mouse.Action == input.MouseMotion && wordDragging {
+    if evt.Kind == input.EventMouse && evt.Mouse.Action == input.MouseMotion && wordDragging.Get() {
         pos := mousePosToTextPos(evt.Mouse.X)
         wl := wordLeftFrom(pos)
         wr := wordEndFrom(pos)
-        if wl < wordDragStart {
-            selAnchor = wordDragEnd
-            cursor = wl
+        if wl < wordDragStart.Get() {
+            selAnchor.Set(wordDragEnd.Get())
+            cursor.Set(wl)
         } else {
-            selAnchor = wordDragStart
-            cursor = wr
+            selAnchor.Set(wordDragStart.Get())
+            cursor.Set(wr)
         }
         adjustView()
         stopPropagation()
         return
     }
-    if evt.Kind == input.EventMouse && evt.Mouse.Action == input.MouseMotion && mouseDragging {
+    if evt.Kind == input.EventMouse && evt.Mouse.Action == input.MouseMotion && mouseDragging.Get() {
         pos := mousePosToTextPos(evt.Mouse.X)
-        cursor = pos
+        cursor.Set(pos)
         adjustView()
         stopPropagation()
         return
@@ -400,57 +400,57 @@ func handleEvent(evt input.Event) {
         clickPos := mousePosToTextPos(evt.Mouse.X)
         now := time.Now().UnixMilli()
         if evt.Shift {
-            if selAnchor == -1 {
-                selAnchor = cursor
+            if selAnchor.Get() == -1 {
+                selAnchor.Set(cursor.Get())
             }
-            cursor = clickPos
-            mouseDragging = true
+            cursor.Set(clickPos)
+            mouseDragging.Set(true)
             adjustView()
             stopPropagation()
             return
         }
-        if now - lastClickTime < 500 && evt.Mouse.X == lastClickX {
+        if now - lastClickTime.Get() < 500 && evt.Mouse.X == lastClickX.Get() {
             wl := wordLeftFrom(clickPos)
             wr := wordEndFrom(clickPos)
-            selAnchor = wl
-            cursor = wr
-            wordDragging = true
-            wordDragStart = wl
-            wordDragEnd = wr
+            selAnchor.Set(wl)
+            cursor.Set(wr)
+            wordDragging.Set(true)
+            wordDragStart.Set(wl)
+            wordDragEnd.Set(wr)
             adjustView()
-            lastClickTime = 0
+            lastClickTime.Set(0)
             stopPropagation()
             return
         }
-        lastClickTime = now
-        lastClickX = evt.Mouse.X
+        lastClickTime.Set(now)
+        lastClickX.Set(evt.Mouse.X)
         clearSelection()
-        cursor = clickPos
-        selAnchor = clickPos
-        mouseDragging = true
+        cursor.Set(clickPos)
+        selAnchor.Set(clickPos)
+        mouseDragging.Set(true)
         adjustView()
         stopPropagation()
         return
     }
     if evt.Kind == input.EventMouse && evt.Mouse.Action == input.MouseScroll {
-        if evt.Mouse.Button == input.ScrollUp && viewOffset > 0 {
-            viewOffset = viewOffset - 3
-            if viewOffset < 0 {
-                viewOffset = 0
+        if evt.Mouse.Button == input.ScrollUp && viewOffset.Get() > 0 {
+            viewOffset.Set(viewOffset.Get() - 3)
+            if viewOffset.Get() < 0 {
+                viewOffset.Set(0)
             }
             stopPropagation()
             return
         }
-        if evt.Mouse.Button == input.ScrollDown && viewOffset < len(value) - contentW {
-            viewOffset = viewOffset + 3
-            if viewOffset > len(value) - contentW {
-                viewOffset = len(value) - contentW
+        if evt.Mouse.Button == input.ScrollDown && viewOffset.Get() < len(value) - contentW.Get() {
+            viewOffset.Set(viewOffset.Get() + 3)
+            if viewOffset.Get() > len(value) - contentW.Get() {
+                viewOffset.Set(len(value) - contentW.Get())
             }
             stopPropagation()
             return
         }
     }
-    if (evt.Special == input.KeyBackspace || evt.Special == input.KeyDelete) && selAnchor >= 0 {
+    if (evt.Special == input.KeyBackspace || evt.Special == input.KeyDelete) && selAnchor.Get() >= 0 {
         if readonly {
             stopPropagation()
             return
@@ -459,176 +459,176 @@ func handleEvent(evt input.Event) {
         stopPropagation()
         return
     }
-    if evt.Special == input.KeyBackspace && evt.Ctrl && cursor > 0 {
+    if evt.Special == input.KeyBackspace && evt.Ctrl && cursor.Get() > 0 {
         if readonly {
             stopPropagation()
             return
         }
         saveUndo()
         pos := wordLeft()
-        killText(value[pos:cursor])
-        value = value[:pos] + value[cursor:]
-        cursor = pos
+        killText(value[pos:cursor.Get()])
+        value = value[:pos] + value[cursor.Get():]
+        cursor.Set(pos)
         adjustView()
         stopPropagation()
         return
     }
-    if evt.Special == input.KeyBackspace && cursor > 0 {
+    if evt.Special == input.KeyBackspace && cursor.Get() > 0 {
         if readonly {
             stopPropagation()
             return
         }
         saveUndo()
-        value = value[:cursor-1] + value[cursor:]
-        cursor = cursor - 1
+        value = value[:cursor.Get()-1] + value[cursor.Get():]
+        cursor.Set(cursor.Get() - 1)
         adjustView()
         stopPropagation()
         return
     }
-    if evt.Special == input.KeyDelete && evt.Ctrl && cursor < len(value) {
+    if evt.Special == input.KeyDelete && evt.Ctrl && cursor.Get() < len(value) {
         if readonly {
             stopPropagation()
             return
         }
         saveUndo()
         pos := wordRight()
-        killText(value[cursor:pos])
-        value = value[:cursor] + value[pos:]
+        killText(value[cursor.Get():pos])
+        value = value[:cursor.Get()] + value[pos:]
         adjustView()
         stopPropagation()
         return
     }
-    if evt.Special == input.KeyDelete && cursor < len(value) {
+    if evt.Special == input.KeyDelete && cursor.Get() < len(value) {
         if readonly {
             stopPropagation()
             return
         }
         saveUndo()
-        value = value[:cursor] + value[cursor+1:]
+        value = value[:cursor.Get()] + value[cursor.Get()+1:]
         adjustView()
         stopPropagation()
         return
     }
     if evt.Special == input.KeyLeft && evt.Shift && evt.Ctrl {
         startSelection()
-        cursor = wordLeft()
+        cursor.Set(wordLeft())
         adjustView()
         stopPropagation()
         return
     }
-    if evt.Special == input.KeyLeft && evt.Shift && cursor > 0 {
+    if evt.Special == input.KeyLeft && evt.Shift && cursor.Get() > 0 {
         startSelection()
-        cursor = cursor - 1
+        cursor.Set(cursor.Get() - 1)
         adjustView()
         stopPropagation()
         return
     }
     if evt.Special == input.KeyRight && evt.Shift && evt.Ctrl {
         startSelection()
-        cursor = wordRight()
+        cursor.Set(wordRight())
         adjustView()
         stopPropagation()
         return
     }
-    if evt.Special == input.KeyRight && evt.Shift && cursor < len(value) {
+    if evt.Special == input.KeyRight && evt.Shift && cursor.Get() < len(value) {
         startSelection()
-        cursor = cursor + 1
+        cursor.Set(cursor.Get() + 1)
         adjustView()
         stopPropagation()
         return
     }
     if evt.Special == input.KeyHome && evt.Shift {
         startSelection()
-        cursor = 0
+        cursor.Set(0)
         adjustView()
         stopPropagation()
         return
     }
     if evt.Special == input.KeyEnd && evt.Shift {
         startSelection()
-        cursor = len(value)
+        cursor.Set(len(value))
         adjustView()
         stopPropagation()
         return
     }
-    if evt.Special == input.KeyLeft && evt.Ctrl && cursor > 0 {
+    if evt.Special == input.KeyLeft && evt.Ctrl && cursor.Get() > 0 {
         clearSelection()
-        cursor = wordLeft()
+        cursor.Set(wordLeft())
         adjustView()
         stopPropagation()
         return
     }
-    if evt.Special == input.KeyLeft && cursor > 0 {
+    if evt.Special == input.KeyLeft && cursor.Get() > 0 {
         clearSelection()
-        cursor = cursor - 1
+        cursor.Set(cursor.Get() - 1)
         adjustView()
         stopPropagation()
         return
     }
-    if evt.Special == input.KeyRight && evt.Ctrl && cursor < len(value) {
+    if evt.Special == input.KeyRight && evt.Ctrl && cursor.Get() < len(value) {
         clearSelection()
-        cursor = wordRight()
+        cursor.Set(wordRight())
         adjustView()
         stopPropagation()
         return
     }
-    if evt.Special == input.KeyRight && cursor < len(value) {
+    if evt.Special == input.KeyRight && cursor.Get() < len(value) {
         clearSelection()
-        cursor = cursor + 1
+        cursor.Set(cursor.Get() + 1)
         adjustView()
         stopPropagation()
         return
     }
     if evt.Special == input.KeyHome {
         clearSelection()
-        cursor = 0
+        cursor.Set(0)
         adjustView()
         stopPropagation()
         return
     }
     if evt.Special == input.KeyEnd {
         clearSelection()
-        cursor = len(value)
+        cursor.Set(len(value))
         adjustView()
         stopPropagation()
         return
     }
     if evt.Kind == input.EventKey && evt.Ctrl && evt.Rune == 'a' {
-        selAnchor = 0
-        cursor = len(value)
+        selAnchor.Set(0)
+        cursor.Set(len(value))
         adjustView()
         stopPropagation()
         return
     }
     if evt.Kind == input.EventKey && evt.Ctrl && evt.Rune == 'e' {
         clearSelection()
-        cursor = len(value)
+        cursor.Set(len(value))
         adjustView()
         stopPropagation()
         return
     }
-    if evt.Kind == input.EventKey && evt.Ctrl && evt.Rune == 'f' && cursor < len(value) {
+    if evt.Kind == input.EventKey && evt.Ctrl && evt.Rune == 'f' && cursor.Get() < len(value) {
         clearSelection()
-        cursor = cursor + 1
+        cursor.Set(cursor.Get() + 1)
         adjustView()
         stopPropagation()
         return
     }
-    if evt.Kind == input.EventKey && evt.Ctrl && evt.Rune == 'b' && cursor > 0 {
+    if evt.Kind == input.EventKey && evt.Ctrl && evt.Rune == 'b' && cursor.Get() > 0 {
         clearSelection()
-        cursor = cursor - 1
+        cursor.Set(cursor.Get() - 1)
         adjustView()
         stopPropagation()
         return
     }
-    if evt.Kind == input.EventKey && evt.Ctrl && evt.Rune == 'c' && selAnchor >= 0 {
+    if evt.Kind == input.EventKey && evt.Ctrl && evt.Rune == 'c' && selAnchor.Get() >= 0 {
         selected := value[selStart():selEnd()]
         killText(selected)
         render.CopyToClipboard(os.Stdout, selected)
         stopPropagation()
         return
     }
-    if evt.Kind == input.EventKey && evt.Ctrl && evt.Rune == 'x' && selAnchor >= 0 {
+    if evt.Kind == input.EventKey && evt.Ctrl && evt.Rune == 'x' && selAnchor.Get() >= 0 {
         if readonly {
             selected := value[selStart():selEnd()]
             killText(selected)
@@ -643,57 +643,57 @@ func handleEvent(evt input.Event) {
         stopPropagation()
         return
     }
-    if evt.Kind == input.EventKey && evt.Ctrl && evt.Rune == 'd' && cursor < len(value) {
+    if evt.Kind == input.EventKey && evt.Ctrl && evt.Rune == 'd' && cursor.Get() < len(value) {
         if readonly {
             stopPropagation()
             return
         }
         saveUndo()
-        value = value[:cursor] + value[cursor+1:]
+        value = value[:cursor.Get()] + value[cursor.Get()+1:]
         adjustView()
         stopPropagation()
         return
     }
-    if evt.Kind == input.EventKey && evt.Ctrl && evt.Rune == 'k' && cursor < len(value) {
+    if evt.Kind == input.EventKey && evt.Ctrl && evt.Rune == 'k' && cursor.Get() < len(value) {
         if readonly {
             stopPropagation()
             return
         }
         saveUndo()
-        killText(value[cursor:])
-        value = value[:cursor]
+        killText(value[cursor.Get():])
+        value = value[:cursor.Get()]
         adjustView()
         stopPropagation()
         return
     }
-    if evt.Kind == input.EventKey && evt.Ctrl && evt.Rune == 'u' && cursor > 0 {
+    if evt.Kind == input.EventKey && evt.Ctrl && evt.Rune == 'u' && cursor.Get() > 0 {
         if readonly {
             stopPropagation()
             return
         }
         saveUndo()
-        killText(value[:cursor])
-        value = value[cursor:]
-        cursor = 0
+        killText(value[:cursor.Get()])
+        value = value[cursor.Get():]
+        cursor.Set(0)
         adjustView()
         stopPropagation()
         return
     }
-    if evt.Kind == input.EventKey && evt.Ctrl && evt.Rune == 'w' && cursor > 0 {
+    if evt.Kind == input.EventKey && evt.Ctrl && evt.Rune == 'w' && cursor.Get() > 0 {
         if readonly {
             stopPropagation()
             return
         }
         saveUndo()
         pos := wordLeft()
-        killText(value[pos:cursor])
-        value = value[:pos] + value[cursor:]
-        cursor = pos
+        killText(value[pos:cursor.Get()])
+        value = value[:pos] + value[cursor.Get():]
+        cursor.Set(pos)
         adjustView()
         stopPropagation()
         return
     }
-    if evt.Kind == input.EventKey && evt.Ctrl && evt.Rune == 't' && cursor >= 2 {
+    if evt.Kind == input.EventKey && evt.Ctrl && evt.Rune == 't' && cursor.Get() >= 2 {
         if readonly {
             stopPropagation()
             return
@@ -703,12 +703,12 @@ func handleEvent(evt input.Event) {
         stopPropagation()
         return
     }
-    if evt.Kind == input.EventKey && evt.Ctrl && evt.Rune == 'y' && len(killBuffer) > 0 {
+    if evt.Kind == input.EventKey && evt.Ctrl && evt.Rune == 'y' && len(killBuffer.Get()) > 0 {
         if readonly {
             stopPropagation()
             return
         }
-        yank := killBuffer
+        yank := killBuffer.Get()
         if maxlength > 0 {
             room := maxlength - len(value)
             if room <= 0 {
@@ -720,8 +720,8 @@ func handleEvent(evt input.Event) {
             }
         }
         saveUndo()
-        value = value[:cursor] + yank + value[cursor:]
-        cursor = cursor + len(yank)
+        value = value[:cursor.Get()] + yank + value[cursor.Get():]
+        cursor.Set(cursor.Get() + len(yank))
         adjustView()
         stopPropagation()
         return
@@ -735,29 +735,29 @@ func handleEvent(evt input.Event) {
         stopPropagation()
         return
     }
-    if evt.Kind == input.EventKey && evt.Alt && evt.Rune == 'f' && cursor < len(value) {
+    if evt.Kind == input.EventKey && evt.Alt && evt.Rune == 'f' && cursor.Get() < len(value) {
         clearSelection()
-        cursor = wordRight()
+        cursor.Set(wordRight())
         adjustView()
         stopPropagation()
         return
     }
-    if evt.Kind == input.EventKey && evt.Alt && evt.Rune == 'b' && cursor > 0 {
+    if evt.Kind == input.EventKey && evt.Alt && evt.Rune == 'b' && cursor.Get() > 0 {
         clearSelection()
-        cursor = wordLeft()
+        cursor.Set(wordLeft())
         adjustView()
         stopPropagation()
         return
     }
-    if evt.Kind == input.EventKey && evt.Alt && evt.Rune == 'd' && cursor < len(value) {
+    if evt.Kind == input.EventKey && evt.Alt && evt.Rune == 'd' && cursor.Get() < len(value) {
         if readonly {
             stopPropagation()
             return
         }
         saveUndo()
         pos := wordRight()
-        killText(value[cursor:pos])
-        value = value[:cursor] + value[pos:]
+        killText(value[cursor.Get():pos])
+        value = value[:cursor.Get()] + value[pos:]
         adjustView()
         stopPropagation()
         return
@@ -767,7 +767,7 @@ func handleEvent(evt input.Event) {
             stopPropagation()
             return
         }
-        if selAnchor >= 0 {
+        if selAnchor.Get() >= 0 {
             deleteSelection()
         }
         if maxlength > 0 && len(value) >= maxlength {
@@ -775,8 +775,8 @@ func handleEvent(evt input.Event) {
             return
         }
         saveUndo()
-        value = value[:cursor] + string(evt.Rune) + value[cursor:]
-        cursor = cursor + 1
+        value = value[:cursor.Get()] + string(evt.Rune) + value[cursor.Get():]
+        cursor.Set(cursor.Get() + 1)
         adjustView()
         stopPropagation()
         return

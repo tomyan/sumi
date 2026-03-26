@@ -1,31 +1,31 @@
 <script>
-value := $prop("")
-placeholder := $prop("")
-inputType := $prop("")
-maxlength := $prop(0)
-readonly := $prop(false)
-strip := $prop(false)
-viewOffset := $state(0)
-focused := $state(false)
-selfW := $self(width)
-contentW := $derived(selfW - 4)
+var value string
+var placeholder string
+var inputType string
+var maxlength int
+var readonly bool
+var strip bool
+viewOffset := signal.New(0)
+focused := signal.New(false)
+selfW := signal.New(0)
+contentW := signal.From(func() int { return selfW.Get() - 4 })
 
 func leftIndicator() string {
-    if viewOffset > 0 {
+    if viewOffset.Get() > 0 {
         return "<"
     }
     return " "
 }
 
 func rightIndicator() string {
-    if contentW > 0 && viewOffset + contentW < len(value) {
+    if contentW.Get() > 0 && viewOffset.Get() + contentW.Get() < len(value) {
         return ">"
     }
     return " "
 }
 
 func scrollbarVisible() bool {
-    return focused && len(value) > contentW && contentW > 0
+    return focused.Get() && len(value) > contentW.Get() && contentW.Get() > 0
 }
 </script>
 
@@ -55,7 +55,7 @@ func scrollbarVisible() bool {
     </box>
     <scrollbar
         contentSize={len(value)}
-        viewSize={contentW}
+        viewSize={contentW.Get()}
         bind:offset={viewOffset}
         visible={scrollbarVisible()}
     />
