@@ -5,8 +5,7 @@ func increment() {
     count = count + 1
 }
 
-fsdfasadfasdfakjfaksdjfq
-unc handleKey(evt input.Event) {
+func handleKey(evt input.Event) {
     if evt.Kind == input.EventSignal {
         app.Quit()
         return

@@ -18,8 +18,8 @@
 </style>
 
 <script>
-count := $state(0)
-doubled := $derived(count * 2)
+count := sumi.New(0)
+doubled := sumi.From(func() int { return count.Get() * 2 })
 
 func handleKey(evt input.Event) {
     if evt.Kind == input.EventSignal {
@@ -31,7 +31,7 @@ func handleKey(evt input.Event) {
         return
     }
     if evt.Kind == input.EventKey {
-        count = count + 1
+        count.Update(func(n int) int { return n + 1 })
     }
 }
 </script>
