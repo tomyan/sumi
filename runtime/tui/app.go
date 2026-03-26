@@ -30,6 +30,8 @@ type App struct {
 	TestWidth  int            // test viewport width (0 = use real terminal)
 	TestHeight int            // test viewport height (0 = use real terminal)
 	TestBuffer *render.Buffer // populated by doRender in test mode instead of writing to stdout
+
+	componentDispose func() // component cleanup, called by Cleanup()
 }
 
 // Quit signals the event loop to exit.
