@@ -222,10 +222,12 @@ func (a *App) dispatchEvent(evt input.Event) {
 		a.OnEvent(evt)
 		return
 	}
-	// Default: quit on signal or Ctrl+C/q when no handler is set.
+	// Default: quit on signal, Ctrl+C, q, or Enter when no handler is set.
 	if evt.Kind == input.EventSignal {
 		a.Quit()
 	} else if evt.Kind == input.EventKey && (evt.Rune == 'q' || (evt.Ctrl && evt.Rune == 'c')) {
+		a.Quit()
+	} else if evt.Kind == input.EventSpecial && evt.Special == input.KeyEnter {
 		a.Quit()
 	}
 }
