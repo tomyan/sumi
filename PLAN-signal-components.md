@@ -414,7 +414,7 @@ sumi/
 
 ## Iteration plan
 
-### Slice 1: Component type + root component generation
+### Slice 1: Component type + root component generation ✓
 - Add `tui.Component` struct with `Tree`, `Dispose`
 - Add `tui.Run(comp)` and `tui.TestApp(comp, w, h)`
 - New codegen generates `NewFoo(FooProps) *Component` from a simple `.sumi` file
@@ -422,46 +422,46 @@ sumi/
 - Convert counter example
 - **You see**: counter works as a signal-based component function
 
-### Slice 2: Props struct generation
+### Slice 2: Props ✓ struct generation
 - `var` declarations in script → `FooProps` struct fields
 - Template attributes → struct literal fields
 - Go type system validates at compile time
 - Convert examples with literal props
 - **You see**: typed props passed between components
 
-### Slice 3: Child component composition
+### Slice 3: Child ✓ component composition
 - `<Counter label="Clicks" />` generates `counter.NewCounter(counter.CounterProps{Label: "Clicks"})`
 - Child's tree embedded in parent's layout tree
 - Event bubbling across component boundaries
 - **You see**: parent-child composition works
 
-### Slice 4: Bound props (bind:value)
+### Slice 4: Bound ✓ props (bind:value)
 - `bind:value={name}` passes parent's `*Signal[T]` to child
 - Shared signal reference — no copying, no renaming
 - Convert text input example
 - **You see**: two-way binding works
 
-### Slice 5: Slots
+### Slice 5: Slots ✓
 - `<slot:name />` placeholders in component templates
 - `{slot name}...{/slot}` content in consumer templates
 - Default slot content with `<slot:default />` override access
 - Scoped slots with typed parameters
 - **You see**: flexible component composition with slots
 
-### Slice 6: Keyed reconciliation
+### Slice 6: Keyed ✓ reconciliation
 - `{for ... key=expr}` caches component instances by key
 - List reorder preserves component state
 - Key removal disposes component
 - New key creates fresh component
 - **You see**: efficient list rendering with stable identity
 
-### Slice 7: Snippets
+### Slice 7: Snippets ✓
 - `{snippet name(params)}...{/snippet}` defines template functions
 - `{render name(args)}` invokes them
 - Local to the component
 - **You see**: template reuse within components
 
-### Slice 8: Env signals and scroll
+### Slice 8: Env ✓ signals and scroll
 - `tui.Env[int]("width")` → framework-provided `*Signal[int]`
 - Scroll state as signals
 - **You see**: responsive layout and scrolling work
