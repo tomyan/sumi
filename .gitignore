@@ -3,6 +3,17 @@
 /counter
 /flexbox
 /responsive
+/demo
+/modal
+/panels
+/signal-counter
+/signal-counter2
+/signal-props
+/signal-sumi
+/signal-todo
+/textinput
+/todo
+/composition
 
 # Temp dirs from test-preview
 .sumi-preview-*
