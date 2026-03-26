@@ -6,7 +6,7 @@ A declarative TTY framework for Go. Inspired by Ink (terminal UI), Solid.js (run
 
 Sumi lets you build terminal user interfaces using `.sumi` single-file components that compile to Go source code. It combines:
 
-- **Solid-style runtime signals** — fine-grained reactivity via a Go-native API (`sumi.New()`, `sumi.From()`, `sumi.Effect()`), composable by default, no compiler magic for reactivity
+- **Solid-style runtime signals** — fine-grained reactivity via a Go-native API (`signal.New()`, `signal.From()`, `signal.Effect()`), composable by default, no compiler magic for reactivity
 - **Ink's idea** — declarative, component-based terminal UIs — but without React's virtual DOM or its rendering bugs
 - **A curated subset of CSS** — scoped styling, responsive design via media queries, adapted for the terminal
 - **Marketplace-ready** — reactive utilities and components are just Go packages, importable with `go get`
@@ -27,7 +27,7 @@ Each `.sumi` file is a single component with three optional sections:
 
 ```html
 <script>
-// Go-like code with reactive primitives
+// Valid Go code with reactive primitives
 </script>
 
 <style>
@@ -42,19 +42,21 @@ Each `.sumi` file is a single component with three optional sections:
 
 ### Script Block
 
-The `<script>` block contains component logic. It is **valid Go code** — no compiler transformation of the script is needed. Reactivity uses the `sumi.Signal` runtime library with a Solid-style API:
+The `<script>` block contains component logic. It is **valid Go code** — the compiler parses it with `go/ast`. Props are `var` declarations. State is created with `signal.New()`. No `$state`/`$prop`/`$derived` runes.
 
 ```html
 <script>
-name := sumi.New("world")
-upper := sumi.From(func() string { return strings.ToUpper(name.Get()) })
+var label string = "Count"
 
-sumi.Effect(func() {
-    log.Println("name changed:", name.Get())
+count := signal.New(0)
+doubled := signal.From(func() int { return count.Get() * 2 })
+
+signal.Effect(func() {
+    log.Println("count changed:", count.Get())
 })
 
-func reset() {
-    name.Set("world")
+func increment() {
+    count.Update(func(n int) int { return n + 1 })
 }
 </script>
 ```
@@ -63,9 +65,9 @@ func reset() {
 
 | Function | Purpose | Example |
 |----------|---------|---------|
-| `sumi.New[T](initial)` | Create reactive state | `count := sumi.New(0)` |
-| `sumi.From[T](fn)` | Derived value, auto-tracks dependencies | `doubled := sumi.From(func() int { return count.Get() * 2 })` |
-| `sumi.Effect(fn)` | Side effect, runs when dependencies change | `sumi.Effect(func() { ... })` |
+| `signal.New[T](initial)` | Create reactive state | `count := signal.New(0)` |
+| `signal.From[T](fn)` | Derived value, auto-tracks dependencies | `doubled := signal.From(func() int { return count.Get() * 2 })` |
+| `signal.Effect(fn)` | Side effect, runs when dependencies change | `signal.Effect(func() { ... })` |
 | `signal.Get()` | Read current value (tracks dependency) | `v := count.Get()` |
 | `signal.Set(v)` | Write new value (notifies dependents) | `count.Set(42)` |
 | `signal.Update(fn)` | Read-modify-write | `count.Update(func(n int) int { return n + 1 })` |
@@ -82,7 +84,7 @@ The script block is valid Go. This means:
 
 ```html
 <script>
-items := sumi.New([]string{"a", "b"})
+items := signal.New([]string{"a", "b"})
 
 func addItem(s string) {
     items.Update(func(xs []string) []string {
@@ -178,7 +180,7 @@ The `<style>` block uses CSS syntax, scoped to the component by default. It supp
 
 ### Template
 
-The template section is the component's markup. It uses HTML-like syntax with Go-flavored control flow.
+The template section is the component's markup. It uses HTML-like syntax with Go-flavored control flow. Control flow tags use `{if}`, `{for}`, `{slot}`, `{snippet}`, `{render}` — no `#` prefix.
 
 **Expressions:**
 ```html
@@ -186,9 +188,10 @@ The template section is the component's markup. It uses HTML-like syntax with Go
 <text>Count: {count + 1}</text>
 ```
 
-**Conditionals:**
+Expressions auto-unwrap signals in template context. Conditions and clauses in `{if}`/`{for}` are written with explicit `.Get()` by the user:
+
 ```html
-{if count > 0}
+{if count.Get() > 0}
     <text>Count: {count}</text>
 {else}
     <text>No count yet</text>
@@ -197,68 +200,135 @@ The template section is the component's markup. It uses HTML-like syntax with Go
 
 **Loops:**
 ```html
-{for i, item := range items}
+{for i, item := range items.Get()}
     <text>{i}: {item}</text>
 {/for}
+```
+
+**Snippets and render:**
+```html
+{snippet renderItem(item string)}
+    <text>{item}</text>
+{/snippet}
+
+{render renderItem("hello")}
 ```
 
 **Built-in elements:**
 - `<text>` — styled text content
 - `<box>` — container with layout, border, padding
 
-Higher-level components (inputs, lists, tables, etc.) will be built as a separate component library on top of these primitives.
+Higher-level components (inputs, lists, tables, etc.) are built as a separate component library on top of these primitives.
+
+### Slots
+
+Components define slot placeholders with `<slot:name />`. Consumers fill them with `{slot name}...{/slot}`. A slot can access its default content via `<slot:default />`.
+
+```html
+<!-- card.sumi -->
+<box border="single">
+    <slot:header />
+    <box padding="1">
+        <slot:content />
+    </box>
+</box>
+```
+
+```html
+<!-- usage -->
+<card>
+    {slot header}
+        <text bold="true">My Title</text>
+    {/slot}
+    {slot content}
+        <text>Body text here</text>
+    {/slot}
+</card>
+```
+
+Scoped slots support typed parameters for passing data from the component back to the consumer.
 
 ## Component Model
 
-Each `.sumi` file is one component. Components compose naturally:
+Each `.sumi` file is one component, living in its own package. The filename determines the component name. The compiler generates a `NewFoo(FooProps) *tui.Component` constructor and a `FooProps` struct.
+
+**Props** are `var` declarations in the script block:
 
 ```html
-<!-- counter.sumi -->
+<!-- counter.sumi (in package counter/) -->
 <script>
-label := sumi.New("Count")
-count := sumi.New(0)
+var label string = "Count"
 
-func increment() {
-    count.Update(func(n int) int { return n + 1 })
+count := signal.New(0)
+
+func handleKey(evt input.Event) {
+    if evt.Kind == input.EventKey {
+        count.Update(func(n int) int { return n + 1 })
+    }
 }
 </script>
 
 <style>
-.label {
-    bold: true;
-    color: cyan;
-}
+.label { color: cyan; bold: true; }
+.count { color: yellow; bold: true; }
 </style>
 
-<box direction="row" gap={1}>
+<box onkey="handleKey">
     <text class="label">{label}:</text>
-    <text>{count}</text>
+    <text class="count">{count}</text>
 </box>
 ```
 
-```html
-<!-- app.sumi -->
-<script>
-</script>
+This generates:
 
-<box direction="column">
-    <counter label="Clicks" />
-    <counter label="Score" />
-</box>
+```go
+package counter
+
+type CounterProps struct {
+    Label string
+}
+
+func NewCounter(props CounterProps) *tui.Component {
+    label := props.Label
+    if label == "" {
+        label = "Count"
+    }
+    count := signal.New(0)
+    // ... layout tree, effects, event handlers ...
+    return &tui.Component{
+        Tree:    root,
+        OnEvent: handleKey,
+    }
+}
 ```
 
-**Props** are signals passed from parent to child. When a parent passes `label="Clicks"`, the compiler creates a signal and passes it to the child component. The child receives it as a `*Signal[string]`.
+**Using components from Go:**
 
-**Env values** are framework-provided signals:
+```go
+package main
+
+import (
+    "github.com/example/myapp/counter"
+    "github.com/tomyan/sumi/runtime/tui"
+)
+
+func main() {
+    tui.Run(counter.NewCounter(counter.CounterProps{Label: "Clicks"}))
+}
+```
+
+**Env values** are framework-provided reactive signals for terminal state:
+
 ```html
 <script>
-width := sumi.Env[int]("width")
-height := sumi.Env[int]("height")
-theme := sumi.Env[string]("theme")
+width := tui.Env[int]("width")
+height := tui.Env[int]("height")
 </script>
 ```
 
-These are reactive — components re-render when the terminal resizes or theme changes.
+These are reactive — components re-render when the terminal resizes or other environment values change. The framework updates them on `SIGWINCH`.
+
+**bind:value** passes signal references from parent to child, allowing two-way data binding between components.
 
 ### Composable Reactive Utilities
 
@@ -290,7 +360,7 @@ A `.sumi` component uses it like any Go import:
 
 ```html
 <script>
-items := sumi.New([]string{"a", "b", "c", "d", "e"})
+items := signal.New([]string{"a", "b", "c", "d", "e"})
 pager := pagination.New(items, 2)
 </script>
 
@@ -305,19 +375,19 @@ No special sumi compiler support needed. The pagination package is a standard Go
 
 ## Layout Engine
 
-Pure Go implementation of flexbox-like layout. Built iteratively, starting with:
+Pure Go implementation of flexbox-like layout:
 
 1. Vertical and horizontal stacking (direction: row | column)
 2. Width and height (fixed, percentage, auto)
 3. Padding and margin
-4. Border
+4. Border (single, double, rounded, heavy)
 5. Justify and align
 6. Gap
 7. Flex grow/shrink
 8. Wrap
 9. Min/max sizing
 
-The layout engine maps the component tree to a grid of terminal cells, assigning each component a screen region (row, col, width, height).
+The layout engine maps the component tree to a grid of terminal cells, assigning each component a screen region (row, col, width, height). Available width/height are threaded through `layoutNode(input, availW, availH)`.
 
 ## Rendering
 
@@ -355,7 +425,7 @@ Components can switch between modes. Both modes use the same cell-addressed rend
 Terminal resize (`SIGWINCH`) triggers:
 
 1. Query new terminal dimensions
-2. Update `$env(width)` and `$env(height)` (reactive — triggers dependent components)
+2. Update `tui.Env[int]("width")` and `tui.Env[int]("height")` (reactive — triggers dependent components)
 3. Re-run layout for the full tree with new dimensions
 4. CSS media queries re-evaluate
 5. Diff and render changed cells
@@ -379,10 +449,10 @@ For each `foo.sumi`, it produces `foo_sumi.go` in the same package. Intended to 
 
 The compiler:
 1. Parses the `.sumi` file into script, style, and template sections
-2. Passes the script block through as valid Go (identifying signal variables for template sugar)
+2. Parses the script block with `go/ast` — identifies `var` declarations (props), `signal.New()` calls (state), and function declarations
 3. Parses the style block as terminal CSS
-4. Parses the template as a component tree
-5. Generates Go code that wires up the layout, rendering, and signal subscriptions
+4. Parses the template as a component tree (including `{if}`, `{for}`, `{slot}`, `{snippet}`, `{render}`)
+5. Generates Go code that wires up the layout tree, signal effects, and event handlers
 
 The compiler does **not** transform the script block's Go code. Its only role with signals is identifying which variables are `*signal.Signal` or `*signal.Computed` so that template expressions like `{count}` can generate `count.Get()`. All reactive dependency tracking happens at runtime via the signals library.
 
@@ -391,186 +461,102 @@ The compiler does **not** transform the script block's Go code. Its only role wi
 ```
 sumi/
   cmd/sumi/          # compiler CLI
+    preview/          # interactive preview tool (bridge, editors, rendering)
   runtime/            # runtime library used by generated code
     signal/           # reactive signals runtime (New, From, Effect)
     layout/           # flexbox layout engine
     render/           # cell buffer, terminal output, screen modes
     css/              # terminal CSS parser and resolver
-    tui/              # app lifecycle, event loop, terminal setup
-    input/            # keyboard/mouse input parsing
+    tui/              # app lifecycle, event loop, terminal setup, Env signals
+    input/            # keyboard/mouse input parsing, event encoding
     term/             # terminal size, capabilities
     vt100/            # VT100 terminal emulator (for embedded editors)
+    pty/              # PTY wrapper (macOS /dev/ptmx)
+    sumitest/         # control protocol for scenario testing (serve mode)
   parser/             # .sumi file parser
-    script/           # script block parser (valid Go, extracts signal info)
+    script/           # script block parser (valid Go via go/ast, extracts signal info)
     style/            # style block parser (terminal CSS)
-    template/         # template parser (markup + control flow)
+    template/         # template parser (markup + control flow + slots + snippets)
   codegen/            # Go code generator
   components/         # first-party component library
+    sumi/             # built-in components (TextInput, SplitPanel, Button)
+  examples/           # example applications
 ```
 
 The `runtime/signal/` package is independently usable — it has no dependency on the rest of sumi. Third-party packages can import it directly to build reactive utilities.
 
-## Iteration Plan
+## What Has Been Built
 
-Thin slices, each delivering something you can see working in the terminal.
+The following capabilities are implemented and working:
 
-### Iteration 1: Static text rendering
-- Compiler parses a minimal `.sumi` file with just a `<text>` element (no script, no style)
-- Generates Go code that renders static text to alternate screen
-- `sumi generate` CLI exists and produces a working `.go` file
-- **You see:** text on screen, program exits cleanly
+**Core rendering and layout:**
+- Static text rendering with alternate screen mode
+- Box layout with direction (row/column), padding, border (single/double/rounded/heavy), fixed size
+- Flexbox: justify, align, gap, flex-grow, percentage widths
+- Text wrapping within boxes
+- Border-color on box-drawing characters
+- Border-title (tmux-style) and border-collapse (shared borders with junction characters)
+- Min-width constraints
+- Display:none (removes from layout, nil placeholders in children)
 
-### Iteration 2: Box layout basics
-- `<box>` element with `direction="column"` (vertical stacking)
-- Fixed `width`, `height`, `padding` attributes
-- Border rendering (`border="single"`)
-- **You see:** bordered boxes with text inside, stacked vertically
+**Reactivity and state:**
+- Signal runtime: `signal.New()`, `signal.From()`, `signal.Effect()` with automatic dependency tracking
+- Build-once tree with expression node extraction — tree built once, `sync()` patches mutable fields before re-layout
+- Derived declarations (`signal.From`)
+- Template auto-unwrapping of signals in expressions
 
-### Iteration 3: Reactive state
-- `<script>` block parsing (valid Go with `sumi.New()` signals)
-- Template compiler auto-unwraps signals in expressions (`{count}` → `count.Get()`)
-- `runtime/signal/` package: `New`, `Get`, `Set`, `Update`
-- Keyboard input (basic — read stdin)
-- **You see:** a counter you can increment with a keypress, updating in place
+**Styling:**
+- CSS-like scoped style blocks with class and element selectors
+- Colors (ANSI names), bold/dim/italic/underline/strikethrough/inverse
+- Responsive design: `tui.Env[int]("width")`/`tui.Env[int]("height")` signals, `SIGWINCH` resize handling, dynamic title
 
-### Iteration 4: Style block
-- `<style>` block parsing (basic terminal CSS)
-- Class selectors, colors, bold/dim/italic
-- Scoped to component
-- **You see:** styled, colored text and borders
+**Components:**
+- Single-file `.sumi` components with script/style/template sections
+- Props as `var` declarations, generating `FooProps` struct and `NewFoo(FooProps) *tui.Component` constructor
+- Component composition via Go imports
+- `bind:value` for two-way data binding (passes signal references)
+- Callback props (function-typed props)
+- Slots (`<slot:name />` placeholders, `{slot name}...{/slot}` definitions)
+- Snippets (`{snippet name(params)}...{/snippet}`) and render (`{render name(args)}`)
 
-### Iteration 5: Components
-- Multiple `.sumi` files composing together
-- Props as signals passed between parent and child
-- **You see:** parent-child component composition working
+**Template control flow:**
+- `{if}`/`{else}`/`{/if}` conditionals
+- `{for}`/`{/for}` loops with keyed diffing (`key=expr` syntax, identity-based diff matching)
+- IIFE codegen pattern for dynamic children
 
-### Iteration 6: Flexbox layout
-- `direction: row`, `justify`, `align`, `gap`
-- Percentage-based widths
-- Flex grow/shrink
-- **You see:** components laid out in flexible rows and columns
+**Positioning and layering:**
+- `position: relative`, `absolute`, `fixed`, `sticky`
+- `z-index` with z-aware paint order and hit testing
+- Top/left/right/bottom offsets
 
-### Iteration 7: Responsive design
-- `sumi.Env[int]("width")`, `sumi.Env[int]("height")` reactive environment signals
-- CSS `@media` queries for terminal dimensions
-- `SIGWINCH` handling, re-layout on resize
-- **You see:** layout adapting as you resize the terminal
+**Scrolling and overflow:**
+- `overflow: scroll`, `auto`, `hidden` with clipping
+- Scroll state tracking, keyboard and mouse scroll input
+- Animated scrollbar with click, ease-out-cubic, drag
+- `$scroll` for scroll state access
 
-### Iteration 8: Derived state and effects
-- `signal.From()` for computed values
-- `signal.Effect()` for side effects
-- Fine-grained dependency tracking — only recompute what changed
-- **You see:** computed values updating automatically, side effects running
+**Input and interaction:**
+- Keyboard input: basic keys, extended special keys (Enter, Escape, Backspace, Delete, Ctrl+key)
+- Mouse events: click, scroll wheel, hit-test against layout tree
+- Focus management: Tab/Shift-Tab cycling, `stopPropagation()`, focus dispatch
+- Cursor rendering primitive: CursorCol/CursorRow, FindCursor, ShowCursor/HideCursor
+- Event-aware handlers with parameterized closures
+- `app.Quit()` via quit channel, signal dispatch as EventSignal
 
-### Iteration 9: Inline rendering mode
-- Render within terminal scrollback (not alternate screen)
-- Cursor-addressed updates in inline region
-- Resize handling in inline mode
-- **You see:** sumi UI rendered inline, other terminal output above/below
+**Built-in components:**
+- TextInput: bind:value, cursor, view offset, password/maxlength/readonly, text selection, copy/cut (OSC 52 clipboard), double-click word select, bracketed paste, strip on blur, scroll indicator, animated scrollbar
+- SplitPanel: side-by-side panels with border-collapse
+- Button: simple labeled button
 
-### Iteration 10: Color depth and theme
-- `@media (color-depth: ...)` queries
-- `@media (theme: dark | light)` detection
-- Graceful color degradation
-- **You see:** UI adapting to terminal capabilities and theme
+**Animation:**
+- `EventFrame` + `app.RequestFrame()` for frame-based animation
+- Ease-out-cubic timing for scrollbar animation
 
-### Iteration 11: Layering and positioning
-- `z-index` property — controls paint order for overlapping elements
-- `position: absolute` — position relative to nearest positioned ancestor (or screen)
-- `position: relative` — establishes positioning context for children
-- `top`, `left`, `right`, `bottom` — offset from positioned parent
-- Layout engine maintains a layer stack, paints back-to-front by z-index
-- **You see:** modals, overlays, dropdowns rendered on top of other content
-
-### Iteration 12: Compositing and transparency
-- `opacity: 0.5` — semi-transparent elements (blends with content below)
-- `background: transparent` — no background, content below shows through
-- `background: dim` — dims content below (like a modal backdrop)
-- Compositing model: when rendering a cell, blend foreground element's style with the cell already in the buffer
-  - Transparent background → keep the character and bg color from below, apply fg styling on top
-  - Dim → keep character from below, apply dim attribute
-  - Opacity → interpolate colors between layers (truecolor), or use dim/bold approximation (ANSI)
-- `backdrop-filter: dim | blur` — apply effect to content behind the element (dim is practical for terminals, blur is approximated)
-- **You see:** modal dialogs with dimmed backgrounds, overlapping panels where content shows through
-
-### Iteration 13: Overflow and scrolling
-- `overflow: hidden` — clip content at box boundary
-- `overflow: scroll` — scrollable region with keyboard navigation
-- `overflow: auto` — scroll only when content exceeds bounds
-- `overflow-x` / `overflow-y` — independent axis control
-- Custom scrollbar rendering with box-drawing characters (`▓░▒█`)
-- `text-overflow: ellipsis` — truncate text with `…`
-- **You see:** scrollable lists, log panels, content that clips cleanly at borders
-
-### Iteration 14: Text layout
-- `text-align: left | center | right` — horizontal text alignment within box
-- `white-space: nowrap | pre-wrap` — text wrapping control
-- `word-break` — break long words at box edge
-- `line-height` — extra rows between text lines
-- `text-transform: uppercase | lowercase | capitalize`
-- `letter-spacing` — extra cells between characters
-- `text-indent` — indent first line
-- **You see:** properly aligned, wrapped, and formatted text
-
-### Iteration 15: Transitions and animations
-- `transition: property duration timing-function` — animate property changes
-  - Color transitions: fade between colors (truecolor interpolation, 256-color stepping)
-  - Position transitions: slide elements across the screen
-  - Size transitions: grow/shrink boxes
-- `transition-timing-function: linear | ease | ease-in | ease-out | ease-in-out`
-- `transition-delay`
-- `@keyframes name { from { ... } to { ... } }` — multi-step animations
-- `animation: name duration timing-function iteration-count direction`
-  - Loading spinners: `⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏`
-  - Pulsing highlights, blinking cursors
-  - Marquee text
-  - `animation-iteration-count: infinite`
-  - `animation-play-state: paused | running`
-- Timer/tick system in the event loop for frame-based updates
-- **You see:** smooth color changes, sliding panels, loading spinners
-
-### Iteration 16: Grid layout
-- `display: grid` on box elements
-- `grid-template-columns` / `grid-template-rows` — define cell-based tracks
-- `grid-gap` — cell spacing between tracks
-- `grid-area` / named grid areas — place elements in named regions
-- `grid-auto-flow: row | column` — auto-placement direction
-- **You see:** dashboard-style layouts with named grid regions
-
-### Iteration 17: Advanced selectors and cascade
-- `.parent .child` — descendant combinator
-- `.parent > .child` — direct child combinator
-- `.a + .b` — adjacent sibling
-- `:first-child` / `:last-child` / `:nth-child()`
-- `:not()` — negation pseudo-class
-- `[attr]` / `[attr=value]` — attribute selectors
-- `:disabled` / `:enabled` — input state pseudo-classes
-- `inherit` / `initial` / `revert` — cascade keywords
-- `all: unset` — reset all properties
-- **You see:** precise styling without extra class names
-
-### Iteration 18: Custom properties and functions
-- `--custom-prop: value` — CSS custom properties (variables)
-- `var(--prop)` / `var(--prop, fallback)` — reference with optional fallback
-- `calc(100% - 10)` — cell arithmetic in property values
-- `min()` / `max()` / `clamp()` — size clamping functions
-- Custom properties cascade through component tree
-- **You see:** themeable components with shared design tokens
-
-### Iteration 19: Container queries
-- `container-type: size | inline-size` — mark element as query container
-- `@container (width > N)` — style based on container size, not terminal size
-- Enables truly reusable components that adapt to their available space
-- **You see:** components that rearrange based on their parent, not the terminal
-
-### Iteration 20: Mouse and interaction
-- Mouse event support (click, hover, scroll wheel)
-- `:hover` pseudo-class — highlight on mouse over
-- `cursor` property — terminal cursor style (`block | bar | underline` via `\x1b[N q`)
-- `pointer-events: none` — pass-through for overlays
-- `user-select: none` — prevent text selection in interactive regions
-- Click handlers: `onclick="handler"` attribute
-- **You see:** clickable buttons, hover highlights, mouse-aware interfaces
+**Developer tooling:**
+- `sumi generate` CLI with `go generate` integration
+- Interactive preview tool with VT100 parser, PTY wrapper, embedded nvim editors
+- Scenario testing: serve mode with Unix socket control protocol (info/step/quit)
+- File watcher for hot-reload during development
 
 ## CSS Feature Roadmap
 
@@ -584,10 +570,12 @@ Comprehensive mapping of CSS features to terminal UI, organized by priority tier
 | `padding` | Cell insets | Done |
 | `margin` | Cell spacing between elements | Planned |
 | `border` | Box-drawing characters | Done |
-| `border-style` | `single \| double \| rounded \| heavy \| none` | Partial (single) |
-| `border-color` | ANSI color on border chars | Planned |
+| `border-style` | `single \| double \| rounded \| heavy \| none` | Done |
+| `border-color` | ANSI color on border chars | Done |
+| `border-title` | Tmux-style title in border | Done |
+| `border-collapse` | Shared borders with junction characters | Done |
 | `width` / `height` | Fixed cell counts | Done |
-| `min-width` / `min-height` | Minimum cell counts | Planned |
+| `min-width` / `min-height` | Minimum cell counts | Done (min-width) |
 | `max-width` / `max-height` | Maximum cell counts | Planned |
 | `box-sizing` | Always `border-box` | Done |
 
@@ -595,32 +583,32 @@ Comprehensive mapping of CSS features to terminal UI, organized by priority tier
 | Property | Terminal Mapping | Status |
 |---|---|---|
 | `direction: column` | Vertical stacking | Done |
-| `direction: row` | Horizontal stacking | Planned (iter 6) |
-| `justify-content` | `start \| end \| center \| space-between \| space-around \| space-evenly` | Planned (iter 6) |
-| `align-items` | `start \| end \| center \| stretch` | Planned (iter 6) |
+| `direction: row` | Horizontal stacking | Done |
+| `justify-content` | `start \| end \| center \| space-between \| space-around \| space-evenly` | Done |
+| `align-items` | `start \| end \| center \| stretch` | Done |
 | `align-self` | Per-child override | Planned |
-| `gap` | Cell spacing between children | Planned (iter 6) |
-| `flex-grow` / `flex-shrink` | Distribute extra space | Planned (iter 6) |
+| `gap` | Cell spacing between children | Done |
+| `flex-grow` / `flex-shrink` | Distribute extra space | Done (flex-grow) |
 | `flex-basis` | Initial size before grow/shrink | Planned |
 | `flex-wrap` | Wrap children to next line | Planned |
 
 **Display & Visibility:**
 | Property | Terminal Mapping | Status |
 |---|---|---|
-| `display: none` | Remove from layout entirely | Planned |
+| `display: none` | Remove from layout entirely | Done |
 | `display: flex` | Default for `<box>` | Implicit |
-| `display: grid` | Grid layout mode | Planned (iter 16) |
+| `display: grid` | Grid layout mode | Planned |
 | `display: contents` | Unwrap container | Planned |
 | `visibility: hidden` | Takes space but renders blank | Planned |
 
 **Overflow:**
 | Property | Terminal Mapping | Status |
 |---|---|---|
-| `overflow: hidden` | Clip at box boundary | Planned (iter 13) |
-| `overflow: scroll` | Scrollable region | Planned (iter 13) |
-| `overflow: auto` | Scroll only if needed | Planned (iter 13) |
+| `overflow: hidden` | Clip at box boundary | Done |
+| `overflow: scroll` | Scrollable region | Done |
+| `overflow: auto` | Scroll only if needed | Done |
 | `overflow-x` / `overflow-y` | Per-axis control | Planned |
-| `text-overflow: ellipsis` | Truncate with `…` | Planned (iter 13) |
+| `text-overflow: ellipsis` | Truncate with `...` | Planned |
 
 **Text:**
 | Property | Terminal Mapping | Status |
@@ -628,21 +616,21 @@ Comprehensive mapping of CSS features to terminal UI, organized by priority tier
 | `color` | Foreground ANSI color | Done |
 | `background` | Background ANSI color | Done |
 | `bold` / `dim` / `italic` / `underline` / `strikethrough` / `inverse` | SGR attributes | Done |
-| `text-align` | `left \| center \| right` within box | Planned (iter 14) |
-| `white-space` | `nowrap \| pre-wrap` | Planned (iter 14) |
+| `text-align` | `left \| center \| right` within box | Planned |
+| `white-space` | `nowrap \| pre-wrap` | Done (text wrapping) |
 
 **Pseudo-classes:**
 | Selector | Terminal Mapping | Status |
 |---|---|---|
-| `:focus` | Currently focused element | Planned |
+| `:focus` | Currently focused element | Done |
 | `:active` | Being activated / pressed | Planned |
 
 **Custom properties:**
 | Feature | Terminal Mapping | Status |
 |---|---|---|
-| `--custom: value` | CSS variables | Planned (iter 18) |
-| `var(--custom)` | Variable reference | Planned (iter 18) |
-| `var(--custom, fallback)` | With fallback | Planned (iter 18) |
+| `--custom: value` | CSS variables | Planned |
+| `var(--custom)` | Variable reference | Planned |
+| `var(--custom, fallback)` | With fallback | Planned |
 
 ### Tier 2 — Power features (real framework feel)
 
@@ -651,67 +639,69 @@ Comprehensive mapping of CSS features to terminal UI, organized by priority tier
 |---|---|---|
 | 8 basic colors | `black red green yellow blue magenta cyan white` | Done |
 | 16 colors (bright) | `bright-red`, `bright-cyan`, etc. | Planned |
-| 256-color | `color-196` syntax | Planned (iter 10) |
-| Truecolor (24-bit) | `#ff0088` hex values | Planned (iter 10) |
-| `opacity` | Layer blending | Planned (iter 12) |
-| `background: transparent` | Show content below | Planned (iter 12) |
+| 256-color | `color-196` syntax | Planned |
+| Truecolor (24-bit) | `#ff0088` hex values | Planned |
+| `opacity` | Layer blending | Planned |
+| `background: transparent` | Show content below | Planned |
 
 **Positioning:**
 | Property | Terminal Mapping | Status |
 |---|---|---|
-| `position: relative` | Positioning context | Planned (iter 11) |
-| `position: absolute` | Position relative to ancestor | Planned (iter 11) |
-| `position: fixed` | Position relative to screen | Planned |
-| `position: sticky` | Stick to edge on scroll | Planned |
-| `top` / `right` / `bottom` / `left` | Cell offsets | Planned (iter 11) |
-| `z-index` | Paint order / layer stack | Planned (iter 11) |
+| `position: relative` | Positioning context | Done |
+| `position: absolute` | Position relative to ancestor | Done |
+| `position: fixed` | Position relative to screen | Done |
+| `position: sticky` | Stick to edge on scroll | Done |
+| `top` / `right` / `bottom` / `left` | Cell offsets | Done |
+| `z-index` | Paint order / layer stack | Done |
 
 **Transitions & Animations:**
 | Property | Terminal Mapping | Status |
 |---|---|---|
-| `transition` | Animate property changes over time | Planned (iter 15) |
-| `transition-duration` | Timing in ms | Planned (iter 15) |
-| `transition-timing-function` | `ease \| linear \| ease-in-out` | Planned (iter 15) |
-| `@keyframes` | Multi-step animations | Planned (iter 15) |
-| `animation` | Shorthand for keyframe animations | Planned (iter 15) |
-| `animation-iteration-count` | `infinite` for loops | Planned (iter 15) |
-| `animation-play-state` | `paused \| running` | Planned (iter 15) |
+| `transition` | Animate property changes over time | Planned |
+| `transition-duration` | Timing in ms | Planned |
+| `transition-timing-function` | `ease \| linear \| ease-in-out` | Planned |
+| `@keyframes` | Multi-step animations | Planned |
+| `animation` | Shorthand for keyframe animations | Planned |
+| `animation-iteration-count` | `infinite` for loops | Planned |
+| `animation-play-state` | `paused \| running` | Planned |
+
+Note: Frame-based animation is supported via `app.RequestFrame()` and `EventFrame` dispatch at the runtime level, but CSS transition/animation syntax is not yet implemented.
 
 **Grid:**
 | Property | Terminal Mapping | Status |
 |---|---|---|
-| `grid-template-columns` / `rows` | Cell-based tracks | Planned (iter 16) |
-| `grid-gap` | Cell spacing between tracks | Planned (iter 16) |
-| `grid-area` | Named grid regions | Planned (iter 16) |
-| `grid-auto-flow` | Auto-placement | Planned (iter 16) |
+| `grid-template-columns` / `rows` | Cell-based tracks | Planned |
+| `grid-gap` | Cell spacing between tracks | Planned |
+| `grid-area` | Named grid regions | Planned |
+| `grid-auto-flow` | Auto-placement | Planned |
 
 **Selectors:**
 | Selector | Terminal Mapping | Status |
 |---|---|---|
 | `.class` | Class selector | Done |
 | `element` | Element type selector | Done |
-| `.parent .child` | Descendant combinator | Planned (iter 17) |
-| `.parent > .child` | Direct child | Planned (iter 17) |
-| `:first-child` / `:last-child` | Positional | Planned (iter 17) |
-| `:nth-child()` | Nth element | Planned (iter 17) |
-| `:not()` | Negation | Planned (iter 17) |
+| `.parent .child` | Descendant combinator | Planned |
+| `.parent > .child` | Direct child | Planned |
+| `:first-child` / `:last-child` | Positional | Planned |
+| `:nth-child()` | Nth element | Planned |
+| `:not()` | Negation | Planned |
 
 **Media & Container Queries:**
 | Feature | Terminal Mapping | Status |
 |---|---|---|
-| `@media (width > N)` | Terminal width | Planned (iter 7) |
-| `@media (height > N)` | Terminal height | Planned (iter 7) |
-| `@media (color-depth)` | Capability detection | Planned (iter 10) |
-| `@media (theme)` | Dark/light detection | Planned (iter 10) |
-| `@container` | Component-relative queries | Planned (iter 19) |
+| `@media (width > N)` | Terminal width | Done |
+| `@media (height > N)` | Terminal height | Done |
+| `@media (color-depth)` | Capability detection | Planned |
+| `@media (theme)` | Dark/light detection | Planned |
+| `@container` | Component-relative queries | Planned |
 | `@media (prefers-reduced-motion)` | Skip animations | Planned |
 
 **Functions:**
 | Function | Terminal Mapping | Status |
 |---|---|---|
-| `calc()` | `calc(100% - 10)` → cell math | Planned (iter 18) |
-| `min()` / `max()` | Size bounds | Planned (iter 18) |
-| `clamp()` | `clamp(10, 50%, 40)` | Planned (iter 18) |
+| `calc()` | `calc(100% - 10)` → cell math | Planned |
+| `min()` / `max()` | Size bounds | Planned |
+| `clamp()` | `clamp(10, 50%, 40)` | Planned |
 
 ### Tier 3 — Polish
 
@@ -735,23 +725,26 @@ Comprehensive mapping of CSS features to terminal UI, organized by priority tier
 **Interaction:**
 | Feature | Terminal Mapping | Status |
 |---|---|---|
-| `:hover` | Mouse hover detection | Planned (iter 20) |
-| `cursor` | Terminal cursor style | Planned (iter 20) |
-| `pointer-events` | Mouse event handling | Planned (iter 20) |
+| Mouse events | Click, scroll, hit-test | Done |
+| `:hover` | Mouse hover detection | Planned |
+| `cursor` | Terminal cursor style | Done (CursorCol/CursorRow rendering) |
+| `pointer-events` | Mouse event handling | Planned |
 | `user-select` | Copyable text regions | Planned |
+| Focus management | Tab cycling, stopPropagation | Done |
+| Scrollbar | Custom animated scrollbar | Done |
 
 **Compositing:**
 | Property | Terminal Mapping | Status |
 |---|---|---|
-| `backdrop-filter: dim` | Dim content behind element | Planned (iter 12) |
+| `backdrop-filter: dim` | Dim content behind element | Planned |
 | `clip-path` | Rectangular clipping | Planned |
 | `contain` | Layout/paint containment (perf) | Planned |
 
 **Scrolling refinements:**
 | Property | Terminal Mapping | Status |
 |---|---|---|
-| `scroll-behavior: smooth` | Animated scrolling | Planned |
-| Scrollbar styling | Custom track/thumb characters | Planned |
+| `scroll-behavior: smooth` | Animated scrolling | Done (ease-out-cubic) |
+| Scrollbar styling | Custom track/thumb characters | Done |
 
 ### Explicitly excluded
 
