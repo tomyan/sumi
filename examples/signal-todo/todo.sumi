@@ -1,0 +1,51 @@
+<script>
+items := signal.New([]string{"Buy groceries", "Write tests", "Review PR"})
+selected := signal.New(0)
+
+func handleKey(evt input.Event) {
+    if evt.Kind == input.EventSignal { app.Quit(); return }
+    if evt.Rune == 'q' || (evt.Ctrl && evt.Rune == 'c') { app.Quit(); return }
+    if evt.Kind == input.EventSpecial && evt.Special == input.KeyDown {
+        n := len(items.Get())
+        if n > 0 {
+            selected.Set((selected.Get() + 1) % n)
+        }
+    }
+    if evt.Kind == input.EventSpecial && evt.Special == input.KeyUp {
+        n := len(items.Get())
+        if n > 0 {
+            selected.Set((selected.Get() - 1 + n) % n)
+        }
+    }
+    if evt.Rune == 'd' {
+        idx := selected.Get()
+        its := items.Get()
+        if idx < len(its) {
+            items.Set(append(its[:idx], its[idx+1:]...))
+            if selected.Get() >= len(items.Get()) && selected.Get() > 0 {
+                selected.Set(selected.Get() - 1)
+            }
+        }
+    }
+}
+</script>
+
+<style>
+.container { border: single; border-color: cyan; padding: 1 2; }
+.title { color: green; bold: true; }
+.hint { dim: true; }
+.selected { color: cyan; bold: true; }
+.item { }
+</style>
+
+<box class="container" onkey="handleKey">
+    <text class="title">Todo List</text>
+    <text class="hint">↑↓ navigate, d delete, q quit</text>
+    {for i, item := range items.Get()}
+        {if i == selected.Get()}
+            <text class="selected">▶ {item}</text>
+        {else}
+            <text class="item">  {item}</text>
+        {/if}
+    {/for}
+</box>

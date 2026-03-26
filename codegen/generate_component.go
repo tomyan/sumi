@@ -170,11 +170,15 @@ func writeConstructor(buf *bytes.Buffer, name string, info *script.ScriptInfo, d
 	buf.Write(ext.declBuf.Bytes())
 	buf.Write(treeBuf.Bytes())
 
-	// Signal effect for syncing expression nodes.
-	if len(ext.nodes) > 0 {
+	// Signal effect for syncing expression nodes and dynamic children.
+	hasSync := len(ext.nodes) > 0 || ext.syncBuf.Len() > 0
+	if hasSync {
 		buf.WriteString("\n\tsignal.Effect(func() {\n")
 		for _, n := range ext.nodes {
 			fmt.Fprintf(buf, "\t\t%s.Content = %s\n", n.varName, n.syncExpr)
+		}
+		if ext.syncBuf.Len() > 0 {
+			buf.Write(ext.syncBuf.Bytes())
 		}
 		buf.WriteString("\t})\n")
 	}
