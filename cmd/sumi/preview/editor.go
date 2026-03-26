@@ -12,6 +12,19 @@ import (
 	"github.com/tomyan/sumi/runtime/vt100"
 )
 
+// findSumiInitLua locates the editors/nvim/init.lua file.
+func findSumiInitLua() string {
+	pluginDir := findSumiPluginDir()
+	if pluginDir == "" {
+		return ""
+	}
+	initPath := filepath.Join(pluginDir, "init.lua")
+	if _, err := os.Stat(initPath); err == nil {
+		return initPath
+	}
+	return ""
+}
+
 // findSumiPluginDir locates the editors/nvim directory relative to the binary or working directory.
 func findSumiPluginDir() string {
 	// Try relative to working directory (development).
@@ -51,15 +64,18 @@ type Editor struct {
 // NewEditor starts nvim editing filePath on a PTY of the given size.
 // The optional wake callback is called after each PTY read to trigger re-render.
 func NewEditor(filePath string, rows, cols int, wake func()) (*Editor, error) {
-	args := []string{
-		"--noplugin", "-u", "NONE",
-		"+set updatetime=300", "+set autowriteall",
-		"+syntax on", "+filetype on",
-		"+set termguicolors", "+colorscheme default",
-	}
-	// Add sumi syntax highlighting if the plugin directory exists.
-	if pluginDir := findSumiPluginDir(); pluginDir != "" {
-		args = append(args, "+set runtimepath+="+pluginDir)
+	args := []string{"--noplugin"}
+	// Use our minimal init.lua if available (enables tree-sitter + sumi syntax).
+	// Falls back to -u NONE with manual setup.
+	if initPath := findSumiInitLua(); initPath != "" {
+		args = append(args, "-u", initPath)
+	} else {
+		args = append(args, "-u", "NONE",
+			"+set termguicolors", "+colorscheme default",
+			"+syntax on", "+filetype on")
+		if pluginDir := findSumiPluginDir(); pluginDir != "" {
+			args = append(args, "+set runtimepath+="+pluginDir)
+		}
 	}
 	args = append(args, filePath)
 	cmd := exec.Command("nvim", args...)
