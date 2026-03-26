@@ -81,6 +81,23 @@ type SlotDefNode struct {
 
 func (s *SlotDefNode) nodeType() string { return "slotdef" }
 
+// SnippetNode represents a {snippet name(params)}...{/snippet} template function.
+type SnippetNode struct {
+	Name     string // function name
+	Params   string // "(name string)" parameter list
+	Children []Node // template body
+}
+
+func (s *SnippetNode) nodeType() string { return "snippet" }
+
+// RenderNode represents a {render name(args)} invocation of a snippet.
+type RenderNode struct {
+	Name string // snippet name
+	Args string // argument expression
+}
+
+func (r *RenderNode) nodeType() string { return "render" }
+
 // IfNode represents an {if condition}...{else}...{/if} block.
 type IfNode struct {
 	Condition string // raw Go expression: "count > 0"

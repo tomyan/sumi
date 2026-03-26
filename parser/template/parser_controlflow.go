@@ -19,6 +19,10 @@ func (p *parser) parseControlFlow() (Node, error) {
 		return p.parseForNode()
 	case "slot":
 		return p.parseSlotDefBlock()
+	case "snippet":
+		return p.parseSnippetBlock()
+	case "render":
+		return p.parseRenderCall()
 	default:
 		return nil, fmt.Errorf("unexpected control flow keyword %q at position %d", keyword, p.pos)
 	}
