@@ -24,10 +24,14 @@
 </style>
 
 <script>
-showModal := $state(false)
+showModal := signal.New(false)
 
-func handleKey() {
-    showModal = !showModal
+func handleKey(evt input.Event) {
+    if evt.Kind == input.EventSignal { app.Quit(); return }
+    if evt.Rune == 'q' || (evt.Ctrl && evt.Rune == 'c') { app.Quit(); return }
+    if evt.Kind == input.EventKey {
+        showModal.Set(!showModal.Get())
+    }
 }
 </script>
 
@@ -36,7 +40,7 @@ func handleKey() {
     <text class="hint">Press any key to toggle modal, q to quit</text>
     <text>Background content here</text>
 </box>
-{if showModal}
+{if showModal.Get()}
     <box class="modal" position="fixed" top="5" left="10" width="40" height="8" z-index="2">
         <text class="modal-title">Modal Dialog</text>
         <text>This is a fixed-position modal overlay.</text>

@@ -1,22 +1,31 @@
 package main
 
 import (
-	"os"
-
 	"github.com/tomyan/sumi/runtime/input"
 	"github.com/tomyan/sumi/runtime/layout"
 	"github.com/tomyan/sumi/runtime/render"
-	"github.com/tomyan/sumi/runtime/term"
+	"github.com/tomyan/sumi/runtime/signal"
 	"github.com/tomyan/sumi/runtime/tui"
 )
 
-func Run() {
-	showModal := false
+type ModalProps struct {
+}
 
-	var app *tui.App
-	handleKey := func() {
-		showModal = !showModal
-		app.Dirty = true
+func NewModal(props ModalProps) *tui.Component {
+	showModal := signal.New(false)
+
+	handleKey := func(evt input.Event) {
+		if evt.Kind == input.EventSignal {
+			tui.Quit()
+			return
+		}
+		if evt.Rune == 'q' || (evt.Ctrl && evt.Rune == 'c') {
+			tui.Quit()
+			return
+		}
+		if evt.Kind == input.EventKey {
+			showModal.Set(!showModal.Get())
+		}
 	}
 
 	root := &layout.Input{
@@ -25,7 +34,8 @@ func Run() {
 		CursorCol: -1,
 		CursorRow: -1,
 	}
-	sync := func() {
+
+	signal.Effect(func() {
 		root.Children = func() []*layout.Input {
 			var cs []*layout.Input
 			cs = append(cs, &layout.Input{
@@ -57,7 +67,7 @@ func Run() {
 					},
 				},
 			})
-			if showModal {
+			if showModal.Get() {
 				cs = append(cs, &layout.Input{
 					Kind:        layout.KindBox,
 					FixedWidth:  40,
@@ -100,43 +110,10 @@ func Run() {
 			}
 			return cs
 		}()
-	}
+	})
 
-	var prevTree *layout.Box
-	var prevW, prevH int
-	doRender := func() {
-		sync()
-		termW, termH := term.GetSize(int(os.Stdin.Fd()))
-		tree := layout.Layout(root, termW, termH)
-		changes, scrollChanged := layout.DiffTrees(prevTree, tree)
-		if prevTree == nil || termW != prevW || termH != prevH || scrollChanged || tree.HasOverlap || prevTree.HasOverlap {
-			buf := render.NewBuffer(termW, termH)
-			layout.RenderTree(buf, tree, nil)
-			render.ClearScreen(os.Stdout)
-			buf.RenderTo(os.Stdout)
-		} else {
-			layout.ApplyChanges(os.Stdout, changes)
-		}
-		prevTree = tree
-		prevW = termW
-		prevH = termH
+	return &tui.Component{
+		Tree:    root,
+		OnEvent: handleKey,
 	}
-
-	app = &tui.App{
-		OnRender: doRender,
-		OnEvent: func(evt input.Event) {
-			if evt.Kind == input.EventKey && evt.Ctrl && evt.Rune == 'c' {
-				app.Quit()
-				return
-			}
-			if evt.Kind == input.EventSignal {
-				app.Quit()
-				return
-			}
-			if evt.Kind == input.EventKey {
-				handleKey()
-			}
-		},
-	}
-	app.Run()
 }

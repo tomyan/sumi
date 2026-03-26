@@ -1,7 +1,9 @@
 package main
 
-//go:generate sumi generate .
+import "github.com/tomyan/sumi/runtime/tui"
+
+//go:generate go run ../../cmd/sumi generate .
 
 func main() {
-	Run()
+	tui.Run(NewCounter(CounterProps{}))
 }

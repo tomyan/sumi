@@ -2,23 +2,36 @@ package main
 
 import (
 	"fmt"
-	"os"
 
 	"github.com/tomyan/sumi/runtime/input"
 	"github.com/tomyan/sumi/runtime/layout"
 	"github.com/tomyan/sumi/runtime/render"
-	"github.com/tomyan/sumi/runtime/term"
+	"github.com/tomyan/sumi/runtime/signal"
 	"github.com/tomyan/sumi/runtime/tui"
 )
 
-func Run() {
-	items := []string{"Buy groceries", "Write tests", "Review PR"}
-	selected := 0
+type TodoProps struct {
+}
 
-	var app *tui.App
-	handleKey := func() {
-		selected = (selected + 1) % len(items)
-		app.Dirty = true
+func NewTodo(props TodoProps) *tui.Component {
+	items := signal.New([]string{"Buy groceries", "Write tests", "Review PR"})
+	selected := signal.New(0)
+
+	handleKey := func(evt input.Event) {
+		if evt.Kind == input.EventSignal {
+			tui.Quit()
+			return
+		}
+		if evt.Rune == 'q' || (evt.Ctrl && evt.Rune == 'c') {
+			tui.Quit()
+			return
+		}
+		if evt.Kind == input.EventKey {
+			n := len(items.Get())
+			if n > 0 {
+				selected.Set((selected.Get() + 1) % n)
+			}
+		}
 	}
 
 	box0 := &layout.Input{
@@ -37,7 +50,8 @@ func Run() {
 			box0,
 		},
 	}
-	sync := func() {
+
+	signal.Effect(func() {
 		box0.Children = func() []*layout.Input {
 			var cs []*layout.Input
 			cs = append(cs, &layout.Input{
@@ -56,8 +70,8 @@ func Run() {
 					Dim: true,
 				},
 			})
-			for i, item := range items {
-				if i == selected {
+			for i, item := range items.Get() {
+				if i == selected.Get() {
 					cs = append(cs, &layout.Input{
 						Kind:    layout.KindText,
 						Content: fmt.Sprintf("> %v", item),
@@ -76,43 +90,10 @@ func Run() {
 			}
 			return cs
 		}()
-	}
+	})
 
-	var prevTree *layout.Box
-	var prevW, prevH int
-	doRender := func() {
-		sync()
-		termW, termH := term.GetSize(int(os.Stdin.Fd()))
-		tree := layout.Layout(root, termW, termH)
-		changes, scrollChanged := layout.DiffTrees(prevTree, tree)
-		if prevTree == nil || termW != prevW || termH != prevH || scrollChanged || tree.HasOverlap || prevTree.HasOverlap {
-			buf := render.NewBuffer(termW, termH)
-			layout.RenderTree(buf, tree, nil)
-			render.ClearScreen(os.Stdout)
-			buf.RenderTo(os.Stdout)
-		} else {
-			layout.ApplyChanges(os.Stdout, changes)
-		}
-		prevTree = tree
-		prevW = termW
-		prevH = termH
+	return &tui.Component{
+		Tree:    root,
+		OnEvent: handleKey,
 	}
-
-	app = &tui.App{
-		OnRender: doRender,
-		OnEvent: func(evt input.Event) {
-			if evt.Kind == input.EventKey && evt.Ctrl && evt.Rune == 'c' {
-				app.Quit()
-				return
-			}
-			if evt.Kind == input.EventSignal {
-				app.Quit()
-				return
-			}
-			if evt.Kind == input.EventKey {
-				handleKey()
-			}
-		},
-	}
-	app.Run()
 }

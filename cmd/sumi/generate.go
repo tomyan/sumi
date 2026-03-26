@@ -291,7 +291,8 @@ func generateComponent(comp *parsedComponent, registry map[string]*codegen.Compo
 // isSignalScript returns true if the script source uses signal.New or signal.From.
 func isSignalScript(src string) bool {
 	return strings.Contains(src, "signal.New") || strings.Contains(src, "signal.From") ||
-		strings.Contains(src, "sumi.New") || strings.Contains(src, "sumi.From")
+		strings.Contains(src, "sumi.New") || strings.Contains(src, "sumi.From") ||
+		strings.Contains(src, "tui.Env")
 }
 
 // generateSignalComponent generates code using the new component codegen.

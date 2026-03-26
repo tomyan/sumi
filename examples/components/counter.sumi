@@ -1,9 +1,12 @@
 <script>
-label := $prop("Count")
-count := $state(0)
+var label string = "Count"
 
-func increment() {
-    count = count + 1
+count := signal.New(0)
+
+func increment(evt input.Event) {
+    if evt.Kind == input.EventKey {
+        count.Update(func(n int) int { return n + 1 })
+    }
 }
 </script>
 

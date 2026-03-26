@@ -1,5 +1,5 @@
 <script>
-count := sumi.New(0)
+count := signal.New(0)
 
 func handleKey(evt input.Event) {
     if evt.Kind == input.EventSignal { app.Quit(); return }

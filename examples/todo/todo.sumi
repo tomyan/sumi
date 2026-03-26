@@ -18,19 +18,26 @@
 </style>
 
 <script>
-items := $state([]string{"Buy groceries", "Write tests", "Review PR"})
-selected := $state(0)
+items := signal.New([]string{"Buy groceries", "Write tests", "Review PR"})
+selected := signal.New(0)
 
-func handleKey() {
-    selected = (selected + 1) % len(items)
+func handleKey(evt input.Event) {
+    if evt.Kind == input.EventSignal { app.Quit(); return }
+    if evt.Rune == 'q' || (evt.Ctrl && evt.Rune == 'c') { app.Quit(); return }
+    if evt.Kind == input.EventKey {
+        n := len(items.Get())
+        if n > 0 {
+            selected.Set((selected.Get() + 1) % n)
+        }
+    }
 }
 </script>
 
 <box class="container" onkey="handleKey">
     <text class="title">Todo List</text>
     <text class="hint">Press any key to cycle, q to quit</text>
-    {for i, item := range items key=item}
-        {if i == selected}
+    {for i, item := range items.Get() key=item}
+        {if i == selected.Get()}
             <text class="selected">> {item}</text>
         {else}
             <text>  {item}</text>

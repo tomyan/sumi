@@ -1,6 +1,11 @@
 <script>
-width := $env(width)
-height := $env(height)
+width := tui.Env[int]("width")
+height := tui.Env[int]("height")
+
+func handleKey(evt input.Event) {
+    if evt.Kind == input.EventSignal { app.Quit(); return }
+    if evt.Rune == 'q' || (evt.Ctrl && evt.Rune == 'c') { app.Quit(); return }
+}
 </script>
 
 <style>
@@ -11,9 +16,7 @@ root { overflow: auto; min-width: 48; }
 .hint { color: cyan; dim: true; }
 </style>
 
-<title>Sumi {width}x{height}</title>
-
-<box class="header">
+<box class="header" onkey="handleKey">
     <text class="title">Sumi Responsive Demo</text>
     <text class="dims">Terminal: {width}x{height}</text>
     <text class="hint">Resize your terminal to see this update! Press q to quit.</text>

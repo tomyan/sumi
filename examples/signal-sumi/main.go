@@ -1,7 +1,9 @@
 package main
 
+import "github.com/tomyan/sumi/runtime/tui"
+
 //go:generate go run ../../cmd/sumi generate .
 
 func main() {
-	Run()
+	tui.Run(NewApp(AppProps{}))
 }
