@@ -66,13 +66,15 @@ func (p *parser) parseElement() (Node, error) {
 	if tagName == "" {
 		return nil, fmt.Errorf("empty tag name at position %d", p.pos)
 	}
-	switch tagName {
-	case "text":
+	switch {
+	case tagName == "text":
 		return p.parseTextTag()
-	case "box":
+	case tagName == "box":
 		return p.parseBoxElement()
-	case "title":
+	case tagName == "title":
 		return p.parseTitleElement()
+	case strings.HasPrefix(tagName, "slot:"):
+		return p.parseSlotElement(tagName)
 	default:
 		return p.parseComponentElement(tagName)
 	}

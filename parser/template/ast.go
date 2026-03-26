@@ -62,6 +62,25 @@ type TitleElement struct {
 
 func (t *TitleElement) nodeType() string { return "title" }
 
+// SlotElement represents a <slot:name /> placeholder in a component template.
+// Default contains fallback content rendered when the consumer doesn't provide content.
+type SlotElement struct {
+	Name       string            // slot name: "header", "children", etc.
+	Attributes map[string]string // scoped slot params passed to consumer
+	Default    []Node            // default content (nil if self-closing)
+}
+
+func (s *SlotElement) nodeType() string { return "slot" }
+
+// SlotDefNode represents a {slot name}...{/slot} content definition from a consumer.
+type SlotDefNode struct {
+	Name     string // slot name to fill: "header", "children"
+	Params   string // scoped slot params: "(item Item, i int)" or ""
+	Children []Node // content to render in the slot
+}
+
+func (s *SlotDefNode) nodeType() string { return "slotdef" }
+
 // IfNode represents an {if condition}...{else}...{/if} block.
 type IfNode struct {
 	Condition string // raw Go expression: "count > 0"
