@@ -266,7 +266,6 @@ func writeExtractedCursorBox(treeBuf *bytes.Buffer, n *template.BoxElement, styl
 	fmt.Fprintf(&ext.declBuf, "\t}\n")
 
 	// Write cursor sync entries
-	ext.hasCursor = true
 	writeCursorSync(&ext.syncBuf, name, n.Attributes, focusIdx)
 
 	// Write reference in tree

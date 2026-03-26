@@ -47,14 +47,3 @@ func isIdentChar(b byte) bool {
 	return (b >= 'a' && b <= 'z') || (b >= 'A' && b <= 'Z') || (b >= '0' && b <= '9') || b == '_'
 }
 
-// namespaceLineVars replaces all state variable references in a line using the stateNameMap.
-func namespaceLineVars(line string, stateNameMap map[string]string) string {
-	if len(stateNameMap) == 0 {
-		return line
-	}
-	result := line
-	for oldName, newName := range stateNameMap {
-		result = replaceIdentifier(result, oldName, newName)
-	}
-	return result
-}

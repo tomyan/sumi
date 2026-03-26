@@ -162,7 +162,7 @@ func writeConstructor(buf *bytes.Buffer, name string, info *script.ScriptInfo, d
 	writeChildComponentInstances(buf, doc, opts.Components)
 
 	// Build layout tree with signal-aware expressions.
-	ext := newExtractionCtx("")
+	ext := newExtractionCtx()
 	ext.signals = info.Signals
 	ext.componentChildren = opts.Components
 	var treeBuf bytes.Buffer

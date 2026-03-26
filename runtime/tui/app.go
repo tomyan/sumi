@@ -178,7 +178,7 @@ func (a *App) Run() {
 // eventCh delivers input events, resizeCh delivers resize signals,
 // sigCh delivers OS signals (dispatched as EventSignal events).
 func (a *App) runLoop(eventCh <-chan input.Event, resizeCh <-chan struct{}, sigCh <-chan os.Signal) {
-	// Initial render with bounded convergence (e.g., $self measurement needs a second pass)
+	// Initial render with bounded convergence (e.g., self-measurement signals may need a second pass)
 	a.Dirty = true
 	a.converge()
 
