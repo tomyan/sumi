@@ -98,7 +98,12 @@ func writeTextInput(buf *bytes.Buffer, n *template.TextElement, stylesheet *styl
 // The declaration goes to declBuf; a variable reference goes to the tree buf.
 func writeExtractedTextNode(treeBuf, declBuf *bytes.Buffer, n *template.TextElement, props map[string]string, tabs string, ext *extractionCtx) {
 	name := ext.nextNodeName()
-	expr := contentExpr(n.Parts)
+	var expr string
+	if len(ext.signals) > 0 {
+		expr = contentExprSignals(n.Parts, ext.signals)
+	} else {
+		expr = contentExpr(n.Parts)
+	}
 
 	// Write declaration to declBuf (at function scope indent)
 	fmt.Fprintf(declBuf, "\t%s := &layout.Input{\n", name)

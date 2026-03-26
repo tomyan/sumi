@@ -55,7 +55,7 @@ func Generate(doc *template.Document, sc *script.Script, stylesheet *style.Style
 	// Emit CreateApp()
 	buf.WriteString("func CreateApp(w, h int) *tui.App {\n")
 	if usesSignals(sc) {
-		writeSignalBody(&buf, doc, sc, stylesheet) // TODO: CreateApp variant
+		writeSignalCreateAppBody(&buf, doc, sc, stylesheet)
 	} else if reactive {
 		writeReactiveCreateAppBody(&buf, doc, sc, stylesheet, instances)
 	} else {

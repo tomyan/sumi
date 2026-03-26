@@ -24,6 +24,7 @@ type extractionCtx struct {
 	hasCursor      bool   // true when any box has dynamic cursor attributes
 	extractRootBox bool   // true when the first box should be extracted (for $self wiring)
 	focusablesSeen int    // counts focusable boxes seen during tree walk (for cursor-focus correlation)
+	signals        map[string]bool // signal variable names (for auto-unwrapping in expressions)
 	declBuf        bytes.Buffer
 	preSyncBuf     bytes.Buffer // code that must run before node content updates (e.g., focused state)
 	syncBuf        bytes.Buffer // multi-line sync code (for dynamic children IIFE)

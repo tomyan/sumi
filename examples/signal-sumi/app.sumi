@@ -1,0 +1,19 @@
+<script>
+count := sumi.New(0)
+
+func handleKey(evt input.Event) {
+    if evt.Kind == input.EventSignal { app.Quit(); return }
+    if evt.Ctrl && evt.Rune == 'c' { app.Quit(); return }
+    if evt.Rune == 'q' { app.Quit(); return }
+    if evt.Rune == '+' || evt.Rune == '=' {
+        count.Update(func(n int) int { return n + 1 })
+    }
+    if evt.Rune == '-' {
+        count.Update(func(n int) int { return n - 1 })
+    }
+}
+</script>
+
+<box>
+    <text>Count: {count}</text>
+</box>

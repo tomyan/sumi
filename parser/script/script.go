@@ -96,6 +96,20 @@ func (p *parser) parse() (*Script, error) {
 			break
 		}
 
+		if sigDecl, ok, err := p.tryParseSignalDecl(); err != nil {
+			return nil, err
+		} else if ok {
+			s.SignalDecls = append(s.SignalDecls, sigDecl)
+			continue
+		}
+
+		if compDecl, ok, err := p.tryParseComputedDecl(); err != nil {
+			return nil, err
+		} else if ok {
+			s.ComputedDecls = append(s.ComputedDecls, compDecl)
+			continue
+		}
+
 		if decl, ok, err := p.tryParseStateDecl(); err != nil {
 			return nil, err
 		} else if ok {
