@@ -6,32 +6,78 @@ if exists("b:current_syntax")
 endif
 
 " ============================================================================
-" Script block — embed full Go syntax
+" Script block — Go with full manual highlighting
+" (syntax include @goSyntax conflicts with overlays; manual gives full control)
 " ============================================================================
-
-syntax include @goSyntax syntax/go.vim
-unlet! b:current_syntax
 
 syntax region sumiScript
       \ matchgroup=sumiSectionTag
       \ start="<script>"
       \ end="</script>"
-      \ contains=@goSyntax,sumiSignalNew,sumiSignalFrom,sumiSignalEffect,sumiSignalBatch,sumiSignalMethod,sumiTuiCall,sumiAppCall
+      \ contains=sumiGoKeyword,sumiGoType,sumiGoBuiltin,sumiGoBool,sumiGoNumber,sumiGoString,sumiGoRawString,sumiGoRune,sumiGoOperator,sumiGoLineComment,sumiGoBlockComment,sumiGoVarDecl,sumiGoFuncCall,sumiGoPkgCall,sumiGoExported,sumiSignalNew,sumiSignalFrom,sumiSignalEffect,sumiSignalBatch,sumiSignalMethod,sumiTuiCall,sumiAppCall
       \ keepend
 
-" Signal creation — most important sumi-specific calls
-syntax match sumiSignalNew    /signal\.New\>/     containedin=sumiScript
-syntax match sumiSignalFrom   /signal\.From\>/    containedin=sumiScript
-syntax match sumiSignalEffect /signal\.Effect\>/  containedin=sumiScript
-syntax match sumiSignalBatch  /signal\.Batch\>/   containedin=sumiScript
+" --- Go keywords ---
+syntax keyword sumiGoKeyword func return if else for range switch case default break continue
+      \ go defer select chan map struct interface type var const package import
+      \ contained containedin=sumiScript
 
-" Signal methods on instances
-syntax match sumiSignalMethod /\.\(Get\|Set\|Update\)(/ containedin=sumiScript contains=sumiMethodParen
-syntax match sumiMethodParen  /(/ contained
+" --- Sumi signal API ---
+syntax match sumiSignalNew    /signal\.New\>/     contained containedin=sumiScript
+syntax match sumiSignalFrom   /signal\.From\>/    contained containedin=sumiScript
+syntax match sumiSignalEffect /signal\.Effect\>/  contained containedin=sumiScript
+syntax match sumiSignalBatch  /signal\.Batch\>/   contained containedin=sumiScript
+syntax match sumiSignalMethod /\.\(Get\|Set\|Update\)\ze(/ contained containedin=sumiScript
 
 " Framework calls
-syntax match sumiTuiCall /tui\.\(Env\|Run\|Quit\|TestApp\|RunWithOptions\)\>/ containedin=sumiScript
-syntax match sumiAppCall /app\.\(Quit\|Dirty\|Wake\)\>/ containedin=sumiScript
+syntax match sumiTuiCall /tui\.\(Env\|Run\|Quit\|TestApp\|RunWithOptions\)\>/ contained containedin=sumiScript
+syntax match sumiAppCall /app\.\(Quit\|Dirty\|Wake\)\>/ contained containedin=sumiScript
+
+" --- Go types ---
+syntax keyword sumiGoType int int8 int16 int32 int64 uint uint8 uint16 uint32 uint64
+      \ float32 float64 string bool byte rune error any
+      \ Event Signal Computed Component
+      \ contained containedin=sumiScript
+
+" --- Go builtins ---
+syntax match sumiGoBuiltin /\<\(len\|cap\|append\|make\|new\|close\|delete\|copy\|panic\|recover\|print\|println\|fmt\.Sprintf\|fmt\.Fprintf\|fmt\.Println\)\>/ contained containedin=sumiScript
+
+" --- Package.Exported calls ---
+syntax match sumiGoPkgCall  /\<[a-z]\+\.[A-Z][A-Za-z0-9_]*/ contained containedin=sumiScript contains=sumiGoPkgName,sumiGoPkgDot,sumiGoExported
+syntax match sumiGoPkgName  /\<[a-z]\+\ze\./ contained
+syntax match sumiGoPkgDot   /\./ contained
+syntax match sumiGoExported /\.[A-Z][A-Za-z0-9_]*/ contained contains=sumiGoPkgDot
+
+" --- Function/method calls ---
+syntax match sumiGoFuncCall /\<[a-z_][A-Za-z0-9_]*\ze(/ contained containedin=sumiScript
+
+" --- Boolean and nil ---
+syntax keyword sumiGoBool true false nil contained containedin=sumiScript
+
+" --- Numbers ---
+syntax match sumiGoNumber /\<\d\+\>/ contained containedin=sumiScript
+syntax match sumiGoNumber /\<\d\+\.\d*\>/ contained containedin=sumiScript
+syntax match sumiGoNumber /\<0x[0-9a-fA-F]\+\>/ contained containedin=sumiScript
+
+" --- Strings ---
+syntax region sumiGoString    matchgroup=sumiGoStringDelim start=/"/ skip=/\\"/ end=/"/ contained containedin=sumiScript oneline
+syntax region sumiGoRawString matchgroup=sumiGoStringDelim start=/`/ end=/`/ contained containedin=sumiScript
+
+" --- Rune literals ---
+syntax match sumiGoRune /'[^']*'/ contained containedin=sumiScript
+
+" --- Operators ---
+syntax match sumiGoOperator /:=\|<-\|==\|!=\|<=\|>=\|&&\|||\|!\|%/ contained containedin=sumiScript
+
+" --- Comments ---
+syntax match  sumiGoLineComment  /\/\/.*$/ contained containedin=sumiScript
+syntax region sumiGoBlockComment start="/\*" end="\*/" contained containedin=sumiScript
+
+" --- Variable declarations (left of :=) ---
+syntax match sumiGoVarDecl /\<[a-z_][A-Za-z0-9_]*\ze\s*:=/ contained containedin=sumiScript
+
+" --- var prop declarations ---
+syntax match sumiGoVarKeyword /\<var\>/ contained containedin=sumiScript
 
 " ============================================================================
 " Style block — terminal CSS with manual patterns
@@ -175,6 +221,26 @@ highlight default sumiCtrlSlot    guifg=#7dcfff gui=bold ctermfg=117 cterm=bold
 highlight default sumiCtrlSnippet guifg=#7dcfff gui=bold ctermfg=117 cterm=bold
 highlight default sumiCtrlRender  guifg=#7dcfff gui=bold ctermfg=117 cterm=bold
 highlight default sumiCtrlEnd    guifg=#bb9af7 ctermfg=141
+
+" Go in script block
+highlight default sumiGoKeyword      guifg=#bb9af7 gui=bold ctermfg=141 cterm=bold
+highlight default sumiGoVarKeyword   guifg=#bb9af7 gui=bold ctermfg=141 cterm=bold
+highlight default sumiGoType         guifg=#2ac3de gui=italic ctermfg=44 cterm=italic
+highlight default sumiGoBuiltin      guifg=#e0af68 ctermfg=179
+highlight default sumiGoPkgName      guifg=#7aa2f7 ctermfg=111
+highlight default sumiGoPkgDot       guifg=#545c7e ctermfg=60
+highlight default sumiGoExported     guifg=#2ac3de ctermfg=44
+highlight default sumiGoFuncCall     guifg=#7aa2f7 ctermfg=111
+highlight default sumiGoBool         guifg=#ff9e64 ctermfg=215
+highlight default sumiGoNumber       guifg=#ff9e64 ctermfg=215
+highlight default sumiGoString       guifg=#9ece6a ctermfg=149
+highlight default sumiGoStringDelim  guifg=#73daca ctermfg=79
+highlight default sumiGoRawString    guifg=#9ece6a ctermfg=149
+highlight default sumiGoRune         guifg=#9ece6a ctermfg=149
+highlight default sumiGoOperator     guifg=#89ddff ctermfg=117
+highlight default sumiGoLineComment  guifg=#565f89 gui=italic ctermfg=60 cterm=italic
+highlight default sumiGoBlockComment guifg=#565f89 gui=italic ctermfg=60 cterm=italic
+highlight default sumiGoVarDecl      guifg=#c0caf5 gui=bold ctermfg=153 cterm=bold
 
 " CSS in style block
 highlight default sumiCSSSelector guifg=#73daca gui=bold ctermfg=79 cterm=bold
