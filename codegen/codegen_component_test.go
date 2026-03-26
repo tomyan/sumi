@@ -80,6 +80,68 @@ func handleKey(evt input.Event) {
 	assertValidGo(t, out)
 }
 
+func TestGenerateComponentWithChildComponent(t *testing.T) {
+	// Given — a parent that uses a child component
+	scriptSrc := `func handleKey(evt input.Event) {
+    if evt.Kind == input.EventSignal { app.Quit(); return }
+    if evt.Rune == 'q' { app.Quit(); return }
+}`
+	doc := &template.Document{
+		Children: []template.Node{
+			&template.BoxElement{
+				Attributes: map[string]string{"onkey": "handleKey"},
+				Children: []template.Node{
+					&template.TextElement{
+						Parts: []template.Part{
+							&template.StringPart{Value: "Parent App"},
+						},
+					},
+					// Component usage: <Greeting name="Sumi" />
+					&template.ComponentElement{
+						Name:       "Greeting",
+						Attributes: map[string]string{"name": "Sumi"},
+					},
+				},
+			},
+		},
+	}
+
+	// When
+	out, err := GenerateComponent(doc, scriptSrc, nil, ComponentOptions{
+		PackageName:   "main",
+		ComponentName: "App",
+		Components: map[string]ComponentChildInfo{
+			"Greeting": {
+				ImportPath: "github.com/example/greeting",
+				Package:    "greeting",
+			},
+		},
+	})
+
+	// Then
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	src := string(out)
+
+	// Should instantiate child component
+	if !strings.Contains(src, "greeting.NewGreeting") {
+		t.Errorf("expected greeting.NewGreeting call:\n%s", src)
+	}
+
+	// Should pass props
+	if !strings.Contains(src, "greeting.GreetingProps") {
+		t.Errorf("expected GreetingProps struct:\n%s", src)
+	}
+
+	// Should embed child tree
+	if !strings.Contains(src, ".Tree") {
+		t.Errorf("expected .Tree reference:\n%s", src)
+	}
+
+	assertValidGo(t, out)
+}
+
 func TestGenerateComponentWithProps(t *testing.T) {
 	// Given — a component with props
 	scriptSrc := `var label string = "Count"

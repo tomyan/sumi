@@ -55,7 +55,11 @@ func writeInputNode(buf *bytes.Buffer, node template.Node, stylesheet *style.Sty
 	case *template.BoxElement:
 		writeBoxInput(buf, n, stylesheet, indent, tracker, ext)
 	case *template.ComponentElement:
-		writeComponentElement(buf, indent, tracker, ext)
+		if ext != nil && len(ext.componentChildren) > 0 {
+			writeSignalComponentRef(buf, n, indent, ext)
+		} else {
+			writeComponentElement(buf, indent, tracker, ext)
+		}
 	}
 }
 
@@ -67,6 +71,14 @@ func writeComponentElement(buf *bytes.Buffer, indent int, tracker *instanceTrack
 	} else if inst != nil {
 		writeComponentRefByName(buf, indent, inst.VarName)
 	}
+}
+
+// writeSignalComponentRef writes a child component's .Tree as a layout tree entry.
+func writeSignalComponentRef(buf *bytes.Buffer, comp *template.ComponentElement, indent int, ext *extractionCtx) {
+	tabs := indentStr(indent)
+	// Variable name matches what writeChildComponentInstances generates.
+	varName := strings.ToLower(comp.Name[:1]) + comp.Name[1:] + "0"
+	fmt.Fprintf(buf, "%s%s.Tree,\n", tabs, varName)
 }
 
 // writeTextInput writes a layout.Input literal for a text element.

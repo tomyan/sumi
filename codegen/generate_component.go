@@ -15,6 +15,13 @@ import (
 type ComponentOptions struct {
 	PackageName   string
 	ComponentName string // e.g. "Counter" → generates NewCounter, CounterProps
+	Components    map[string]ComponentChildInfo // child components available in templates
+}
+
+// ComponentChildInfo describes a child component available for use in templates.
+type ComponentChildInfo struct {
+	ImportPath string // e.g. "github.com/example/greeting"
+	Package    string // e.g. "greeting"
 }
 
 // GenerateComponent produces Go source for a signal-based component.
@@ -30,19 +37,19 @@ func GenerateComponent(doc *template.Document, scriptSrc string, stylesheet *sty
 	fmt.Fprintf(&buf, "package %s\n\n", opts.PackageName)
 
 	// Imports.
-	writeComponentImports(&buf, info, doc)
+	writeComponentImports(&buf, info, doc, opts.Components)
 
 	// Props struct (always generated, even if empty).
 	writePropsStruct(&buf, opts.ComponentName, info.Props)
 
 	// Constructor function.
-	writeConstructor(&buf, opts.ComponentName, info, doc, scriptSrc, stylesheet)
+	writeConstructor(&buf, opts.ComponentName, info, doc, scriptSrc, stylesheet, opts)
 
 	return format.Source(buf.Bytes())
 }
 
 // writeComponentImports emits import declarations for a component.
-func writeComponentImports(buf *bytes.Buffer, info *script.ScriptInfo, doc *template.Document) {
+func writeComponentImports(buf *bytes.Buffer, info *script.ScriptInfo, doc *template.Document, components map[string]ComponentChildInfo) {
 	buf.WriteString("import (\n")
 	if docHasExprs(doc) {
 		buf.WriteString("\t\"fmt\"\n")
@@ -60,11 +67,24 @@ func writeComponentImports(buf *bytes.Buffer, info *script.ScriptInfo, doc *temp
 		buf.WriteString("\t\"github.com/tomyan/sumi/runtime/input\"\n")
 	}
 	buf.WriteString("\t\"github.com/tomyan/sumi/runtime/layout\"\n")
-	buf.WriteString("\t\"github.com/tomyan/sumi/runtime/render\"\n")
+	if hasStyles(doc) {
+		buf.WriteString("\t\"github.com/tomyan/sumi/runtime/render\"\n")
+	}
 	if len(info.Signals) > 0 {
 		buf.WriteString("\t\"github.com/tomyan/sumi/runtime/signal\"\n")
 	}
 	buf.WriteString("\t\"github.com/tomyan/sumi/runtime/tui\"\n")
+	// Child component imports.
+	if len(components) > 0 {
+		buf.WriteString("\n")
+		imported := make(map[string]bool)
+		for _, ci := range components {
+			if !imported[ci.ImportPath] {
+				fmt.Fprintf(buf, "\t\"%s\"\n", ci.ImportPath)
+				imported[ci.ImportPath] = true
+			}
+		}
+	}
 	buf.WriteString(")\n\n")
 }
 
@@ -79,7 +99,7 @@ func writePropsStruct(buf *bytes.Buffer, name string, props []script.PropInfo) {
 }
 
 // writeConstructor emits the NewFoo function.
-func writeConstructor(buf *bytes.Buffer, name string, info *script.ScriptInfo, doc *template.Document, scriptSrc string, stylesheet *style.Stylesheet) {
+func writeConstructor(buf *bytes.Buffer, name string, info *script.ScriptInfo, doc *template.Document, scriptSrc string, stylesheet *style.Stylesheet, opts ComponentOptions) {
 	if len(info.Props) > 0 {
 		fmt.Fprintf(buf, "func New%s(props %sProps) *tui.Component {\n", name, name)
 		// Extract props into local variables.
@@ -107,9 +127,13 @@ func writeConstructor(buf *bytes.Buffer, name string, info *script.ScriptInfo, d
 		writeComponentFunc(buf, f)
 	}
 
+	// Instantiate child components before building the tree.
+	writeChildComponentInstances(buf, doc, opts.Components)
+
 	// Build layout tree with signal-aware expressions.
 	ext := newExtractionCtx("")
 	ext.signals = info.Signals
+	ext.componentChildren = opts.Components
 	var treeBuf bytes.Buffer
 	writeLayoutTree(&treeBuf, doc, stylesheet, false, nil, ext)
 	buf.Write(ext.declBuf.Bytes())
@@ -146,6 +170,41 @@ func writeScriptDeclarations(buf *bytes.Buffer, info *script.ScriptInfo, src str
 		fmt.Fprintf(buf, "\t%s\n", trimmed)
 	}
 	buf.WriteString("\n")
+}
+
+// writeChildComponentInstances generates constructor calls for child components used in templates.
+func writeChildComponentInstances(buf *bytes.Buffer, doc *template.Document, components map[string]ComponentChildInfo) {
+	if len(components) == 0 {
+		return
+	}
+	idx := 0
+	walkComponentElements(doc.Children, func(comp *template.ComponentElement) {
+		info, ok := components[comp.Name]
+		if !ok {
+			return
+		}
+		varName := fmt.Sprintf("%s%d", strings.ToLower(comp.Name[:1])+comp.Name[1:], idx)
+		fmt.Fprintf(buf, "\t%s := %s.New%s(%s.%sProps{\n", varName, info.Package, comp.Name, info.Package, comp.Name)
+		for k, v := range comp.Attributes {
+			fieldName := exportedName(k)
+			fmt.Fprintf(buf, "\t\t%s: %q,\n", fieldName, v)
+		}
+		fmt.Fprintf(buf, "\t})\n")
+		idx++
+	})
+	buf.WriteString("\n")
+}
+
+// walkComponentElements finds all ComponentElement nodes in a template tree.
+func walkComponentElements(children []template.Node, fn func(*template.ComponentElement)) {
+	for _, child := range children {
+		switch n := child.(type) {
+		case *template.ComponentElement:
+			fn(n)
+		case *template.BoxElement:
+			walkComponentElements(n.Children, fn)
+		}
+	}
 }
 
 // rewriteAppCalls replaces app.Quit() with tui.Quit() in function bodies.
@@ -188,6 +247,33 @@ func writeComponentReturn(buf *bytes.Buffer, info *script.ScriptInfo) {
 		fmt.Fprintf(buf, "\t\tOnEvent: %s,\n", handler)
 	}
 	buf.WriteString("\t}\n")
+}
+
+// hasStyles checks if any node in the document has style attributes.
+func hasStyles(doc *template.Document) bool {
+	for _, child := range doc.Children {
+		if nodeHasStyle(child) {
+			return true
+		}
+	}
+	return false
+}
+
+func nodeHasStyle(node template.Node) bool {
+	switch n := node.(type) {
+	case *template.TextElement:
+		return len(n.Attributes) > 0
+	case *template.BoxElement:
+		if _, ok := n.Attributes["class"]; ok {
+			return true
+		}
+		for _, child := range n.Children {
+			if nodeHasStyle(child) {
+				return true
+			}
+		}
+	}
+	return false
 }
 
 // exportedName converts a Go identifier to exported (PascalCase).
