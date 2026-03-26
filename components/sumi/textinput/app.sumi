@@ -1,19 +1,12 @@
 <script>
-value := $state("")
+value := signal.New("")
 
 func handleKey(evt input.Event) {
-    if evt.Kind == input.EventSignal {
-        app.Quit()
-        return
-    }
-    if evt.Ctrl && evt.Rune == 'c' {
-        app.Quit()
-        return
-    }
+    if evt.Kind == input.EventSignal { app.Quit(); return }
+    if evt.Ctrl && evt.Rune == 'c' { app.Quit(); return }
 }
 </script>
 
 <box onkey="handleKey">
-    <text>Value ({len(value)}): {value}</text>
-    <sumi:TextInput bind:value={value} placeholder="Type here..." />
+    <text>Value: {value}</text>
 </box>

@@ -1,23 +1,15 @@
 <script>
-count := $state(0)
-
-func increment() {
-    count = count + 1
-}
+count := signal.New(0)
 
 func handleKey(evt input.Event) {
-    if evt.Kind == input.EventSignal {
-        app.Quit()
-        return
-    }
-    if evt.Ctrl && evt.Rune == 'c' {
-        app.Quit()
-        return
+    if evt.Kind == input.EventSignal { app.Quit(); return }
+    if evt.Ctrl && evt.Rune == 'c' { app.Quit(); return }
+    if evt.Kind == input.EventKey {
+        count.Update(func(n int) int { return n + 1 })
     }
 }
 </script>
 
 <box onkey="handleKey">
     <text>Count: {count}</text>
-    <sumi:Button label="Click me" onclick={increment} />
 </box>

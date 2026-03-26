@@ -1,22 +1,21 @@
-package button
+package textinput
 
 import (
 	"github.com/tomyan/sumi/runtime/sumitest"
 	"github.com/tomyan/sumi/runtime/tui"
 )
 
-// Scenario returns the test-preview scenario for the Button component.
+// Scenario returns the test-preview scenario for the TextInput component.
 func Scenario() sumitest.Scenario {
 	return sumitest.Scenario{
-		Name:   "button-basics",
-		Width:  30,
-		Height: 3,
+		Name:   "textinput-basics",
+		Width:  40,
+		Height: 5,
 		NewApp: func(w, h int) *tui.App {
 			comp := NewApp(AppProps{})
 			return tui.TestApp(comp, w, h)
 		},
-		SourceFile:   "app.sumi",
-		ScenarioFile: "scenario.go",
+		SourceFile: "../text-input.sumi",
 		Steps: []sumitest.Step{
 			{Name: "initial"},
 		},

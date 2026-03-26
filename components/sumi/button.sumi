@@ -1,0 +1,14 @@
+<script>
+var label string
+var onclick func()
+</script>
+
+<style>
+.btn {
+    direction: row;
+}
+</style>
+
+<box class="btn">
+    <text>[ {label} ]</text>
+</box>

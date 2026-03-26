@@ -1,11 +1,11 @@
 package main
 
 import (
+	"bufio"
 	"fmt"
 	"os"
 	"os/exec"
 	"path/filepath"
-	"regexp"
 	"strings"
 	"time"
 
@@ -20,21 +20,53 @@ func testPreview(dir string) error {
 		return fmt.Errorf("abs path: %w", err)
 	}
 
-	testFunc, err := findServeTest(absDir)
+	modRoot := findModuleRoot(absDir)
+	modPath, err := findModulePath(modRoot)
 	if err != nil {
 		return err
+	}
+
+	relDir, err := filepath.Rel(modRoot, absDir)
+	if err != nil {
+		return fmt.Errorf("rel path: %w", err)
+	}
+	importPath := modPath + "/" + filepath.ToSlash(relDir)
+
+	// Generate a temp directory with main.go inside the module root
+	// so that go run can resolve the local module.
+	tmpDir, err := os.MkdirTemp(modRoot, ".sumi-preview-*")
+	if err != nil {
+		return fmt.Errorf("create temp dir: %w", err)
+	}
+	defer os.RemoveAll(tmpDir)
+
+	mainGo := fmt.Sprintf(`package main
+
+import (
+	scenario %q
+	"github.com/tomyan/sumi/runtime/sumitest"
+)
+
+func main() {
+	sumitest.Serve(scenario.Scenario())
+}
+`, importPath)
+
+	if err := os.WriteFile(filepath.Join(tmpDir, "main.go"), []byte(mainGo), 0644); err != nil {
+		return fmt.Errorf("write main.go: %w", err)
 	}
 
 	socketPath := filepath.Join(os.TempDir(), fmt.Sprintf("sumi-preview-%d.sock", os.Getpid()))
 	defer os.Remove(socketPath)
 
-	// Start the test subprocess on a PTY.
-	cmd := exec.Command("go", "test",
-		"./"+relPath(absDir),
-		"-run", "^"+testFunc+"$",
-		"-serve", "-count=1", "-timeout=0",
-	)
-	cmd.Dir = findModuleRoot(absDir)
+	// Build and run the temp main as a subprocess on a PTY.
+	tmpRel, err := filepath.Rel(modRoot, tmpDir)
+	if err != nil {
+		return fmt.Errorf("rel temp path: %w", err)
+	}
+
+	cmd := exec.Command("go", "run", "./"+tmpRel)
+	cmd.Dir = modRoot
 	cmd.Env = append(os.Environ(), "SUMI_CONTROL_SOCKET="+socketPath)
 
 	master, err := pty.Start(cmd, 24, 80)
@@ -67,37 +99,18 @@ func testPreview(dir string) error {
 	preview.RunPreview()
 
 	client.Quit()
-	cmd.Wait()
+
+	// Give subprocess time to exit gracefully, then force kill.
+	done := make(chan error, 1)
+	go func() { done <- cmd.Wait() }()
+	select {
+	case <-done:
+	case <-time.After(2 * time.Second):
+		cmd.Process.Kill()
+		<-done
+	}
+
 	return nil
-}
-
-// serveTestPattern matches test functions that call ServeMode().
-var serveTestPattern = regexp.MustCompile(`func\s+(Test\w+Serve\w*)\s*\(`)
-
-// findServeTest scans *_test.go files in dir for a function containing ServeMode().
-func findServeTest(dir string) (string, error) {
-	entries, err := os.ReadDir(dir)
-	if err != nil {
-		return "", fmt.Errorf("read dir: %w", err)
-	}
-
-	for _, e := range entries {
-		if !strings.HasSuffix(e.Name(), "_test.go") {
-			continue
-		}
-		data, err := os.ReadFile(filepath.Join(dir, e.Name()))
-		if err != nil {
-			continue
-		}
-		content := string(data)
-		if !strings.Contains(content, "ServeMode()") {
-			continue
-		}
-		if m := serveTestPattern.FindStringSubmatch(content); m != nil {
-			return m[1], nil
-		}
-	}
-	return "", fmt.Errorf("no serve test found in %s (look for ServeMode() in *_test.go)", dir)
 }
 
 // waitForSocket polls for the socket file to appear.
@@ -125,12 +138,20 @@ func findModuleRoot(dir string) string {
 	}
 }
 
-// relPath returns the directory relative to the module root, suitable for go test.
-func relPath(absDir string) string {
-	modRoot := findModuleRoot(absDir)
-	rel, err := filepath.Rel(modRoot, absDir)
+// findModulePath reads the module path from go.mod.
+func findModulePath(modRoot string) (string, error) {
+	f, err := os.Open(filepath.Join(modRoot, "go.mod"))
 	if err != nil {
-		return absDir
+		return "", fmt.Errorf("open go.mod: %w", err)
 	}
-	return rel
+	defer f.Close()
+
+	scanner := bufio.NewScanner(f)
+	for scanner.Scan() {
+		line := strings.TrimSpace(scanner.Text())
+		if strings.HasPrefix(line, "module ") {
+			return strings.TrimSpace(strings.TrimPrefix(line, "module")), nil
+		}
+	}
+	return "", fmt.Errorf("module path not found in go.mod")
 }

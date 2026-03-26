@@ -189,9 +189,10 @@ func RunPreview() {
 		return
 	}
 
-	app := CreateApp(0, 0)
-	pvApp = app
+	comp := NewPreview(PreviewProps{})
+	app := tui.TestApp(comp, 0, 0)
 	app.TestBuffer = nil
+	pvApp = app
 
 	SetupEditors()
 	defer CleanupEditors()

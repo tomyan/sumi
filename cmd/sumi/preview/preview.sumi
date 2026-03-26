@@ -17,15 +17,15 @@
 </style>
 
 <script>
-current := $state(0)
-matchStatus := $state(0)
-interactive := $state(false)
-focusState := $state(0)
+current := signal.New(0)
+matchStatus := signal.New(0)
+interactive := signal.New(false)
+focusState := signal.New(0)
 
 func doStep(index int) {
     pvStepTo(index)
-    matchStatus = pvMatches(index)
-    current = index
+    matchStatus.Set(pvMatches(index))
+    current.Set(index)
 }
 
 func doCommand(cmd string) {
@@ -33,32 +33,32 @@ func doCommand(cmd string) {
     if cmd == "exit" {
         if pvFocus == FocusInteractive {
             pvExitInteractive()
-            interactive = false
-            pvStepTo(current)
-            matchStatus = pvMatches(current)
+            interactive.Set(false)
+            pvStepTo(current.Get())
+            matchStatus.Set(pvMatches(current.Get()))
         }
         pvFocus = FocusControls
-        focusState = int(FocusControls)
+        focusState.Set(int(FocusControls))
         return
     }
     if cmd == "next" {
-        if current < pvStepCount()-1 { doStep(current + 1) }
+        if current.Get() < pvStepCount()-1 { doStep(current.Get() + 1) }
         return
     }
     if cmd == "prev" {
-        if current > 0 { doStep(current - 1) }
+        if current.Get() > 0 { doStep(current.Get() - 1) }
         return
     }
     if cmd == "update" {
-        pvUpdateSnapshot(current)
-        matchStatus = pvMatches(current)
+        pvUpdateSnapshot(current.Get())
+        matchStatus.Set(pvMatches(current.Get()))
         return
     }
     if cmd == "interactive" {
         pvEnterInteractive()
-        interactive = true
+        interactive.Set(true)
         pvFocus = FocusInteractive
-        focusState = int(FocusInteractive)
+        focusState.Set(int(FocusInteractive))
         return
     }
 }
@@ -71,7 +71,7 @@ func handleKey(evt input.Event) {
         cmd := prefixCommand(evt)
         if cmd == "" {
             pvFocus = FocusControls
-            focusState = int(FocusControls)
+            focusState.Set(int(FocusControls))
         } else {
             doCommand(cmd)
         }
@@ -85,15 +85,15 @@ func handleKey(evt input.Event) {
         }
         if (evt.Kind == input.EventSpecial && evt.Special == input.KeyEscape) || evt.Alt {
             pvExitInteractive()
-            interactive = false
+            interactive.Set(false)
             pvFocus = FocusControls
-            focusState = int(FocusControls)
-            pvStepTo(current)
-            matchStatus = pvMatches(current)
+            focusState.Set(int(FocusControls))
+            pvStepTo(current.Get())
+            matchStatus.Set(pvMatches(current.Get()))
             return
         }
         pvSendInput(evt)
-        matchStatus = 0
+        matchStatus.Set(0)
         return
     }
 
@@ -112,31 +112,31 @@ func handleKey(evt input.Event) {
     if evt.Rune == 'q' || (evt.Ctrl && evt.Rune == 'c') { app.Quit(); return }
 
     if (evt.Kind == input.EventSpecial && evt.Special == input.KeyRight) || (evt.Kind == input.EventKey && (evt.Rune == 'l' || evt.Rune == '\r')) {
-        if current < pvStepCount()-1 { doStep(current + 1) }
+        if current.Get() < pvStepCount()-1 { doStep(current.Get() + 1) }
         return
     }
     if (evt.Kind == input.EventSpecial && evt.Special == input.KeyLeft) || (evt.Kind == input.EventKey && evt.Rune == 'h') {
-        if current > 0 { doStep(current - 1) }
+        if current.Get() > 0 { doStep(current.Get() - 1) }
         return
     }
 
     if evt.Kind == input.EventKey && evt.Rune == 'u' {
-        pvUpdateSnapshot(current)
-        matchStatus = pvMatches(current)
+        pvUpdateSnapshot(current.Get())
+        matchStatus.Set(pvMatches(current.Get()))
         return
     }
 
     if evt.Kind == input.EventKey && evt.Rune == 'i' {
         pvEnterInteractive()
-        interactive = true
+        interactive.Set(true)
         pvFocus = FocusInteractive
-        focusState = int(FocusInteractive)
+        focusState.Set(int(FocusInteractive))
         return
     }
 
     if evt.Kind == input.EventKey && (evt.Rune == '1' || evt.Rune == '2' || evt.Rune == '3') {
         pvFocus = focusForDigit(evt.Rune)
-        focusState = int(pvFocus)
+        focusState.Set(int(pvFocus))
         return
     }
 }
@@ -148,10 +148,10 @@ func handleKey(evt input.Event) {
         <box class="expected" border-title="Expected" height={pvComponentHeight()}></box>
     </box>
     <box direction="row">
-        {if interactive}
+        {if interactive.Get()}
             <text class="key">esc</text><text class="label"> Exit  </text>
             <text class="interactive"> INTERACTIVE </text>
-            <text class="info">  {pvScenarioName()}  Frame {current+1}/{pvStepCount()}  {pvStepName(current)}</text>
+            <text class="info">  {pvScenarioName()}  Frame {current.Get()+1}/{pvStepCount()}  {pvStepName(current.Get())}</text>
         {else}
             {if pvIsEditorFocused()}
                 <text class="focus-indicator"> {pvFocusName()} </text>
@@ -168,16 +168,16 @@ func handleKey(evt input.Event) {
                 <text class="key">3</text><text class="label"> Scenario  </text>
                 <text class="key">q</text><text class="label"> Quit  </text>
             {/if}
-            {if matchStatus == 1}
+            {if matchStatus.Get() == 1}
                 <text class="match"> MATCH </text>
             {else}
-                {if matchStatus == 0}
+                {if matchStatus.Get() == 0}
                     <text class="no-snap"> NO SNAPSHOT </text>
                 {else}
                     <text class="diff"> DIFF </text>
                 {/if}
             {/if}
-            <text class="info">  {pvScenarioName()}  Frame {current+1}/{pvStepCount()}  {pvStepName(current)}</text>
+            <text class="info">  {pvScenarioName()}  Frame {current.Get()+1}/{pvStepCount()}  {pvStepName(current.Get())}</text>
         {/if}
     </box>
     <box class="editors" height={pvEditorHeight()}>

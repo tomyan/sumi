@@ -1,7 +1,7 @@
 <script>
-leftTitle := $prop("")
-rightTitle := $prop("")
-panelHeight := $prop(0)
+var leftTitle string
+var rightTitle string
+var panelHeight int
 </script>
 
 <style>

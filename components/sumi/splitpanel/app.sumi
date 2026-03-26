@@ -1,16 +1,16 @@
 <script>
 func handleKey(evt input.Event) {
-    if evt.Kind == input.EventSignal {
-        app.Quit()
-        return
-    }
-    if evt.Ctrl && evt.Rune == 'c' {
-        app.Quit()
-        return
-    }
+    if evt.Kind == input.EventSignal { app.Quit(); return }
+    if evt.Ctrl && evt.Rune == 'c' { app.Quit(); return }
 }
 </script>
 
-<box onkey="handleKey">
-    <sumi:SplitPanel leftTitle="Actual" rightTitle="Expected" panelHeight={5} />
+<style>
+.root { direction: row; border-collapse: collapse; }
+.panel { flex-grow: 1; border: single; padding: 0 1; }
+</style>
+
+<box class="root" onkey="handleKey">
+    <box class="panel" border-title="Actual" height="5"></box>
+    <box class="panel" border-title="Expected" height="5"></box>
 </box>
