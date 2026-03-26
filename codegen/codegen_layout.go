@@ -33,10 +33,10 @@ func writeLayoutTree(buf *bytes.Buffer, doc *template.Document, stylesheet *styl
 		if ext != nil {
 			// Build-once: root.Children rebuilt in sync
 			fmt.Fprintf(buf, "%s}\n", tabs)
-			writeDynamicChildrenSync(&ext.syncBuf, "root", doc.Children, stylesheet, tracker)
+			writeDynamicChildrenSync(&ext.syncBuf, "root", doc.Children, stylesheet)
 			return
 		}
-		writeDynamicChildren(buf, doc.Children, stylesheet, baseIndent, tabs, tracker)
+		writeDynamicChildren(buf, doc.Children, stylesheet, baseIndent, tabs)
 	} else if hasSlotChild(doc.Children) {
 		// Slot children require dynamic construction (can't spread in a literal).
 		writeSlotChildren(buf, doc.Children, stylesheet, baseIndent, tabs, tracker, ext)
@@ -68,14 +68,10 @@ func writeInputNode(buf *bytes.Buffer, node template.Node, stylesheet *style.Sty
 	}
 }
 
-// writeComponentElement handles a component reference — either inlines or falls back.
+// writeComponentElement is a no-op in the new signal model.
+// Component inlining has been removed. Components are separate packages.
 func writeComponentElement(buf *bytes.Buffer, indent int, tracker *instanceTracker, ext *extractionCtx) {
-	inst := tracker.nextInstance()
-	if inst != nil && inst.Info.Doc != nil {
-		writeInlinedComponent(buf, inst, indent, tracker, ext)
-	} else if inst != nil {
-		writeComponentRefByName(buf, indent, inst.VarName)
-	}
+	// No-op — old inlining removed.
 }
 
 // writeSignalComponentRef writes a child component's .Tree as a layout tree entry.
@@ -341,17 +337,10 @@ func writeExtractedDynamicBox(treeBuf *bytes.Buffer, n *template.BoxElement, sty
 	fmt.Fprintf(&ext.declBuf, "\t}\n")
 
 	// Write dynamic children rebuild to syncBuf
-	writeDynamicChildrenSync(&ext.syncBuf, name, n.Children, stylesheet, tracker)
+	writeDynamicChildrenSync(&ext.syncBuf, name, n.Children, stylesheet)
 
 	// Write reference in tree
 	fmt.Fprintf(treeBuf, "%s%s,\n", tabs, name)
-}
-
-// writeComponentRef writes a component Layout() call as a layout tree entry.
-func writeComponentRef(buf *bytes.Buffer, indent int, tracker *instanceTracker) {
-	tabs := indentStr(indent)
-	varName := tracker.next()
-	fmt.Fprintf(buf, "%s%s.Layout(),\n", tabs, varName)
 }
 
 // writeBoxAttributes writes direction, width, height, padding, and border fields.
@@ -471,7 +460,7 @@ func writeBoxChildren(buf *bytes.Buffer, children []template.Node, stylesheet *s
 		return
 	}
 	if hasDynamicChildren(children) {
-		writeDynamicChildren(buf, children, stylesheet, indent, tabs, tracker)
+		writeDynamicChildren(buf, children, stylesheet, indent, tabs)
 		return
 	}
 	fmt.Fprintf(buf, "%s\tChildren: []*layout.Input{\n", tabs)

@@ -27,33 +27,26 @@ type parsedComponent struct {
 }
 
 // generateFile compiles a single .sumi file to a _sumi.go file in the same directory.
-// Works standalone without a component registry (backward compat).
 func generateFile(path string) error {
 	comp, err := parseSumiFile(path)
 	if err != nil {
 		return err
 	}
-	return generateComponent(comp, nil)
+	return generateComponent(comp)
 }
 
-// generateDir uses two-pass compilation: parse all, build registry, generate all.
-// Embedded built-in components are automatically merged into the registry.
+// generateDir parses and generates all .sumi files in a directory.
 func generateDir(dir string) error {
 	components, err := parseAllSumiFiles(dir)
 	if err != nil {
 		return err
 	}
-	if len(components) == 0 {
-		return nil
+	for _, comp := range components {
+		if err := generateComponent(comp); err != nil {
+			return err
+		}
 	}
-	registry := buildComponentRegistry(components)
-	if err := mergeEmbeddedComponents(registry); err != nil {
-		return err
-	}
-	if err := validateAllComponentRefs(components, registry); err != nil {
-		return err
-	}
-	return generateAllComponents(components, registry)
+	return nil
 }
 
 // parseSumiFile reads and parses a single .sumi file into a parsedComponent.
@@ -140,147 +133,14 @@ func parseAllSumiFiles(dir string) ([]*parsedComponent, error) {
 	return components, nil
 }
 
-// buildComponentRegistry creates a registry of child components (those with props).
-// Registry keys are normalized via TagRegistryKey.
-func buildComponentRegistry(components []*parsedComponent) map[string]*codegen.ComponentInfo {
-	registry := make(map[string]*codegen.ComponentInfo)
-	for _, comp := range components {
-		if !isChildComponent(comp) {
-			continue
-		}
-		key := template.TagRegistryKey(comp.name)
-		registry[key] = buildComponentInfo(comp)
-	}
-	return registry
-}
-
-// mergeEmbeddedComponents parses all embedded .sumi files and adds them to the registry.
-// User-defined components with the same key take precedence (already in the registry).
-func mergeEmbeddedComponents(registry map[string]*codegen.ComponentInfo) error {
-	for _, tagName := range listEmbeddedComponents() {
-		key := template.TagRegistryKey(tagName)
-		if _, exists := registry[key]; exists {
-			continue // user-defined component takes precedence
-		}
-		src, err := readEmbeddedComponent(tagName)
-		if err != nil {
-			return err
-		}
-		comp, err := parseSumiSource("embedded:"+tagName, src)
-		if err != nil {
-			return err
-		}
-		// Override name to match tag name (componentName from path won't work for embedded)
-		comp.name = embeddedComponentName(tagName)
-		comp.exported = exportedName(comp.name)
-		if !isChildComponent(comp) {
-			continue
-		}
-		registry[key] = buildComponentInfo(comp)
-	}
-	return nil
-}
-
-// embeddedComponentName derives the component name from an embedded tag name.
-// "scrollbar" → "scrollbar", "sumi:textinput" → "textinput"
-func embeddedComponentName(tagName string) string {
-	if _, local, ok := template.SplitPrefix(tagName); ok {
-		return local
-	}
-	return tagName
-}
-
-// isChildComponent returns true if the component has prop declarations.
-func isChildComponent(comp *parsedComponent) bool {
-	return comp.script != nil && len(comp.script.PropDecls) > 0
-}
-
-// buildComponentInfo creates a ComponentInfo from a parsed component.
-// Includes the full parsed AST for template inlining.
-func buildComponentInfo(comp *parsedComponent) *codegen.ComponentInfo {
-	props := make([]string, len(comp.script.PropDecls))
-	for i, p := range comp.script.PropDecls {
-		props[i] = p.Name
-	}
-	hasState := comp.script != nil && (len(comp.script.StateDecls) > 0 || len(comp.script.SelfDecls) > 0 || len(comp.script.DerivedDecls) > 0 || len(comp.script.EnvDecls) > 0)
-	return &codegen.ComponentInfo{
-		Name:         comp.name,
-		ExportedName: comp.exported,
-		Props:        props,
-		HasState:     hasState,
-		Doc:          comp.doc,
-		Script:       comp.script,
-		Stylesheet:   comp.stylesheet,
-	}
-}
-
-// validateAllComponentRefs checks all component references resolve to the registry.
-func validateAllComponentRefs(components []*parsedComponent, registry map[string]*codegen.ComponentInfo) error {
-	for _, comp := range components {
-		if err := validateComponentRefs(comp, registry); err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
-// validateComponentRefs walks the document looking for unresolved ComponentElement nodes.
-func validateComponentRefs(comp *parsedComponent, registry map[string]*codegen.ComponentInfo) error {
-	return walkValidateNodes(comp.path, comp.doc.Children, registry)
-}
-
-// walkValidateNodes recursively validates component references in a node list.
-func walkValidateNodes(path string, nodes []template.Node, registry map[string]*codegen.ComponentInfo) error {
-	for _, node := range nodes {
-		if err := walkValidateNode(path, node, registry); err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
-// walkValidateNode validates a single node for component references.
-func walkValidateNode(path string, node template.Node, registry map[string]*codegen.ComponentInfo) error {
-	switch n := node.(type) {
-	case *template.ComponentElement:
-		key := template.TagRegistryKey(n.Name)
-		if _, ok := registry[key]; !ok {
-			return fmt.Errorf("%s: unknown component <%s />", path, n.Name)
-		}
-	case *template.BoxElement:
-		return walkValidateNodes(path, n.Children, registry)
-	case *template.IfNode:
-		if err := walkValidateNodes(path, n.Then, registry); err != nil {
-			return err
-		}
-		return walkValidateNodes(path, n.Else, registry)
-	case *template.ForNode:
-		return walkValidateNodes(path, n.Children, registry)
-	}
-	return nil
-}
-
-// generateAllComponents generates Go code for all parsed components.
-// Child components are inlined into root templates and don't need separate output.
-func generateAllComponents(components []*parsedComponent, registry map[string]*codegen.ComponentInfo) error {
-	for _, comp := range components {
-		if isChildComponent(comp) {
-			continue // inlined at compile time, no separate output
-		}
-		if err := generateComponent(comp, registry); err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
 // generateComponent generates Go code for a single parsed component.
-func generateComponent(comp *parsedComponent, registry map[string]*codegen.ComponentInfo) error {
-	// Use new signal-based codegen if script uses signal.New/signal.From.
+func generateComponent(comp *parsedComponent) error {
+	// Use new signal-based codegen if script uses signal.New/signal.From/tui.Env.
 	if comp.scriptSrc != "" && isSignalScript(comp.scriptSrc) {
 		return generateSignalComponent(comp)
 	}
-	opts := buildCodegenOptions(comp, registry)
+	// Static path (no reactive state).
+	opts := codegen.Options{PackageName: packageName(comp.path)}
 	out, err := codegen.Generate(comp.doc, comp.script, comp.stylesheet, opts)
 	if err != nil {
 		return fmt.Errorf("%s: %w", comp.path, err)
@@ -308,13 +168,6 @@ func generateSignalComponent(comp *parsedComponent) error {
 }
 
 // buildCodegenOptions builds codegen.Options for a component.
-func buildCodegenOptions(comp *parsedComponent, registry map[string]*codegen.ComponentInfo) codegen.Options {
-	return codegen.Options{
-		PackageName: packageName(comp.path),
-		Components:  registry,
-	}
-}
-
 // writeOutput writes generated Go source to the output file.
 func writeOutput(path string, out []byte) error {
 	outPath := outputPath(path)

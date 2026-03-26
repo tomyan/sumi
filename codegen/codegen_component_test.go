@@ -1,11 +1,22 @@
 package codegen
 
 import (
+	"go/parser"
+	"go/token"
 	"strings"
 	"testing"
 
 	"github.com/tomyan/sumi/parser/template"
 )
+
+func assertValidGo(t *testing.T, src []byte) {
+	t.Helper()
+	fset := token.NewFileSet()
+	_, err := parser.ParseFile(fset, "test.go", src, parser.AllErrors)
+	if err != nil {
+		t.Errorf("generated code is not valid Go: %v\n%s", err, string(src))
+	}
+}
 
 func TestGenerateComponentFunction(t *testing.T) {
 	// Given — a counter component with signal state and event handler

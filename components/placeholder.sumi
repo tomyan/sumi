@@ -1,4 +1,4 @@
 <script>
-label := $prop("hello")
+var label string = "hello"
 </script>
 <text>{label}</text>

@@ -17,8 +17,8 @@ func TestReadEmbeddedComponentPlaceholder(t *testing.T) {
 	if src == "" {
 		t.Fatal("expected non-empty source")
 	}
-	if !contains(src, "$prop") {
-		t.Errorf("expected $prop in placeholder source, got: %s", src)
+	if !contains(src, "var label") {
+		t.Errorf("expected 'var label' in placeholder source, got: %s", src)
 	}
 }
 
