@@ -39,8 +39,11 @@ func GenerateComponent(doc *template.Document, scriptSrc string, stylesheet *sty
 	// Imports.
 	writeComponentImports(&buf, info, doc, opts.Components)
 
+	// Collect slot definitions from template for props.
+	slots := collectSlots(doc)
+
 	// Props struct (always generated, even if empty).
-	writePropsStruct(&buf, opts.ComponentName, info.Props)
+	writePropsStruct(&buf, opts.ComponentName, info.Props, slots)
 
 	// Constructor function.
 	writeConstructor(&buf, opts.ComponentName, info, doc, scriptSrc, stylesheet, opts)
@@ -89,13 +92,41 @@ func writeComponentImports(buf *bytes.Buffer, info *script.ScriptInfo, doc *temp
 }
 
 // writePropsStruct emits the props struct type.
-func writePropsStruct(buf *bytes.Buffer, name string, props []script.PropInfo) {
+func writePropsStruct(buf *bytes.Buffer, name string, props []script.PropInfo, slots []slotInfo) {
 	fmt.Fprintf(buf, "type %sProps struct {\n", name)
 	for _, p := range props {
 		fieldName := exportedName(p.Name)
 		fmt.Fprintf(buf, "\t%s %s\n", fieldName, p.TypeStr)
 	}
+	for _, s := range slots {
+		fieldName := exportedName(s.name)
+		fmt.Fprintf(buf, "\t%s []*layout.Input\n", fieldName)
+	}
 	buf.WriteString("}\n\n")
+}
+
+type slotInfo struct {
+	name string
+}
+
+// collectSlots finds all <slot:name> elements in the template.
+func collectSlots(doc *template.Document) []slotInfo {
+	var slots []slotInfo
+	walkSlots(doc.Children, func(s *template.SlotElement) {
+		slots = append(slots, slotInfo{name: s.Name})
+	})
+	return slots
+}
+
+func walkSlots(children []template.Node, fn func(*template.SlotElement)) {
+	for _, child := range children {
+		switch n := child.(type) {
+		case *template.SlotElement:
+			fn(n)
+		case *template.BoxElement:
+			walkSlots(n.Children, fn)
+		}
+	}
 }
 
 // writeConstructor emits the NewFoo function.

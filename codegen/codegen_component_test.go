@@ -202,6 +202,47 @@ func handleKey(evt input.Event) {
 	assertValidGo(t, out)
 }
 
+func TestGenerateComponentWithSlotPlaceholder(t *testing.T) {
+	// Given — a card component with a slot placeholder
+	scriptSrc := ``
+	doc := &template.Document{
+		Children: []template.Node{
+			&template.BoxElement{
+				Attributes: map[string]string{"class": "card"},
+				Children: []template.Node{
+					&template.SlotElement{
+						Name: "children",
+					},
+				},
+			},
+		},
+	}
+
+	// When
+	out, err := GenerateComponent(doc, scriptSrc, nil, ComponentOptions{
+		PackageName:   "card",
+		ComponentName: "Card",
+	})
+
+	// Then
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	src := string(out)
+
+	// Props should have Children field
+	if !strings.Contains(src, "Children []*layout.Input") {
+		t.Errorf("expected Children prop:\n%s", src)
+	}
+
+	// Tree should reference props.Children
+	if !strings.Contains(src, "props.Children") {
+		t.Errorf("expected props.Children reference:\n%s", src)
+	}
+
+	assertValidGo(t, out)
+}
+
 func TestGenerateComponentWithProps(t *testing.T) {
 	// Given — a component with props
 	scriptSrc := `var label string = "Count"
