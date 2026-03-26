@@ -96,14 +96,34 @@ syntax match  sumiCSSSelector /[.#:][a-zA-Z][a-zA-Z0-9_-]*/ contained containedi
 syntax match  sumiCSSSelector /\<\(root\|box\|text\)\>/ contained containedin=sumiStyle
 syntax match  sumiCSSBraces   /[{}]/ contained containedin=sumiStyle
 
-" CSS properties and values
-syntax match  sumiCSSProperty /\<[a-z][a-z-]*\s*:/ contained containedin=sumiStyle contains=sumiCSSColon
-syntax match  sumiCSSColon    /:/ contained
-syntax match  sumiCSSValue    /:\s*\zs[^;}\n]*/ contained containedin=sumiStyle
+" CSS declarations: "property: value;"
+" Match entire line as a declaration region, color parts with contains
+syntax region sumiCSSDecl
+      \ matchgroup=sumiCSSPropMatch
+      \ start=/\<[a-z][a-z-]*:/
+      \ end=/;/
+      \ contained containedin=sumiStyle
+      \ contains=sumiCSSNumber,sumiCSSColorHex,sumiCSSKeywordVal
+      \ oneline keepend
+
+syntax match  sumiCSSNumber    /\<\d\+\>/ contained
+syntax match  sumiCSSColorHex  /#[0-9a-fA-F]\{3,8\}/ contained
+syntax keyword sumiCSSKeywordVal true false single double rounded heavy none auto hidden scroll
+      \ row column center start end stretch space-between space-around space-evenly
+      \ left right top bottom fixed relative absolute sticky collapse
+      \ cyan red green yellow blue magenta white black
+      \ bold dim italic underline inverse nowrap
+      \ contained
+
+" CSS comments
 syntax region sumiCSSComment  start="/\*" end="\*/" contained containedin=sumiStyle
 
 " CSS at-rules
 syntax match  sumiCSSAtRule   /@\(media\|container\|keyframes\)\>/ contained containedin=sumiStyle
+
+" Media query conditions
+syntax region sumiCSSMediaQuery matchgroup=sumiCSSMediaParen start=/(/ end=/)/ contained containedin=sumiStyle contains=sumiCSSMediaProp
+syntax match  sumiCSSMediaProp /\<\(width\|height\|color-depth\|theme\|prefers-reduced-motion\|prefers-contrast\)\>/ contained
 
 " ============================================================================
 " Template — tags, attributes, expressions, control flow
@@ -243,12 +263,16 @@ highlight default sumiGoBlockComment guifg=#565f89 gui=italic ctermfg=60 cterm=i
 highlight default sumiGoVarDecl      guifg=#c0caf5 gui=bold ctermfg=153 cterm=bold
 
 " CSS in style block
-highlight default sumiCSSSelector guifg=#73daca gui=bold ctermfg=79 cterm=bold
-highlight default sumiCSSBraces   guifg=#545c7e ctermfg=60
-highlight default sumiCSSProperty guifg=#7aa2f7 ctermfg=111
-highlight default sumiCSSColon    guifg=#545c7e ctermfg=60
-highlight default sumiCSSValue    guifg=#9ece6a ctermfg=149
-highlight default sumiCSSAtRule   guifg=#bb9af7 gui=bold ctermfg=141 cterm=bold
+highlight default sumiCSSSelector    guifg=#73daca gui=bold ctermfg=79 cterm=bold
+highlight default sumiCSSBraces      guifg=#545c7e ctermfg=60
+highlight default sumiCSSPropMatch   guifg=#7aa2f7 ctermfg=111
+highlight default sumiCSSDecl       guifg=#9ece6a ctermfg=149
+highlight default sumiCSSNumber     guifg=#ff9e64 ctermfg=215
+highlight default sumiCSSColorHex   guifg=#ff9e64 gui=bold ctermfg=215 cterm=bold
+highlight default sumiCSSKeywordVal guifg=#ff9e64 ctermfg=215
+highlight default sumiCSSAtRule      guifg=#bb9af7 gui=bold ctermfg=141 cterm=bold
+highlight default sumiCSSMediaParen  guifg=#545c7e ctermfg=60
+highlight default sumiCSSMediaProp   guifg=#7aa2f7 ctermfg=111
 highlight default link sumiCSSComment Comment
 
 " HTML Comments
