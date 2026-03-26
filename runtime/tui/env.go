@@ -17,6 +17,12 @@ func Env[T any](name string) *signal.Signal[T] {
 	return s
 }
 
+// updateEnvSignals sets the width and height env signals to current terminal dimensions.
+func updateEnvSignals(w, h int) {
+	SetEnv("width", w)
+	SetEnv("height", h)
+}
+
 // SetEnv updates a named environment signal.
 func SetEnv[T any](name string, value T) {
 	if s, ok := envSignals[name]; ok {

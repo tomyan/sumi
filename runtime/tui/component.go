@@ -87,6 +87,7 @@ func RunWithOptions(comp *Component, opts RunOptions) {
 
 	app.OnRender = func() {
 		termW, termH := term.GetSize(int(os.Stdout.Fd()))
+		updateEnvSignals(termW, termH)
 		tree := layout.Layout(comp.Tree, termW, termH)
 		if comp.AfterLayout != nil {
 			comp.AfterLayout()
@@ -138,6 +139,7 @@ func Run(comp *Component) {
 
 	app.OnRender = func() {
 		termW, termH := term.GetSize(int(os.Stdout.Fd()))
+		updateEnvSignals(termW, termH)
 		tree := layout.Layout(comp.Tree, termW, termH)
 		if comp.AfterLayout != nil {
 			comp.AfterLayout()
