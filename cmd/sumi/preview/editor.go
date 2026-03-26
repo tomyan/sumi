@@ -55,6 +55,7 @@ func NewEditor(filePath string, rows, cols int, wake func()) (*Editor, error) {
 		"--noplugin", "-u", "NONE",
 		"+set updatetime=300", "+set autowriteall",
 		"+syntax on", "+filetype on",
+		"+set termguicolors", "+colorscheme default",
 	}
 	// Add sumi syntax highlighting if the plugin directory exists.
 	if pluginDir := findSumiPluginDir(); pluginDir != "" {
