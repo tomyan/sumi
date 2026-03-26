@@ -186,8 +186,25 @@ func writeChildComponentInstances(buf *bytes.Buffer, doc *template.Document, com
 		varName := fmt.Sprintf("%s%d", strings.ToLower(comp.Name[:1])+comp.Name[1:], idx)
 		fmt.Fprintf(buf, "\t%s := %s.New%s(%s.%sProps{\n", varName, info.Package, comp.Name, info.Package, comp.Name)
 		for k, v := range comp.Attributes {
-			fieldName := exportedName(k)
-			fmt.Fprintf(buf, "\t\t%s: %q,\n", fieldName, v)
+			if strings.HasPrefix(k, "bind:") {
+				// bind:value={name} → Value: name (pass signal reference)
+				propName := strings.TrimPrefix(k, "bind:")
+				fieldName := exportedName(propName)
+				expr := v
+				if strings.HasPrefix(expr, "{") && strings.HasSuffix(expr, "}") {
+					expr = expr[1 : len(expr)-1]
+				}
+				fmt.Fprintf(buf, "\t\t%s: %s,\n", fieldName, expr)
+			} else if strings.HasPrefix(v, "{") && strings.HasSuffix(v, "}") {
+				// Expression prop: value={expr}
+				fieldName := exportedName(k)
+				expr := v[1 : len(v)-1]
+				fmt.Fprintf(buf, "\t\t%s: %s,\n", fieldName, expr)
+			} else {
+				// Literal prop: value="text"
+				fieldName := exportedName(k)
+				fmt.Fprintf(buf, "\t\t%s: %q,\n", fieldName, v)
+			}
 		}
 		fmt.Fprintf(buf, "\t})\n")
 		idx++

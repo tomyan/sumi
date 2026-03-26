@@ -142,6 +142,66 @@ func TestGenerateComponentWithChildComponent(t *testing.T) {
 	assertValidGo(t, out)
 }
 
+func TestGenerateComponentWithBindProp(t *testing.T) {
+	// Given — a parent that binds a signal to a child's prop
+	scriptSrc := `name := signal.New("")
+
+func handleKey(evt input.Event) {
+    if evt.Kind == input.EventSignal { app.Quit(); return }
+}`
+	doc := &template.Document{
+		Children: []template.Node{
+			&template.BoxElement{
+				Attributes: map[string]string{"onkey": "handleKey"},
+				Children: []template.Node{
+					&template.TextElement{
+						Parts: []template.Part{
+							&template.StringPart{Value: "Name: "},
+							&template.ExprPart{Expr: "name"},
+						},
+					},
+					&template.ComponentElement{
+						Name: "Field",
+						Attributes: map[string]string{
+							"bind:value": "{name}",
+						},
+					},
+				},
+			},
+		},
+	}
+
+	// When
+	out, err := GenerateComponent(doc, scriptSrc, nil, ComponentOptions{
+		PackageName:   "main",
+		ComponentName: "App",
+		Components: map[string]ComponentChildInfo{
+			"Field": {
+				ImportPath: "github.com/example/field",
+				Package:    "field",
+			},
+		},
+	})
+
+	// Then
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	src := string(out)
+
+	// bind:value should pass the signal directly (not .Get())
+	if !strings.Contains(src, "Value: name") {
+		t.Errorf("expected Value: name (signal reference) in props:\n%s", src)
+	}
+
+	// Should NOT wrap with .Get() for bind props
+	if strings.Contains(src, "Value: name.Get()") {
+		t.Errorf("bind prop should pass signal reference, not .Get():\n%s", src)
+	}
+
+	assertValidGo(t, out)
+}
+
 func TestGenerateComponentWithProps(t *testing.T) {
 	// Given — a component with props
 	scriptSrc := `var label string = "Count"
