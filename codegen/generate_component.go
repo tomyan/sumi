@@ -32,10 +32,8 @@ func GenerateComponent(doc *template.Document, scriptSrc string, stylesheet *sty
 	// Imports.
 	writeComponentImports(&buf, info, doc)
 
-	// Props struct.
-	if len(info.Props) > 0 {
-		writePropsStruct(&buf, opts.ComponentName, info.Props)
-	}
+	// Props struct (always generated, even if empty).
+	writePropsStruct(&buf, opts.ComponentName, info.Props)
 
 	// Constructor function.
 	writeConstructor(&buf, opts.ComponentName, info, doc, scriptSrc, stylesheet)
@@ -62,6 +60,7 @@ func writeComponentImports(buf *bytes.Buffer, info *script.ScriptInfo, doc *temp
 		buf.WriteString("\t\"github.com/tomyan/sumi/runtime/input\"\n")
 	}
 	buf.WriteString("\t\"github.com/tomyan/sumi/runtime/layout\"\n")
+	buf.WriteString("\t\"github.com/tomyan/sumi/runtime/render\"\n")
 	if len(info.Signals) > 0 {
 		buf.WriteString("\t\"github.com/tomyan/sumi/runtime/signal\"\n")
 	}
@@ -149,6 +148,11 @@ func writeScriptDeclarations(buf *bytes.Buffer, info *script.ScriptInfo, src str
 	buf.WriteString("\n")
 }
 
+// rewriteAppCalls replaces app.Quit() with tui.Quit() in function bodies.
+func rewriteAppCalls(body string) string {
+	return strings.ReplaceAll(body, "app.Quit()", "tui.Quit()")
+}
+
 // writeComponentFunc emits a function closure.
 func writeComponentFunc(buf *bytes.Buffer, f script.FuncInfo) {
 	if f.Params == "" {
@@ -156,7 +160,8 @@ func writeComponentFunc(buf *bytes.Buffer, f script.FuncInfo) {
 	} else {
 		fmt.Fprintf(buf, "\t%s := func(%s) {\n", f.Name, f.Params)
 	}
-	for _, line := range strings.Split(f.Body, "\n") {
+	body := rewriteAppCalls(f.Body)
+	for _, line := range strings.Split(body, "\n") {
 		trimmed := strings.TrimSpace(line)
 		if trimmed == "" {
 			continue

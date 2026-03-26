@@ -53,6 +53,17 @@ func TestApp(comp *Component, w, h int) *App {
 	return app
 }
 
+// activeApp holds the currently running app for Quit().
+var activeApp *App
+
+// Quit signals the running application to exit.
+// Can be called from any component's event handler.
+func Quit() {
+	if activeApp != nil {
+		activeApp.Quit()
+	}
+}
+
 // Run runs a component as a full-screen terminal application.
 func Run(comp *Component) {
 	app := &App{}
@@ -85,7 +96,9 @@ func Run(comp *Component) {
 	}
 
 	app.componentDispose = comp.Dispose
+	activeApp = app
 	app.Run()
+	activeApp = nil
 
 	// Cleanup on exit.
 	if comp.Dispose != nil {

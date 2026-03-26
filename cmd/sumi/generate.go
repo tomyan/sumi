@@ -20,6 +20,7 @@ type parsedComponent struct {
 	path       string
 	doc        *template.Document
 	script     *script.Script
+	scriptSrc  string // raw script source (for go/ast parsing)
 	stylesheet *style.Stylesheet
 	name       string // e.g. "counter"
 	exported   string // e.g. "Counter"
@@ -87,6 +88,7 @@ func parseSumiSource(path, src string) (*parsedComponent, error) {
 		path:       path,
 		doc:        doc,
 		script:     sc,
+		scriptSrc:  sections.Script,
 		stylesheet: ss,
 		name:       name,
 		exported:   exportedName(name),
@@ -274,8 +276,30 @@ func generateAllComponents(components []*parsedComponent, registry map[string]*c
 
 // generateComponent generates Go code for a single parsed component.
 func generateComponent(comp *parsedComponent, registry map[string]*codegen.ComponentInfo) error {
+	// Use new signal-based codegen if script uses signal.New/signal.From.
+	if comp.scriptSrc != "" && isSignalScript(comp.scriptSrc) {
+		return generateSignalComponent(comp)
+	}
 	opts := buildCodegenOptions(comp, registry)
 	out, err := codegen.Generate(comp.doc, comp.script, comp.stylesheet, opts)
+	if err != nil {
+		return fmt.Errorf("%s: %w", comp.path, err)
+	}
+	return writeOutput(comp.path, out)
+}
+
+// isSignalScript returns true if the script source uses signal.New or signal.From.
+func isSignalScript(src string) bool {
+	return strings.Contains(src, "signal.New") || strings.Contains(src, "signal.From") ||
+		strings.Contains(src, "sumi.New") || strings.Contains(src, "sumi.From")
+}
+
+// generateSignalComponent generates code using the new component codegen.
+func generateSignalComponent(comp *parsedComponent) error {
+	out, err := codegen.GenerateComponent(comp.doc, comp.scriptSrc, comp.stylesheet, codegen.ComponentOptions{
+		PackageName:   packageName(comp.path),
+		ComponentName: comp.exported,
+	})
 	if err != nil {
 		return fmt.Errorf("%s: %w", comp.path, err)
 	}
