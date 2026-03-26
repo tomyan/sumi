@@ -216,9 +216,17 @@ func (a *App) runLoop(eventCh <-chan input.Event, resizeCh <-chan struct{}, sigC
 }
 
 // dispatchEvent calls OnEvent if set.
+// If no OnEvent handler is set, SIGINT/SIGTERM signals quit the app by default.
 func (a *App) dispatchEvent(evt input.Event) {
 	if a.OnEvent != nil {
 		a.OnEvent(evt)
+		return
+	}
+	// Default: quit on signal or Ctrl+C/q when no handler is set.
+	if evt.Kind == input.EventSignal {
+		a.Quit()
+	} else if evt.Kind == input.EventKey && (evt.Rune == 'q' || (evt.Ctrl && evt.Rune == 'c')) {
+		a.Quit()
 	}
 }
 
