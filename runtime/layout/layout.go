@@ -430,6 +430,25 @@ func hasFlexGrow(children []*Input) bool {
 	return false
 }
 
+// distributeFlexSpace allocates remaining space among flex children proportionally.
+// The first flex child receives any remainder from integer division.
+func distributeFlexSpace(children []*Input, remaining, totalFlex int) []int {
+	var sizes []int
+	allocated := 0
+	for _, child := range children {
+		if child.FlexGrow > 0 {
+			size := remaining * child.FlexGrow / totalFlex
+			sizes = append(sizes, size)
+			allocated += size
+		}
+	}
+	// Give remainder to the first flex child.
+	if len(sizes) > 0 && allocated < remaining {
+		sizes[0] += remaining - allocated
+	}
+	return sizes
+}
+
 // layoutColumn places children vertically, advancing Y after each child.
 func layoutColumn(children []*Input, offsetX, offsetY, gap, availW, availH int) []*Box {
 	var boxes []*Box
@@ -490,16 +509,25 @@ func layoutRowFlex(children []*Input, offsetX, offsetY, gap, availW, availH int)
 		remaining = 0
 	}
 
+	// Pre-compute flex sizes, giving remainder to the first flex child.
+	flexSizes := distributeFlexSpace(children, remaining, totalFlex)
+
 	boxes := make([]*Box, len(children))
 	cursorX := 0
+	flexIdx := 0
 	for i, child := range children {
 		if i > 0 {
 			cursorX += gap
 		}
 		var childBox *Box
 		if child.FlexGrow > 0 {
-			flexWidth := remaining * child.FlexGrow / totalFlex
+			flexWidth := flexSizes[flexIdx]
+			flexIdx++
+			// Temporarily set FixedWidth so internal layout knows the determined width.
+			saved := child.FixedWidth
+			child.FixedWidth = flexWidth
 			childBox = layoutNode(child, flexWidth, availH)
+			child.FixedWidth = saved
 			childBox.Width = flexWidth
 		} else {
 			childBox = layoutNode(child, naturalWidths[i], availH)
@@ -538,16 +566,26 @@ func layoutColumnFlex(children []*Input, offsetX, offsetY, gap, availW, availH i
 		remaining = 0
 	}
 
+	// Pre-compute flex sizes, giving remainder to the first flex child.
+	flexSizes := distributeFlexSpace(children, remaining, totalFlex)
+
 	boxes := make([]*Box, len(children))
 	cursorY := 0
+	flexIdx := 0
 	for i, child := range children {
 		if i > 0 {
 			cursorY += gap
 		}
 		var childBox *Box
 		if child.FlexGrow > 0 {
-			flexHeight := remaining * child.FlexGrow / totalFlex
+			flexHeight := flexSizes[flexIdx]
+			flexIdx++
+			// Temporarily set FixedHeight so internal layout (e.g. row children
+			// stretch alignment) knows the determined height.
+			saved := child.FixedHeight
+			child.FixedHeight = flexHeight
 			childBox = layoutNode(child, availW, flexHeight)
+			child.FixedHeight = saved
 			childBox.Height = flexHeight
 		} else {
 			childBox = layoutNode(child, availW, availH)

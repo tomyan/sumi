@@ -225,6 +225,105 @@ func TestLayoutFlexGrowNoFixedParentUsesAvailWidth(t *testing.T) {
 	}
 }
 
+func TestLayoutFlexGrowColumnRowChildrenStretch(t *testing.T) {
+	// Given a column with a flex-grown row whose children have borders,
+	// the row children should stretch to fill the row's flex-determined height.
+	input := &Input{
+		Kind: KindBox,
+		Children: []*Input{
+			{Kind: KindText, Content: "header"},
+			{
+				Kind:      KindBox,
+				Direction: "row",
+				FlexGrow:  1,
+				Children: []*Input{
+					{Kind: KindBox, FlexGrow: 1, Border: "single"},
+					{Kind: KindBox, FlexGrow: 1, Border: "single"},
+				},
+			},
+		},
+	}
+
+	// When
+	box := Layout(input, 40, 20)
+
+	// Then the row gets remaining height: 20 - 1 (header) = 19
+	row := box.Children[1]
+	if row.Height != 19 {
+		t.Errorf("row Height = %d, want 19", row.Height)
+	}
+
+	// And its children should stretch to fill the row height (not just border height 2)
+	left := row.Children[0]
+	if left.Height != 19 {
+		t.Errorf("left child Height = %d, want 19", left.Height)
+	}
+	right := row.Children[1]
+	if right.Height != 19 {
+		t.Errorf("right child Height = %d, want 19", right.Height)
+	}
+}
+
+func TestLayoutFlexGrowRowOddWidthNoGap(t *testing.T) {
+	// Given two equal flex-grow children in an odd-width row,
+	// the first child should get the extra column (no gap on the right).
+	input := &Input{
+		Kind:       KindBox,
+		Direction:  "row",
+		FixedWidth: 41,
+		Children: []*Input{
+			{Kind: KindBox, FlexGrow: 1},
+			{Kind: KindBox, FlexGrow: 1},
+		},
+	}
+
+	// When
+	box := Layout(input, 41, 10)
+
+	// Then children fill the full width with no gap
+	left := box.Children[0]
+	right := box.Children[1]
+	if left.Width+right.Width != 41 {
+		t.Errorf("total width = %d, want 41 (left=%d, right=%d)", left.Width+right.Width, left.Width, right.Width)
+	}
+	// First child gets the extra column
+	if left.Width != 21 {
+		t.Errorf("left Width = %d, want 21", left.Width)
+	}
+	if right.Width != 20 {
+		t.Errorf("right Width = %d, want 20", right.Width)
+	}
+}
+
+func TestLayoutFlexGrowColumnOddHeightNoGap(t *testing.T) {
+	// Given two equal flex-grow children in an odd-height column,
+	// the first child should get the extra row.
+	input := &Input{
+		Kind:        KindBox,
+		FixedHeight: 41,
+		Children: []*Input{
+			{Kind: KindBox, FlexGrow: 1},
+			{Kind: KindBox, FlexGrow: 1},
+		},
+	}
+
+	// When
+	box := Layout(input, 40, 41)
+
+	// Then children fill the full height with no gap
+	top := box.Children[0]
+	bot := box.Children[1]
+	if top.Height+bot.Height != 41 {
+		t.Errorf("total height = %d, want 41 (top=%d, bot=%d)", top.Height+bot.Height, top.Height, bot.Height)
+	}
+	if top.Height != 21 {
+		t.Errorf("top Height = %d, want 21", top.Height)
+	}
+	if bot.Height != 20 {
+		t.Errorf("bot Height = %d, want 20", bot.Height)
+	}
+}
+
 func TestLayoutFlexGrowZeroDoesNotGrow(t *testing.T) {
 	// Given FlexGrow=0 (default), child should not grow
 	input := &Input{

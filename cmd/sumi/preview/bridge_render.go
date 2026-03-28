@@ -11,7 +11,7 @@ import (
 // pvInjectContent writes rich content into the panel areas after sumi renders.
 func pvInjectContent() {
 	termW, _ := term.GetSize(int(os.Stdout.Fd()))
-	leftBoxW := termW / 2
+	leftBoxW := (termW + 1) / 2 // first flex child gets remainder
 
 	// Render VT100 buffer into left panel (actual).
 	pvScreen.Buffer().RenderToOffset(os.Stdout, 1, 2)
@@ -21,18 +21,19 @@ func pvInjectContent() {
 
 	// Highlight left panel border when in interactive mode.
 	if pvInteractive {
-		pvHighlightBorder(os.Stdout, leftBoxW)
+		pvHighlightBox(os.Stdout, 0, 0, leftBoxW, pvComponentHeight(), "Actual",
+			render.Style{FG: render.Color{IsRGB: true, R: 0x50, G: 0xff, B: 0x50}, Bold: true})
 	}
 
 	// Render editor screens into placeholder areas.
 	pvInjectEditors(os.Stdout, termW)
+
+	// Highlight focused editor border.
+	pvHighlightFocusedEditor(os.Stdout, termW)
 }
 
-// pvHighlightBorder redraws the left panel border in green to indicate interactive mode.
-func pvHighlightBorder(w *os.File, boxW int) {
-	h := pvComponentHeight()
-	style := render.Style{FG: render.Color{Name: "green"}, Bold: true}
-
+// pvHighlightBox redraws a box border in the given style to indicate focus.
+func pvHighlightBox(w *os.File, row, col, boxW, boxH int, title string, s render.Style) {
 	// Top edge.
 	top := make([]rune, boxW)
 	top[0] = '┌'
@@ -40,10 +41,12 @@ func pvHighlightBorder(w *os.File, boxW int) {
 		top[i] = '─'
 	}
 	top[boxW-1] = '┐'
-	render.WriteAt(w, 0, 0, string(top), style)
+	render.WriteAt(w, row, col, string(top), s)
 
 	// Redraw title over top edge.
-	render.WriteAt(w, 0, 2, " Actual ", style)
+	if title != "" {
+		render.WriteAt(w, row, col+2, " "+title+" ", s)
+	}
 
 	// Bottom edge.
 	bottom := make([]rune, boxW)
@@ -52,12 +55,40 @@ func pvHighlightBorder(w *os.File, boxW int) {
 		bottom[i] = '─'
 	}
 	bottom[boxW-1] = '┘'
-	render.WriteAt(w, h-1, 0, string(bottom), style)
+	render.WriteAt(w, row+boxH-1, col, string(bottom), s)
 
 	// Side edges.
-	for r := 1; r < h-1; r++ {
-		render.WriteAt(w, r, 0, "│", style)
-		render.WriteAt(w, r, boxW-1, "│", style)
+	for r := row + 1; r < row+boxH-1; r++ {
+		render.WriteAt(w, r, col, "│", s)
+		render.WriteAt(w, r, col+boxW-1, "│", s)
+	}
+}
+
+// pvHighlightFocusedEditor redraws all editor borders in their base colour,
+// then highlights the focused one in a brighter variant with a bold title.
+func pvHighlightFocusedEditor(w *os.File, termW int) {
+	startRow := pvComponentHeight() + 1
+	leftW := pvLeftEditorWidth()
+	rightW := pvRightEditorWidth()
+	topH := pvEditorHeight()
+	botH := pvScenarioHeight()
+
+	base := render.Style{FG: render.Color{Name: "magenta"}}
+	bright := render.Style{FG: render.Color{IsRGB: true, R: 0xff, G: 0x60, B: 0xff}, Bold: true}
+
+	// Redraw all editor borders in the base colour to clear any previous highlight.
+	pvHighlightBox(w, startRow, 0, leftW, topH, pvSourceTitle(), base)
+	pvHighlightBox(w, startRow, leftW, rightW, topH, pvSnapshotTitle(), base)
+	pvHighlightBox(w, startRow+topH, 0, termW, botH, pvScenarioTitle(), base)
+
+	// Highlight the focused editor.
+	switch pvFocus {
+	case FocusEditor1:
+		pvHighlightBox(w, startRow, 0, leftW, topH, pvSourceTitle(), bright)
+	case FocusEditor2:
+		pvHighlightBox(w, startRow, leftW, rightW, topH, pvSnapshotTitle(), bright)
+	case FocusEditor3:
+		pvHighlightBox(w, startRow+topH, 0, termW, botH, pvScenarioTitle(), bright)
 	}
 }
 
@@ -90,7 +121,7 @@ func expectedText() string {
 // Each editor box has a single-line border, so content starts 1 row down and 1 col right.
 func pvInjectEditors(w *os.File, termW int) {
 	startRow := pvComponentHeight() + 1 // +1 for status bar row
-	leftW := termW / 2
+	leftBoxW := pvLeftEditorWidth()
 
 	// Editor 1 (source) — top-left, offset by border.
 	if pvEditors[0] != nil {
@@ -102,13 +133,13 @@ func pvInjectEditors(w *os.File, termW int) {
 	// Editor 2 (snapshot) — top-right, offset by border.
 	if pvEditors[1] != nil {
 		pvEditors[1].mu.Lock()
-		pvEditors[1].screen.Buffer().RenderToOffset(w, startRow+1, leftW+1)
+		pvEditors[1].screen.Buffer().RenderToOffset(w, startRow+1, leftBoxW+1)
 		pvEditors[1].mu.Unlock()
 	}
 
 	// Editor 3 (scenario) — below the two side-by-side editors, offset by border.
-	edH := pvEditorHeight()
-	scenRow := startRow + edH
+	topEdH := pvEditorHeight()
+	scenRow := startRow + topEdH
 	if pvEditors[2] != nil {
 		pvEditors[2].mu.Lock()
 		pvEditors[2].screen.Buffer().RenderToOffset(w, scenRow+1, 1)

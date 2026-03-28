@@ -9,15 +9,26 @@ import (
 	"github.com/tomyan/sumi/runtime/term"
 )
 
-// pvEditorHeight returns the height for each editor row (including border).
-func pvEditorHeight() int {
+// pvEditorRowRemaining returns the total height available for the two editor rows.
+func pvEditorRowRemaining() int {
 	_, termH := term.GetSize(int(os.Stdout.Fd()))
-	// Layout: component panels + status bar (1) + 2 editor rows
-	used := pvComponentHeight() + 1
-	remaining := termH - used
+	remaining := termH - pvComponentHeight() - 1
 	if remaining < 6 {
-		return 3
+		return 6
 	}
+	return remaining
+}
+
+// pvEditorHeight returns the height for the first (top) editor row (including border).
+// The first flex child gets the remainder from integer division.
+func pvEditorHeight() int {
+	remaining := pvEditorRowRemaining()
+	return (remaining + 1) / 2
+}
+
+// pvScenarioHeight returns the height for the second (bottom) editor row (including border).
+func pvScenarioHeight() int {
+	remaining := pvEditorRowRemaining()
 	return remaining / 2
 }
 
@@ -30,15 +41,40 @@ func pvEditorContentHeight() int {
 	return h
 }
 
-// pvEditorWidth returns the width of each side-by-side editor (including border).
-func pvEditorWidth() int {
+// pvScenarioContentHeight returns the inner height for scenario editor PTY (minus border).
+func pvScenarioContentHeight() int {
+	h := pvScenarioHeight() - 2
+	if h < 1 {
+		return 1
+	}
+	return h
+}
+
+// pvLeftEditorWidth returns the width of the left side-by-side editor (including border).
+// The first flex child gets the remainder from integer division.
+func pvLeftEditorWidth() int {
+	termW, _ := term.GetSize(int(os.Stdout.Fd()))
+	return (termW + 1) / 2
+}
+
+// pvRightEditorWidth returns the width of the right side-by-side editor (including border).
+func pvRightEditorWidth() int {
 	termW, _ := term.GetSize(int(os.Stdout.Fd()))
 	return termW / 2
 }
 
-// pvEditorContentWidth returns the inner width for side-by-side editor PTY (minus border).
-func pvEditorContentWidth() int {
-	w := pvEditorWidth() - 2
+// pvLeftEditorContentWidth returns the inner width for the left editor PTY (minus border).
+func pvLeftEditorContentWidth() int {
+	w := pvLeftEditorWidth() - 2
+	if w < 1 {
+		return 1
+	}
+	return w
+}
+
+// pvRightEditorContentWidth returns the inner width for the right editor PTY (minus border).
+func pvRightEditorContentWidth() int {
+	w := pvRightEditorWidth() - 2
 	if w < 1 {
 		return 1
 	}
@@ -63,7 +99,9 @@ func pvScenarioContentWidth() int {
 // SetupEditors starts nvim instances for source, snapshot, and scenario files.
 func SetupEditors() {
 	edH := pvEditorContentHeight()
-	edW := pvEditorContentWidth()
+	leftW := pvLeftEditorContentWidth()
+	rightW := pvRightEditorContentWidth()
+	scenH := pvScenarioContentHeight()
 	scenW := pvScenarioContentWidth()
 
 	wake := func() {
@@ -72,26 +110,26 @@ func SetupEditors() {
 		}
 	}
 
-	// Editor 1: source file.
+	// Editor 1: source file (left).
 	if pvInfo.SourceFile != "" {
 		path := filepath.Join(pvCompDir, pvInfo.SourceFile)
-		ed, err := NewEditor(path, edH, edW, wake)
+		ed, err := NewEditor(path, edH, leftW, wake)
 		if err == nil {
 			pvEditors[0] = ed
 		}
 	}
 
-	// Editor 2: snapshot file.
+	// Editor 2: snapshot file (right).
 	snapPath := filepath.Join(pvCompDir, "testdata", pvInfo.Name+".snapshot")
-	ed, err := NewEditor(snapPath, edH, edW, wake)
+	ed, err := NewEditor(snapPath, edH, rightW, wake)
 	if err == nil {
 		pvEditors[1] = ed
 	}
 
-	// Editor 3: scenario file.
+	// Editor 3: scenario file (full-width bottom).
 	if pvInfo.ScenarioFile != "" {
 		path := filepath.Join(pvCompDir, pvInfo.ScenarioFile)
-		ed, err := NewEditor(path, edH, scenW, wake)
+		ed, err := NewEditor(path, scenH, scenW, wake)
 		if err == nil {
 			pvEditors[2] = ed
 		}
@@ -111,17 +149,19 @@ func CleanupEditors() {
 // pvResizeEditors recalculates editor dimensions and resizes all PTYs.
 func pvResizeEditors() {
 	edH := pvEditorContentHeight()
-	edW := pvEditorContentWidth()
+	leftW := pvLeftEditorContentWidth()
+	rightW := pvRightEditorContentWidth()
+	scenH := pvScenarioContentHeight()
 	scenW := pvScenarioContentWidth()
 
 	if pvEditors[0] != nil {
-		pvEditors[0].Resize(edH, edW)
+		pvEditors[0].Resize(edH, leftW)
 	}
 	if pvEditors[1] != nil {
-		pvEditors[1].Resize(edH, edW)
+		pvEditors[1].Resize(edH, rightW)
 	}
 	if pvEditors[2] != nil {
-		pvEditors[2].Resize(edH, scenW)
+		pvEditors[2].Resize(scenH, scenW)
 	}
 }
 

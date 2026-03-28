@@ -200,11 +200,11 @@ func NewPreview(props PreviewProps) *tui.Component {
 					},
 					box0,
 					{
-						Kind:        layout.KindBox,
-						Direction:   "row",
-						FixedHeight: pvEditorHeight(),
-						CursorCol:   -1,
-						CursorRow:   -1,
+						Kind:      layout.KindBox,
+						Direction: "row",
+						FlexGrow:  1,
+						CursorCol: -1,
+						CursorRow: -1,
 						Children: []*layout.Input{
 							{
 								Kind:        layout.KindBox,
@@ -232,7 +232,7 @@ func NewPreview(props PreviewProps) *tui.Component {
 					},
 					{
 						Kind:        layout.KindBox,
-						FixedHeight: pvEditorHeight(),
+						FlexGrow:    1,
 						Border:      "single",
 						BorderTitle: pvScenarioTitle(),
 						CursorCol:   -1,

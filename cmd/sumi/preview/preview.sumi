@@ -2,10 +2,10 @@
 .panels { direction: row; }
 .actual { flex-grow: 1; border: single; border-color: cyan; padding: 0 1; }
 .expected { flex-grow: 1; border: single; border-color: blue; padding: 0 1; }
-.editors { direction: row; }
+.editors { direction: row; flex-grow: 1; }
 .editor-left { flex-grow: 1; border: single; border-color: magenta; }
 .editor-right { flex-grow: 1; border: single; border-color: magenta; }
-.scenario-editor { border: single; border-color: magenta; }
+.scenario-editor { flex-grow: 1; border: single; border-color: magenta; }
 .match { color: green; bold: true; }
 .diff { color: red; bold: true; }
 .no-snap { color: yellow; bold: true; }
@@ -180,9 +180,9 @@ func handleKey(evt input.Event) {
             <text class="info">  {pvScenarioName()}  Frame {current.Get()+1}/{pvStepCount()}  {pvStepName(current.Get())}</text>
         {/if}
     </box>
-    <box class="editors" height={pvEditorHeight()}>
+    <box class="editors">
         <box class="editor-left" border-title={pvSourceTitle()}></box>
         <box class="editor-right" border-title={pvSnapshotTitle()}></box>
     </box>
-    <box class="scenario-editor" height={pvEditorHeight()} border-title={pvScenarioTitle()}></box>
+    <box class="scenario-editor" border-title={pvScenarioTitle()}></box>
 </box>
