@@ -147,11 +147,12 @@ func generateComponent(comp *parsedComponent) error {
 	return writeOutput(comp.path, out)
 }
 
-// isSignalScript returns true if the script source uses signal.New or signal.From.
+// isSignalScript returns true if the script uses signals, has var props, or other reactive features.
 func isSignalScript(src string) bool {
-	return strings.Contains(src, "signal.New") || strings.Contains(src, "signal.From") ||
+	return strings.Contains(src, "signal.") ||
 		strings.Contains(src, "sumi.New") || strings.Contains(src, "sumi.From") ||
-		strings.Contains(src, "tui.Env")
+		strings.Contains(src, "tui.Env") ||
+		strings.Contains(src, "\nvar ") || strings.HasPrefix(strings.TrimSpace(src), "var ")
 }
 
 // generateSignalComponent generates code using the new component codegen.

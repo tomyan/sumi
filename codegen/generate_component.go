@@ -48,7 +48,18 @@ func GenerateComponent(doc *template.Document, scriptSrc string, stylesheet *sty
 	// Constructor function.
 	writeConstructor(&buf, opts.ComponentName, info, doc, scriptSrc, stylesheet, opts)
 
-	return format.Source(buf.Bytes())
+	// Replace render import placeholder based on actual usage in the generated body.
+	src := buf.String()
+	if strings.Contains(src, "render.") && !strings.Contains(src, "RENDER_IMPORT_PLACEHOLDER") {
+		// render is used and placeholder already replaced — shouldn't happen
+	}
+	if strings.Contains(src[strings.Index(src, "RENDER_IMPORT_PLACEHOLDER")+25:], "render.") {
+		src = strings.Replace(src, "\tRENDER_IMPORT_PLACEHOLDER\n", "\t\"github.com/tomyan/sumi/runtime/render\"\n", 1)
+	} else {
+		src = strings.Replace(src, "\tRENDER_IMPORT_PLACEHOLDER\n", "", 1)
+	}
+
+	return format.Source([]byte(src))
 }
 
 // writeComponentImports emits import declarations for a component.
@@ -70,10 +81,8 @@ func writeComponentImports(buf *bytes.Buffer, info *script.ScriptInfo, doc *temp
 		buf.WriteString("\t\"github.com/tomyan/sumi/runtime/input\"\n")
 	}
 	buf.WriteString("\t\"github.com/tomyan/sumi/runtime/layout\"\n")
-	if hasStyles(doc) {
-		buf.WriteString("\t\"github.com/tomyan/sumi/runtime/render\"\n")
-	}
-	if len(info.Signals) > 0 {
+	buf.WriteString("\tRENDER_IMPORT_PLACEHOLDER\n")
+	if len(info.Signals) > 0 || strings.Contains(info.Source, "signal.") {
 		buf.WriteString("\t\"github.com/tomyan/sumi/runtime/signal\"\n")
 	}
 	buf.WriteString("\t\"github.com/tomyan/sumi/runtime/tui\"\n")

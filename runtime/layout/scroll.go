@@ -1,9 +1,14 @@
 package layout
 
 // ScrollState tracks the scroll position of a scrollable container.
+// ContentHeight and ViewportHeight are populated by the layout engine
+// when the ScrollState is attached to an Input via the Scroll field.
 type ScrollState struct {
-	ScrollY int
-	ScrollX int
+	ScrollY        int
+	ScrollX        int
+	ContentHeight  int
+	ViewportHeight int
+	Follow         bool // when true, layout automatically scrolls to bottom
 }
 
 // ClampY ensures ScrollY is within [0, contentHeight - viewportHeight].
@@ -74,4 +79,22 @@ func (s *ScrollState) ScrollLeft() {
 	if s.ScrollX < 0 {
 		s.ScrollX = 0
 	}
+}
+
+// ScrollToBottom sets the scroll position to show the last entries.
+func (s *ScrollState) ScrollToBottom() {
+	max := s.ContentHeight - s.ViewportHeight
+	if max < 0 {
+		max = 0
+	}
+	s.ScrollY = max
+}
+
+// AtBottom returns true if the scroll position is at or past the bottom.
+func (s *ScrollState) AtBottom() bool {
+	max := s.ContentHeight - s.ViewportHeight
+	if max <= 0 {
+		return true
+	}
+	return s.ScrollY >= max
 }

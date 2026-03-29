@@ -235,3 +235,130 @@ func TestScrollStateScrollLeftClamped(t *testing.T) {
 		t.Errorf("ScrollX = %d, want 0 (clamped)", ss.ScrollX)
 	}
 }
+
+func TestScrollToBottom(t *testing.T) {
+	// Given a scroll state not at the bottom
+	ss := &ScrollState{ScrollY: 0, ContentHeight: 20, ViewportHeight: 10}
+
+	// When
+	ss.ScrollToBottom()
+
+	// Then scroll should be at the bottom
+	if ss.ScrollY != 10 {
+		t.Errorf("ScrollY = %d, want 10", ss.ScrollY)
+	}
+}
+
+func TestScrollToBottomContentFits(t *testing.T) {
+	// Given content that fits in the viewport
+	ss := &ScrollState{ScrollY: 0, ContentHeight: 5, ViewportHeight: 10}
+
+	// When
+	ss.ScrollToBottom()
+
+	// Then scroll stays at 0
+	if ss.ScrollY != 0 {
+		t.Errorf("ScrollY = %d, want 0", ss.ScrollY)
+	}
+}
+
+func TestAtBottomTrue(t *testing.T) {
+	// Given scroll is at the bottom
+	ss := &ScrollState{ScrollY: 10, ContentHeight: 20, ViewportHeight: 10}
+
+	// Then
+	if !ss.AtBottom() {
+		t.Error("expected AtBottom() = true")
+	}
+}
+
+func TestAtBottomFalse(t *testing.T) {
+	// Given scroll is not at the bottom
+	ss := &ScrollState{ScrollY: 5, ContentHeight: 20, ViewportHeight: 10}
+
+	// Then
+	if ss.AtBottom() {
+		t.Error("expected AtBottom() = false")
+	}
+}
+
+func TestLayoutPopulatesScrollState(t *testing.T) {
+	// Given a scroll container with a ScrollState attached
+	ss := &ScrollState{}
+	input := &Input{
+		Kind:     KindBox,
+		Overflow: "auto",
+		Scroll:   ss,
+		Children: []*Input{
+			{Kind: KindText, Content: "line1"},
+			{Kind: KindText, Content: "line2"},
+			{Kind: KindText, Content: "line3"},
+			{Kind: KindText, Content: "line4"},
+			{Kind: KindText, Content: "line5"},
+		},
+	}
+
+	// When laid out with height 3
+	Layout(input, 20, 3)
+
+	// Then ScrollState should have the box dimensions
+	if ss.ContentHeight != 5 {
+		t.Errorf("ContentHeight = %d, want 5", ss.ContentHeight)
+	}
+	if ss.ViewportHeight != 3 {
+		t.Errorf("ViewportHeight = %d, want 3", ss.ViewportHeight)
+	}
+}
+
+func TestLayoutFollowScrollsToBottom(t *testing.T) {
+	// Given a scroll state with Follow=true
+	ss := &ScrollState{Follow: true}
+	input := &Input{
+		Kind:     KindBox,
+		Overflow: "auto",
+		Scroll:   ss,
+		Children: []*Input{
+			{Kind: KindText, Content: "line1"},
+			{Kind: KindText, Content: "line2"},
+			{Kind: KindText, Content: "line3"},
+			{Kind: KindText, Content: "line4"},
+			{Kind: KindText, Content: "line5"},
+		},
+	}
+
+	// When laid out with height 3
+	box := Layout(input, 20, 3)
+
+	// Then scroll should be at the bottom
+	if box.ScrollY != 2 {
+		t.Errorf("box.ScrollY = %d, want 2 (5 content - 3 viewport)", box.ScrollY)
+	}
+	if ss.ScrollY != 2 {
+		t.Errorf("ss.ScrollY = %d, want 2", ss.ScrollY)
+	}
+}
+
+func TestLayoutAppliesScrollStateToBox(t *testing.T) {
+	// Given a scroll state scrolled to position 2
+	ss := &ScrollState{ScrollY: 2}
+	input := &Input{
+		Kind:     KindBox,
+		Overflow: "auto",
+		Scroll:   ss,
+		Children: []*Input{
+			{Kind: KindText, Content: "line1"},
+			{Kind: KindText, Content: "line2"},
+			{Kind: KindText, Content: "line3"},
+			{Kind: KindText, Content: "line4"},
+			{Kind: KindText, Content: "line5"},
+		},
+	}
+
+	// When
+	box := Layout(input, 20, 3)
+
+	// Then the box's ScrollY should match the ScrollState
+	if box.ScrollY != 2 {
+		t.Errorf("box.ScrollY = %d, want 2", box.ScrollY)
+	}
+}

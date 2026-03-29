@@ -11,10 +11,12 @@ import (
 
 // Component represents a sumi component — a layout tree with event handling and lifecycle.
 type Component struct {
-	Tree        *layout.Input
-	OnEvent     func(input.Event)
-	AfterLayout func() // called after layout to sync self-measurement signals
-	Dispose     func()
+	Tree         *layout.Input
+	OnEvent      func(input.Event)
+	AfterLayout  func() // called after layout to sync self-measurement signals
+	Dispose      func()
+	Dirty        bool        // set by AfterLayout to request a re-render pass
+	LayoutResult *layout.Box // set before AfterLayout with the latest layout result
 }
 
 // TestApp creates a test-mode App from a Component with the given viewport dimensions.
@@ -33,8 +35,13 @@ func TestApp(comp *Component, w, h int) *App {
 			termW, termH = term.GetSize(int(os.Stdin.Fd()))
 		}
 		tree := layout.Layout(comp.Tree, termW, termH)
+		comp.LayoutResult = tree
 		if comp.AfterLayout != nil {
 			comp.AfterLayout()
+		}
+		if comp.Dirty {
+			comp.Dirty = false
+			app.Dirty = true
 		}
 		buf := render.NewBuffer(termW, termH)
 		layout.RenderTree(buf, tree, nil)
@@ -89,8 +96,13 @@ func RunWithOptions(comp *Component, opts RunOptions) {
 		termW, termH := term.GetSize(int(os.Stdout.Fd()))
 		updateEnvSignals(termW, termH)
 		tree := layout.Layout(comp.Tree, termW, termH)
+		comp.LayoutResult = tree
 		if comp.AfterLayout != nil {
 			comp.AfterLayout()
+		}
+		if comp.Dirty {
+			comp.Dirty = false
+			app.Dirty = true
 		}
 		changes, scrollChanged := layout.DiffTrees(prevTree, tree)
 		if prevTree == nil || termW != prevW || termH != prevH || scrollChanged {
@@ -141,8 +153,13 @@ func Run(comp *Component) {
 		termW, termH := term.GetSize(int(os.Stdout.Fd()))
 		updateEnvSignals(termW, termH)
 		tree := layout.Layout(comp.Tree, termW, termH)
+		comp.LayoutResult = tree
 		if comp.AfterLayout != nil {
 			comp.AfterLayout()
+		}
+		if comp.Dirty {
+			comp.Dirty = false
+			app.Dirty = true
 		}
 		changes, scrollChanged := layout.DiffTrees(prevTree, tree)
 		if prevTree == nil || termW != prevW || termH != prevH || scrollChanged {

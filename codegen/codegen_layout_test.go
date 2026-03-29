@@ -258,3 +258,30 @@ func TestGenerateCallsLayoutRenderTreeFromLayoutTest(t *testing.T) {
 		t.Errorf("expected layout.RenderTree call in output:\n%s", src)
 	}
 }
+
+func TestGenerateBoxWithScrollAttribute(t *testing.T) {
+	// Given a box with a scroll expression attribute
+	doc := &template.Document{
+		Children: []template.Node{
+			&template.BoxElement{
+				Attributes: map[string]string{
+					"overflow": "auto",
+					"scroll":  "{myScroll}",
+				},
+				Children: []template.Node{textNode("content")},
+			},
+		},
+	}
+
+	// When
+	out, err := Generate(doc, nil, nil, "main")
+
+	// Then
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	src := string(out)
+	if !strings.Contains(src, "Scroll:") || !strings.Contains(src, "myScroll,") {
+		t.Errorf("expected Scroll: myScroll in output:\n%s", src)
+	}
+}

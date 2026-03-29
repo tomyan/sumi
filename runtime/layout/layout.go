@@ -48,6 +48,7 @@ type Input struct {
 	Border         string       // "single", "none", or ""
 	BorderTitle    string       // text to display in the top border edge
 	BorderCollapse bool        // when true, children share borders
+	Scroll         *ScrollState // if non-nil, layout populates and applies scroll state
 	Style          render.Style // resolved style for this node
 	Children       []*Input
 }
@@ -363,8 +364,10 @@ func layoutNode(input *Input, availW, availH int) *Box {
 	} else {
 		box.Width = contentW + insetW
 	}
-	// When scroll overflow is active, cap width to available (content scrolls horizontally)
-	if isScrollOverflow(input.Overflow) && box.Width > availW {
+	// Scroll viewport fills available width when no fixed width is set
+	if isScrollOverflow(input.Overflow) && input.FixedWidth == 0 && availW > box.Width {
+		box.Width = availW
+	} else if isScrollOverflow(input.Overflow) && box.Width > availW {
 		box.Width = availW
 	}
 	if input.FixedHeight > 0 {
@@ -388,6 +391,17 @@ func layoutNode(input *Input, availW, availH int) *Box {
 		box.NeedsScrollbar = needsScrollbar(input.Overflow, contentH, contentAvailH)
 		viewportW := box.Width - insetW
 		box.NeedsHorizontalScrollbar = needsHorizontalScrollbar(input.Overflow, contentW, viewportW)
+		// Populate and apply attached ScrollState.
+		if input.Scroll != nil {
+			input.Scroll.ContentHeight = contentH
+			input.Scroll.ViewportHeight = box.Height
+			if input.Scroll.Follow {
+				input.Scroll.ScrollToBottom()
+			}
+			input.Scroll.ClampY(contentH, box.Height)
+			box.ScrollY = input.Scroll.ScrollY
+			box.ScrollX = input.Scroll.ScrollX
+		}
 	}
 
 	// Apply relative offsets after size is computed (visual shift only)
