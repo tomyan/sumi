@@ -3,12 +3,11 @@ package layout
 // FindClickHandler walks the Input/Box tree and returns the OnClick handler
 // of the deepest Input whose Box contains (x, y). Returns nil if no handler
 // is found at the click position.
+//
+// Always walks into all children because fixed-position descendants may have
+// viewport-relative coordinates outside the parent's bounds.
 func FindClickHandler(input *Input, box *Box, x, y int) func() {
-	if box == nil || input == nil {
-		return nil
-	}
-	hit := x >= box.X && x < box.X+box.Width && y >= box.Y && y < box.Y+box.Height
-	if !hit {
+	if input == nil {
 		return nil
 	}
 
@@ -18,7 +17,7 @@ func FindClickHandler(input *Input, box *Box, x, y int) func() {
 			continue
 		}
 		var childBox *Box
-		if i < len(box.Children) && box.Children[i] != nil {
+		if box != nil && i < len(box.Children) && box.Children[i] != nil {
 			childBox = box.Children[i]
 		}
 		if h := FindClickHandler(child, childBox, x, y); h != nil {
@@ -26,8 +25,15 @@ func FindClickHandler(input *Input, box *Box, x, y int) func() {
 		}
 	}
 
-	// No deeper handler — return this node's handler (may be nil).
-	return input.OnClick
+	// This node is a click target only if the click is within its bounds.
+	if box == nil {
+		return nil
+	}
+	hit := x >= box.X && x < box.X+box.Width && y >= box.Y && y < box.Y+box.Height
+	if hit {
+		return input.OnClick
+	}
+	return nil
 }
 
 // HasClickHandlers returns true if any node in the tree has an OnClick handler.

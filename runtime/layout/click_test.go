@@ -147,6 +147,40 @@ func TestHasClickHandlersReturnsFalseWhenNone(t *testing.T) {
 	}
 }
 
+func TestFindClickHandlerReachesFixedChildInZeroSizedParent(t *testing.T) {
+	// Given a zero-sized parent with a fixed-position child that covers the viewport
+	backdropClicked := false
+
+	parent := &Input{
+		Kind: KindBox,
+		Children: []*Input{
+			{
+				Kind:     KindBox,
+				Position: "fixed",
+				OnClick:  func() { backdropClicked = true },
+			},
+		},
+	}
+	parentBox := &Box{
+		X: 0, Y: 0, Width: 0, Height: 0, // zero-sized (fixed child removed from flow)
+		Children: []*Box{
+			{X: 0, Y: 0, Width: 80, Height: 24}, // fixed child covers viewport
+		},
+	}
+
+	// When clicking anywhere in the viewport
+	handler := FindClickHandler(parent, parentBox, 40, 12)
+
+	// Then the fixed child's handler is found
+	if handler == nil {
+		t.Fatal("expected handler for fixed child, got nil")
+	}
+	handler()
+	if !backdropClicked {
+		t.Error("expected backdrop handler to be called")
+	}
+}
+
 func TestFindClickHandlerSkipsNilChildren(t *testing.T) {
 	// Given a parent with nil children (display:none placeholders)
 	clicked := false
