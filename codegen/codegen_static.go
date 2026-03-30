@@ -8,30 +8,19 @@ import (
 )
 
 // writeImports writes the import block for the generated code.
-// hasEvents indicates whether the generated code references input.Event types
-// (reactive path with event handlers).
 func writeImports(buf *bytes.Buffer, hasExprs bool, hasEvents bool, hasTime bool) {
 	buf.WriteString("import (\n")
-	if hasExprs {
-		buf.WriteString("\t\"fmt\"\n")
-	}
 	buf.WriteString("\t\"os\"\n")
 	if hasTime {
 		buf.WriteString("\t\"time\"\n")
 	}
 	buf.WriteString("\n")
-	if hasEvents {
-		buf.WriteString("\t\"github.com/tomyan/sumi/runtime/input\"\n")
-	}
-	buf.WriteString("\t\"github.com/tomyan/sumi/runtime/layout\"\n")
-	buf.WriteString("\t\"github.com/tomyan/sumi/runtime/render\"\n")
-	buf.WriteString("\t\"github.com/tomyan/sumi/runtime/term\"\n")
-	buf.WriteString("\t\"github.com/tomyan/sumi/runtime/tui\"\n")
+	buf.WriteString("\tsumi \"github.com/tomyan/sumi/runtime/prelude\"\n")
 	buf.WriteString(")\n\n")
 }
 
 // writeStaticBody generates the static (non-reactive) function body.
-// Static apps have no state but still handle terminal resize and quit via tui.App.
+// Static apps have no state but still handle terminal resize and quit via sumi.App.
 func writeStaticBody(buf *bytes.Buffer, doc *template.Document, stylesheet *style.Stylesheet) {
 	writeStaticSharedSetup(buf, doc, stylesheet)
 	buf.WriteString("\tapp.Run()\n")
@@ -45,10 +34,10 @@ func writeStaticCreateAppBody(buf *bytes.Buffer, doc *template.Document, stylesh
 
 // writeStaticSharedSetup writes the shared setup for static Run and CreateApp.
 func writeStaticSharedSetup(buf *bytes.Buffer, doc *template.Document, stylesheet *style.Stylesheet) {
-	buf.WriteString("\tvar app *tui.App\n")
+	buf.WriteString("\tvar app *sumi.App\n")
 	writeLayoutTree(buf, doc, stylesheet, false, nil)
 	writeStaticRenderFunc(buf)
-	buf.WriteString("\tapp = &tui.App{\n")
+	buf.WriteString("\tapp = &sumi.App{\n")
 	buf.WriteString("\t\tOnRender: doRender,\n")
 	buf.WriteString("\t}\n")
 }
@@ -57,9 +46,9 @@ func writeStaticSharedSetup(buf *bytes.Buffer, doc *template.Document, styleshee
 func writeStaticRenderFunc(buf *bytes.Buffer) {
 	buf.WriteString("\tdoRender := func() {\n")
 	writeTermSizeWithTestMode(buf)
-	buf.WriteString("\t\ttree := layout.Layout(root, termW, termH)\n")
-	buf.WriteString("\t\tbuf := render.NewBuffer(termW, termH)\n")
-	buf.WriteString("\t\tlayout.RenderTree(buf, tree, nil)\n")
+	buf.WriteString("\t\ttree := sumi.Layout(root, termW, termH)\n")
+	buf.WriteString("\t\tbuf := sumi.NewBuffer(termW, termH)\n")
+	buf.WriteString("\t\tsumi.RenderTree(buf, tree, nil)\n")
 	writeBufferOutputWithTestMode(buf)
 	buf.WriteString("\t}\n\n")
 }

@@ -24,7 +24,7 @@ func Generate(doc *template.Document, sc *script.Script, stylesheet *style.Style
 	writeStaticBody(&buf, doc, stylesheet)
 	buf.WriteString("}\n\n")
 
-	buf.WriteString("func CreateApp(w, h int) *tui.App {\n")
+	buf.WriteString("func CreateApp(w, h int) *sumi.App {\n")
 	writeStaticCreateAppBody(&buf, doc, stylesheet)
 	buf.WriteString("}\n")
 

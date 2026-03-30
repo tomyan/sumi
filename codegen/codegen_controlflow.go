@@ -20,10 +20,10 @@ func hasDynamicChildren(children []template.Node) bool {
 	return false
 }
 
-// writeDynamicChildrenSync writes a sync assignment: varName.Children = func() []*layout.Input{...}().
+// writeDynamicChildrenSync writes a sync assignment: varName.Children = func() []*sumi.Input{...}().
 func writeDynamicChildrenSync(buf *bytes.Buffer, varName string, children []template.Node, stylesheet *style.Stylesheet, signals map[string]bool) {
-	fmt.Fprintf(buf, "\t\t%s.Children = func() []*layout.Input {\n", varName)
-	fmt.Fprintf(buf, "\t\t\tvar cs []*layout.Input\n")
+	fmt.Fprintf(buf, "\t\t%s.Children = func() []*sumi.Input {\n", varName)
+	fmt.Fprintf(buf, "\t\t\tvar cs []*sumi.Input\n")
 	for _, child := range children {
 		writeDynamicChild(buf, child, stylesheet, 3, "\t\t\t", signals)
 	}
@@ -33,8 +33,8 @@ func writeDynamicChildrenSync(buf *bytes.Buffer, varName string, children []temp
 
 // writeDynamicChildren emits an IIFE that builds the children slice dynamically.
 func writeDynamicChildren(buf *bytes.Buffer, children []template.Node, stylesheet *style.Stylesheet, indent int, tabs string, signals map[string]bool) {
-	fmt.Fprintf(buf, "%s\tChildren: func() []*layout.Input {\n", tabs)
-	fmt.Fprintf(buf, "%s\t\tvar cs []*layout.Input\n", tabs)
+	fmt.Fprintf(buf, "%s\tChildren: func() []*sumi.Input {\n", tabs)
+	fmt.Fprintf(buf, "%s\t\tvar cs []*sumi.Input\n", tabs)
 	for _, child := range children {
 		writeDynamicChild(buf, child, stylesheet, indent+2, tabs+"\t\t", signals)
 	}
@@ -50,21 +50,38 @@ func writeDynamicChild(buf *bytes.Buffer, child template.Node, stylesheet *style
 	case *template.ForNode:
 		writeForBlock(buf, n, stylesheet, indent, tabs, signals)
 	default:
-		writeAppendNode(buf, child, stylesheet, indent, tabs)
+		writeAppendNode(buf, child, stylesheet, indent, tabs, signals)
 	}
 }
 
-// writeAppendNode emits cs = append(cs, &layout.Input{...}) for a static child.
-func writeAppendNode(buf *bytes.Buffer, child template.Node, stylesheet *style.Stylesheet, indent int, tabs string) {
+// writeAppendNode emits cs = append(cs, &sumi.Input{...}) for a static child.
+func writeAppendNode(buf *bytes.Buffer, child template.Node, stylesheet *style.Stylesheet, indent int, tabs string, signals map[string]bool) {
+	var ext *extractionCtx
+	if len(signals) > 0 {
+		ext = &extractionCtx{signals: signals, inDynamic: true}
+	}
 	var nodeBuf bytes.Buffer
-	writeInputNode(&nodeBuf, child, stylesheet, 0, nil)
+	writeInputNode(&nodeBuf, child, stylesheet, 0, ext)
 	nodeStr := trimTrailingComma(nodeBuf.String())
 	// writeInputNode emits "{...}" for slice literal context.
-	// For append, we need "&layout.Input{...}".
+	// For append, we need "&sumi.Input{...}".
 	if strings.HasPrefix(strings.TrimSpace(nodeStr), "{") {
-		nodeStr = "&layout.Input" + strings.TrimSpace(nodeStr)
+		nodeStr = "&sumi.Input" + strings.TrimSpace(nodeStr)
 	}
 	fmt.Fprintf(buf, "%scs = append(cs, %s)\n", tabs, nodeStr)
+}
+
+// writeAppendTextWithSignals emits a text node with signal auto-unwrapping for dynamic children.
+func writeAppendTextWithSignals(buf *bytes.Buffer, n *template.TextElement, stylesheet *style.Stylesheet, signals map[string]bool) {
+	content := contentExprSignals(n.Parts, signals)
+	props := resolveProps(stylesheet, "text", n.Attributes)
+	buf.WriteString("&sumi.Input{\n")
+	buf.WriteString("\t\tKind: sumi.KindText,\n")
+	fmt.Fprintf(buf, "\t\tContent: %s,\n", content)
+	if props != nil {
+		writeStyleLiteral(buf, "\t", props)
+	}
+	buf.WriteString("\t}")
 }
 
 func trimTrailingComma(s string) string {

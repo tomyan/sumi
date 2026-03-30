@@ -1,60 +1,55 @@
 package button
 
 import (
-	"fmt"
-
-	"github.com/tomyan/sumi/runtime/input"
-	"github.com/tomyan/sumi/runtime/layout"
-	"github.com/tomyan/sumi/runtime/signal"
-	"github.com/tomyan/sumi/runtime/tui"
+	sumi "github.com/tomyan/sumi/runtime/prelude"
 )
 
 type AppProps struct {
 }
 
-func NewApp(props AppProps) *tui.Component {
-	count := signal.New(0)
+func NewApp(props AppProps) *sumi.Component {
+	count := sumi.New(0)
 
-	handleKey := func(evt input.Event) {
-		if evt.Kind == input.EventSignal {
-			tui.Quit()
+	handleKey := func(evt sumi.Event) {
+		if evt.Kind == sumi.EventSignal {
+			sumi.Quit()
 			return
 		}
 		if evt.Ctrl && evt.Rune == 'c' {
-			tui.Quit()
+			sumi.Quit()
 			return
 		}
-		if evt.Kind == input.EventKey {
+		if evt.Kind == sumi.EventKey {
 			count.Update(func(n int) int { return n + 1 })
 		}
 	}
 
-	node0 := &layout.Input{
-		Kind:    layout.KindText,
-		Content: fmt.Sprintf("Count: %v", count.Get()),
+	node0 := &sumi.Input{
+		Kind:    sumi.KindText,
+		Content: sumi.Sprintf("Count: %v", count.Get()),
 	}
-	root := &layout.Input{
-		Kind:      layout.KindBox,
+	root := &sumi.Input{
+		Kind:      sumi.KindBox,
 		Direction: "column",
 		CursorCol: -1,
 		CursorRow: -1,
-		Children: []*layout.Input{
+		Children: []*sumi.Input{
 			{
-				Kind:      layout.KindBox,
+				Kind:      sumi.KindBox,
 				CursorCol: -1,
 				CursorRow: -1,
-				Children: []*layout.Input{
+				Children: []*sumi.Input{
 					node0,
 				},
 			},
 		},
 	}
 
-	signal.Effect(func() {
-		node0.Content = fmt.Sprintf("Count: %v", count.Get())
+	sumi.Effect(func() {
+		node0.Content = sumi.Sprintf("Count: %v", count.Get())
 	})
 
-	return &tui.Component{
+	return &sumi.Component{
 		Tree:    root,
 		OnEvent: handleKey,
 	}

@@ -48,13 +48,13 @@ func TestGenerateTextElementUsesLayout(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 	src := string(out)
-	if !strings.Contains(src, "layout.KindText") {
+	if !strings.Contains(src, "sumi.KindText") {
 		t.Errorf("expected layout.KindText in output:\n%s", src)
 	}
 	if !strings.Contains(src, `Content: "Hello"`) {
 		t.Errorf("expected Content: \"Hello\" in output:\n%s", src)
 	}
-	if !strings.Contains(src, "layout.Layout(") {
+	if !strings.Contains(src, "sumi.Layout(") {
 		t.Errorf("expected layout.Layout call in output:\n%s", src)
 	}
 }
@@ -95,17 +95,17 @@ func TestGenerateContainsCorrectImports(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 	src := string(out)
-	if !strings.Contains(src, `"github.com/tomyan/sumi/runtime/render"`) {
-		t.Errorf("expected runtime/render import in output:\n%s", src)
+	if !strings.Contains(src, `"github.com/tomyan/sumi/runtime/prelude"`) {
+		t.Errorf("expected runtime/prelude import in output:\n%s", src)
 	}
-	if !strings.Contains(src, `"github.com/tomyan/sumi/runtime/layout"`) {
-		t.Errorf("expected runtime/layout import in output:\n%s", src)
+	if !strings.Contains(src, `"github.com/tomyan/sumi/runtime/prelude"`) {
+		t.Errorf("expected runtime/prelude import in output:\n%s", src)
 	}
 	if !strings.Contains(src, `"os"`) {
 		t.Errorf("expected os import in output:\n%s", src)
 	}
-	if !strings.Contains(src, `"github.com/tomyan/sumi/runtime/tui"`) {
-		t.Errorf("expected runtime/tui import in output:\n%s", src)
+	if !strings.Contains(src, `"github.com/tomyan/sumi/runtime/prelude"`) {
+		t.Errorf("expected runtime/prelude import in output:\n%s", src)
 	}
 }
 
@@ -123,7 +123,7 @@ func TestGenerateReferencesRuntimeRender(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 	src := string(out)
-	if !strings.Contains(src, "render.NewBuffer(") {
+	if !strings.Contains(src, "sumi.NewBuffer(") {
 		t.Errorf("expected render.NewBuffer call in output:\n%s", src)
 	}
 }
@@ -142,7 +142,7 @@ func TestStaticCodeUsesApp(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 	src := string(out)
-	if !strings.Contains(src, "tui.App") {
+	if !strings.Contains(src, "sumi.App") {
 		t.Errorf("expected tui.App in static output:\n%s", src)
 	}
 	if !strings.Contains(src, "app.Run()") {
@@ -171,7 +171,7 @@ func TestStaticCodeNoInlineEventLoop(t *testing.T) {
 	if strings.Contains(src, "evt.Rune == 'q'") {
 		t.Errorf("should not have hardcoded 'q' quit in output:\n%s", src)
 	}
-	if strings.Contains(src, "input.EnableRawMode") {
+	if strings.Contains(src, "sumi.EnableRawMode") {
 		t.Errorf("should not have EnableRawMode in generated code (moved to runtime):\n%s", src)
 	}
 }

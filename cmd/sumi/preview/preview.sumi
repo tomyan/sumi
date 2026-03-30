@@ -17,10 +17,10 @@
 </style>
 
 <script>
-current := signal.New(0)
-matchStatus := signal.New(0)
-interactive := signal.New(false)
-focusState := signal.New(0)
+current := sumi.New(0)
+matchStatus := sumi.New(0)
+interactive := sumi.New(false)
+focusState := sumi.New(0)
 
 func doStep(index int) {
     pvStepTo(index)
@@ -29,7 +29,7 @@ func doStep(index int) {
 }
 
 func doCommand(cmd string) {
-    if cmd == "quit" { app.Quit(); return }
+    if cmd == "quit" { sumi.Quit(); return }
     if cmd == "exit" {
         if pvFocus == FocusInteractive {
             pvExitInteractive()
@@ -63,8 +63,8 @@ func doCommand(cmd string) {
     }
 }
 
-func handleKey(evt input.Event) {
-    if evt.Kind == input.EventSignal { app.Quit(); return }
+func handleKey(evt sumi.Event) {
+    if evt.Kind == sumi.EventSignal { sumi.Quit(); return }
 
     if pvPrefixPending {
         pvPrefixPending = false
@@ -83,7 +83,7 @@ func handleKey(evt input.Event) {
             pvPrefixPending = true
             return
         }
-        if (evt.Kind == input.EventSpecial && evt.Special == input.KeyEscape) || evt.Alt {
+        if (evt.Kind == sumi.EventSpecial && evt.Special == sumi.KeyEscape) || evt.Alt {
             pvExitInteractive()
             interactive.Set(false)
             pvFocus = FocusControls
@@ -109,24 +109,24 @@ func handleKey(evt input.Event) {
         return
     }
 
-    if evt.Rune == 'q' || (evt.Ctrl && evt.Rune == 'c') { app.Quit(); return }
+    if evt.Rune == 'q' || (evt.Ctrl && evt.Rune == 'c') { sumi.Quit(); return }
 
-    if (evt.Kind == input.EventSpecial && evt.Special == input.KeyRight) || (evt.Kind == input.EventKey && (evt.Rune == 'l' || evt.Rune == '\r')) {
+    if (evt.Kind == sumi.EventSpecial && evt.Special == sumi.KeyRight) || (evt.Kind == sumi.EventKey && (evt.Rune == 'l' || evt.Rune == '\r')) {
         if current.Get() < pvStepCount()-1 { doStep(current.Get() + 1) }
         return
     }
-    if (evt.Kind == input.EventSpecial && evt.Special == input.KeyLeft) || (evt.Kind == input.EventKey && evt.Rune == 'h') {
+    if (evt.Kind == sumi.EventSpecial && evt.Special == sumi.KeyLeft) || (evt.Kind == sumi.EventKey && evt.Rune == 'h') {
         if current.Get() > 0 { doStep(current.Get() - 1) }
         return
     }
 
-    if evt.Kind == input.EventKey && evt.Rune == 'u' {
+    if evt.Kind == sumi.EventKey && evt.Rune == 'u' {
         pvUpdateSnapshot(current.Get())
         matchStatus.Set(pvMatches(current.Get()))
         return
     }
 
-    if evt.Kind == input.EventKey && evt.Rune == 'i' {
+    if evt.Kind == sumi.EventKey && evt.Rune == 'i' {
         pvEnterInteractive()
         interactive.Set(true)
         pvFocus = FocusInteractive
@@ -134,7 +134,7 @@ func handleKey(evt input.Event) {
         return
     }
 
-    if evt.Kind == input.EventKey && (evt.Rune == '1' || evt.Rune == '2' || evt.Rune == '3') {
+    if evt.Kind == sumi.EventKey && (evt.Rune == '1' || evt.Rune == '2' || evt.Rune == '3') {
         pvFocus = focusForDigit(evt.Rune)
         focusState.Set(int(pvFocus))
         return

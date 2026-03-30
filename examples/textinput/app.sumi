@@ -18,11 +18,11 @@
 </style>
 
 <script>
-name := signal.New("")
+name := sumi.New("")
 
-func handleKey(evt input.Event) {
-    if evt.Kind == input.EventSignal { app.Quit(); return }
-    if evt.Ctrl && evt.Rune == 'c' { app.Quit(); return }
+func handleKey(evt sumi.Event) {
+    if evt.Kind == sumi.EventSignal { sumi.Quit(); return }
+    if evt.Ctrl && evt.Rune == 'c' { sumi.Quit(); return }
 }
 </script>
 

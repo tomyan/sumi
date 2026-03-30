@@ -5,23 +5,23 @@ var inputType string = ""
 var maxlength int = 0
 var readonly bool = false
 var strip bool = false
-viewOffset := signal.New(0)
-focused := signal.New(false)
-cursor := signal.New(0)
-selfW := signal.New(0)
-selfX := signal.New(0)
-selfY := signal.New(0)
-contentW := signal.From(func() int { return selfW.Get() })
-killBuffer := signal.New("")
-undoValues := signal.New([]string{})
-undoCursors := signal.New([]int{})
-selAnchor := signal.New(-1)
-lastClickTime := signal.New(int64(0))
-lastClickX := signal.New(-1)
-mouseDragging := signal.New(false)
-wordDragging := signal.New(false)
-wordDragStart := signal.New(0)
-wordDragEnd := signal.New(0)
+viewOffset := sumi.New(0)
+focused := sumi.New(false)
+cursor := sumi.New(0)
+selfW := sumi.New(0)
+selfX := sumi.New(0)
+selfY := sumi.New(0)
+contentW := sumi.From(func() int { return selfW.Get() })
+killBuffer := sumi.New("")
+undoValues := sumi.New([]string{})
+undoCursors := sumi.New([]int{})
+selAnchor := sumi.New(-1)
+lastClickTime := sumi.New(int64(0))
+lastClickX := sumi.New(-1)
+mouseDragging := sumi.New(false)
+wordDragging := sumi.New(false)
+wordDragStart := sumi.New(0)
+wordDragEnd := sumi.New(0)
 
 func adjustView() {
     if contentW.Get() <= 0 {
@@ -313,13 +313,13 @@ func transposeChars() {
     value = value[:cursor.Get()-2] + string(b) + string(a) + value[cursor.Get():]
 }
 
-func handleEvent(evt input.Event) {
-    if evt.Kind == input.EventFocus {
+func handleEvent(evt sumi.Event) {
+    if evt.Kind == sumi.EventFocus {
         focused.Set(true)
         stopPropagation()
         return
     }
-    if evt.Kind == input.EventBlur {
+    if evt.Kind == sumi.EventBlur {
         focused.Set(false)
         clearSelection()
         if strip && !readonly {
@@ -337,7 +337,7 @@ func handleEvent(evt input.Event) {
         stopPropagation()
         return
     }
-    if evt.Kind == input.EventPaste {
+    if evt.Kind == sumi.EventPaste {
         if readonly {
             stopPropagation()
             return
@@ -363,7 +363,7 @@ func handleEvent(evt input.Event) {
         stopPropagation()
         return
     }
-    if evt.Kind == input.EventMouse && evt.Mouse.Action == input.MouseRelease {
+    if evt.Kind == sumi.EventMouse && evt.Mouse.Action == input.MouseRelease {
         if mouseDragging.Get() || wordDragging.Get() {
             mouseDragging.Set(false)
             wordDragging.Set(false)
@@ -374,7 +374,7 @@ func handleEvent(evt input.Event) {
             return
         }
     }
-    if evt.Kind == input.EventMouse && evt.Mouse.Action == input.MouseMotion && wordDragging.Get() {
+    if evt.Kind == sumi.EventMouse && evt.Mouse.Action == input.MouseMotion && wordDragging.Get() {
         pos := mousePosToTextPos(evt.Mouse.X)
         wl := wordLeftFrom(pos)
         wr := wordEndFrom(pos)
@@ -389,14 +389,14 @@ func handleEvent(evt input.Event) {
         stopPropagation()
         return
     }
-    if evt.Kind == input.EventMouse && evt.Mouse.Action == input.MouseMotion && mouseDragging.Get() {
+    if evt.Kind == sumi.EventMouse && evt.Mouse.Action == input.MouseMotion && mouseDragging.Get() {
         pos := mousePosToTextPos(evt.Mouse.X)
         cursor.Set(pos)
         adjustView()
         stopPropagation()
         return
     }
-    if evt.Kind == input.EventMouse && evt.Mouse.Action == input.MousePress && evt.Mouse.Button == input.ButtonLeft {
+    if evt.Kind == sumi.EventMouse && evt.Mouse.Action == input.MousePress && evt.Mouse.Button == input.ButtonLeft {
         clickPos := mousePosToTextPos(evt.Mouse.X)
         now := time.Now().UnixMilli()
         if evt.Shift {
@@ -432,7 +432,7 @@ func handleEvent(evt input.Event) {
         stopPropagation()
         return
     }
-    if evt.Kind == input.EventMouse && evt.Mouse.Action == input.MouseScroll {
+    if evt.Kind == sumi.EventMouse && evt.Mouse.Action == input.MouseScroll {
         if evt.Mouse.Button == input.ScrollUp && viewOffset.Get() > 0 {
             viewOffset.Set(viewOffset.Get() - 3)
             if viewOffset.Get() < 0 {
@@ -450,7 +450,7 @@ func handleEvent(evt input.Event) {
             return
         }
     }
-    if (evt.Special == input.KeyBackspace || evt.Special == input.KeyDelete) && selAnchor.Get() >= 0 {
+    if (evt.Special == sumi.KeyBackspace || evt.Special == sumi.KeyDelete) && selAnchor.Get() >= 0 {
         if readonly {
             stopPropagation()
             return
@@ -459,7 +459,7 @@ func handleEvent(evt input.Event) {
         stopPropagation()
         return
     }
-    if evt.Special == input.KeyBackspace && evt.Ctrl && cursor.Get() > 0 {
+    if evt.Special == sumi.KeyBackspace && evt.Ctrl && cursor.Get() > 0 {
         if readonly {
             stopPropagation()
             return
@@ -473,7 +473,7 @@ func handleEvent(evt input.Event) {
         stopPropagation()
         return
     }
-    if evt.Special == input.KeyBackspace && cursor.Get() > 0 {
+    if evt.Special == sumi.KeyBackspace && cursor.Get() > 0 {
         if readonly {
             stopPropagation()
             return
@@ -485,7 +485,7 @@ func handleEvent(evt input.Event) {
         stopPropagation()
         return
     }
-    if evt.Special == input.KeyDelete && evt.Ctrl && cursor.Get() < len(value) {
+    if evt.Special == sumi.KeyDelete && evt.Ctrl && cursor.Get() < len(value) {
         if readonly {
             stopPropagation()
             return
@@ -498,7 +498,7 @@ func handleEvent(evt input.Event) {
         stopPropagation()
         return
     }
-    if evt.Special == input.KeyDelete && cursor.Get() < len(value) {
+    if evt.Special == sumi.KeyDelete && cursor.Get() < len(value) {
         if readonly {
             stopPropagation()
             return
@@ -509,126 +509,126 @@ func handleEvent(evt input.Event) {
         stopPropagation()
         return
     }
-    if evt.Special == input.KeyLeft && evt.Shift && evt.Ctrl {
+    if evt.Special == sumi.KeyLeft && evt.Shift && evt.Ctrl {
         startSelection()
         cursor.Set(wordLeft())
         adjustView()
         stopPropagation()
         return
     }
-    if evt.Special == input.KeyLeft && evt.Shift && cursor.Get() > 0 {
+    if evt.Special == sumi.KeyLeft && evt.Shift && cursor.Get() > 0 {
         startSelection()
         cursor.Set(cursor.Get() - 1)
         adjustView()
         stopPropagation()
         return
     }
-    if evt.Special == input.KeyRight && evt.Shift && evt.Ctrl {
+    if evt.Special == sumi.KeyRight && evt.Shift && evt.Ctrl {
         startSelection()
         cursor.Set(wordRight())
         adjustView()
         stopPropagation()
         return
     }
-    if evt.Special == input.KeyRight && evt.Shift && cursor.Get() < len(value) {
+    if evt.Special == sumi.KeyRight && evt.Shift && cursor.Get() < len(value) {
         startSelection()
         cursor.Set(cursor.Get() + 1)
         adjustView()
         stopPropagation()
         return
     }
-    if evt.Special == input.KeyHome && evt.Shift {
+    if evt.Special == sumi.KeyHome && evt.Shift {
         startSelection()
         cursor.Set(0)
         adjustView()
         stopPropagation()
         return
     }
-    if evt.Special == input.KeyEnd && evt.Shift {
+    if evt.Special == sumi.KeyEnd && evt.Shift {
         startSelection()
         cursor.Set(len(value))
         adjustView()
         stopPropagation()
         return
     }
-    if evt.Special == input.KeyLeft && evt.Ctrl && cursor.Get() > 0 {
+    if evt.Special == sumi.KeyLeft && evt.Ctrl && cursor.Get() > 0 {
         clearSelection()
         cursor.Set(wordLeft())
         adjustView()
         stopPropagation()
         return
     }
-    if evt.Special == input.KeyLeft && cursor.Get() > 0 {
+    if evt.Special == sumi.KeyLeft && cursor.Get() > 0 {
         clearSelection()
         cursor.Set(cursor.Get() - 1)
         adjustView()
         stopPropagation()
         return
     }
-    if evt.Special == input.KeyRight && evt.Ctrl && cursor.Get() < len(value) {
+    if evt.Special == sumi.KeyRight && evt.Ctrl && cursor.Get() < len(value) {
         clearSelection()
         cursor.Set(wordRight())
         adjustView()
         stopPropagation()
         return
     }
-    if evt.Special == input.KeyRight && cursor.Get() < len(value) {
+    if evt.Special == sumi.KeyRight && cursor.Get() < len(value) {
         clearSelection()
         cursor.Set(cursor.Get() + 1)
         adjustView()
         stopPropagation()
         return
     }
-    if evt.Special == input.KeyHome {
+    if evt.Special == sumi.KeyHome {
         clearSelection()
         cursor.Set(0)
         adjustView()
         stopPropagation()
         return
     }
-    if evt.Special == input.KeyEnd {
+    if evt.Special == sumi.KeyEnd {
         clearSelection()
         cursor.Set(len(value))
         adjustView()
         stopPropagation()
         return
     }
-    if evt.Kind == input.EventKey && evt.Ctrl && evt.Rune == 'a' {
+    if evt.Kind == sumi.EventKey && evt.Ctrl && evt.Rune == 'a' {
         selAnchor.Set(0)
         cursor.Set(len(value))
         adjustView()
         stopPropagation()
         return
     }
-    if evt.Kind == input.EventKey && evt.Ctrl && evt.Rune == 'e' {
+    if evt.Kind == sumi.EventKey && evt.Ctrl && evt.Rune == 'e' {
         clearSelection()
         cursor.Set(len(value))
         adjustView()
         stopPropagation()
         return
     }
-    if evt.Kind == input.EventKey && evt.Ctrl && evt.Rune == 'f' && cursor.Get() < len(value) {
+    if evt.Kind == sumi.EventKey && evt.Ctrl && evt.Rune == 'f' && cursor.Get() < len(value) {
         clearSelection()
         cursor.Set(cursor.Get() + 1)
         adjustView()
         stopPropagation()
         return
     }
-    if evt.Kind == input.EventKey && evt.Ctrl && evt.Rune == 'b' && cursor.Get() > 0 {
+    if evt.Kind == sumi.EventKey && evt.Ctrl && evt.Rune == 'b' && cursor.Get() > 0 {
         clearSelection()
         cursor.Set(cursor.Get() - 1)
         adjustView()
         stopPropagation()
         return
     }
-    if evt.Kind == input.EventKey && evt.Ctrl && evt.Rune == 'c' && selAnchor.Get() >= 0 {
+    if evt.Kind == sumi.EventKey && evt.Ctrl && evt.Rune == 'c' && selAnchor.Get() >= 0 {
         selected := value[selStart():selEnd()]
         killText(selected)
         render.CopyToClipboard(os.Stdout, selected)
         stopPropagation()
         return
     }
-    if evt.Kind == input.EventKey && evt.Ctrl && evt.Rune == 'x' && selAnchor.Get() >= 0 {
+    if evt.Kind == sumi.EventKey && evt.Ctrl && evt.Rune == 'x' && selAnchor.Get() >= 0 {
         if readonly {
             selected := value[selStart():selEnd()]
             killText(selected)
@@ -643,7 +643,7 @@ func handleEvent(evt input.Event) {
         stopPropagation()
         return
     }
-    if evt.Kind == input.EventKey && evt.Ctrl && evt.Rune == 'd' && cursor.Get() < len(value) {
+    if evt.Kind == sumi.EventKey && evt.Ctrl && evt.Rune == 'd' && cursor.Get() < len(value) {
         if readonly {
             stopPropagation()
             return
@@ -654,7 +654,7 @@ func handleEvent(evt input.Event) {
         stopPropagation()
         return
     }
-    if evt.Kind == input.EventKey && evt.Ctrl && evt.Rune == 'k' && cursor.Get() < len(value) {
+    if evt.Kind == sumi.EventKey && evt.Ctrl && evt.Rune == 'k' && cursor.Get() < len(value) {
         if readonly {
             stopPropagation()
             return
@@ -666,7 +666,7 @@ func handleEvent(evt input.Event) {
         stopPropagation()
         return
     }
-    if evt.Kind == input.EventKey && evt.Ctrl && evt.Rune == 'u' && cursor.Get() > 0 {
+    if evt.Kind == sumi.EventKey && evt.Ctrl && evt.Rune == 'u' && cursor.Get() > 0 {
         if readonly {
             stopPropagation()
             return
@@ -679,7 +679,7 @@ func handleEvent(evt input.Event) {
         stopPropagation()
         return
     }
-    if evt.Kind == input.EventKey && evt.Ctrl && evt.Rune == 'w' && cursor.Get() > 0 {
+    if evt.Kind == sumi.EventKey && evt.Ctrl && evt.Rune == 'w' && cursor.Get() > 0 {
         if readonly {
             stopPropagation()
             return
@@ -693,7 +693,7 @@ func handleEvent(evt input.Event) {
         stopPropagation()
         return
     }
-    if evt.Kind == input.EventKey && evt.Ctrl && evt.Rune == 't' && cursor.Get() >= 2 {
+    if evt.Kind == sumi.EventKey && evt.Ctrl && evt.Rune == 't' && cursor.Get() >= 2 {
         if readonly {
             stopPropagation()
             return
@@ -703,7 +703,7 @@ func handleEvent(evt input.Event) {
         stopPropagation()
         return
     }
-    if evt.Kind == input.EventKey && evt.Ctrl && evt.Rune == 'y' && len(killBuffer.Get()) > 0 {
+    if evt.Kind == sumi.EventKey && evt.Ctrl && evt.Rune == 'y' && len(killBuffer.Get()) > 0 {
         if readonly {
             stopPropagation()
             return
@@ -726,7 +726,7 @@ func handleEvent(evt input.Event) {
         stopPropagation()
         return
     }
-    if evt.Kind == input.EventKey && evt.Ctrl && evt.Rune == '/' {
+    if evt.Kind == sumi.EventKey && evt.Ctrl && evt.Rune == '/' {
         if readonly {
             stopPropagation()
             return
@@ -735,21 +735,21 @@ func handleEvent(evt input.Event) {
         stopPropagation()
         return
     }
-    if evt.Kind == input.EventKey && evt.Alt && evt.Rune == 'f' && cursor.Get() < len(value) {
+    if evt.Kind == sumi.EventKey && evt.Alt && evt.Rune == 'f' && cursor.Get() < len(value) {
         clearSelection()
         cursor.Set(wordRight())
         adjustView()
         stopPropagation()
         return
     }
-    if evt.Kind == input.EventKey && evt.Alt && evt.Rune == 'b' && cursor.Get() > 0 {
+    if evt.Kind == sumi.EventKey && evt.Alt && evt.Rune == 'b' && cursor.Get() > 0 {
         clearSelection()
         cursor.Set(wordLeft())
         adjustView()
         stopPropagation()
         return
     }
-    if evt.Kind == input.EventKey && evt.Alt && evt.Rune == 'd' && cursor.Get() < len(value) {
+    if evt.Kind == sumi.EventKey && evt.Alt && evt.Rune == 'd' && cursor.Get() < len(value) {
         if readonly {
             stopPropagation()
             return
@@ -762,7 +762,7 @@ func handleEvent(evt input.Event) {
         stopPropagation()
         return
     }
-    if evt.Kind == input.EventKey && !evt.Ctrl && !evt.Alt && evt.Rune >= 32 {
+    if evt.Kind == sumi.EventKey && !evt.Ctrl && !evt.Alt && evt.Rune >= 32 {
         if readonly {
             stopPropagation()
             return

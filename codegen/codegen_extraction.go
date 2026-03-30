@@ -8,7 +8,7 @@ import (
 // extractedNode represents a text node extracted from the tree for sync patching.
 type extractedNode struct {
 	varName  string // e.g., "node0"
-	syncExpr string // e.g., `fmt.Sprintf("Count: %v", count)`
+	syncExpr string // e.g., `sumi.Sprintf("Count: %v", count)`
 }
 
 // extractionCtx tracks expression nodes extracted during tree building.
@@ -24,7 +24,8 @@ type extractionCtx struct {
 	signals           map[string]bool              // signal variable names (for auto-unwrapping in expressions)
 	componentChildren map[string]ComponentChildInfo // child components for template
 	declBuf           bytes.Buffer
-	syncBuf           bytes.Buffer // dynamic children rebuild code (for {if}/{for} inside signal.Effect)
+	syncBuf           bytes.Buffer // dynamic children rebuild code (for {if}/{for} inside sumi.Effect)
+	inDynamic         bool         // true inside IIFE — skip extraction, only do signal unwrapping
 }
 
 // newExtractionCtx creates an extraction context.

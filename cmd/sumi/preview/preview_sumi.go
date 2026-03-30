@@ -1,23 +1,17 @@
 package preview
 
 import (
-	"fmt"
-
-	"github.com/tomyan/sumi/runtime/input"
-	"github.com/tomyan/sumi/runtime/layout"
-	"github.com/tomyan/sumi/runtime/render"
-	"github.com/tomyan/sumi/runtime/signal"
-	"github.com/tomyan/sumi/runtime/tui"
+	sumi "github.com/tomyan/sumi/runtime/prelude"
 )
 
 type PreviewProps struct {
 }
 
-func NewPreview(props PreviewProps) *tui.Component {
-	current := signal.New(0)
-	matchStatus := signal.New(0)
-	interactive := signal.New(false)
-	focusState := signal.New(0)
+func NewPreview(props PreviewProps) *sumi.Component {
+	current := sumi.New(0)
+	matchStatus := sumi.New(0)
+	interactive := sumi.New(false)
+	focusState := sumi.New(0)
 
 	doStep := func(index int) {
 		pvStepTo(index)
@@ -27,7 +21,7 @@ func NewPreview(props PreviewProps) *tui.Component {
 
 	doCommand := func(cmd string) {
 		if cmd == "quit" {
-			tui.Quit()
+			sumi.Quit()
 			return
 		}
 		if cmd == "exit" {
@@ -67,9 +61,9 @@ func NewPreview(props PreviewProps) *tui.Component {
 		}
 	}
 
-	handleKey := func(evt input.Event) {
-		if evt.Kind == input.EventSignal {
-			tui.Quit()
+	handleKey := func(evt sumi.Event) {
+		if evt.Kind == sumi.EventSignal {
+			sumi.Quit()
 			return
 		}
 		if pvPrefixPending {
@@ -88,7 +82,7 @@ func NewPreview(props PreviewProps) *tui.Component {
 				pvPrefixPending = true
 				return
 			}
-			if (evt.Kind == input.EventSpecial && evt.Special == input.KeyEscape) || evt.Alt {
+			if (evt.Kind == sumi.EventSpecial && evt.Special == sumi.KeyEscape) || evt.Alt {
 				pvExitInteractive()
 				interactive.Set(false)
 				pvFocus = FocusControls
@@ -113,132 +107,132 @@ func NewPreview(props PreviewProps) *tui.Component {
 			return
 		}
 		if evt.Rune == 'q' || (evt.Ctrl && evt.Rune == 'c') {
-			tui.Quit()
+			sumi.Quit()
 			return
 		}
-		if (evt.Kind == input.EventSpecial && evt.Special == input.KeyRight) || (evt.Kind == input.EventKey && (evt.Rune == 'l' || evt.Rune == '\r')) {
+		if (evt.Kind == sumi.EventSpecial && evt.Special == sumi.KeyRight) || (evt.Kind == sumi.EventKey && (evt.Rune == 'l' || evt.Rune == '\r')) {
 			if current.Get() < pvStepCount()-1 {
 				doStep(current.Get() + 1)
 			}
 			return
 		}
-		if (evt.Kind == input.EventSpecial && evt.Special == input.KeyLeft) || (evt.Kind == input.EventKey && evt.Rune == 'h') {
+		if (evt.Kind == sumi.EventSpecial && evt.Special == sumi.KeyLeft) || (evt.Kind == sumi.EventKey && evt.Rune == 'h') {
 			if current.Get() > 0 {
 				doStep(current.Get() - 1)
 			}
 			return
 		}
-		if evt.Kind == input.EventKey && evt.Rune == 'u' {
+		if evt.Kind == sumi.EventKey && evt.Rune == 'u' {
 			pvUpdateSnapshot(current.Get())
 			matchStatus.Set(pvMatches(current.Get()))
 			return
 		}
-		if evt.Kind == input.EventKey && evt.Rune == 'i' {
+		if evt.Kind == sumi.EventKey && evt.Rune == 'i' {
 			pvEnterInteractive()
 			interactive.Set(true)
 			pvFocus = FocusInteractive
 			focusState.Set(int(FocusInteractive))
 			return
 		}
-		if evt.Kind == input.EventKey && (evt.Rune == '1' || evt.Rune == '2' || evt.Rune == '3') {
+		if evt.Kind == sumi.EventKey && (evt.Rune == '1' || evt.Rune == '2' || evt.Rune == '3') {
 			pvFocus = focusForDigit(evt.Rune)
 			focusState.Set(int(pvFocus))
 			return
 		}
 	}
 
-	box0 := &layout.Input{
-		Kind:      layout.KindBox,
+	box0 := &sumi.Input{
+		Kind:      sumi.KindBox,
 		Direction: "row",
 		CursorCol: -1,
 		CursorRow: -1,
 	}
-	root := &layout.Input{
-		Kind:      layout.KindBox,
+	root := &sumi.Input{
+		Kind:      sumi.KindBox,
 		Direction: "column",
 		CursorCol: -1,
 		CursorRow: -1,
-		Children: []*layout.Input{
+		Children: []*sumi.Input{
 			{
-				Kind:      layout.KindBox,
+				Kind:      sumi.KindBox,
 				CursorCol: -1,
 				CursorRow: -1,
-				Children: []*layout.Input{
+				Children: []*sumi.Input{
 					{
-						Kind:      layout.KindBox,
+						Kind:      sumi.KindBox,
 						Direction: "row",
 						CursorCol: -1,
 						CursorRow: -1,
-						Children: []*layout.Input{
+						Children: []*sumi.Input{
 							{
-								Kind:        layout.KindBox,
+								Kind:        sumi.KindBox,
 								FixedHeight: pvComponentHeight(),
 								FlexGrow:    1,
-								Padding:     layout.ParsePadding("0 1"),
+								Padding:     sumi.ParsePadding("0 1"),
 								Border:      "single",
 								BorderTitle: "Actual",
 								CursorCol:   -1,
 								CursorRow:   -1,
-								Style: render.Style{
-									FG: render.Color{Name: "cyan"},
+								Style: sumi.Style{
+									FG: sumi.Color{Name: "cyan"},
 								},
 							},
 							{
-								Kind:        layout.KindBox,
+								Kind:        sumi.KindBox,
 								FixedHeight: pvComponentHeight(),
 								FlexGrow:    1,
-								Padding:     layout.ParsePadding("0 1"),
+								Padding:     sumi.ParsePadding("0 1"),
 								Border:      "single",
 								BorderTitle: "Expected",
 								CursorCol:   -1,
 								CursorRow:   -1,
-								Style: render.Style{
-									FG: render.Color{Name: "blue"},
+								Style: sumi.Style{
+									FG: sumi.Color{Name: "blue"},
 								},
 							},
 						},
 					},
 					box0,
 					{
-						Kind:      layout.KindBox,
+						Kind:      sumi.KindBox,
 						Direction: "row",
 						FlexGrow:  1,
 						CursorCol: -1,
 						CursorRow: -1,
-						Children: []*layout.Input{
+						Children: []*sumi.Input{
 							{
-								Kind:        layout.KindBox,
+								Kind:        sumi.KindBox,
 								FlexGrow:    1,
 								Border:      "single",
 								BorderTitle: pvSourceTitle(),
 								CursorCol:   -1,
 								CursorRow:   -1,
-								Style: render.Style{
-									FG: render.Color{Name: "magenta"},
+								Style: sumi.Style{
+									FG: sumi.Color{Name: "magenta"},
 								},
 							},
 							{
-								Kind:        layout.KindBox,
+								Kind:        sumi.KindBox,
 								FlexGrow:    1,
 								Border:      "single",
 								BorderTitle: pvSnapshotTitle(),
 								CursorCol:   -1,
 								CursorRow:   -1,
-								Style: render.Style{
-									FG: render.Color{Name: "magenta"},
+								Style: sumi.Style{
+									FG: sumi.Color{Name: "magenta"},
 								},
 							},
 						},
 					},
 					{
-						Kind:        layout.KindBox,
+						Kind:        sumi.KindBox,
 						FlexGrow:    1,
 						Border:      "single",
 						BorderTitle: pvScenarioTitle(),
 						CursorCol:   -1,
 						CursorRow:   -1,
-						Style: render.Style{
-							FG: render.Color{Name: "magenta"},
+						Style: sumi.Style{
+							FG: sumi.Color{Name: "magenta"},
 						},
 					},
 				},
@@ -246,239 +240,239 @@ func NewPreview(props PreviewProps) *tui.Component {
 		},
 	}
 
-	signal.Effect(func() {
-		box0.Children = func() []*layout.Input {
-			var cs []*layout.Input
+	sumi.Effect(func() {
+		box0.Children = func() []*sumi.Input {
+			var cs []*sumi.Input
 			if interactive.Get() {
-				cs = append(cs, &layout.Input{
-					Kind:    layout.KindText,
+				cs = append(cs, &sumi.Input{
+					Kind:    sumi.KindText,
 					Content: "esc",
-					Style: render.Style{
+					Style: sumi.Style{
 						Inverse: true,
 					},
 				})
-				cs = append(cs, &layout.Input{
-					Kind:    layout.KindText,
+				cs = append(cs, &sumi.Input{
+					Kind:    sumi.KindText,
 					Content: " Exit  ",
-					Style: render.Style{
+					Style: sumi.Style{
 						Dim: true,
 					},
 				})
-				cs = append(cs, &layout.Input{
-					Kind:    layout.KindText,
+				cs = append(cs, &sumi.Input{
+					Kind:    sumi.KindText,
 					Content: " INTERACTIVE ",
-					Style: render.Style{
-						FG:   render.Color{Name: "green"},
+					Style: sumi.Style{
+						FG:   sumi.Color{Name: "green"},
 						Bold: true,
 					},
 				})
-				cs = append(cs, &layout.Input{
-					Kind:    layout.KindText,
-					Content: fmt.Sprintf("  %v  Frame %v/%v  %v", pvScenarioName(), current.Get()+1, pvStepCount(), pvStepName(current.Get())),
-					Style: render.Style{
+				cs = append(cs, &sumi.Input{
+					Kind:    sumi.KindText,
+					Content: sumi.Sprintf("  %v  Frame %v/%v  %v", pvScenarioName(), current.Get()+1, pvStepCount(), pvStepName(current.Get())),
+					Style: sumi.Style{
 						Bold: true,
 					},
 				})
 			} else {
 				if pvIsEditorFocused() {
-					cs = append(cs, &layout.Input{
-						Kind:    layout.KindText,
-						Content: fmt.Sprintf(" %v ", pvFocusName()),
-						Style: render.Style{
-							FG:   render.Color{Name: "cyan"},
+					cs = append(cs, &sumi.Input{
+						Kind:    sumi.KindText,
+						Content: sumi.Sprintf(" %v ", pvFocusName()),
+						Style: sumi.Style{
+							FG:   sumi.Color{Name: "cyan"},
 							Bold: true,
 						},
 					})
-					cs = append(cs, &layout.Input{
-						Kind:    layout.KindText,
+					cs = append(cs, &sumi.Input{
+						Kind:    sumi.KindText,
 						Content: "C-\\",
-						Style: render.Style{
+						Style: sumi.Style{
 							Inverse: true,
 						},
 					})
-					cs = append(cs, &layout.Input{
-						Kind:    layout.KindText,
+					cs = append(cs, &sumi.Input{
+						Kind:    sumi.KindText,
 						Content: " Exit  ",
-						Style: render.Style{
+						Style: sumi.Style{
 							Dim: true,
 						},
 					})
-					cs = append(cs, &layout.Input{
-						Kind:    layout.KindText,
+					cs = append(cs, &sumi.Input{
+						Kind:    sumi.KindText,
 						Content: "C-\\ h",
-						Style: render.Style{
+						Style: sumi.Style{
 							Inverse: true,
 						},
 					})
-					cs = append(cs, &layout.Input{
-						Kind:    layout.KindText,
+					cs = append(cs, &sumi.Input{
+						Kind:    sumi.KindText,
 						Content: " Prev  ",
-						Style: render.Style{
+						Style: sumi.Style{
 							Dim: true,
 						},
 					})
-					cs = append(cs, &layout.Input{
-						Kind:    layout.KindText,
+					cs = append(cs, &sumi.Input{
+						Kind:    sumi.KindText,
 						Content: "C-\\ l",
-						Style: render.Style{
+						Style: sumi.Style{
 							Inverse: true,
 						},
 					})
-					cs = append(cs, &layout.Input{
-						Kind:    layout.KindText,
+					cs = append(cs, &sumi.Input{
+						Kind:    sumi.KindText,
 						Content: " Next  ",
-						Style: render.Style{
+						Style: sumi.Style{
 							Dim: true,
 						},
 					})
 				} else {
-					cs = append(cs, &layout.Input{
-						Kind:    layout.KindText,
+					cs = append(cs, &sumi.Input{
+						Kind:    sumi.KindText,
 						Content: "h",
-						Style: render.Style{
+						Style: sumi.Style{
 							Inverse: true,
 						},
 					})
-					cs = append(cs, &layout.Input{
-						Kind:    layout.KindText,
+					cs = append(cs, &sumi.Input{
+						Kind:    sumi.KindText,
 						Content: " Prev  ",
-						Style: render.Style{
+						Style: sumi.Style{
 							Dim: true,
 						},
 					})
-					cs = append(cs, &layout.Input{
-						Kind:    layout.KindText,
+					cs = append(cs, &sumi.Input{
+						Kind:    sumi.KindText,
 						Content: "l",
-						Style: render.Style{
+						Style: sumi.Style{
 							Inverse: true,
 						},
 					})
-					cs = append(cs, &layout.Input{
-						Kind:    layout.KindText,
+					cs = append(cs, &sumi.Input{
+						Kind:    sumi.KindText,
 						Content: " Next  ",
-						Style: render.Style{
+						Style: sumi.Style{
 							Dim: true,
 						},
 					})
-					cs = append(cs, &layout.Input{
-						Kind:    layout.KindText,
+					cs = append(cs, &sumi.Input{
+						Kind:    sumi.KindText,
 						Content: "u",
-						Style: render.Style{
+						Style: sumi.Style{
 							Inverse: true,
 						},
 					})
-					cs = append(cs, &layout.Input{
-						Kind:    layout.KindText,
+					cs = append(cs, &sumi.Input{
+						Kind:    sumi.KindText,
 						Content: " Update  ",
-						Style: render.Style{
+						Style: sumi.Style{
 							Dim: true,
 						},
 					})
-					cs = append(cs, &layout.Input{
-						Kind:    layout.KindText,
+					cs = append(cs, &sumi.Input{
+						Kind:    sumi.KindText,
 						Content: "i",
-						Style: render.Style{
+						Style: sumi.Style{
 							Inverse: true,
 						},
 					})
-					cs = append(cs, &layout.Input{
-						Kind:    layout.KindText,
+					cs = append(cs, &sumi.Input{
+						Kind:    sumi.KindText,
 						Content: " Interactive  ",
-						Style: render.Style{
+						Style: sumi.Style{
 							Dim: true,
 						},
 					})
-					cs = append(cs, &layout.Input{
-						Kind:    layout.KindText,
+					cs = append(cs, &sumi.Input{
+						Kind:    sumi.KindText,
 						Content: "1",
-						Style: render.Style{
+						Style: sumi.Style{
 							Inverse: true,
 						},
 					})
-					cs = append(cs, &layout.Input{
-						Kind:    layout.KindText,
+					cs = append(cs, &sumi.Input{
+						Kind:    sumi.KindText,
 						Content: " Source  ",
-						Style: render.Style{
+						Style: sumi.Style{
 							Dim: true,
 						},
 					})
-					cs = append(cs, &layout.Input{
-						Kind:    layout.KindText,
+					cs = append(cs, &sumi.Input{
+						Kind:    sumi.KindText,
 						Content: "2",
-						Style: render.Style{
+						Style: sumi.Style{
 							Inverse: true,
 						},
 					})
-					cs = append(cs, &layout.Input{
-						Kind:    layout.KindText,
+					cs = append(cs, &sumi.Input{
+						Kind:    sumi.KindText,
 						Content: " Snap  ",
-						Style: render.Style{
+						Style: sumi.Style{
 							Dim: true,
 						},
 					})
-					cs = append(cs, &layout.Input{
-						Kind:    layout.KindText,
+					cs = append(cs, &sumi.Input{
+						Kind:    sumi.KindText,
 						Content: "3",
-						Style: render.Style{
+						Style: sumi.Style{
 							Inverse: true,
 						},
 					})
-					cs = append(cs, &layout.Input{
-						Kind:    layout.KindText,
+					cs = append(cs, &sumi.Input{
+						Kind:    sumi.KindText,
 						Content: " Scenario  ",
-						Style: render.Style{
+						Style: sumi.Style{
 							Dim: true,
 						},
 					})
-					cs = append(cs, &layout.Input{
-						Kind:    layout.KindText,
+					cs = append(cs, &sumi.Input{
+						Kind:    sumi.KindText,
 						Content: "q",
-						Style: render.Style{
+						Style: sumi.Style{
 							Inverse: true,
 						},
 					})
-					cs = append(cs, &layout.Input{
-						Kind:    layout.KindText,
+					cs = append(cs, &sumi.Input{
+						Kind:    sumi.KindText,
 						Content: " Quit  ",
-						Style: render.Style{
+						Style: sumi.Style{
 							Dim: true,
 						},
 					})
 				}
 				if matchStatus.Get() == 1 {
-					cs = append(cs, &layout.Input{
-						Kind:    layout.KindText,
+					cs = append(cs, &sumi.Input{
+						Kind:    sumi.KindText,
 						Content: " MATCH ",
-						Style: render.Style{
-							FG:   render.Color{Name: "green"},
+						Style: sumi.Style{
+							FG:   sumi.Color{Name: "green"},
 							Bold: true,
 						},
 					})
 				} else {
 					if matchStatus.Get() == 0 {
-						cs = append(cs, &layout.Input{
-							Kind:    layout.KindText,
+						cs = append(cs, &sumi.Input{
+							Kind:    sumi.KindText,
 							Content: " NO SNAPSHOT ",
-							Style: render.Style{
-								FG:   render.Color{Name: "yellow"},
+							Style: sumi.Style{
+								FG:   sumi.Color{Name: "yellow"},
 								Bold: true,
 							},
 						})
 					} else {
-						cs = append(cs, &layout.Input{
-							Kind:    layout.KindText,
+						cs = append(cs, &sumi.Input{
+							Kind:    sumi.KindText,
 							Content: " DIFF ",
-							Style: render.Style{
-								FG:   render.Color{Name: "red"},
+							Style: sumi.Style{
+								FG:   sumi.Color{Name: "red"},
 								Bold: true,
 							},
 						})
 					}
 				}
-				cs = append(cs, &layout.Input{
-					Kind:    layout.KindText,
-					Content: fmt.Sprintf("  %v  Frame %v/%v  %v", pvScenarioName(), current.Get()+1, pvStepCount(), pvStepName(current.Get())),
-					Style: render.Style{
+				cs = append(cs, &sumi.Input{
+					Kind:    sumi.KindText,
+					Content: sumi.Sprintf("  %v  Frame %v/%v  %v", pvScenarioName(), current.Get()+1, pvStepCount(), pvStepName(current.Get())),
+					Style: sumi.Style{
 						Bold: true,
 					},
 				})
@@ -487,7 +481,7 @@ func NewPreview(props PreviewProps) *tui.Component {
 		}()
 	})
 
-	return &tui.Component{
+	return &sumi.Component{
 		Tree:    root,
 		OnEvent: handleKey,
 	}

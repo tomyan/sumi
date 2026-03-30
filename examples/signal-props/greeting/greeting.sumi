@@ -1,12 +1,12 @@
 <script>
 var name string = "World"
 
-count := signal.New(0)
+count := sumi.New(0)
 
-func handleKey(evt input.Event) {
-    if evt.Kind == input.EventSignal { app.Quit(); return }
-    if evt.Rune == 'q' { app.Quit(); return }
-    if evt.Kind == input.EventKey {
+func handleKey(evt sumi.Event) {
+    if evt.Kind == sumi.EventSignal { sumi.Quit(); return }
+    if evt.Rune == 'q' { sumi.Quit(); return }
+    if evt.Kind == sumi.EventKey {
         count.Update(func(n int) int { return n + 1 })
     }
 }

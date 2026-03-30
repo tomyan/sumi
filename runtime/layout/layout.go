@@ -3,6 +3,7 @@ package layout
 import (
 	"strconv"
 	"strings"
+	"unicode/utf8"
 
 	"github.com/tomyan/sumi/runtime/render"
 )
@@ -46,6 +47,8 @@ type Input struct {
 	FocusIndex  int     // assigned focus index (0-based) for Tab cycling
 	Padding     Padding
 	Border         string       // "single", "none", or ""
+	BorderTop      string       // top-only border: "single" or ""
+	BorderBottom   string       // bottom-only border: "single" or ""
 	BorderTitle    string       // text to display in the top border edge
 	BorderCollapse bool        // when true, children share borders
 	Scroll         *ScrollState // if non-nil, layout populates and applies scroll state
@@ -76,6 +79,8 @@ type Box struct {
 	Content             string       // text content if text node
 	Lines               []string     // wrapped lines (nil = single line, use Content)
 	Border              string              // border style
+	BorderTop           string              // top-only border
+	BorderBottom        string              // bottom-only border
 	BorderTitle         string              // text to display in the top border edge
 	Collapsed           render.CollapsedEdges // edges shared with adjacent borders
 	Style               render.Style        // visual style
@@ -190,8 +195,10 @@ func layoutNode(input *Input, availW, availH int) *Box {
 		border = "" // children's borders form the parent frame
 	}
 	box := &Box{
-		Border:      border,
-		BorderTitle: input.BorderTitle,
+		Border:       border,
+		BorderTop:    input.BorderTop,
+		BorderBottom: input.BorderBottom,
+		BorderTitle:  input.BorderTitle,
 		Key:         input.Key,
 		Position:    input.Position,
 		ZIndex:      input.ZIndex,
@@ -208,13 +215,14 @@ func layoutNode(input *Input, availW, availH int) *Box {
 		box.CursorCol = -1
 		box.CursorRow = -1
 		box.Content = input.Content
-		if availW > 0 && len(input.Content) > availW {
+		runeLen := utf8.RuneCountInString(input.Content)
+		if availW > 0 && runeLen > availW {
 			lines := wrapText(input.Content, availW)
 			box.Lines = lines
 			box.Width = availW
 			box.Height = len(lines)
 		} else {
-			box.Width = len(input.Content)
+			box.Width = runeLen
 			box.Height = 1
 		}
 		if input.FixedWidth > 0 {
@@ -234,11 +242,19 @@ func layoutNode(input *Input, availW, availH int) *Box {
 		b = 0
 	}
 
+	// Partial borders add insets on specific sides.
+	bTop := b
+	bBottom := b
+	if b == 0 {
+		bTop = borderSize(input.BorderTop)
+		bBottom = borderSize(input.BorderBottom)
+	}
+
 	// Inset from the edge to the content area
 	offsetX := b + pad.Left
-	offsetY := b + pad.Top
+	offsetY := bTop + pad.Top
 	insetW := pad.Left + pad.Right + 2*b
-	insetH := pad.Top + pad.Bottom + 2*b
+	insetH := pad.Top + pad.Bottom + bTop + bBottom
 
 	// Determine the content area dimensions available
 	contentAvailW := availW - insetW
@@ -364,10 +380,10 @@ func layoutNode(input *Input, availW, availH int) *Box {
 	} else {
 		box.Width = contentW + insetW
 	}
-	// Scroll viewport fills available width when no fixed width is set
-	if isScrollOverflow(input.Overflow) && input.FixedWidth == 0 && availW > box.Width {
+	// Overflow containers fill available width when no fixed width is set.
+	if input.Overflow != "" && input.FixedWidth == 0 && availW > box.Width {
 		box.Width = availW
-	} else if isScrollOverflow(input.Overflow) && box.Width > availW {
+	} else if input.Overflow != "" && box.Width > availW {
 		box.Width = availW
 	}
 	if input.FixedHeight > 0 {

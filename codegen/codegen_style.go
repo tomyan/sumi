@@ -33,13 +33,13 @@ func parseClasses(attrs map[string]string) []string {
 	return strings.Fields(classAttr)
 }
 
-// writeStyleLiteral writes a render.Style{...} literal from resolved CSS properties.
+// writeStyleLiteral writes a sumi.Style{...} literal from resolved CSS properties.
 func writeStyleLiteral(buf *bytes.Buffer, tabs string, props map[string]string) {
 	s := css.ToRenderStyle(props)
 	if s.IsZero() {
 		return
 	}
-	fmt.Fprintf(buf, "%s\tStyle: render.Style{\n", tabs)
+	fmt.Fprintf(buf, "%s\tStyle: sumi.Style{\n", tabs)
 	writeStyleFields(buf, tabs, s)
 	fmt.Fprintf(buf, "%s\t},\n", tabs)
 }
@@ -53,10 +53,10 @@ func writeStyleFields(buf *bytes.Buffer, tabs string, s render.Style) {
 // writeColorFields writes FG and BG color fields.
 func writeColorFields(buf *bytes.Buffer, tabs string, s render.Style) {
 	if s.FG.Name != "" {
-		fmt.Fprintf(buf, "%s\t\tFG: render.Color{Name: %q},\n", tabs, s.FG.Name)
+		fmt.Fprintf(buf, "%s\t\tFG: sumi.Color{Name: %q},\n", tabs, s.FG.Name)
 	}
 	if s.BG.Name != "" {
-		fmt.Fprintf(buf, "%s\t\tBG: render.Color{Name: %q},\n", tabs, s.BG.Name)
+		fmt.Fprintf(buf, "%s\t\tBG: sumi.Color{Name: %q},\n", tabs, s.BG.Name)
 	}
 }
 

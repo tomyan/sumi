@@ -5,10 +5,10 @@ var inputType string
 var maxlength int
 var readonly bool
 var strip bool
-viewOffset := signal.New(0)
-focused := signal.New(false)
-selfW := signal.New(0)
-contentW := signal.From(func() int { return selfW.Get() - 4 })
+viewOffset := sumi.New(0)
+focused := sumi.New(false)
+selfW := sumi.New(0)
+contentW := sumi.From(func() int { return selfW.Get() - 4 })
 
 func leftIndicator() string {
     if viewOffset.Get() > 0 {

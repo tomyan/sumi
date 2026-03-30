@@ -21,8 +21,8 @@ func writeLayoutTree(buf *bytes.Buffer, doc *template.Document, stylesheet *styl
 	tabs := indentStr(baseIndent)
 	rootProps := resolveProps(stylesheet, "root", nil)
 
-	fmt.Fprintf(buf, "%sroot := &layout.Input{\n", tabs)
-	fmt.Fprintf(buf, "%s\tKind: layout.KindBox,\n", tabs)
+	fmt.Fprintf(buf, "%sroot := &sumi.Input{\n", tabs)
+	fmt.Fprintf(buf, "%s\tKind: sumi.KindBox,\n", tabs)
 	rootAttrs := map[string]string{"direction": "column"}
 	writeBoxAttributes(buf, tabs, rootAttrs, rootProps)
 	if rootProps != nil {
@@ -40,7 +40,7 @@ func writeLayoutTree(buf *bytes.Buffer, doc *template.Document, stylesheet *styl
 		// Slot children require dynamic construction (can't spread in a literal).
 		writeSlotChildren(buf, doc.Children, stylesheet, baseIndent, tabs, ext)
 	} else {
-		fmt.Fprintf(buf, "%s\tChildren: []*layout.Input{\n", tabs)
+		fmt.Fprintf(buf, "%s\tChildren: []*sumi.Input{\n", tabs)
 		for _, child := range doc.Children {
 			writeInputNode(buf, child, stylesheet, baseIndent+2, ext)
 		}
@@ -103,8 +103,8 @@ func writeSlotChildren(buf *bytes.Buffer, children []template.Node, stylesheet *
 		return
 	}
 	// Multiple slots or mixed — use IIFE.
-	fmt.Fprintf(buf, "%s\tChildren: func() []*layout.Input {\n", tabs)
-	fmt.Fprintf(buf, "%s\t\tvar cs []*layout.Input\n", tabs)
+	fmt.Fprintf(buf, "%s\tChildren: func() []*sumi.Input {\n", tabs)
+	fmt.Fprintf(buf, "%s\t\tvar cs []*sumi.Input\n", tabs)
 	for _, child := range children {
 		if slot, ok := child.(*template.SlotElement); ok {
 			fieldName := strings.ToUpper(slot.Name[:1]) + slot.Name[1:]
@@ -137,14 +137,22 @@ func writeTextInput(buf *bytes.Buffer, n *template.TextElement, stylesheet *styl
 	}
 	props := resolveProps(stylesheet, "text", attrs)
 
-	if ext != nil && hasExprParts(n.Parts) {
+	if ext != nil && hasExprParts(n.Parts) && !ext.inDynamic {
 		writeExtractedTextNode(buf, &ext.declBuf, n, props, tabs, ext)
 		return
 	}
 
+	// Choose content expression: with signal unwrapping if available.
+	var content string
+	if ext != nil && len(ext.signals) > 0 {
+		content = contentExprSignals(n.Parts, ext.signals)
+	} else {
+		content = contentExpr(n.Parts)
+	}
+
 	fmt.Fprintf(buf, "%s{\n", tabs)
-	fmt.Fprintf(buf, "%s\tKind:    layout.KindText,\n", tabs)
-	fmt.Fprintf(buf, "%s\tContent: %s,\n", tabs, contentExpr(n.Parts))
+	fmt.Fprintf(buf, "%s\tKind:    sumi.KindText,\n", tabs)
+	fmt.Fprintf(buf, "%s\tContent: %s,\n", tabs, content)
 	if props != nil {
 		writeStyleLiteral(buf, tabs, props)
 	}
@@ -163,8 +171,8 @@ func writeExtractedTextNode(treeBuf, declBuf *bytes.Buffer, n *template.TextElem
 	}
 
 	// Write declaration to declBuf (at function scope indent)
-	fmt.Fprintf(declBuf, "\t%s := &layout.Input{\n", name)
-	fmt.Fprintf(declBuf, "\t\tKind:    layout.KindText,\n")
+	fmt.Fprintf(declBuf, "\t%s := &sumi.Input{\n", name)
+	fmt.Fprintf(declBuf, "\t\tKind:    sumi.KindText,\n")
 	fmt.Fprintf(declBuf, "\t\tContent: %s,\n", expr)
 	if props != nil {
 		writeStyleLiteral(declBuf, "\t", props)
@@ -214,7 +222,7 @@ func writeBoxInput(buf *bytes.Buffer, n *template.BoxElement, stylesheet *style.
 	props := resolveProps(stylesheet, "box", n.Attributes)
 
 	fmt.Fprintf(buf, "%s{\n", tabs)
-	fmt.Fprintf(buf, "%s\tKind: layout.KindBox,\n", tabs)
+	fmt.Fprintf(buf, "%s\tKind: sumi.KindBox,\n", tabs)
 	writeBoxAttributes(buf, tabs, n.Attributes, props)
 	if props != nil {
 		writeStyleLiteral(buf, tabs, props)
@@ -248,8 +256,8 @@ func writeExtractedCursorBox(treeBuf *bytes.Buffer, n *template.BoxElement, styl
 	props := resolveProps(stylesheet, "box", n.Attributes)
 
 	// Write declaration to declBuf (at function scope)
-	fmt.Fprintf(&ext.declBuf, "\t%s := &layout.Input{\n", name)
-	fmt.Fprintf(&ext.declBuf, "\t\tKind: layout.KindBox,\n")
+	fmt.Fprintf(&ext.declBuf, "\t%s := &sumi.Input{\n", name)
+	fmt.Fprintf(&ext.declBuf, "\t\tKind: sumi.KindBox,\n")
 	writeBoxAttributes(&ext.declBuf, "\t", n.Attributes, props)
 	if props != nil {
 		writeStyleLiteral(&ext.declBuf, "\t", props)
@@ -257,7 +265,7 @@ func writeExtractedCursorBox(treeBuf *bytes.Buffer, n *template.BoxElement, styl
 
 	// Write children inline in the declaration
 	if len(n.Children) > 0 {
-		fmt.Fprintf(&ext.declBuf, "\t\tChildren: []*layout.Input{\n")
+		fmt.Fprintf(&ext.declBuf, "\t\tChildren: []*sumi.Input{\n")
 		for _, child := range n.Children {
 			writeInputNode(&ext.declBuf, child, stylesheet, 3, ext)
 		}
@@ -318,8 +326,8 @@ func writeExtractedDynamicBox(treeBuf *bytes.Buffer, n *template.BoxElement, sty
 	props := resolveProps(stylesheet, "box", n.Attributes)
 
 	// Write declaration to declBuf (at function scope, no Children)
-	fmt.Fprintf(&ext.declBuf, "\t%s := &layout.Input{\n", name)
-	fmt.Fprintf(&ext.declBuf, "\t\tKind: layout.KindBox,\n")
+	fmt.Fprintf(&ext.declBuf, "\t%s := &sumi.Input{\n", name)
+	fmt.Fprintf(&ext.declBuf, "\t\tKind: sumi.KindBox,\n")
 	writeBoxAttributes(&ext.declBuf, "\t", n.Attributes, props)
 	if props != nil {
 		writeStyleLiteral(&ext.declBuf, "\t", props)
@@ -349,10 +357,16 @@ func writeBoxAttributes(buf *bytes.Buffer, tabs string, attrs map[string]string,
 		fmt.Fprintf(buf, "%s\tAlign: %q,\n", tabs, a)
 	}
 	if p, ok := mergedAttr(attrs, props, "padding"); ok {
-		fmt.Fprintf(buf, "%s\tPadding: layout.ParsePadding(%q),\n", tabs, p)
+		fmt.Fprintf(buf, "%s\tPadding: sumi.ParsePadding(%q),\n", tabs, p)
 	}
 	if b, ok := mergedAttr(attrs, props, "border"); ok {
 		fmt.Fprintf(buf, "%s\tBorder: %q,\n", tabs, b)
+	}
+	if bt, ok := mergedAttr(attrs, props, "border-top"); ok {
+		fmt.Fprintf(buf, "%s\tBorderTop: %q,\n", tabs, bt)
+	}
+	if bb, ok := mergedAttr(attrs, props, "border-bottom"); ok {
+		fmt.Fprintf(buf, "%s\tBorderBottom: %q,\n", tabs, bb)
 	}
 	if bt, ok := mergedAttr(attrs, props, "border-title"); ok {
 		if isExprValue(bt) {
@@ -460,7 +474,7 @@ func writeBoxChildren(buf *bytes.Buffer, children []template.Node, stylesheet *s
 		writeDynamicChildren(buf, children, stylesheet, indent, tabs, signals)
 		return
 	}
-	fmt.Fprintf(buf, "%s\tChildren: []*layout.Input{\n", tabs)
+	fmt.Fprintf(buf, "%s\tChildren: []*sumi.Input{\n", tabs)
 	for _, child := range children {
 		writeInputNode(buf, child, stylesheet, indent+2, ext)
 	}

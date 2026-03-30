@@ -21,7 +21,7 @@ func contentExprSignals(parts []template.Part, signals map[string]bool) string {
 
 // contentExpr generates the Go expression for a TextElement's content.
 // Pure string parts produce a quoted string literal.
-// Mixed parts with expressions produce a fmt.Sprintf call.
+// Mixed parts with expressions produce a sumi.Sprintf call.
 func contentExpr(parts []template.Part) string {
 	if len(parts) == 0 {
 		return `""`
@@ -51,7 +51,7 @@ func concatStringParts(parts []template.Part) string {
 	return sb.String()
 }
 
-// buildSprintfExprSignals builds a fmt.Sprintf call, auto-unwrapping signal variables.
+// buildSprintfExprSignals builds a sumi.Sprintf call, auto-unwrapping signal variables.
 func buildSprintfExprSignals(parts []template.Part, signals map[string]bool) string {
 	var fmtStr strings.Builder
 	var args []string
@@ -64,7 +64,7 @@ func buildSprintfExprSignals(parts []template.Part, signals map[string]bool) str
 			args = append(args, unwrapSignals(pt.Expr, signals))
 		}
 	}
-	return fmt.Sprintf("fmt.Sprintf(%q, %s)", fmtStr.String(), strings.Join(args, ", "))
+	return fmt.Sprintf("sumi.Sprintf(%q, %s)", fmtStr.String(), strings.Join(args, ", "))
 }
 
 // unwrapSignals replaces signal variable references in an expression with .Get() calls.
@@ -76,7 +76,7 @@ func unwrapSignals(expr string, signals map[string]bool) string {
 	return result
 }
 
-// buildSprintfExpr builds a fmt.Sprintf call from mixed string/expr parts.
+// buildSprintfExpr builds a sumi.Sprintf call from mixed string/expr parts.
 func buildSprintfExpr(parts []template.Part) string {
 	var fmtStr strings.Builder
 	var args []string
@@ -89,7 +89,7 @@ func buildSprintfExpr(parts []template.Part) string {
 			args = append(args, pt.Expr)
 		}
 	}
-	return fmt.Sprintf("fmt.Sprintf(%q, %s)", fmtStr.String(), strings.Join(args, ", "))
+	return fmt.Sprintf("sumi.Sprintf(%q, %s)", fmtStr.String(), strings.Join(args, ", "))
 }
 
 // docHasExprs checks if any TextElement in the document has ExprParts.

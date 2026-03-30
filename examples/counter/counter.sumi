@@ -18,19 +18,19 @@
 </style>
 
 <script>
-count := signal.New(0)
-doubled := signal.From(func() int { return count.Get() * 2 })
+count := sumi.New(0)
+doubled := sumi.From(func() int { return count.Get() * 2 })
 
-func handleKey(evt input.Event) {
-    if evt.Kind == input.EventSignal {
-        app.Quit()
+func handleKey(evt sumi.Event) {
+    if evt.Kind == sumi.EventSignal {
+        sumi.Quit()
         return
     }
     if evt.Rune == 'q' || (evt.Ctrl && evt.Rune == 'c') {
-        app.Quit()
+        sumi.Quit()
         return
     }
-    if evt.Kind == input.EventKey {
+    if evt.Kind == sumi.EventKey {
         count.Update(func(n int) int { return n + 1 })
     }
 }

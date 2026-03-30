@@ -120,7 +120,7 @@ func analyzeShortDecl(info *ScriptInfo, s *ast.AssignStmt, fset *token.FileSet) 
 	funcName := callFuncName(call)
 	if funcName == "signal.New" || funcName == "sumi.New" ||
 		funcName == "signal.From" || funcName == "sumi.From" ||
-		funcName == "tui.Env" {
+		funcName == "tui.Env" || funcName == "sumi.Env" {
 		info.Signals[ident.Name] = true
 	}
 }

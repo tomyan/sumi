@@ -30,7 +30,7 @@ func TestGenerateWithNilStylesheetBackwardCompat(t *testing.T) {
 	}
 	src := string(out)
 	// Should call layout.RenderTree which handles styled rendering internally
-	if !strings.Contains(src, "layout.RenderTree(") {
+	if !strings.Contains(src, "sumi.RenderTree(") {
 		t.Errorf("expected layout.RenderTree in output:\n%s", src)
 	}
 }
@@ -64,7 +64,7 @@ func TestGenerateWithStylesheetAndClassOnText(t *testing.T) {
 		t.Fatalf("generated code is not valid Go:\n%s\n\nerror: %v", string(out), parseErr)
 	}
 	src := string(out)
-	if !strings.Contains(src, `render.Style{`) {
+	if !strings.Contains(src, `sumi.Style{`) {
 		t.Errorf("expected render.Style literal in output:\n%s", src)
 	}
 	if !strings.Contains(src, `FG:`) {
@@ -110,7 +110,7 @@ func TestGenerateStylesheetLayoutProperties(t *testing.T) {
 	if !strings.Contains(src, `"single"`) || !strings.Contains(src, "Border:") {
 		t.Errorf("expected Border with single from stylesheet in output:\n%s", src)
 	}
-	if !strings.Contains(src, `layout.ParsePadding("1 2")`) {
+	if !strings.Contains(src, `sumi.ParsePadding("1 2")`) {
 		t.Errorf("expected ParsePadding from stylesheet in output:\n%s", src)
 	}
 }
@@ -151,7 +151,7 @@ func TestGenerateInlineAttributeOverridesStylesheet(t *testing.T) {
 		t.Errorf("expected inline border to override stylesheet, but found single in output:\n%s", src)
 	}
 	// Stylesheet padding should still apply
-	if !strings.Contains(src, `layout.ParsePadding("1")`) {
+	if !strings.Contains(src, `sumi.ParsePadding("1")`) {
 		t.Errorf("expected ParsePadding from stylesheet in output:\n%s", src)
 	}
 }
@@ -185,7 +185,7 @@ func TestGenerateElementSelectorStylesheet(t *testing.T) {
 		t.Fatalf("generated code is not valid Go:\n%s\n\nerror: %v", string(out), parseErr)
 	}
 	src := string(out)
-	if !strings.Contains(src, `render.Style{`) {
+	if !strings.Contains(src, `sumi.Style{`) {
 		t.Errorf("expected render.Style literal for element selector:\n%s", src)
 	}
 	if !strings.Contains(src, `"green"`) {
@@ -208,7 +208,7 @@ func TestGenerateUsesLayoutRenderTreeForStyling(t *testing.T) {
 	}
 	src := string(out)
 	// Rendering is now delegated to layout.RenderTree which handles styled methods
-	if !strings.Contains(src, "layout.RenderTree(") {
+	if !strings.Contains(src, "sumi.RenderTree(") {
 		t.Errorf("expected layout.RenderTree call in output:\n%s", src)
 	}
 }

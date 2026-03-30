@@ -240,7 +240,7 @@ func TestGenerateFileWithStyleBlock(t *testing.T) {
 		t.Fatalf("generated code is not valid Go:\n%s\n\nerror: %v", string(src), parseErr)
 	}
 	code := string(src)
-	if !contains(code, "render.Style{") {
+	if !contains(code, "sumi.Style{") {
 		t.Errorf("expected render.Style literal in generated code:\n%s", code)
 	}
 	if !contains(code, "Bold: true") {

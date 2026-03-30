@@ -38,19 +38,19 @@ func TestGenerateBoxWithBorderAndPadding(t *testing.T) {
 		t.Fatalf("generated code is not valid Go:\n%s\n\nerror: %v", string(src), parseErr)
 	}
 	code := string(src)
-	if !contains(code, "layout.KindBox") {
+	if !contains(code, "sumi.KindBox") {
 		t.Errorf("expected layout.KindBox in generated code:\n%s", code)
 	}
 	if !contains(code, "Border:") || !contains(code, `"single"`) {
 		t.Errorf("expected Border with \"single\" in generated code:\n%s", code)
 	}
-	if !contains(code, "layout.ParsePadding") {
+	if !contains(code, "sumi.ParsePadding") {
 		t.Errorf("expected layout.ParsePadding in generated code:\n%s", code)
 	}
-	if !contains(code, "layout.Layout(") {
+	if !contains(code, "sumi.Layout(") {
 		t.Errorf("expected layout.Layout call in generated code:\n%s", code)
 	}
-	if !contains(code, "layout.RenderTree(") {
+	if !contains(code, "sumi.RenderTree(") {
 		t.Errorf("expected layout.RenderTree call in generated code:\n%s", code)
 	}
 }
@@ -170,7 +170,7 @@ func TestGenerateMixedBoxesAndText(t *testing.T) {
 	if !contains(code, `Content: "Bottom text"`) {
 		t.Errorf("expected bottom text content in generated code:\n%s", code)
 	}
-	if !contains(code, "layout.KindBox") {
+	if !contains(code, "sumi.KindBox") {
 		t.Errorf("expected layout.KindBox in generated code:\n%s", code)
 	}
 }

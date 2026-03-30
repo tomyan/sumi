@@ -20,12 +20,12 @@ func assertValidGo(t *testing.T, src []byte) {
 
 func TestGenerateComponentFunction(t *testing.T) {
 	// Given — a counter component with signal state and event handler
-	scriptSrc := `count := signal.New(0)
+	scriptSrc := `count := sumi.New(0)
 
-func handleKey(evt input.Event) {
-    if evt.Kind == input.EventSignal { app.Quit(); return }
+func handleKey(evt sumi.Event) {
+    if evt.Kind == sumi.EventSignal { app.Quit(); return }
     if evt.Rune == 'q' { app.Quit(); return }
-    if evt.Kind == input.EventKey {
+    if evt.Kind == sumi.EventKey {
         count.Update(func(n int) int { return n + 1 })
     }
 }`
@@ -63,12 +63,12 @@ func handleKey(evt input.Event) {
 	}
 
 	// Should return *tui.Component
-	if !strings.Contains(src, "*tui.Component") {
+	if !strings.Contains(src, "*sumi.Component") {
 		t.Errorf("expected *tui.Component return:\n%s", src)
 	}
 
 	// Should use signal.New
-	if !strings.Contains(src, "signal.New(0)") {
+	if !strings.Contains(src, "sumi.New(0)") {
 		t.Errorf("expected signal.New(0):\n%s", src)
 	}
 
@@ -78,13 +78,13 @@ func handleKey(evt input.Event) {
 	}
 
 	// Should have signal.Effect for sync
-	if !strings.Contains(src, "signal.Effect") {
+	if !strings.Contains(src, "sumi.Effect") {
 		t.Errorf("expected signal.Effect:\n%s", src)
 	}
 
-	// Should import signal package
-	if !strings.Contains(src, `"github.com/tomyan/sumi/runtime/signal"`) {
-		t.Errorf("expected signal import:\n%s", src)
+	// Should import prelude package
+	if !strings.Contains(src, `"github.com/tomyan/sumi/runtime/prelude"`) {
+		t.Errorf("expected prelude import:\n%s", src)
 	}
 
 	// Should be valid Go
@@ -242,7 +242,7 @@ func TestGenerateComponentWithSlotPlaceholder(t *testing.T) {
 	src := string(out)
 
 	// Props should have Children field
-	if !strings.Contains(src, "Children []*layout.Input") {
+	if !strings.Contains(src, "Children []*sumi.Input") {
 		t.Errorf("expected Children prop:\n%s", src)
 	}
 

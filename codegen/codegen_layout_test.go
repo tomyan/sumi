@@ -53,7 +53,7 @@ func TestGenerateBoxUsesLayoutKindBox(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 	src := string(out)
-	if !strings.Contains(src, "layout.KindBox") {
+	if !strings.Contains(src, "sumi.KindBox") {
 		t.Errorf("expected layout.KindBox in output:\n%s", src)
 	}
 }
@@ -125,7 +125,7 @@ func TestGenerateBoxWithPadding(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 	src := string(out)
-	if !strings.Contains(src, `layout.ParsePadding("1 2")`) {
+	if !strings.Contains(src, `sumi.ParsePadding("1 2")`) {
 		t.Errorf("expected layout.ParsePadding(\"1 2\") in output:\n%s", src)
 	}
 }
@@ -254,7 +254,7 @@ func TestGenerateCallsLayoutRenderTreeFromLayoutTest(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 	src := string(out)
-	if !strings.Contains(src, "layout.RenderTree(") {
+	if !strings.Contains(src, "sumi.RenderTree(") {
 		t.Errorf("expected layout.RenderTree call in output:\n%s", src)
 	}
 }

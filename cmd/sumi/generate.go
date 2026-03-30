@@ -21,6 +21,7 @@ type parsedComponent struct {
 	doc        *template.Document
 	script     *script.Script
 	scriptSrc  string // raw script source (for go/ast parsing)
+	imports    string // raw <sumi:imports> content
 	stylesheet *style.Stylesheet
 	name       string // e.g. "counter"
 	exported   string // e.g. "Counter"
@@ -82,6 +83,7 @@ func parseSumiSource(path, src string) (*parsedComponent, error) {
 		doc:        doc,
 		script:     sc,
 		scriptSrc:  sections.Script,
+		imports:    sections.Imports,
 		stylesheet: ss,
 		name:       name,
 		exported:   exportedName(name),
@@ -149,9 +151,9 @@ func generateComponent(comp *parsedComponent) error {
 
 // isSignalScript returns true if the script uses signals, has var props, or other reactive features.
 func isSignalScript(src string) bool {
-	return strings.Contains(src, "signal.") ||
-		strings.Contains(src, "sumi.New") || strings.Contains(src, "sumi.From") ||
-		strings.Contains(src, "tui.Env") ||
+	return strings.Contains(src, "sumi.New") || strings.Contains(src, "sumi.From") ||
+		strings.Contains(src, "sumi.Effect") || strings.Contains(src, "sumi.Env") ||
+		strings.Contains(src, "signal.") ||
 		strings.Contains(src, "\nvar ") || strings.HasPrefix(strings.TrimSpace(src), "var ")
 }
 
@@ -160,6 +162,7 @@ func generateSignalComponent(comp *parsedComponent) error {
 	out, err := codegen.GenerateComponent(comp.doc, comp.scriptSrc, comp.stylesheet, codegen.ComponentOptions{
 		PackageName:   packageName(comp.path),
 		ComponentName: comp.exported,
+		UserImports:   comp.imports,
 	})
 	if err != nil {
 		return fmt.Errorf("%s: %w", comp.path, err)

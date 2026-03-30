@@ -14,8 +14,9 @@ import (
 // ComponentOptions configures component code generation.
 type ComponentOptions struct {
 	PackageName   string
-	ComponentName string // e.g. "Counter" → generates NewCounter, CounterProps
+	ComponentName string                       // e.g. "Counter" → generates NewCounter, CounterProps
 	Components    map[string]ComponentChildInfo // child components available in templates
+	UserImports   string                       // raw content from <sumi:imports> block
 }
 
 // ComponentChildInfo describes a child component available for use in templates.
@@ -37,7 +38,7 @@ func GenerateComponent(doc *template.Document, scriptSrc string, stylesheet *sty
 	fmt.Fprintf(&buf, "package %s\n\n", opts.PackageName)
 
 	// Imports.
-	writeComponentImports(&buf, info, doc, opts.Components)
+	writeComponentImports(&buf, info, doc, opts)
 
 	// Collect slot definitions from template for props.
 	slots := collectSlots(doc)
@@ -48,49 +49,30 @@ func GenerateComponent(doc *template.Document, scriptSrc string, stylesheet *sty
 	// Constructor function.
 	writeConstructor(&buf, opts.ComponentName, info, doc, scriptSrc, stylesheet, opts)
 
-	// Replace render import placeholder based on actual usage in the generated body.
-	src := buf.String()
-	if strings.Contains(src, "render.") && !strings.Contains(src, "RENDER_IMPORT_PLACEHOLDER") {
-		// render is used and placeholder already replaced — shouldn't happen
-	}
-	if strings.Contains(src[strings.Index(src, "RENDER_IMPORT_PLACEHOLDER")+25:], "render.") {
-		src = strings.Replace(src, "\tRENDER_IMPORT_PLACEHOLDER\n", "\t\"github.com/tomyan/sumi/runtime/render\"\n", 1)
-	} else {
-		src = strings.Replace(src, "\tRENDER_IMPORT_PLACEHOLDER\n", "", 1)
-	}
-
-	return format.Source([]byte(src))
+	return format.Source(buf.Bytes())
 }
 
 // writeComponentImports emits import declarations for a component.
-func writeComponentImports(buf *bytes.Buffer, info *script.ScriptInfo, doc *template.Document, components map[string]ComponentChildInfo) {
+// Always imports the sumi prelude. User imports from <sumi:imports> are included verbatim.
+func writeComponentImports(buf *bytes.Buffer, info *script.ScriptInfo, doc *template.Document, opts ComponentOptions) {
 	buf.WriteString("import (\n")
-	if docHasExprs(doc) {
-		buf.WriteString("\t\"fmt\"\n")
-	}
-	buf.WriteString("\n")
-	// Check if any function has input.Event parameter.
-	needsInput := false
-	for _, f := range info.Funcs {
-		if strings.Contains(f.Params, "input.Event") {
-			needsInput = true
-			break
+	// User imports from <sumi:imports> block.
+	if opts.UserImports != "" {
+		for _, line := range strings.Split(opts.UserImports, "\n") {
+			trimmed := strings.TrimSpace(line)
+			if trimmed != "" {
+				fmt.Fprintf(buf, "\t%s\n", trimmed)
+			}
 		}
+		buf.WriteString("\n")
 	}
-	if needsInput {
-		buf.WriteString("\t\"github.com/tomyan/sumi/runtime/input\"\n")
-	}
-	buf.WriteString("\t\"github.com/tomyan/sumi/runtime/layout\"\n")
-	buf.WriteString("\tRENDER_IMPORT_PLACEHOLDER\n")
-	if len(info.Signals) > 0 || strings.Contains(info.Source, "signal.") {
-		buf.WriteString("\t\"github.com/tomyan/sumi/runtime/signal\"\n")
-	}
-	buf.WriteString("\t\"github.com/tomyan/sumi/runtime/tui\"\n")
+	// Sumi prelude — the single framework import.
+	buf.WriteString("\tsumi \"github.com/tomyan/sumi/runtime/prelude\"\n")
 	// Child component imports.
-	if len(components) > 0 {
+	if len(opts.Components) > 0 {
 		buf.WriteString("\n")
 		imported := make(map[string]bool)
-		for _, ci := range components {
+		for _, ci := range opts.Components {
 			if !imported[ci.ImportPath] {
 				fmt.Fprintf(buf, "\t\"%s\"\n", ci.ImportPath)
 				imported[ci.ImportPath] = true
@@ -109,7 +91,7 @@ func writePropsStruct(buf *bytes.Buffer, name string, props []script.PropInfo, s
 	}
 	for _, s := range slots {
 		fieldName := exportedName(s.name)
-		fmt.Fprintf(buf, "\t%s []*layout.Input\n", fieldName)
+		fmt.Fprintf(buf, "\t%s []*sumi.Input\n", fieldName)
 	}
 	buf.WriteString("}\n\n")
 }
@@ -141,7 +123,7 @@ func walkSlots(children []template.Node, fn func(*template.SlotElement)) {
 // writeConstructor emits the NewFoo function.
 func writeConstructor(buf *bytes.Buffer, name string, info *script.ScriptInfo, doc *template.Document, scriptSrc string, stylesheet *style.Stylesheet, opts ComponentOptions) {
 	if len(info.Props) > 0 {
-		fmt.Fprintf(buf, "func New%s(props %sProps) *tui.Component {\n", name, name)
+		fmt.Fprintf(buf, "func New%s(props %sProps) *sumi.Component {\n", name, name)
 		// Extract props into local variables.
 		for _, p := range info.Props {
 			field := exportedName(p.Name)
@@ -156,7 +138,7 @@ func writeConstructor(buf *bytes.Buffer, name string, info *script.ScriptInfo, d
 		}
 		buf.WriteString("\n")
 	} else {
-		fmt.Fprintf(buf, "func New%s(props %sProps) *tui.Component {\n", name, name)
+		fmt.Fprintf(buf, "func New%s(props %sProps) *sumi.Component {\n", name, name)
 	}
 
 	// Emit signal/variable declarations (non-var, non-func lines from script).
@@ -171,6 +153,12 @@ func writeConstructor(buf *bytes.Buffer, name string, info *script.ScriptInfo, d
 	writeChildComponentInstances(buf, doc, opts.Components)
 
 	// Build layout tree with signal-aware expressions.
+	// Include signal-typed props so text expressions auto-unwrap with .Get().
+	for _, p := range info.Props {
+		if strings.Contains(p.TypeStr, "Signal") {
+			info.Signals[p.Name] = true
+		}
+	}
 	ext := newExtractionCtx()
 	ext.signals = info.Signals
 	ext.componentChildren = opts.Components
@@ -182,7 +170,7 @@ func writeConstructor(buf *bytes.Buffer, name string, info *script.ScriptInfo, d
 	// Signal effect for syncing expression nodes and dynamic children.
 	hasSync := len(ext.nodes) > 0 || ext.syncBuf.Len() > 0
 	if hasSync {
-		buf.WriteString("\n\tsignal.Effect(func() {\n")
+		buf.WriteString("\n\tsumi.Effect(func() {\n")
 		for _, n := range ext.nodes {
 			fmt.Fprintf(buf, "\t\t%s.Content = %s\n", n.varName, n.syncExpr)
 		}
@@ -268,9 +256,9 @@ func walkComponentElements(children []template.Node, fn func(*template.Component
 	}
 }
 
-// rewriteAppCalls replaces app.Quit() with tui.Quit() in function bodies.
+// rewriteAppCalls replaces app.Quit() with sumi.Quit() in function bodies.
 func rewriteAppCalls(body string) string {
-	return strings.ReplaceAll(body, "app.Quit()", "tui.Quit()")
+	return strings.ReplaceAll(body, "app.Quit()", "sumi.Quit()")
 }
 
 // writeComponentFunc emits a function closure.
@@ -302,7 +290,7 @@ func writeComponentReturn(buf *bytes.Buffer, info *script.ScriptInfo) {
 		}
 	}
 
-	buf.WriteString("\n\treturn &tui.Component{\n")
+	buf.WriteString("\n\treturn &sumi.Component{\n")
 	buf.WriteString("\t\tTree: root,\n")
 	if handler != "" {
 		fmt.Fprintf(buf, "\t\tOnEvent: %s,\n", handler)

@@ -1,57 +1,52 @@
 package textinput
 
 import (
-	"fmt"
-
-	"github.com/tomyan/sumi/runtime/input"
-	"github.com/tomyan/sumi/runtime/layout"
-	"github.com/tomyan/sumi/runtime/signal"
-	"github.com/tomyan/sumi/runtime/tui"
+	sumi "github.com/tomyan/sumi/runtime/prelude"
 )
 
 type AppProps struct {
 }
 
-func NewApp(props AppProps) *tui.Component {
-	value := signal.New("")
+func NewApp(props AppProps) *sumi.Component {
+	value := sumi.New("")
 
-	handleKey := func(evt input.Event) {
-		if evt.Kind == input.EventSignal {
-			tui.Quit()
+	handleKey := func(evt sumi.Event) {
+		if evt.Kind == sumi.EventSignal {
+			sumi.Quit()
 			return
 		}
 		if evt.Ctrl && evt.Rune == 'c' {
-			tui.Quit()
+			sumi.Quit()
 			return
 		}
 	}
 
-	node0 := &layout.Input{
-		Kind:    layout.KindText,
-		Content: fmt.Sprintf("Value: %v", value.Get()),
+	node0 := &sumi.Input{
+		Kind:    sumi.KindText,
+		Content: sumi.Sprintf("Value: %v", value.Get()),
 	}
-	root := &layout.Input{
-		Kind:      layout.KindBox,
+	root := &sumi.Input{
+		Kind:      sumi.KindBox,
 		Direction: "column",
 		CursorCol: -1,
 		CursorRow: -1,
-		Children: []*layout.Input{
+		Children: []*sumi.Input{
 			{
-				Kind:      layout.KindBox,
+				Kind:      sumi.KindBox,
 				CursorCol: -1,
 				CursorRow: -1,
-				Children: []*layout.Input{
+				Children: []*sumi.Input{
 					node0,
 				},
 			},
 		},
 	}
 
-	signal.Effect(func() {
-		node0.Content = fmt.Sprintf("Value: %v", value.Get())
+	sumi.Effect(func() {
+		node0.Content = sumi.Sprintf("Value: %v", value.Get())
 	})
 
-	return &tui.Component{
+	return &sumi.Component{
 		Tree:    root,
 		OnEvent: handleKey,
 	}

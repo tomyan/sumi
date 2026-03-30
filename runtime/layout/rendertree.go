@@ -38,6 +38,19 @@ func renderBorder(buf *render.Buffer, box *Box) {
 		if box.BorderTitle != "" {
 			buf.DrawStyledBorderTitle(box.Y, box.X, box.Width, box.BorderTitle, box.Style)
 		}
+		return
+	}
+	// Partial borders: top and/or bottom only (no corners, no side edges).
+	if hasBorder(box.BorderTop) {
+		for c := box.X; c < box.X+box.Width; c++ {
+			buf.SetStyledCell(box.Y, c, '─', box.Style)
+		}
+	}
+	if hasBorder(box.BorderBottom) {
+		bottomRow := box.Y + box.Height - 1
+		for c := box.X; c < box.X+box.Width; c++ {
+			buf.SetStyledCell(bottomRow, c, '─', box.Style)
+		}
 	}
 }
 

@@ -1,0 +1,132 @@
+// Package prelude re-exports the sumi runtime types and functions used by
+// generated .sumi component code. This is the single implicit import in all
+// generated files — user code imports everything else explicitly.
+package prelude
+
+import (
+	"fmt"
+
+	"github.com/tomyan/sumi/runtime/input"
+	"github.com/tomyan/sumi/runtime/layout"
+	"github.com/tomyan/sumi/runtime/render"
+	"github.com/tomyan/sumi/runtime/signal"
+	"github.com/tomyan/sumi/runtime/term"
+	"github.com/tomyan/sumi/runtime/tui"
+)
+
+// --- layout ---
+
+type Input = layout.Input
+type Padding = layout.Padding
+type ScrollState = layout.ScrollState
+type Box = layout.Box
+
+const (
+	KindBox  = layout.KindBox
+	KindText = layout.KindText
+)
+
+var (
+	ParsePadding  = layout.ParsePadding
+	Layout        = layout.Layout
+	RenderTree    = layout.RenderTree
+	ApplyChanges  = layout.ApplyChanges
+	FindCursor    = layout.FindCursor
+	DirectWriteText = layout.DirectWriteText
+	DiffTrees     = layout.DiffTrees
+)
+
+// --- render ---
+
+type Style = render.Style
+type Color = render.Color
+
+var (
+	NewBuffer   = render.NewBuffer
+	ClearScreen = render.ClearScreen
+	ShowCursor  = render.ShowCursor
+	HideCursor  = render.HideCursor
+	EnterAlternateScreen = render.EnterAlternateScreen
+	ExitAlternateScreen  = render.ExitAlternateScreen
+)
+
+// --- signal ---
+
+type Signal[T any] = signal.Signal[T]
+type Computed[T any] = signal.Computed[T]
+
+// New creates a new signal with an initial value.
+func New[T any](initial T) *signal.Signal[T] {
+	return signal.New(initial)
+}
+
+// From creates a computed signal derived from other signals.
+func From[T any](fn func() T) *signal.Computed[T] {
+	return signal.From(fn)
+}
+
+// Effect registers a side effect that re-runs when its signal dependencies change.
+var Effect = signal.Effect
+
+// Batch defers signal notifications until the batch function completes.
+var Batch = signal.Batch
+
+// --- tui ---
+
+type App = tui.App
+type Component = tui.Component
+type RunOptions = tui.RunOptions
+
+var (
+	Run            = tui.Run
+	RunWithOptions = tui.RunWithOptions
+	TestApp        = tui.TestApp
+	Quit           = tui.Quit
+)
+
+// Env returns a framework-provided signal for the given environment key.
+func Env[T any](key string) *signal.Signal[T] {
+	return tui.Env[T](key)
+}
+
+// --- input ---
+
+type Event = input.Event
+type SpecialKey = input.SpecialKey
+type EventKind = input.EventKind
+
+const (
+	EventKey     = input.EventKey
+	EventSpecial = input.EventSpecial
+	EventMouse   = input.EventMouse
+	EventSignal  = input.EventSignal
+	EventFrame   = input.EventFrame
+	EventPaste   = input.EventPaste
+	EventFocus   = input.EventFocus
+	EventBlur    = input.EventBlur
+)
+
+const (
+	KeyUp        = input.KeyUp
+	KeyDown      = input.KeyDown
+	KeyLeft      = input.KeyLeft
+	KeyRight     = input.KeyRight
+	KeyHome      = input.KeyHome
+	KeyEnd       = input.KeyEnd
+	KeyPgUp      = input.KeyPgUp
+	KeyPgDn      = input.KeyPgDn
+	KeyTab       = input.KeyTab
+	KeyShiftTab  = input.KeyShiftTab
+	KeyEnter     = input.KeyEnter
+	KeyEscape    = input.KeyEscape
+	KeyBackspace = input.KeyBackspace
+	KeyDelete    = input.KeyDelete
+)
+
+// --- term ---
+
+var GetSize = term.GetSize
+
+// --- fmt ---
+
+var Sprintf = fmt.Sprintf

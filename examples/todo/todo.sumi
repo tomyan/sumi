@@ -18,13 +18,13 @@
 </style>
 
 <script>
-items := signal.New([]string{"Buy groceries", "Write tests", "Review PR"})
-selected := signal.New(0)
+items := sumi.New([]string{"Buy groceries", "Write tests", "Review PR"})
+selected := sumi.New(0)
 
-func handleKey(evt input.Event) {
-    if evt.Kind == input.EventSignal { app.Quit(); return }
-    if evt.Rune == 'q' || (evt.Ctrl && evt.Rune == 'c') { app.Quit(); return }
-    if evt.Kind == input.EventKey {
+func handleKey(evt sumi.Event) {
+    if evt.Kind == sumi.EventSignal { sumi.Quit(); return }
+    if evt.Rune == 'q' || (evt.Ctrl && evt.Rune == 'c') { sumi.Quit(); return }
+    if evt.Kind == sumi.EventKey {
         n := len(items.Get())
         if n > 0 {
             selected.Set((selected.Get() + 1) % n)
