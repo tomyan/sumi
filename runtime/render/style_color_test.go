@@ -157,14 +157,14 @@ func TestDrawBorderStillWorks(t *testing.T) {
 func TestRenderAllFGColors(t *testing.T) {
 	// Given
 	colors := map[string]string{
-		"black":   "\x1b[30m",
-		"red":     "\x1b[31m",
-		"green":   "\x1b[32m",
-		"yellow":  "\x1b[33m",
-		"blue":    "\x1b[34m",
-		"magenta": "\x1b[35m",
-		"cyan":    "\x1b[36m",
-		"white":   "\x1b[37m",
+		"black":   ";30m",
+		"red":     ";31m",
+		"green":   ";32m",
+		"yellow":  ";33m",
+		"blue":    ";34m",
+		"magenta": ";35m",
+		"cyan":    ";36m",
+		"white":   ";37m",
 	}
 	for name, expected := range colors {
 		// Given
@@ -186,14 +186,14 @@ func TestRenderAllFGColors(t *testing.T) {
 func TestRenderAllBGColors(t *testing.T) {
 	// Given
 	colors := map[string]string{
-		"black":   "\x1b[40m",
-		"red":     "\x1b[41m",
-		"green":   "\x1b[42m",
-		"yellow":  "\x1b[43m",
-		"blue":    "\x1b[44m",
-		"magenta": "\x1b[45m",
-		"cyan":    "\x1b[46m",
-		"white":   "\x1b[47m",
+		"black":   ";40m",
+		"red":     ";41m",
+		"green":   ";42m",
+		"yellow":  ";43m",
+		"blue":    ";44m",
+		"magenta": ";45m",
+		"cyan":    ";46m",
+		"white":   ";47m",
 	}
 	for name, expected := range colors {
 		// Given

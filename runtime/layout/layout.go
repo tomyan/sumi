@@ -51,8 +51,9 @@ type Input struct {
 	BorderBottom   string       // bottom-only border: "single" or ""
 	BorderTitle    string       // text to display in the top border edge
 	BorderCollapse bool        // when true, children share borders
-	Scroll         *ScrollState // if non-nil, layout populates and applies scroll state
-	Style          render.Style // resolved style for this node
+	Scroll          *ScrollState // if non-nil, layout populates and applies scroll state
+	ContentEditable bool         // when true, renders an inverse cursor at CursorCol/CursorRow
+	Style           render.Style // resolved style for this node
 	Children       []*Input
 }
 
@@ -68,6 +69,8 @@ type Box struct {
 	ContentHeight       int          // full content height (set when overflow != "")
 	ScrollY             int          // vertical scroll offset (applied during render)
 	ScrollX             int          // horizontal scroll offset (applied during render)
+	Kind                NodeKind     // node type (propagated from Input)
+	ContentEditable     bool         // renders inverse cursor at CursorCol/CursorRow
 	Key                 string       // identity key for diffing (propagated from Input)
 	Position            string       // positioning mode (propagated from Input)
 	ZIndex              int          // paint order (propagated from Input)
@@ -195,7 +198,9 @@ func layoutNode(input *Input, availW, availH int) *Box {
 		border = "" // children's borders form the parent frame
 	}
 	box := &Box{
-		Border:       border,
+		Kind:            input.Kind,
+		ContentEditable: input.ContentEditable,
+		Border:          border,
 		BorderTop:    input.BorderTop,
 		BorderBottom: input.BorderBottom,
 		BorderTitle:  input.BorderTitle,
@@ -212,18 +217,33 @@ func layoutNode(input *Input, availW, availH int) *Box {
 	}
 
 	if input.Kind == KindText {
-		box.CursorCol = -1
-		box.CursorRow = -1
+		if !input.ContentEditable {
+			box.CursorCol = -1
+			box.CursorRow = -1
+		}
 		box.Content = input.Content
 		runeLen := utf8.RuneCountInString(input.Content)
-		if availW > 0 && runeLen > availW {
-			lines := wrapText(input.Content, availW)
+		// Contenteditable wraps one column early to reserve space for the cursor.
+		wrapW := availW
+		if input.ContentEditable && availW > 1 {
+			wrapW = availW - 1
+		}
+		if wrapW > 0 && runeLen > wrapW {
+			lines := wrapText(input.Content, wrapW)
 			box.Lines = lines
 			box.Width = availW
 			box.Height = len(lines)
 		} else {
 			box.Width = runeLen
 			box.Height = 1
+		}
+		// Convert flat cursor offset to visual (row, col) within wrapped lines.
+		if input.ContentEditable && box.CursorCol >= 0 {
+			box.CursorRow, box.CursorCol = cursorToVisual(box.CursorCol, box.Lines, wrapW)
+			// Ensure enough height for the cursor row.
+			if box.CursorRow >= box.Height {
+				box.Height = box.CursorRow + 1
+			}
 		}
 		if input.FixedWidth > 0 {
 			box.Width = input.FixedWidth

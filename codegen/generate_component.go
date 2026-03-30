@@ -205,43 +205,59 @@ func writeScriptDeclarations(buf *bytes.Buffer, info *script.ScriptInfo, src str
 }
 
 // writeChildComponentInstances generates constructor calls for child components used in templates.
+// Components are identified by uppercase first letter in the template:
+//   <Console />          → local:    NewConsole(ConsoleProps{})
+//   <console.Console />  → imported: console.NewConsole(console.ConsoleProps{})
 func writeChildComponentInstances(buf *bytes.Buffer, doc *template.Document, components map[string]ComponentChildInfo) {
-	if len(components) == 0 {
-		return
-	}
 	idx := 0
+	hasAny := false
 	walkComponentElements(doc.Children, func(comp *template.ComponentElement) {
-		info, ok := components[comp.Name]
-		if !ok {
-			return
+		pkg, name := splitComponentName(comp.Name)
+		varName := fmt.Sprintf("%s%d", strings.ToLower(name[:1])+name[1:], idx)
+
+		if pkg != "" {
+			fmt.Fprintf(buf, "\t%s := %s.New%s(%s.%sProps{\n", varName, pkg, name, pkg, name)
+		} else {
+			fmt.Fprintf(buf, "\t%s := New%s(%sProps{\n", varName, name, name)
 		}
-		varName := fmt.Sprintf("%s%d", strings.ToLower(comp.Name[:1])+comp.Name[1:], idx)
-		fmt.Fprintf(buf, "\t%s := %s.New%s(%s.%sProps{\n", varName, info.Package, comp.Name, info.Package, comp.Name)
-		for k, v := range comp.Attributes {
-			if strings.HasPrefix(k, "bind:") {
-				// bind:value={name} → Value: name (pass signal reference)
-				propName := strings.TrimPrefix(k, "bind:")
-				fieldName := exportedName(propName)
-				expr := v
-				if strings.HasPrefix(expr, "{") && strings.HasSuffix(expr, "}") {
-					expr = expr[1 : len(expr)-1]
-				}
-				fmt.Fprintf(buf, "\t\t%s: %s,\n", fieldName, expr)
-			} else if strings.HasPrefix(v, "{") && strings.HasSuffix(v, "}") {
-				// Expression prop: value={expr}
-				fieldName := exportedName(k)
-				expr := v[1 : len(v)-1]
-				fmt.Fprintf(buf, "\t\t%s: %s,\n", fieldName, expr)
-			} else {
-				// Literal prop: value="text"
-				fieldName := exportedName(k)
-				fmt.Fprintf(buf, "\t\t%s: %q,\n", fieldName, v)
-			}
-		}
+		writeComponentProps(buf, comp.Attributes)
 		fmt.Fprintf(buf, "\t})\n")
 		idx++
+		hasAny = true
 	})
-	buf.WriteString("\n")
+	if hasAny {
+		buf.WriteString("\n")
+	}
+}
+
+// splitComponentName splits "pkg.Name" into ("pkg", "Name") or ("", "Name") for local.
+func splitComponentName(name string) (pkg, comp string) {
+	if i := strings.LastIndex(name, "."); i >= 0 {
+		return name[:i], name[i+1:]
+	}
+	return "", name
+}
+
+// writeComponentProps emits prop assignments from component attributes.
+func writeComponentProps(buf *bytes.Buffer, attrs map[string]string) {
+	for k, v := range attrs {
+		if strings.HasPrefix(k, "bind:") {
+			propName := strings.TrimPrefix(k, "bind:")
+			fieldName := exportedName(propName)
+			expr := v
+			if strings.HasPrefix(expr, "{") && strings.HasSuffix(expr, "}") {
+				expr = expr[1 : len(expr)-1]
+			}
+			fmt.Fprintf(buf, "\t\t%s: %s,\n", fieldName, expr)
+		} else if strings.HasPrefix(v, "{") && strings.HasSuffix(v, "}") {
+			fieldName := exportedName(k)
+			expr := v[1 : len(v)-1]
+			fmt.Fprintf(buf, "\t\t%s: %s,\n", fieldName, expr)
+		} else {
+			fieldName := exportedName(k)
+			fmt.Fprintf(buf, "\t\t%s: %q,\n", fieldName, v)
+		}
+	}
 }
 
 // walkComponentElements finds all ComponentElement nodes in a template tree.

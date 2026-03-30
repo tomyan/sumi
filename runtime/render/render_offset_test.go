@@ -55,7 +55,7 @@ func TestRenderToOffsetPreservesStyles(t *testing.T) {
 
 	// Then — should contain SGR for green (code 32) and shifted cursor
 	result := out.String()
-	if !strings.Contains(result, "\x1b[32m") {
+	if !strings.Contains(result, ";32m") {
 		t.Errorf("expected green SGR code, got:\n%s", result)
 	}
 	// (0,0) → row 0+2+1=3, col 0+1+1=2 → \x1b[3;2H

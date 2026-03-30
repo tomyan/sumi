@@ -106,7 +106,7 @@ func TestRenderStyledThenUnstyled(t *testing.T) {
 	// Then
 	got := buf.String()
 	// Should contain bold for S
-	if !strings.Contains(got, "\x1b[1m") {
+	if !strings.Contains(got, ";1m") {
 		t.Errorf("missing bold SGR, got %q", got)
 	}
 	// Should contain reset before U (since S was styled)

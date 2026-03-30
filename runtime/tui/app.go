@@ -25,6 +25,7 @@ type App struct {
 	OnPostRender func()            // called after each converge() cycle (if non-nil)
 	quitCh       chan struct{}     // closed by Quit() to exit the event loop
 	wakeCh       chan struct{}     // receives from RequestFrame() to wake the event loop
+	doCh         chan func()      // queued functions to run on the main goroutine
 
 	// Test mode fields — set by CreateApp for synchronous stepping.
 	TestWidth  int            // test viewport width (0 = use real terminal)
@@ -57,6 +58,23 @@ func (a *App) Wake() {
 	}
 }
 
+// Do queues a function to run on the main goroutine before the next render.
+// Safe to call from any goroutine. The function will execute on the event loop
+// goroutine, so it's safe to mutate signals and the layout tree within it.
+func (a *App) Do(fn func()) {
+	if a.doCh == nil {
+		// Before Run() — execute immediately (single-threaded context).
+		fn()
+		return
+	}
+	a.doCh <- fn
+	// Wake the event loop in case the select is blocked on other channels.
+	select {
+	case a.wakeCh <- struct{}{}:
+	default:
+	}
+}
+
 // RequestFrame schedules an animation frame tick after ~16ms.
 // When the tick fires, the event loop dispatches EventFrame to OnEvent.
 func (a *App) RequestFrame() {
@@ -70,10 +88,11 @@ func (a *App) RequestFrame() {
 	}()
 }
 
-// initQuit creates the quit and wake channels. Called by Run() and tests.
+// initQuit creates the quit, wake, and do channels. Called by Run() and tests.
 func (a *App) initQuit() {
 	a.quitCh = make(chan struct{}, 1)
 	a.wakeCh = make(chan struct{}, 1)
+	a.doCh = make(chan func(), 64)
 }
 
 // Step dispatches a single event and runs bounded convergence rendering.
@@ -200,6 +219,10 @@ func (a *App) runLoop(eventCh <-chan input.Event, resizeCh <-chan struct{}, sigC
 		case <-a.wakeCh:
 			a.dispatchEvent(input.Event{Kind: input.EventFrame})
 
+		case fn := <-a.doCh:
+			fn()
+			a.Dirty = true
+
 		case <-a.quitCh:
 			return
 		}
@@ -259,6 +282,10 @@ func (a *App) drain(eventCh <-chan input.Event, resizeCh <-chan struct{}, sigCh 
 
 		case <-a.wakeCh:
 			a.dispatchEvent(input.Event{Kind: input.EventFrame})
+
+		case fn := <-a.doCh:
+			fn()
+			a.Dirty = true
 
 		case <-a.quitCh:
 			return true

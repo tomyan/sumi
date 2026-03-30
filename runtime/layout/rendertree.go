@@ -62,6 +62,19 @@ func renderContent(buf *render.Buffer, box *Box, clip *render.Clip) {
 	} else if box.Content != "" {
 		buf.WriteStyledTextClipped(box.Y, box.X, box.Content, box.Style, clip)
 	}
+	// Render inverse cursor for contenteditable elements.
+	if box.ContentEditable && box.CursorCol >= 0 && box.CursorRow >= 0 {
+		cursorY := box.Y + box.CursorRow
+		cursorX := box.X + box.CursorCol
+		cell := buf.Cell(cursorY, cursorX)
+		ch := cell.Ch
+		if ch == 0 {
+			ch = ' '
+		}
+		cursorStyle := box.Style
+		cursorStyle.Inverse = true
+		buf.SetStyledCell(cursorY, cursorX, ch, cursorStyle)
+	}
 }
 
 // renderScrollbarsAndChildren draws scrollbars (if needed) then renders children

@@ -57,19 +57,17 @@ func writeInputNode(buf *bytes.Buffer, node template.Node, stylesheet *style.Sty
 	case *template.BoxElement:
 		writeBoxInput(buf, n, stylesheet, indent, ext)
 	case *template.ComponentElement:
-		if ext != nil && len(ext.componentChildren) > 0 {
-			writeSignalComponentRef(buf, n, indent, ext)
-		}
+		writeSignalComponentRef(buf, n, indent)
 	case *template.SlotElement:
 		writeSlotReference(buf, n, indent)
 	}
 }
 
 // writeSignalComponentRef writes a child component's .Tree as a layout tree entry.
-func writeSignalComponentRef(buf *bytes.Buffer, comp *template.ComponentElement, indent int, ext *extractionCtx) {
+func writeSignalComponentRef(buf *bytes.Buffer, comp *template.ComponentElement, indent int) {
 	tabs := indentStr(indent)
-	// Variable name matches what writeChildComponentInstances generates.
-	varName := strings.ToLower(comp.Name[:1]) + comp.Name[1:] + "0"
+	_, name := splitComponentName(comp.Name)
+	varName := strings.ToLower(name[:1]) + name[1:] + "0"
 	fmt.Fprintf(buf, "%s%s.Tree,\n", tabs, varName)
 }
 
@@ -153,6 +151,10 @@ func writeTextInput(buf *bytes.Buffer, n *template.TextElement, stylesheet *styl
 	fmt.Fprintf(buf, "%s{\n", tabs)
 	fmt.Fprintf(buf, "%s\tKind:    sumi.KindText,\n", tabs)
 	fmt.Fprintf(buf, "%s\tContent: %s,\n", tabs, content)
+	if ce, ok := attrs["contenteditable"]; ok && ce == "true" {
+		fmt.Fprintf(buf, "%s\tContentEditable: true,\n", tabs)
+		writeCursorAttr(buf, tabs, attrs, props)
+	}
 	if props != nil {
 		writeStyleLiteral(buf, tabs, props)
 	}
@@ -210,11 +212,11 @@ func writeBoxInput(buf *bytes.Buffer, n *template.BoxElement, stylesheet *style.
 		ext.focusablesSeen++
 	}
 
-	if ext != nil && hasDynamicChildren(n.Children) {
+	if ext != nil && !ext.inDynamic && hasDynamicChildren(n.Children) {
 		writeExtractedDynamicBox(buf, n, stylesheet, indent, ext)
 		return
 	}
-	if ext != nil && hasDynamicCursor(n.Attributes) {
+	if ext != nil && !ext.inDynamic && hasDynamicCursor(n.Attributes) {
 		writeExtractedCursorBox(buf, n, stylesheet, indent, ext, focusIdx)
 		return
 	}
@@ -398,6 +400,9 @@ func writeBoxAttributes(buf *bytes.Buffer, tabs string, attrs map[string]string,
 	writeIntAttr(buf, tabs, attrs, props, "z-index", "ZIndex")
 	if f, ok := mergedAttr(attrs, props, "focusable"); ok && f == "true" {
 		fmt.Fprintf(buf, "%s\tFocusable: true,\n", tabs)
+	}
+	if ce, ok := mergedAttr(attrs, props, "contenteditable"); ok && ce == "true" {
+		fmt.Fprintf(buf, "%s\tContentEditable: true,\n", tabs)
 	}
 	writeCursorAttr(buf, tabs, attrs, props)
 }

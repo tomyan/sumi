@@ -1,13 +1,11 @@
 package layout
 
-import (
-	"strings"
-	"unicode/utf8"
-)
+import "unicode/utf8"
 
 // wrapText breaks text into lines that fit within the given width (in runes).
-// It wraps at word boundaries (spaces) when possible, falling back
-// to character-level breaks for words longer than width.
+// Preserves all whitespace exactly. Prefers breaking at space boundaries but
+// falls back to character-level breaks for long words. Explicit newlines
+// always start a new line.
 func wrapText(text string, width int) []string {
 	if width <= 0 {
 		return []string{text}
@@ -16,47 +14,60 @@ func wrapText(text string, width int) []string {
 		return []string{text}
 	}
 
+	runes := []rune(text)
 	var lines []string
-	words := strings.Fields(text)
+	lineStart := 0
 
-	var line strings.Builder
-	lineLen := 0
-
-	for _, word := range words {
-		wordLen := utf8.RuneCountInString(word)
-
-		// Handle words longer than width by rune-breaking them
-		for wordLen > width {
-			if lineLen > 0 {
-				lines = append(lines, line.String())
-				line.Reset()
-				lineLen = 0
-			}
-			runes := []rune(word)
-			lines = append(lines, string(runes[:width]))
-			word = string(runes[width:])
-			wordLen = utf8.RuneCountInString(word)
-		}
-		if word == "" {
+	for lineStart < len(runes) {
+		// Handle explicit newlines.
+		if runes[lineStart] == '\n' {
+			lines = append(lines, "")
+			lineStart++
 			continue
 		}
 
-		if lineLen == 0 {
-			line.WriteString(word)
-			lineLen = wordLen
-		} else if lineLen+1+wordLen <= width {
-			line.WriteByte(' ')
-			line.WriteString(word)
-			lineLen += 1 + wordLen
-		} else {
-			lines = append(lines, line.String())
-			line.Reset()
-			line.WriteString(word)
-			lineLen = wordLen
+		// Find the end of this line.
+		remaining := len(runes) - lineStart
+		if remaining <= width {
+			// Rest fits on one line.
+			lines = append(lines, string(runes[lineStart:]))
+			break
 		}
+
+		// Check for newline within the width.
+		lineEnd := lineStart + width
+		for i := lineStart; i < lineEnd && i < len(runes); i++ {
+			if runes[i] == '\n' {
+				lines = append(lines, string(runes[lineStart:i]))
+				lineStart = i + 1
+				goto nextLine
+			}
+		}
+
+		// Look backwards from the width boundary for a space to break at.
+		{
+			breakAt := -1
+			for i := lineEnd - 1; i > lineStart; i-- {
+				if runes[i] == ' ' {
+					breakAt = i
+					break
+				}
+			}
+			if breakAt > lineStart {
+				// Break after the space (space stays at end of current line).
+				lines = append(lines, string(runes[lineStart:breakAt+1]))
+				lineStart = breakAt + 1
+			} else {
+				// No space found — hard break at width.
+				lines = append(lines, string(runes[lineStart:lineEnd]))
+				lineStart = lineEnd
+			}
+		}
+	nextLine:
 	}
-	if lineLen > 0 {
-		lines = append(lines, line.String())
+
+	if lineStart == len(runes) && (len(lines) == 0 || len(runes) > 0 && runes[len(runes)-1] == '\n') {
+		lines = append(lines, "")
 	}
 
 	return lines

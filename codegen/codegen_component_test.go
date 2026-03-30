@@ -109,7 +109,7 @@ func TestGenerateComponentWithChildComponent(t *testing.T) {
 					},
 					// Component usage: <Greeting name="Sumi" />
 					&template.ComponentElement{
-						Name:       "Greeting",
+						Name:       "greeting.Greeting",
 						Attributes: map[string]string{"name": "Sumi"},
 					},
 				},

@@ -16,8 +16,8 @@ func TestWrapTextWordBreak(t *testing.T) {
 	if len(lines) != 2 {
 		t.Fatalf("len(lines) = %d, want 2", len(lines))
 	}
-	if lines[0] != "hello" {
-		t.Errorf("lines[0] = %q, want %q", lines[0], "hello")
+	if lines[0] != "hello " {
+		t.Errorf("lines[0] = %q, want %q", lines[0], "hello ")
 	}
 	if lines[1] != "world" {
 		t.Errorf("lines[1] = %q, want %q", lines[1], "world")
@@ -93,8 +93,8 @@ func TestWrapTextLongWordFallsBackToCharBreak(t *testing.T) {
 	if lines[0] != "abcde" {
 		t.Errorf("lines[0] = %q, want %q", lines[0], "abcde")
 	}
-	if lines[1] != "fgh" {
-		t.Errorf("lines[1] = %q, want %q", lines[1], "fgh")
+	if lines[1] != "fgh " {
+		t.Errorf("lines[1] = %q, want %q", lines[1], "fgh ")
 	}
 	if lines[2] != "ij" {
 		t.Errorf("lines[2] = %q, want %q", lines[2], "ij")
@@ -121,8 +121,8 @@ func TestLayoutTextWrapsWhenExceedsAvailWidth(t *testing.T) {
 	if len(box.Lines) != 2 {
 		t.Fatalf("len(Lines) = %d, want 2", len(box.Lines))
 	}
-	if box.Lines[0] != "hello" {
-		t.Errorf("Lines[0] = %q, want %q", box.Lines[0], "hello")
+	if box.Lines[0] != "hello " {
+		t.Errorf("Lines[0] = %q, want %q", box.Lines[0], "hello ")
 	}
 	if box.Lines[1] != "world" {
 		t.Errorf("Lines[1] = %q, want %q", box.Lines[1], "world")

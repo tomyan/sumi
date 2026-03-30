@@ -17,7 +17,7 @@ func TestRenderBoldCell(t *testing.T) {
 
 	// Then
 	got := buf.String()
-	if !strings.Contains(got, "\x1b[1m") {
+	if !strings.Contains(got, ";1m") {
 		t.Errorf("output missing bold SGR \\x1b[1m, got %q", got)
 	}
 	if !strings.Contains(got, "A") {
@@ -36,7 +36,7 @@ func TestRenderGreenFG(t *testing.T) {
 
 	// Then
 	got := buf.String()
-	if !strings.Contains(got, "\x1b[32m") {
+	if !strings.Contains(got, ";32m") {
 		t.Errorf("output missing green FG SGR \\x1b[32m, got %q", got)
 	}
 }
@@ -52,7 +52,7 @@ func TestRenderBGColor(t *testing.T) {
 
 	// Then
 	got := buf.String()
-	if !strings.Contains(got, "\x1b[44m") {
+	if !strings.Contains(got, ";44m") {
 		t.Errorf("output missing blue BG SGR \\x1b[44m, got %q", got)
 	}
 }
@@ -78,16 +78,17 @@ func TestRenderMultipleAttributes(t *testing.T) {
 	if !strings.Contains(got, "\x1b[0m") {
 		t.Errorf("output missing reset SGR, got %q", got)
 	}
-	if !strings.Contains(got, "\x1b[1m") {
+	// Combined SGR: \x1b[0;1;4;36;43m — check each code appears.
+	if !strings.Contains(got, ";1;") && !strings.Contains(got, ";1m") {
 		t.Errorf("output missing bold SGR, got %q", got)
 	}
-	if !strings.Contains(got, "\x1b[4m") {
+	if !strings.Contains(got, ";4;") && !strings.Contains(got, ";4m") {
 		t.Errorf("output missing underline SGR, got %q", got)
 	}
-	if !strings.Contains(got, "\x1b[36m") {
+	if !strings.Contains(got, ";36;") && !strings.Contains(got, ";36m") {
 		t.Errorf("output missing cyan FG SGR, got %q", got)
 	}
-	if !strings.Contains(got, "\x1b[43m") {
+	if !strings.Contains(got, ";43m") {
 		t.Errorf("output missing yellow BG SGR, got %q", got)
 	}
 }
@@ -126,7 +127,7 @@ func TestRenderDimCell(t *testing.T) {
 
 	// Then
 	got := buf.String()
-	if !strings.Contains(got, "\x1b[2m") {
+	if !strings.Contains(got, ";2m") {
 		t.Errorf("output missing dim SGR \\x1b[2m, got %q", got)
 	}
 }
@@ -142,7 +143,7 @@ func TestRenderItalicCell(t *testing.T) {
 
 	// Then
 	got := buf.String()
-	if !strings.Contains(got, "\x1b[3m") {
+	if !strings.Contains(got, ";3m") {
 		t.Errorf("output missing italic SGR \\x1b[3m, got %q", got)
 	}
 }
@@ -158,7 +159,7 @@ func TestRenderStrikethroughCell(t *testing.T) {
 
 	// Then
 	got := buf.String()
-	if !strings.Contains(got, "\x1b[9m") {
+	if !strings.Contains(got, ";9m") {
 		t.Errorf("output missing strikethrough SGR \\x1b[9m, got %q", got)
 	}
 }
@@ -174,7 +175,7 @@ func TestRenderInverseCell(t *testing.T) {
 
 	// Then
 	got := buf.String()
-	if !strings.Contains(got, "\x1b[7m") {
+	if !strings.Contains(got, ";7m") {
 		t.Errorf("output missing inverse SGR \\x1b[7m, got %q", got)
 	}
 }

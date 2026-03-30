@@ -9,6 +9,16 @@ import (
 	"github.com/tomyan/sumi/runtime/term"
 )
 
+// copy2D copies all cells from src to dst (which must have the same dimensions).
+func copy2D(dst, src *render.Buffer) {
+	for row := 0; row < src.Height(); row++ {
+		for col := 0; col < src.Width(); col++ {
+			c := src.Cell(row, col)
+			dst.SetStyledCell(row, col, c.Ch, c.Style)
+		}
+	}
+}
+
 // Component represents a sumi component — a layout tree with event handling and lifecycle.
 type Component struct {
 	Tree         *layout.Input
@@ -89,7 +99,8 @@ func RunWithOptions(comp *Component, opts RunOptions) {
 		opts.SetApp(app)
 	}
 
-	var prevTree *layout.Box
+	screenBuf := render.NewBuffer(0, 0)
+	frameBuf := render.NewBuffer(0, 0)
 	var prevW, prevH int
 
 	app.OnRender = func() {
@@ -104,18 +115,17 @@ func RunWithOptions(comp *Component, opts RunOptions) {
 			comp.Dirty = false
 			app.Dirty = true
 		}
-		changes, scrollChanged := layout.DiffTrees(prevTree, tree)
-		if prevTree == nil || termW != prevW || termH != prevH || scrollChanged {
-			buf := render.NewBuffer(termW, termH)
-			layout.RenderTree(buf, tree, nil)
-			render.ClearScreen(os.Stdout)
-			buf.RenderTo(os.Stdout)
+		frameBuf.Resize(termW, termH)
+		layout.RenderTree(frameBuf, tree, nil)
+		if termW != prevW || termH != prevH {
+			// Resize: clear + full redraw in one buffered write.
+			frameBuf.RenderWithClear(os.Stdout)
+			prevW = termW
+			prevH = termH
 		} else {
-			layout.ApplyChanges(os.Stdout, changes)
+			// Normal: diff against previous screen.
+			frameBuf.RenderDiff(os.Stdout, screenBuf, termW, termH)
 		}
-		prevTree = tree
-		prevW = termW
-		prevH = termH
 	}
 
 	app.OnEvent = func(evt input.Event) {
@@ -146,7 +156,8 @@ func RunWithOptions(comp *Component, opts RunOptions) {
 func Run(comp *Component) {
 	app := &App{}
 
-	var prevTree *layout.Box
+	screenBuf := render.NewBuffer(0, 0)
+	frameBuf := render.NewBuffer(0, 0)
 	var prevW, prevH int
 
 	app.OnRender = func() {
@@ -161,18 +172,17 @@ func Run(comp *Component) {
 			comp.Dirty = false
 			app.Dirty = true
 		}
-		changes, scrollChanged := layout.DiffTrees(prevTree, tree)
-		if prevTree == nil || termW != prevW || termH != prevH || scrollChanged {
-			buf := render.NewBuffer(termW, termH)
-			layout.RenderTree(buf, tree, nil)
-			render.ClearScreen(os.Stdout)
-			buf.RenderTo(os.Stdout)
+		frameBuf.Resize(termW, termH)
+		layout.RenderTree(frameBuf, tree, nil)
+		if termW != prevW || termH != prevH {
+			// Resize: clear + full redraw in one buffered write.
+			frameBuf.RenderWithClear(os.Stdout)
+			prevW = termW
+			prevH = termH
 		} else {
-			layout.ApplyChanges(os.Stdout, changes)
+			// Normal: diff against previous screen.
+			frameBuf.RenderDiff(os.Stdout, screenBuf, termW, termH)
 		}
-		prevTree = tree
-		prevW = termW
-		prevH = termH
 	}
 
 	app.OnEvent = func(evt input.Event) {
