@@ -129,4 +129,5 @@ var GetSize = term.GetSize
 
 // --- fmt ---
 
+var Sprint = fmt.Sprint
 var Sprintf = fmt.Sprintf

@@ -116,7 +116,7 @@ func writeForBlock(buf *bytes.Buffer, n *template.ForNode, stylesheet *style.Sty
 		writeDynamicChild(buf, child, stylesheet, indent+1, tabs+"\t", signals)
 	}
 	if n.Key != "" {
-		fmt.Fprintf(buf, "%s\tcs[len(cs)-1].Key = fmt.Sprint(%s)\n", tabs, n.Key)
+		fmt.Fprintf(buf, "%s\tcs[len(cs)-1].Key = sumi.Sprint(%s)\n", tabs, n.Key)
 	}
 	fmt.Fprintf(buf, "%s}\n", tabs)
 }
