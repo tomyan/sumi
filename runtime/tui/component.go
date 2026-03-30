@@ -106,6 +106,10 @@ func RunWithOptions(comp *Component, opts RunOptions) {
 	app.OnRender = func() {
 		termW, termH := term.GetSize(int(os.Stdout.Fd()))
 		updateEnvSignals(termW, termH)
+		// Update hover state on Input tree using previous layout positions.
+		if comp.LayoutResult != nil {
+			layout.UpdateHover(comp.Tree, comp.LayoutResult, app.mouseX, app.mouseY)
+		}
 		tree := layout.Layout(comp.Tree, termW, termH)
 		comp.LayoutResult = tree
 		if comp.AfterLayout != nil {
@@ -142,6 +146,11 @@ func RunWithOptions(comp *Component, opts RunOptions) {
 		app.OnResize = opts.OnResize
 	}
 
+	// Auto-enable mouse when any node has hover styles.
+	if layout.HasHoverStyles(comp.Tree) {
+		app.HasMouse = true
+	}
+
 	app.componentDispose = comp.Dispose
 	activeApp = app
 	app.Run()
@@ -163,6 +172,10 @@ func Run(comp *Component) {
 	app.OnRender = func() {
 		termW, termH := term.GetSize(int(os.Stdout.Fd()))
 		updateEnvSignals(termW, termH)
+		// Update hover state on Input tree using previous layout positions.
+		if comp.LayoutResult != nil {
+			layout.UpdateHover(comp.Tree, comp.LayoutResult, app.mouseX, app.mouseY)
+		}
 		tree := layout.Layout(comp.Tree, termW, termH)
 		comp.LayoutResult = tree
 		if comp.AfterLayout != nil {
@@ -190,6 +203,10 @@ func Run(comp *Component) {
 			comp.OnEvent(evt)
 		}
 		app.Dirty = true
+	}
+
+	if layout.HasHoverStyles(comp.Tree) {
+		app.HasMouse = true
 	}
 
 	app.componentDispose = comp.Dispose

@@ -123,6 +123,60 @@ func TestDimInherits(t *testing.T) {
 	}
 }
 
+func TestHoverStyleApplied(t *testing.T) {
+	// Given a box with dim style and a hover style that undims with white colour
+	input := &Input{
+		Kind:       KindBox,
+		Style:      render.Style{Dim: true},
+		HoverStyle: render.Style{FG: render.Color{Name: "white"}},
+		Hovered:    true,
+		Children: []*Input{
+			{Kind: KindText, Content: "hello"},
+		},
+	}
+
+	// When
+	box := Layout(input, 40, 10)
+	buf := render.NewBuffer(40, 10)
+	RenderTree(buf, box, nil)
+
+	// Then text should have hover style (white FG, not dim)
+	cell := buf.Cell(0, 0)
+	if cell.Style.FG.Name != "white" {
+		t.Errorf("expected white FG on hover, got %q", cell.Style.FG.Name)
+	}
+	if cell.Style.Dim {
+		t.Error("expected not dim on hover")
+	}
+}
+
+func TestHoverStyleNotAppliedWhenNotHovered(t *testing.T) {
+	// Given same setup but Hovered=false
+	input := &Input{
+		Kind:       KindBox,
+		Style:      render.Style{Dim: true},
+		HoverStyle: render.Style{FG: render.Color{Name: "white"}},
+		Hovered:    false,
+		Children: []*Input{
+			{Kind: KindText, Content: "hello"},
+		},
+	}
+
+	// When
+	box := Layout(input, 40, 10)
+	buf := render.NewBuffer(40, 10)
+	RenderTree(buf, box, nil)
+
+	// Then text should have base style (dim, no white)
+	cell := buf.Cell(0, 0)
+	if cell.Style.FG.Name == "white" {
+		t.Error("expected no white FG when not hovered")
+	}
+	if !cell.Style.Dim {
+		t.Error("expected dim when not hovered")
+	}
+}
+
 func TestBGDoesNotInherit(t *testing.T) {
 	// Given a box with red BG containing unstyled text
 	// BG is NOT an inheritable property in CSS

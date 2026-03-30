@@ -275,3 +275,52 @@ func TestAllSupportedProperties(t *testing.T) {
 		}
 	}
 }
+
+func TestHoverPseudoClass(t *testing.T) {
+	// Given
+	input := `.tab:hover { color: white; dim: false; }`
+
+	// When
+	s, err := Parse(input)
+
+	// Then
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if len(s.Rules) != 1 {
+		t.Fatalf("expected 1 rule, got %d", len(s.Rules))
+	}
+	r := s.Rules[0]
+	if r.Selector != ".tab" {
+		t.Errorf("selector = %q, want %q", r.Selector, ".tab")
+	}
+	if r.Pseudo != "hover" {
+		t.Errorf("pseudo = %q, want %q", r.Pseudo, "hover")
+	}
+	if r.Properties["color"] != "white" {
+		t.Errorf("color = %q, want %q", r.Properties["color"], "white")
+	}
+}
+
+func TestBaseAndHoverRules(t *testing.T) {
+	// Given both base and hover rules for the same class
+	input := `.tab { dim: true; }
+.tab:hover { dim: false; color: white; }`
+
+	// When
+	s, err := Parse(input)
+
+	// Then
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if len(s.Rules) != 2 {
+		t.Fatalf("expected 2 rules, got %d", len(s.Rules))
+	}
+	if s.Rules[0].Pseudo != "" {
+		t.Errorf("base rule pseudo = %q, want empty", s.Rules[0].Pseudo)
+	}
+	if s.Rules[1].Pseudo != "hover" {
+		t.Errorf("hover rule pseudo = %q, want %q", s.Rules[1].Pseudo, "hover")
+	}
+}

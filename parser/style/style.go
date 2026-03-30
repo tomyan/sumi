@@ -13,6 +13,7 @@ type Stylesheet struct {
 // Rule represents a single CSS-like rule with a selector and properties.
 type Rule struct {
 	Selector   string            // e.g. ".title", "text", ".container"
+	Pseudo     string            // e.g. "hover", "" for normal rules
 	Properties map[string]string // e.g. {"color": "green", "bold": "true"}
 }
 
@@ -103,7 +104,18 @@ func (p *parser) parseRule() (Rule, error) {
 		return Rule{}, err
 	}
 
-	return Rule{Selector: selector, Properties: props}, nil
+	sel, pseudo := splitPseudo(selector)
+	return Rule{Selector: sel, Pseudo: pseudo, Properties: props}, nil
+}
+
+// splitPseudo splits "selector:pseudo" into ("selector", "pseudo").
+// Returns ("selector", "") if no pseudo-class.
+func splitPseudo(selector string) (string, string) {
+	// Find the last ':' that's part of a pseudo-class (not part of the selector itself).
+	if i := strings.LastIndex(selector, ":"); i > 0 {
+		return selector[:i], selector[i+1:]
+	}
+	return selector, ""
 }
 
 func (p *parser) parseSelector() string {
@@ -197,7 +209,7 @@ func isWhitespace(b byte) bool {
 }
 
 func isSelectorChar(b byte) bool {
-	return (b >= 'a' && b <= 'z') || (b >= 'A' && b <= 'Z') || (b >= '0' && b <= '9') || b == '_' || b == '-'
+	return (b >= 'a' && b <= 'z') || (b >= 'A' && b <= 'Z') || (b >= '0' && b <= '9') || b == '_' || b == '-' || b == ':'
 }
 
 func isPropertyNameChar(b byte) bool {

@@ -24,6 +24,15 @@ func resolveProps(stylesheet *style.Stylesheet, tag string, attrs map[string]str
 	return props
 }
 
+// resolveHoverProps resolves :hover CSS properties for a node.
+func resolveHoverProps(stylesheet *style.Stylesheet, tag string, attrs map[string]string) map[string]string {
+	if stylesheet == nil {
+		return nil
+	}
+	classes := parseClasses(attrs)
+	return css.ResolveHover(stylesheet, tag, classes)
+}
+
 // parseClasses extracts CSS class names from an element's attributes.
 func parseClasses(attrs map[string]string) []string {
 	classAttr, ok := attrs["class"]
@@ -40,6 +49,17 @@ func writeStyleLiteral(buf *bytes.Buffer, tabs string, props map[string]string) 
 		return
 	}
 	fmt.Fprintf(buf, "%s\tStyle: sumi.Style{\n", tabs)
+	writeStyleFields(buf, tabs, s)
+	fmt.Fprintf(buf, "%s\t},\n", tabs)
+}
+
+// writeHoverStyleLiteral writes a HoverStyle: sumi.Style{...} literal.
+func writeHoverStyleLiteral(buf *bytes.Buffer, tabs string, props map[string]string) {
+	s := css.ToRenderStyle(props)
+	if s.IsZero() {
+		return
+	}
+	fmt.Fprintf(buf, "%s\tHoverStyle: sumi.Style{\n", tabs)
 	writeStyleFields(buf, tabs, s)
 	fmt.Fprintf(buf, "%s\t},\n", tabs)
 }

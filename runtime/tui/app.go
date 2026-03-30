@@ -26,6 +26,8 @@ type App struct {
 	quitCh       chan struct{}     // closed by Quit() to exit the event loop
 	wakeCh       chan struct{}     // receives from RequestFrame() to wake the event loop
 	doCh         chan func()      // queued functions to run on the main goroutine
+	mouseX       int              // latest mouse X (0-indexed)
+	mouseY       int              // latest mouse Y (0-indexed)
 
 	// Test mode fields — set by CreateApp for synchronous stepping.
 	TestWidth  int            // test viewport width (0 = use real terminal)
@@ -241,6 +243,12 @@ func (a *App) runLoop(eventCh <-chan input.Event, resizeCh <-chan struct{}, sigC
 // dispatchEvent calls OnEvent if set.
 // If no OnEvent handler is set, SIGINT/SIGTERM signals quit the app by default.
 func (a *App) dispatchEvent(evt input.Event) {
+	// Track mouse position for hover.
+	if evt.Kind == input.EventMouse {
+		a.mouseX = evt.Mouse.X
+		a.mouseY = evt.Mouse.Y
+		a.Dirty = true
+	}
 	if a.OnEvent != nil {
 		a.OnEvent(evt)
 		return

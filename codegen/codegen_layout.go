@@ -229,6 +229,10 @@ func writeBoxInput(buf *bytes.Buffer, n *template.BoxElement, stylesheet *style.
 	if props != nil {
 		writeStyleLiteral(buf, tabs, props)
 	}
+	hoverProps := resolveHoverProps(stylesheet, "box", n.Attributes)
+	if hoverProps != nil {
+		writeHoverStyleLiteral(buf, tabs, hoverProps)
+	}
 	writeBoxChildren(buf, n.Children, stylesheet, indent, tabs, ext)
 	fmt.Fprintf(buf, "%s},\n", tabs)
 }

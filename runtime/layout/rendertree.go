@@ -12,6 +12,11 @@ func RenderTree(buf *render.Buffer, box *Box, clip *render.Clip) {
 }
 
 func renderTreeWithInherit(buf *render.Buffer, box *Box, clip *render.Clip, inherited render.Style) {
+	// Apply hover: when hovered and a hover style exists, use it instead.
+	if box.Hovered && !box.HoverStyle.IsZero() {
+		box.Style = box.HoverStyle
+	}
+
 	// Apply style inheritance: merge parent's inheritable properties into this node.
 	box.Style = box.Style.Inherit(inherited)
 
