@@ -56,6 +56,7 @@ type Input struct {
 	Style           render.Style // resolved style for this node
 	HoverStyle      render.Style // style applied when mouse is over this node
 	Hovered         bool         // set by the framework before render
+	OnClick         func()       // called when this node is clicked
 	Children       []*Input
 }
 

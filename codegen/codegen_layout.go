@@ -413,6 +413,9 @@ func writeBoxAttributes(buf *bytes.Buffer, tabs string, attrs map[string]string,
 	if ce, ok := mergedAttr(attrs, props, "contenteditable"); ok && ce == "true" {
 		fmt.Fprintf(buf, "%s\tContentEditable: true,\n", tabs)
 	}
+	if oc, ok := mergedAttr(attrs, props, "onclick"); ok && isExprValue(oc) {
+		fmt.Fprintf(buf, "%s\tOnClick: %s,\n", tabs, extractExprValue(oc))
+	}
 	writeCursorAttr(buf, tabs, attrs, props)
 }
 

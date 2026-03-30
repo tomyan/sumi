@@ -61,6 +61,11 @@ func TestApp(comp *Component, w, h int) *App {
 	}
 
 	app.OnEvent = func(evt input.Event) {
+		if evt.Kind == input.EventMouse && evt.Mouse.Action == input.MousePress && evt.Mouse.Button == input.ButtonLeft {
+			if h := layout.FindClickHandler(comp.Tree, comp.LayoutResult, evt.Mouse.X, evt.Mouse.Y); h != nil {
+				h()
+			}
+		}
 		if comp.OnEvent != nil {
 			comp.OnEvent(evt)
 		}
@@ -133,6 +138,11 @@ func RunWithOptions(comp *Component, opts RunOptions) {
 	}
 
 	app.OnEvent = func(evt input.Event) {
+		if evt.Kind == input.EventMouse && evt.Mouse.Action == input.MousePress && evt.Mouse.Button == input.ButtonLeft {
+			if h := layout.FindClickHandler(comp.Tree, comp.LayoutResult, evt.Mouse.X, evt.Mouse.Y); h != nil {
+				h()
+			}
+		}
 		if comp.OnEvent != nil {
 			comp.OnEvent(evt)
 		}
@@ -146,8 +156,8 @@ func RunWithOptions(comp *Component, opts RunOptions) {
 		app.OnResize = opts.OnResize
 	}
 
-	// Auto-enable mouse when any node has hover styles.
-	if layout.HasHoverStyles(comp.Tree) {
+	// Auto-enable mouse when any node has hover styles or click handlers.
+	if layout.HasHoverStyles(comp.Tree) || layout.HasClickHandlers(comp.Tree) {
 		app.HasMouse = true
 	}
 
@@ -199,13 +209,18 @@ func Run(comp *Component) {
 	}
 
 	app.OnEvent = func(evt input.Event) {
+		if evt.Kind == input.EventMouse && evt.Mouse.Action == input.MousePress && evt.Mouse.Button == input.ButtonLeft {
+			if h := layout.FindClickHandler(comp.Tree, comp.LayoutResult, evt.Mouse.X, evt.Mouse.Y); h != nil {
+				h()
+			}
+		}
 		if comp.OnEvent != nil {
 			comp.OnEvent(evt)
 		}
 		app.Dirty = true
 	}
 
-	if layout.HasHoverStyles(comp.Tree) {
+	if layout.HasHoverStyles(comp.Tree) || layout.HasClickHandlers(comp.Tree) {
 		app.HasMouse = true
 	}
 
