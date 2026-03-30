@@ -26,10 +26,11 @@ type PropInfo struct {
 
 // FuncInfo describes a function declared in the script block.
 type FuncInfo struct {
-	Name   string // function name
-	Params string // parameter list source (e.g. "evt input.Event")
-	Body   string // function body source (between braces)
-	Source string // full function source
+	Name       string // function name
+	Params     string // parameter list source (e.g. "evt input.Event")
+	ReturnType string // return type (e.g. "string", "[]TabInfo", or "")
+	Body       string // function body source (between braces)
+	Source     string // full function source
 }
 
 // ParseGoAST parses a script block using Go's AST parser.
@@ -199,9 +200,10 @@ func extractFuncs(src string) []FuncInfo {
 		}
 		if fd, ok, _ := p.tryParseFuncDecl(); ok {
 			funcs = append(funcs, FuncInfo{
-				Name:   fd.Name,
-				Params: fd.Params,
-				Body:   fd.Body,
+				Name:       fd.Name,
+				Params:     fd.Params,
+				ReturnType: fd.ReturnType,
+				Body:       fd.Body,
 			})
 			continue
 		}

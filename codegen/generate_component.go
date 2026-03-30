@@ -279,10 +279,14 @@ func rewriteAppCalls(body string) string {
 
 // writeComponentFunc emits a function closure.
 func writeComponentFunc(buf *bytes.Buffer, f script.FuncInfo) {
+	ret := ""
+	if f.ReturnType != "" {
+		ret = " " + f.ReturnType
+	}
 	if f.Params == "" {
-		fmt.Fprintf(buf, "\t%s := func() {\n", f.Name)
+		fmt.Fprintf(buf, "\t%s := func()%s {\n", f.Name, ret)
 	} else {
-		fmt.Fprintf(buf, "\t%s := func(%s) {\n", f.Name, f.Params)
+		fmt.Fprintf(buf, "\t%s := func(%s)%s {\n", f.Name, f.Params, ret)
 	}
 	body := rewriteAppCalls(f.Body)
 	for _, line := range strings.Split(body, "\n") {
