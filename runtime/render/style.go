@@ -24,6 +24,30 @@ func (s Style) IsZero() bool {
 	return s == Style{}
 }
 
+// Inherit returns a style that merges inheritable properties from parent
+// into child. Only properties where the child has no value set are inherited.
+// FG colour inherits when child has no FG. Boolean properties (bold, dim, etc.)
+// inherit only when the child has a completely zero style (no properties set).
+// BG and Inverse do NOT inherit (matching CSS behaviour).
+func (child Style) Inherit(parent Style) Style {
+	s := child
+	// FG color inherits if child has none.
+	if s.FG == (Color{}) {
+		s.FG = parent.FG
+	}
+	// Boolean properties inherit only if the child has no style at all.
+	// This prevents parent's dim/bold from overriding a child that sets
+	// its own colour or other properties.
+	if child.IsZero() {
+		s.Bold = parent.Bold
+		s.Dim = parent.Dim
+		s.Italic = parent.Italic
+		s.Underline = parent.Underline
+		s.Strikethrough = parent.Strikethrough
+	}
+	return s
+}
+
 var fgCodes = map[string]int{
 	"black":   30,
 	"red":     31,

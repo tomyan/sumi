@@ -36,16 +36,44 @@ func matchesSelector(selector, tag string, classes []string) bool {
 }
 
 // ToRenderStyle converts resolved CSS properties to a render.Style.
+// parseColor parses a CSS colour value — either a named colour ("red") or hex ("#ff5555").
+func parseColor(v string) render.Color {
+	if len(v) == 7 && v[0] == '#' {
+		r := hexByte(v[1], v[2])
+		g := hexByte(v[3], v[4])
+		b := hexByte(v[5], v[6])
+		return render.Color{IsRGB: true, R: r, G: g, B: b}
+	}
+	return render.Color{Name: v}
+}
+
+func hexByte(hi, lo byte) uint8 {
+	return hexNibble(hi)<<4 | hexNibble(lo)
+}
+
+func hexNibble(b byte) uint8 {
+	switch {
+	case b >= '0' && b <= '9':
+		return b - '0'
+	case b >= 'a' && b <= 'f':
+		return b - 'a' + 10
+	case b >= 'A' && b <= 'F':
+		return b - 'A' + 10
+	default:
+		return 0
+	}
+}
+
 func ToRenderStyle(props map[string]string) render.Style {
 	var s render.Style
 	if v, ok := props["color"]; ok {
-		s.FG = render.Color{Name: v}
+		s.FG = parseColor(v)
 	}
 	if v, ok := props["border-color"]; ok {
-		s.FG = render.Color{Name: v}
+		s.FG = parseColor(v)
 	}
 	if v, ok := props["background"]; ok {
-		s.BG = render.Color{Name: v}
+		s.BG = parseColor(v)
 	}
 	if props["bold"] == "true" {
 		s.Bold = true

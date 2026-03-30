@@ -8,10 +8,17 @@ import (
 
 // RenderTree renders a layout tree to a buffer, applying clip regions and scroll offsets.
 func RenderTree(buf *render.Buffer, box *Box, clip *render.Clip) {
+	renderTreeWithInherit(buf, box, clip, render.Style{})
+}
+
+func renderTreeWithInherit(buf *render.Buffer, box *Box, clip *render.Clip, inherited render.Style) {
+	// Apply style inheritance: merge parent's inheritable properties into this node.
+	box.Style = box.Style.Inherit(inherited)
+
 	renderBackground(buf, box, clip)
 	renderBorder(buf, box)
 	renderContent(buf, box, clip)
-	renderScrollbarsAndChildren(buf, box, clip)
+	renderScrollbarsAndChildrenWithInherit(buf, box, clip, box.Style)
 }
 
 // renderBackground fills the box area with spaces using the box's BG color.
@@ -80,6 +87,10 @@ func renderContent(buf *render.Buffer, box *Box, clip *render.Clip) {
 // renderScrollbarsAndChildren draws scrollbars (if needed) then renders children
 // with the content clip narrowed to avoid overlap with scrollbars.
 func renderScrollbarsAndChildren(buf *render.Buffer, box *Box, clip *render.Clip) {
+	renderScrollbarsAndChildrenWithInherit(buf, box, clip, render.Style{})
+}
+
+func renderScrollbarsAndChildrenWithInherit(buf *render.Buffer, box *Box, clip *render.Clip, inherited render.Style) {
 	childClip := mergeClip(clip, box.Clip)
 	if box.NeedsScrollbar && box.Clip != nil {
 		drawVerticalScrollbar(buf, box)
@@ -94,10 +105,10 @@ func renderScrollbarsAndChildren(buf *render.Buffer, box *Box, clip *render.Clip
 	for _, child := range sorted {
 		// Fixed children escape parent scroll offsets and clipping
 		if child.Position == "fixed" {
-			RenderTree(buf, child, nil)
+			renderTreeWithInherit(buf, child, nil, inherited)
 			continue
 		}
-		renderChildWithScroll(buf, child, box.ScrollX, box.ScrollY, childClip)
+		renderChildWithScrollInherit(buf, child, box.ScrollX, box.ScrollY, childClip, inherited)
 	}
 }
 
@@ -143,14 +154,18 @@ func narrowClipForHorizontalScrollbar(clip *render.Clip) *render.Clip {
 // Shifts the entire subtree so all descendants render at the correct scrolled position.
 // Sticky children are clamped so they stay visible within the clip region.
 func renderChildWithScroll(buf *render.Buffer, child *Box, scrollX, scrollY int, clip *render.Clip) {
+	renderChildWithScrollInherit(buf, child, scrollX, scrollY, clip, render.Style{})
+}
+
+func renderChildWithScrollInherit(buf *render.Buffer, child *Box, scrollX, scrollY int, clip *render.Clip, inherited render.Style) {
 	if scrollX == 0 && scrollY == 0 {
-		RenderTree(buf, child, clip)
+		renderTreeWithInherit(buf, child, clip, inherited)
 		return
 	}
 	shiftTree(child, -scrollX, -scrollY)
 	stickyDY := applyStickyClamp(child, clip)
-	RenderTree(buf, child, clip)
-	shiftTree(child, scrollX, scrollY-stickyDY) // restore (undo scroll + clamp)
+	renderTreeWithInherit(buf, child, clip, inherited)
+	shiftTree(child, scrollX, scrollY-stickyDY)
 }
 
 // applyStickyClamp adjusts a sticky child's position so it stays visible.

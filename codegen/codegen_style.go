@@ -52,11 +52,15 @@ func writeStyleFields(buf *bytes.Buffer, tabs string, s render.Style) {
 
 // writeColorFields writes FG and BG color fields.
 func writeColorFields(buf *bytes.Buffer, tabs string, s render.Style) {
-	if s.FG.Name != "" {
-		fmt.Fprintf(buf, "%s\t\tFG: sumi.Color{Name: %q},\n", tabs, s.FG.Name)
-	}
-	if s.BG.Name != "" {
-		fmt.Fprintf(buf, "%s\t\tBG: sumi.Color{Name: %q},\n", tabs, s.BG.Name)
+	writeColorField(buf, tabs, "FG", s.FG)
+	writeColorField(buf, tabs, "BG", s.BG)
+}
+
+func writeColorField(buf *bytes.Buffer, tabs, field string, c render.Color) {
+	if c.IsRGB {
+		fmt.Fprintf(buf, "%s\t\t%s: sumi.Color{IsRGB: true, R: %d, G: %d, B: %d},\n", tabs, field, c.R, c.G, c.B)
+	} else if c.Name != "" {
+		fmt.Fprintf(buf, "%s\t\t%s: sumi.Color{Name: %q},\n", tabs, field, c.Name)
 	}
 }
 
