@@ -29,7 +29,7 @@ func renderTreeWithInherit(buf *render.Buffer, box *Box, clip *render.Clip, inhe
 // renderBackground fills the box area with spaces using the box's BG color.
 // Only fills when a background color is set. Fills inside border if present.
 func renderBackground(buf *render.Buffer, box *Box, clip *render.Clip) {
-	if box.Style.BG.Name == "" {
+	if box.Style.BG.Name == "" && !box.Style.BG.IsRGB {
 		return
 	}
 	b := borderSize(box.Border)
