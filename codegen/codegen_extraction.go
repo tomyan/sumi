@@ -26,6 +26,7 @@ type extractionCtx struct {
 	declBuf           bytes.Buffer
 	syncBuf           bytes.Buffer // dynamic children rebuild code (for {if}/{for} inside sumi.Effect)
 	inDynamic         bool         // true inside IIFE — skip extraction, only do signal unwrapping
+	componentIdx      int          // counter for child component variable names (matches writeChildComponentInstances order)
 }
 
 // newExtractionCtx creates an extraction context.
