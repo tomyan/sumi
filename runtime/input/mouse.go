@@ -30,7 +30,8 @@ const (
 type MouseEvent struct {
 	Action MouseAction
 	Button MouseButton
-	X, Y   int // 0-indexed buffer coordinates
+	Shift  bool // shift key held during mouse event
+	X, Y   int  // 0-indexed buffer coordinates
 }
 
 // MouseEnableSeq enables SGR extended mouse mode + any-event tracking.
@@ -78,25 +79,29 @@ func decodeSGRMouse(params string, terminator byte) (Event, error) {
 		Y: y,
 	}
 
+	me.Shift = code&4 != 0
 	me.Action, me.Button = decodeMouseButton(code, terminator)
 
 	return Event{Kind: EventMouse, Mouse: me}, nil
 }
 
 func decodeMouseButton(code int, terminator byte) (MouseAction, MouseButton) {
+	// Strip modifier bits (shift=4, meta=8, ctrl=16) for button identification.
+	base := code &^ (4 | 8 | 16)
+
 	if terminator == 'm' {
-		return MouseRelease, MouseButton(code & 0x03)
+		return MouseRelease, MouseButton(base & 0x03)
 	}
 
 	// Motion flag: bit 5 (32)
-	if code&32 != 0 {
-		return MouseMotion, MouseButton(code & ^32)
+	if base&32 != 0 {
+		return MouseMotion, MouseButton(base & ^32)
 	}
 
 	// Scroll: button codes 64, 65
-	if code >= 64 && code <= 67 {
-		return MouseScroll, MouseButton(code)
+	if base >= 64 && base <= 67 {
+		return MouseScroll, MouseButton(base)
 	}
 
-	return MousePress, MouseButton(code & 0x03)
+	return MousePress, MouseButton(base & 0x03)
 }

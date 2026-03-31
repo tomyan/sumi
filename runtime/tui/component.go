@@ -9,6 +9,48 @@ import (
 	"github.com/tomyan/sumi/runtime/term"
 )
 
+// dispatchMouseScroll routes mouse scroll events to the scrollable container
+// under the cursor. Returns true if a scroll was dispatched.
+func dispatchMouseScroll(evt input.Event, comp *Component) bool {
+	if evt.Kind != input.EventMouse || evt.Mouse.Action != input.MouseScroll {
+		return false
+	}
+	if comp.LayoutResult == nil {
+		return false
+	}
+	idx := layout.HitTestScroll(comp.LayoutResult, evt.Mouse.X, evt.Mouse.Y)
+	if idx < 0 {
+		return false
+	}
+	states := layout.CollectScrollStates(comp.Tree)
+	if idx >= len(states) {
+		return false
+	}
+	s := states[idx]
+	if evt.Mouse.Shift {
+		// Shift+scroll → horizontal.
+		switch evt.Mouse.Button {
+		case input.ScrollUp:
+			s.ScrollLeft()
+		case input.ScrollDown:
+			s.ScrollRight(s.ContentHeight, s.ViewportHeight)
+		}
+	} else {
+		// Normal scroll → vertical.
+		switch evt.Mouse.Button {
+		case input.ScrollUp:
+			s.Follow = false
+			s.ScrollUp()
+		case input.ScrollDown:
+			s.ScrollDown(s.ContentHeight, s.ViewportHeight)
+			if s.AtBottom() {
+				s.Follow = true
+			}
+		}
+	}
+	return true
+}
+
 // copy2D copies all cells from src to dst (which must have the same dimensions).
 func copy2D(dst, src *render.Buffer) {
 	for row := 0; row < src.Height(); row++ {
@@ -61,6 +103,7 @@ func TestApp(comp *Component, w, h int) *App {
 	}
 
 	app.OnEvent = func(evt input.Event) {
+		dispatchMouseScroll(evt, comp)
 		if evt.Kind == input.EventMouse && evt.Mouse.Action == input.MousePress && evt.Mouse.Button == input.ButtonLeft {
 			if h := layout.FindClickHandler(comp.Tree, comp.LayoutResult, evt.Mouse.X, evt.Mouse.Y); h != nil {
 				h()
@@ -138,6 +181,7 @@ func RunWithOptions(comp *Component, opts RunOptions) {
 	}
 
 	app.OnEvent = func(evt input.Event) {
+		dispatchMouseScroll(evt, comp)
 		if evt.Kind == input.EventMouse && evt.Mouse.Action == input.MousePress && evt.Mouse.Button == input.ButtonLeft {
 			if h := layout.FindClickHandler(comp.Tree, comp.LayoutResult, evt.Mouse.X, evt.Mouse.Y); h != nil {
 				h()
@@ -209,6 +253,7 @@ func Run(comp *Component) {
 	}
 
 	app.OnEvent = func(evt input.Event) {
+		dispatchMouseScroll(evt, comp)
 		if evt.Kind == input.EventMouse && evt.Mouse.Action == input.MousePress && evt.Mouse.Button == input.ButtonLeft {
 			if h := layout.FindClickHandler(comp.Tree, comp.LayoutResult, evt.Mouse.X, evt.Mouse.Y); h != nil {
 				h()
