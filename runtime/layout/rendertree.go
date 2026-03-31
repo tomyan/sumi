@@ -1,20 +1,37 @@
 package layout
 
 import (
+	"fmt"
 	"sort"
 
+	"github.com/tomyan/sumi/runtime/anim"
 	"github.com/tomyan/sumi/runtime/render"
 )
 
 // RenderTree renders a layout tree to a buffer, applying clip regions and scroll offsets.
 func RenderTree(buf *render.Buffer, box *Box, clip *render.Clip) {
-	renderTreeWithInherit(buf, box, clip, render.Style{})
+	counter := 0
+	renderTreeFull(buf, box, clip, render.Style{}, nil, &counter)
 }
 
-func renderTreeWithInherit(buf *render.Buffer, box *Box, clip *render.Clip, inherited render.Style) {
+// RenderTreeWithEngine renders with animation engine support.
+func RenderTreeWithEngine(buf *render.Buffer, box *Box, clip *render.Clip, engine *anim.Engine) {
+	counter := 0
+	renderTreeFull(buf, box, clip, render.Style{}, engine, &counter)
+}
+
+func renderTreeFull(buf *render.Buffer, box *Box, clip *render.Clip, inherited render.Style, engine *anim.Engine, counter *int) {
+	nodeID := fmt.Sprintf("n%d", *counter)
+	*counter++
+
 	// Apply hover: when hovered and a hover style exists, use it instead.
 	if box.Hovered && !box.HoverStyle.IsZero() {
 		box.Style = box.HoverStyle
+	}
+
+	// Apply animation engine: interpolate transitions.
+	if engine != nil && len(box.Transitions) > 0 {
+		box.Style = engine.BeforeRender(nodeID, box.Style, box.Transitions)
 	}
 
 	// Apply style inheritance: merge parent's inheritable properties into this node.
@@ -23,7 +40,7 @@ func renderTreeWithInherit(buf *render.Buffer, box *Box, clip *render.Clip, inhe
 	renderBackground(buf, box, clip)
 	renderBorder(buf, box)
 	renderContent(buf, box, clip)
-	renderScrollbarsAndChildrenWithInherit(buf, box, clip, box.Style)
+	renderScrollbarsAndChildrenFull(buf, box, clip, box.Style, engine, counter)
 }
 
 // renderBackground fills the box area with spaces using the box's BG color.
@@ -93,6 +110,43 @@ func renderContent(buf *render.Buffer, box *Box, clip *render.Clip) {
 // with the content clip narrowed to avoid overlap with scrollbars.
 func renderScrollbarsAndChildren(buf *render.Buffer, box *Box, clip *render.Clip) {
 	renderScrollbarsAndChildrenWithInherit(buf, box, clip, render.Style{})
+}
+
+func renderScrollbarsAndChildrenFull(buf *render.Buffer, box *Box, clip *render.Clip, inherited render.Style, engine *anim.Engine, counter *int) {
+	childClip := mergeClip(clip, box.Clip)
+	if box.NeedsScrollbar && box.Clip != nil {
+		drawVerticalScrollbar(buf, box)
+		childClip = narrowClipForVerticalScrollbar(childClip)
+	}
+	if box.NeedsHorizontalScrollbar && box.Clip != nil {
+		drawHorizontalScrollbar(buf, box)
+		childClip = narrowClipForHorizontalScrollbar(childClip)
+	}
+	sorted := zSortChildren(box.Children)
+	for _, child := range sorted {
+		if child.Position == "fixed" {
+			renderTreeFull(buf, child, nil, inherited, engine, counter)
+			continue
+		}
+		renderChildWithScrollFull(buf, child, box.ScrollX, box.ScrollY, childClip, inherited, engine, counter)
+	}
+}
+
+func renderChildWithScrollFull(buf *render.Buffer, child *Box, scrollX, scrollY int, clip *render.Clip, inherited render.Style, engine *anim.Engine, counter *int) {
+	if scrollX == 0 && scrollY == 0 {
+		renderTreeFull(buf, child, clip, inherited, engine, counter)
+		return
+	}
+	shiftTree(child, -scrollX, -scrollY)
+	stickyDY := applyStickyClamp(child, clip)
+	renderTreeFull(buf, child, clip, inherited, engine, counter)
+	shiftTree(child, scrollX, scrollY-stickyDY)
+}
+
+// renderTreeWithInherit is a backward-compat wrapper for code that doesn't use the engine.
+func renderTreeWithInherit(buf *render.Buffer, box *Box, clip *render.Clip, inherited render.Style) {
+	counter := 0
+	renderTreeFull(buf, box, clip, inherited, nil, &counter)
 }
 
 func renderScrollbarsAndChildrenWithInherit(buf *render.Buffer, box *Box, clip *render.Clip, inherited render.Style) {

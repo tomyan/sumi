@@ -3,6 +3,7 @@ package tui
 import (
 	"os"
 
+	"github.com/tomyan/sumi/runtime/anim"
 	"github.com/tomyan/sumi/runtime/input"
 	"github.com/tomyan/sumi/runtime/layout"
 	"github.com/tomyan/sumi/runtime/render"
@@ -147,6 +148,8 @@ func RunWithOptions(comp *Component, opts RunOptions) {
 		opts.SetApp(app)
 	}
 
+	engine := anim.NewEngine(anim.WallClock{}, func() { app.RequestFrame() })
+
 	screenBuf := render.NewBuffer(0, 0)
 	frameBuf := render.NewBuffer(0, 0)
 	var prevW, prevH int
@@ -168,7 +171,10 @@ func RunWithOptions(comp *Component, opts RunOptions) {
 			app.Dirty = true
 		}
 		frameBuf.Resize(termW, termH)
-		layout.RenderTree(frameBuf, tree, nil)
+		layout.RenderTreeWithEngine(frameBuf, tree, nil, engine)
+		if engine.HasActive() {
+			app.RequestFrame()
+		}
 		if termW != prevW || termH != prevH {
 			// Resize: clear + full redraw in one buffered write.
 			frameBuf.RenderWithClear(os.Stdout)
@@ -219,6 +225,8 @@ func RunWithOptions(comp *Component, opts RunOptions) {
 func Run(comp *Component) {
 	app := &App{}
 
+	engine := anim.NewEngine(anim.WallClock{}, func() { app.RequestFrame() })
+
 	screenBuf := render.NewBuffer(0, 0)
 	frameBuf := render.NewBuffer(0, 0)
 	var prevW, prevH int
@@ -240,7 +248,10 @@ func Run(comp *Component) {
 			app.Dirty = true
 		}
 		frameBuf.Resize(termW, termH)
-		layout.RenderTree(frameBuf, tree, nil)
+		layout.RenderTreeWithEngine(frameBuf, tree, nil, engine)
+		if engine.HasActive() {
+			app.RequestFrame()
+		}
 		if termW != prevW || termH != prevH {
 			// Resize: clear + full redraw in one buffered write.
 			frameBuf.RenderWithClear(os.Stdout)
