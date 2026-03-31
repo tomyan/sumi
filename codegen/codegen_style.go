@@ -115,6 +115,45 @@ func writeTransitions(buf *bytes.Buffer, tabs string, props map[string]string) {
 	fmt.Fprintf(buf, "%s\t},\n", tabs)
 }
 
+// writeAnimationSpec emits AnimationSpec field from CSS animation properties.
+func writeAnimationSpec(buf *bytes.Buffer, tabs string, props map[string]string) {
+	spec := css.ParseAnimation(props)
+	if spec == nil {
+		return
+	}
+	fmt.Fprintf(buf, "%s\tAnimationSpec: &sumi.AnimationSpec{\n", tabs)
+	fmt.Fprintf(buf, "%s\t\tName: %q,\n", tabs, spec.Name)
+	fmt.Fprintf(buf, "%s\t\tDurationMs: %d,\n", tabs, spec.DurationMs)
+	fmt.Fprintf(buf, "%s\t\tTimingFunction: sumi.TimingFunction{Name: %q, X1: %v, Y1: %v, X2: %v, Y2: %v},\n",
+		tabs, spec.TimingFunction.Name, spec.TimingFunction.X1, spec.TimingFunction.Y1, spec.TimingFunction.X2, spec.TimingFunction.Y2)
+	fmt.Fprintf(buf, "%s\t\tDelayMs: %d,\n", tabs, spec.DelayMs)
+	fmt.Fprintf(buf, "%s\t\tIterationCount: %d,\n", tabs, spec.IterationCount)
+	fmt.Fprintf(buf, "%s\t\tDirection: %q,\n", tabs, spec.Direction)
+	fmt.Fprintf(buf, "%s\t\tFillMode: %q,\n", tabs, spec.FillMode)
+	fmt.Fprintf(buf, "%s\t\tPlayState: %q,\n", tabs, spec.PlayState)
+	fmt.Fprintf(buf, "%s\t},\n", tabs)
+}
+
+// writeInlineStyleFields writes style fields inline (for compact keyframe emission).
+func writeInlineStyleFields(buf *bytes.Buffer, s render.Style) {
+	if s.FG.IsRGB {
+		fmt.Fprintf(buf, "FG: sumi.Color{IsRGB: true, R: %d, G: %d, B: %d}, ", s.FG.R, s.FG.G, s.FG.B)
+	} else if s.FG.Name != "" {
+		fmt.Fprintf(buf, "FG: sumi.Color{Name: %q}, ", s.FG.Name)
+	}
+	if s.BG.IsRGB {
+		fmt.Fprintf(buf, "BG: sumi.Color{IsRGB: true, R: %d, G: %d, B: %d}, ", s.BG.R, s.BG.G, s.BG.B)
+	} else if s.BG.Name != "" {
+		fmt.Fprintf(buf, "BG: sumi.Color{Name: %q}, ", s.BG.Name)
+	}
+	if s.Bold { buf.WriteString("Bold: true, ") }
+	if s.Dim { buf.WriteString("Dim: true, ") }
+	if s.Italic { buf.WriteString("Italic: true, ") }
+	if s.Underline { buf.WriteString("Underline: true, ") }
+	if s.Strikethrough { buf.WriteString("Strikethrough: true, ") }
+	if s.Inverse { buf.WriteString("Inverse: true, ") }
+}
+
 // mergedAttr returns the value for a layout-affecting attribute.
 // Inline attributes (from the element) override stylesheet properties.
 func mergedAttr(attrs map[string]string, props map[string]string, key string) (string, bool) {

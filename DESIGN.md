@@ -21,6 +21,31 @@ The sumi compiler parses `.sumi` files and generates Go source code. It integrat
 
 The **reactive signals runtime** (`runtime/signal/`) is a standalone Go library. It provides fine-grained dependency tracking at runtime — no compiler involvement. This means reactive logic works in plain `.go` files, not just `.sumi` files. Marketplace authors can publish reactive utilities as standard Go packages.
 
+### Syntax Highlighting: Tree-sitter
+
+Sumi uses **tree-sitter** for syntax highlighting and structural code awareness. Tree-sitter parses source code into a concrete syntax tree, enabling:
+
+- **Syntax highlighting** — language-aware token classification for code blocks in markdown, diff rendering, and editor components
+- **Incremental reparsing** — edit a character, reparse only the affected subtree (efficient for live editing)
+- **Structural queries** — AST-level operations like smart selection, code folding, semantic scope identification
+
+Tree-sitter grammars are available for 200+ languages. The Go bindings (`go-tree-sitter`) are proven in production — Sumi's sibling project (hubcap) already uses tree-sitter for JavaScript highlighting in a terminal DevTools interface.
+
+This is preferred over regex-based highlighting (e.g. TextMate grammars / syntect) because:
+- It stays in the Go ecosystem — no CGo/FFI complexity for a Rust dependency
+- It enables structural features beyond highlighting (smart selection, folding, AST-aware diffs) that regex-based approaches cannot provide
+- The integration cost is known and low
+
+### Potential: Rust Core via FFI
+
+If profiling reveals that the Go layout engine, screen diffing, or text measurement become bottlenecks at scale, these could be reimplemented in Rust and linked via CGo as a static library. This is a **performance escape hatch**, not a core architectural decision — the current all-Go implementation is the primary path.
+
+Candidates for Rust acceleration if ever needed:
+- Layout engine (flexbox constraint solving, runs every frame)
+- Screen buffer diff (tight cell-comparison loop)
+- Text measurement (unicode-width, grapheme clustering)
+- Color quantization (perceptual distance calculations for truecolor→256→16 fallback)
+
 ## .sumi File Format
 
 Each `.sumi` file is a single component with three optional sections:
@@ -464,7 +489,7 @@ sumi/
     preview/          # interactive preview tool (bridge, editors, rendering)
   runtime/            # runtime library used by generated code
     signal/           # reactive signals runtime (New, From, Effect)
-    layout/           # flexbox layout engine
+    layout/           # flexbox layout engine (Go, or thin wrapper over Rust core)
     render/           # cell buffer, terminal output, screen modes
     css/              # terminal CSS parser and resolver
     tui/              # app lifecycle, event loop, terminal setup, Env signals

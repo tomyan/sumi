@@ -9,6 +9,7 @@ import (
 	"github.com/tomyan/sumi/parser/script"
 	"github.com/tomyan/sumi/parser/style"
 	"github.com/tomyan/sumi/parser/template"
+	"github.com/tomyan/sumi/runtime/css"
 )
 
 // ComponentOptions configures component code generation.
@@ -181,7 +182,7 @@ func writeConstructor(buf *bytes.Buffer, name string, info *script.ScriptInfo, d
 	}
 
 	// Build and return Component.
-	writeComponentReturn(buf, info)
+	writeComponentReturn(buf, info, stylesheet)
 
 	buf.WriteString("}\n")
 }
@@ -300,7 +301,7 @@ func writeComponentFunc(buf *bytes.Buffer, f script.FuncInfo) {
 }
 
 // writeComponentReturn emits the return statement.
-func writeComponentReturn(buf *bytes.Buffer, info *script.ScriptInfo) {
+func writeComponentReturn(buf *bytes.Buffer, info *script.ScriptInfo, stylesheet *style.Stylesheet) {
 	// Find the handleKey function if present.
 	var handler string
 	for _, f := range info.Funcs {
@@ -315,7 +316,29 @@ func writeComponentReturn(buf *bytes.Buffer, info *script.ScriptInfo) {
 	if handler != "" {
 		fmt.Fprintf(buf, "\t\tOnEvent: %s,\n", handler)
 	}
+	if stylesheet != nil && len(stylesheet.Keyframes) > 0 {
+		writeKeyframeRegistration(buf, stylesheet)
+	}
 	buf.WriteString("\t}\n")
+}
+
+// writeKeyframeRegistration emits Keyframes map on the Component.
+func writeKeyframeRegistration(buf *bytes.Buffer, stylesheet *style.Stylesheet) {
+	buf.WriteString("\t\tKeyframes: map[string]*sumi.KeyframeAnimation{\n")
+	for _, kf := range stylesheet.Keyframes {
+		fmt.Fprintf(buf, "\t\t\t%q: {\n", kf.Name)
+		fmt.Fprintf(buf, "\t\t\t\tName: %q,\n", kf.Name)
+		buf.WriteString("\t\t\t\tStops: []sumi.KeyframeStop{\n")
+		for _, stop := range kf.Stops {
+			s := css.ToRenderStyle(stop.Properties)
+			fmt.Fprintf(buf, "\t\t\t\t\t{Percent: %v, Style: sumi.Style{", stop.Percent)
+			writeInlineStyleFields(buf, s)
+			buf.WriteString("}},\n")
+		}
+		buf.WriteString("\t\t\t\t},\n")
+		buf.WriteString("\t\t\t},\n")
+	}
+	buf.WriteString("\t\t},\n")
 }
 
 // hasStyles checks if any node in the document has style attributes.

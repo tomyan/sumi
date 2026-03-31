@@ -240,6 +240,7 @@ func writeBoxInput(buf *bytes.Buffer, n *template.BoxElement, stylesheet *style.
 	}
 	if props != nil {
 		writeTransitions(buf, tabs, props)
+		writeAnimationSpec(buf, tabs, props)
 	}
 	writeBoxChildren(buf, n.Children, stylesheet, indent, tabs, ext)
 	fmt.Fprintf(buf, "%s},\n", tabs)

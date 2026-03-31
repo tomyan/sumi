@@ -21,7 +21,10 @@ type Input = layout.Input
 type Padding = layout.Padding
 type ScrollState = layout.ScrollState
 type TransitionSpec = anim.TransitionSpec
+type AnimationSpec = anim.AnimationSpec
 type TimingFunction = anim.TimingFunction
+type KeyframeAnimation = anim.KeyframeAnimation
+type KeyframeStop = anim.KeyframeStop
 type Box = layout.Box
 
 const (

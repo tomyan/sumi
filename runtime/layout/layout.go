@@ -100,8 +100,9 @@ type Box struct {
 	NeedsScrollbar           bool         // true when a vertical scrollbar should be drawn
 	NeedsHorizontalScrollbar bool         // true when a horizontal scrollbar should be drawn
 	Clip                     *render.Clip // clipping region (set when overflow is non-empty)
-	HasOverlap               bool                // true when any descendant has absolute/fixed or non-zero z-index
+	HasOverlap               bool                  // true when any descendant has absolute/fixed or non-zero z-index
 	Transitions              []anim.TransitionSpec  // CSS transition config (propagated from Input)
+	AnimationSpec            *anim.AnimationSpec    // CSS animation config (propagated from Input)
 }
 
 // ParsePadding parses a CSS-like padding shorthand string.
@@ -212,6 +213,7 @@ func layoutNode(input *Input, availW, availH int) *Box {
 		HoverStyle:      input.HoverStyle,
 		Hovered:         input.Hovered,
 		Transitions:     input.Transitions,
+		AnimationSpec:   input.AnimationSpec,
 		Border:          border,
 		BorderTop:    input.BorderTop,
 		BorderBottom: input.BorderBottom,

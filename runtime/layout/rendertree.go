@@ -29,9 +29,14 @@ func renderTreeFull(buf *render.Buffer, box *Box, clip *render.Clip, inherited r
 		box.Style = box.HoverStyle
 	}
 
-	// Apply animation engine: interpolate transitions.
-	if engine != nil && len(box.Transitions) > 0 {
-		box.Style = engine.BeforeRender(nodeID, box.Style, box.Transitions)
+	// Apply animation engine.
+	if engine != nil {
+		if len(box.Transitions) > 0 {
+			box.Style = engine.BeforeRender(nodeID, box.Style, box.Transitions)
+		}
+		if box.AnimationSpec != nil {
+			box.Style = engine.BeforeRenderAnim(nodeID, box.Style, box.AnimationSpec)
+		}
 	}
 
 	// Apply style inheritance: merge parent's inheritable properties into this node.

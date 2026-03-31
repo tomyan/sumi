@@ -68,8 +68,9 @@ type Component struct {
 	OnEvent      func(input.Event)
 	AfterLayout  func() // called after layout to sync self-measurement signals
 	Dispose      func()
-	Dirty        bool        // set by AfterLayout to request a re-render pass
-	LayoutResult *layout.Box // set before AfterLayout with the latest layout result
+	Dirty        bool                          // set by AfterLayout to request a re-render pass
+	LayoutResult *layout.Box                  // set before AfterLayout with the latest layout result
+	Keyframes    map[string]*anim.KeyframeAnimation // named keyframe animations from CSS
 }
 
 // TestApp creates a test-mode App from a Component with the given viewport dimensions.
@@ -149,6 +150,9 @@ func RunWithOptions(comp *Component, opts RunOptions) {
 	}
 
 	engine := anim.NewEngine(anim.WallClock{}, func() { app.RequestFrame() })
+	for name, kf := range comp.Keyframes {
+		engine.RegisterKeyframes(name, kf)
+	}
 
 	screenBuf := render.NewBuffer(0, 0)
 	frameBuf := render.NewBuffer(0, 0)
@@ -226,6 +230,9 @@ func Run(comp *Component) {
 	app := &App{}
 
 	engine := anim.NewEngine(anim.WallClock{}, func() { app.RequestFrame() })
+	for name, kf := range comp.Keyframes {
+		engine.RegisterKeyframes(name, kf)
+	}
 
 	screenBuf := render.NewBuffer(0, 0)
 	frameBuf := render.NewBuffer(0, 0)
