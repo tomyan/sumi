@@ -6,6 +6,7 @@ package prelude
 import (
 	"fmt"
 
+	"github.com/tomyan/sumi/runtime/anim"
 	"github.com/tomyan/sumi/runtime/input"
 	"github.com/tomyan/sumi/runtime/layout"
 	"github.com/tomyan/sumi/runtime/render"
@@ -19,6 +20,8 @@ import (
 type Input = layout.Input
 type Padding = layout.Padding
 type ScrollState = layout.ScrollState
+type TransitionSpec = anim.TransitionSpec
+type TimingFunction = anim.TimingFunction
 type Box = layout.Box
 
 const (

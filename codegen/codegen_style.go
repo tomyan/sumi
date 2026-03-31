@@ -100,6 +100,21 @@ func writeBoolStyleFields(buf *bytes.Buffer, tabs string, s render.Style) {
 	}
 }
 
+// writeTransitions emits Transitions field from CSS transition properties.
+func writeTransitions(buf *bytes.Buffer, tabs string, props map[string]string) {
+	specs := css.ParseTransitions(props)
+	if len(specs) == 0 {
+		return
+	}
+	fmt.Fprintf(buf, "%s\tTransitions: []sumi.TransitionSpec{\n", tabs)
+	for _, s := range specs {
+		fmt.Fprintf(buf, "%s\t\t{Property: %q, DurationMs: %d, DelayMs: %d, TimingFunction: sumi.TimingFunction{Name: %q, X1: %v, Y1: %v, X2: %v, Y2: %v}},\n",
+			tabs, s.Property, s.DurationMs, s.DelayMs,
+			s.TimingFunction.Name, s.TimingFunction.X1, s.TimingFunction.Y1, s.TimingFunction.X2, s.TimingFunction.Y2)
+	}
+	fmt.Fprintf(buf, "%s\t},\n", tabs)
+}
+
 // mergedAttr returns the value for a layout-affecting attribute.
 // Inline attributes (from the element) override stylesheet properties.
 func mergedAttr(attrs map[string]string, props map[string]string, key string) (string, bool) {
