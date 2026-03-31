@@ -7,7 +7,8 @@ import (
 
 // Stylesheet represents the parsed contents of a <style> block.
 type Stylesheet struct {
-	Rules []Rule
+	Rules     []Rule
+	Keyframes []Keyframe
 }
 
 // Rule represents a single CSS-like rule with a selector and properties.
@@ -15,6 +16,18 @@ type Rule struct {
 	Selector   string            // e.g. ".title", "text", ".container"
 	Pseudo     string            // e.g. "hover", "" for normal rules
 	Properties map[string]string // e.g. {"color": "green", "bold": "true"}
+}
+
+// Keyframe represents an @keyframes animation definition.
+type Keyframe struct {
+	Name  string          // animation name
+	Stops []KeyframeStop  // percentage stops with properties
+}
+
+// KeyframeStop is a single stop in a keyframe animation.
+type KeyframeStop struct {
+	Percent    float64           // 0.0 to 1.0
+	Properties map[string]string
 }
 
 // Parse parses CSS-like style rules from the content of a <style> block.
@@ -40,6 +53,16 @@ func (p *parser) parse() (*Stylesheet, error) {
 		// Check for comment that wasn't fully consumed (unterminated)
 		if p.pos+1 < len(p.input) && p.input[p.pos] == '/' && p.input[p.pos+1] == '*' {
 			return nil, fmt.Errorf("unterminated comment")
+		}
+
+		// @keyframes block
+		if strings.HasPrefix(p.input[p.pos:], "@keyframes ") {
+			kf, err := p.parseKeyframes()
+			if err != nil {
+				return nil, err
+			}
+			s.Keyframes = append(s.Keyframes, kf)
+			continue
 		}
 
 		rule, err := p.parseRule()
@@ -202,6 +225,108 @@ func (p *parser) readPropertyValue() string {
 		p.pos++
 	}
 	return strings.TrimSpace(b.String())
+}
+
+// parseKeyframes parses an @keyframes block:
+// @keyframes name { 0% { color: red; } 100% { color: blue; } }
+func (p *parser) parseKeyframes() (Keyframe, error) {
+	// Skip "@keyframes "
+	p.pos += len("@keyframes ")
+	p.skipWhitespace()
+
+	// Read name
+	start := p.pos
+	for p.pos < len(p.input) && !isWhitespace(p.input[p.pos]) && p.input[p.pos] != '{' {
+		p.pos++
+	}
+	name := strings.TrimSpace(p.input[start:p.pos])
+	if name == "" {
+		return Keyframe{}, fmt.Errorf("@keyframes missing name")
+	}
+
+	p.skipWhitespace()
+	if p.pos >= len(p.input) || p.input[p.pos] != '{' {
+		return Keyframe{}, fmt.Errorf("@keyframes %s: expected '{'", name)
+	}
+	p.pos++ // consume outer {
+
+	var stops []KeyframeStop
+	for p.pos < len(p.input) {
+		p.skipWhitespaceAndComments()
+		if p.pos >= len(p.input) {
+			break
+		}
+		if p.input[p.pos] == '}' {
+			p.pos++ // consume outer }
+			return Keyframe{Name: name, Stops: stops}, nil
+		}
+
+		stop, err := p.parseKeyframeStop()
+		if err != nil {
+			return Keyframe{}, fmt.Errorf("@keyframes %s: %w", name, err)
+		}
+		stops = append(stops, stop)
+	}
+	return Keyframe{}, fmt.Errorf("@keyframes %s: unterminated block", name)
+}
+
+func (p *parser) parseKeyframeStop() (KeyframeStop, error) {
+	p.skipWhitespace()
+
+	// Read the selector: "0%", "50%", "100%", "from", "to"
+	start := p.pos
+	for p.pos < len(p.input) && !isWhitespace(p.input[p.pos]) && p.input[p.pos] != '{' {
+		p.pos++
+	}
+	selector := strings.TrimSpace(p.input[start:p.pos])
+
+	var percent float64
+	switch selector {
+	case "from":
+		percent = 0
+	case "to":
+		percent = 1
+	default:
+		if !strings.HasSuffix(selector, "%") {
+			return KeyframeStop{}, fmt.Errorf("invalid keyframe selector: %q", selector)
+		}
+		val := strings.TrimSuffix(selector, "%")
+		n, err := fmt.Sscanf(val, "%f", &percent)
+		if err != nil || n != 1 {
+			return KeyframeStop{}, fmt.Errorf("invalid keyframe percentage: %q", selector)
+		}
+		percent /= 100
+	}
+
+	p.skipWhitespace()
+	if p.pos >= len(p.input) || p.input[p.pos] != '{' {
+		return KeyframeStop{}, fmt.Errorf("expected '{' after %q", selector)
+	}
+	p.pos++ // consume {
+
+	props := make(map[string]string)
+	for p.pos < len(p.input) {
+		p.skipWhitespace()
+		if p.pos >= len(p.input) {
+			break
+		}
+		if p.input[p.pos] == '}' {
+			p.pos++ // consume }
+			return KeyframeStop{Percent: percent, Properties: props}, nil
+		}
+		name := p.readPropertyName()
+		if name == "" {
+			return KeyframeStop{}, fmt.Errorf("empty property name in keyframe")
+		}
+		p.skipWhitespace()
+		if p.pos < len(p.input) && p.input[p.pos] == ':' {
+			p.pos++ // consume :
+		}
+		p.skipWhitespace()
+		value := p.readPropertyValue()
+		props[name] = value
+	}
+	return KeyframeStop{}, fmt.Errorf("unterminated keyframe stop")
 }
 
 func isWhitespace(b byte) bool {

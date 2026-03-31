@@ -136,6 +136,79 @@ func TestEngineTransitionDelay(t *testing.T) {
 	}
 }
 
+func TestEngineMultiplePropertyTransitions(t *testing.T) {
+	clock := NewTestClock()
+	engine := NewEngine(clock, func() {})
+	transitions := []TransitionSpec{
+		{Property: "color", DurationMs: 200, TimingFunction: Linear},
+		{Property: "background", DurationMs: 400, TimingFunction: Linear},
+	}
+
+	from := render.Style{
+		FG: render.Color{IsRGB: true, R: 255, G: 0, B: 0},
+		BG: render.Color{IsRGB: true, R: 0, G: 0, B: 0},
+	}
+	to := render.Style{
+		FG: render.Color{IsRGB: true, R: 0, G: 0, B: 255},
+		BG: render.Color{IsRGB: true, R: 255, G: 255, B: 255},
+	}
+
+	engine.BeforeRender("node0", from, transitions)
+	clock.Advance(1)
+	engine.BeforeRender("node0", to, transitions)
+
+	// At 200ms: FG done, BG halfway.
+	clock.Advance(200)
+	got := engine.BeforeRender("node0", to, transitions)
+	if got.FG.R != 0 || got.FG.B != 255 {
+		t.Errorf("at 200ms FG=(%d,%d,%d), want (0,0,255)", got.FG.R, got.FG.G, got.FG.B)
+	}
+	if math.Abs(float64(got.BG.R)-128) > 5 {
+		t.Errorf("at 200ms BG.R=%d, want ~128", got.BG.R)
+	}
+
+	// At 400ms: both done.
+	clock.Advance(200)
+	got = engine.BeforeRender("node0", to, transitions)
+	if got.BG.R != 255 || got.BG.G != 255 || got.BG.B != 255 {
+		t.Errorf("at 400ms BG=(%d,%d,%d), want (255,255,255)", got.BG.R, got.BG.G, got.BG.B)
+	}
+	if engine.HasActive() {
+		t.Error("expected no active transitions after both complete")
+	}
+}
+
+func TestEngineTransitionAll(t *testing.T) {
+	clock := NewTestClock()
+	engine := NewEngine(clock, func() {})
+	transitions := []TransitionSpec{
+		{Property: "all", DurationMs: 200, TimingFunction: Linear},
+	}
+
+	from := render.Style{
+		FG: render.Color{IsRGB: true, R: 255, G: 0, B: 0},
+		BG: render.Color{IsRGB: true, R: 0, G: 0, B: 0},
+	}
+	to := render.Style{
+		FG: render.Color{IsRGB: true, R: 0, G: 255, B: 0},
+		BG: render.Color{IsRGB: true, R: 255, G: 255, B: 255},
+	}
+
+	engine.BeforeRender("node0", from, transitions)
+	clock.Advance(1)
+	engine.BeforeRender("node0", to, transitions)
+
+	clock.Advance(100)
+	got := engine.BeforeRender("node0", to, transitions)
+	// Both FG and BG should be interpolated at midpoint.
+	if math.Abs(float64(got.FG.G)-128) > 5 {
+		t.Errorf("at midpoint FG.G=%d, want ~128", got.FG.G)
+	}
+	if math.Abs(float64(got.BG.R)-128) > 5 {
+		t.Errorf("at midpoint BG.R=%d, want ~128", got.BG.R)
+	}
+}
+
 func TestEngineNoStyleChangeNoTransition(t *testing.T) {
 	clock := NewTestClock()
 	engine := NewEngine(clock, func() {})

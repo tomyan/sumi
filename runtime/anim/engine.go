@@ -7,13 +7,18 @@ import "github.com/tomyan/sumi/runtime/render"
 type Engine struct {
 	clock        Clock
 	nodes        map[string]*nodeState
+	keyframes    map[string]*KeyframeAnimation
 	requestFrame func()
 }
 
 type nodeState struct {
-	prevStyle   render.Style
-	transitions []activeTransition
-	initialized bool
+	prevStyle    render.Style
+	transitions  []activeTransition
+	initialized  bool
+	animStarted  bool           // whether keyframe animation has started
+	animStart    int64          // keyframe animation start time
+	animSpec     *AnimationSpec // active keyframe animation spec
+	animDone     bool           // keyframe animation finished
 }
 
 type activeTransition struct {
@@ -33,6 +38,14 @@ func NewEngine(clock Clock, requestFrame func()) *Engine {
 		nodes:        make(map[string]*nodeState),
 		requestFrame: requestFrame,
 	}
+}
+
+// BeforeRenderAnim processes a node with a keyframe animation.
+func (e *Engine) BeforeRenderAnim(nodeID string, baseStyle render.Style, spec *AnimationSpec) render.Style {
+	if spec == nil || spec.Name == "" {
+		return baseStyle
+	}
+	return e.evaluateKeyframe(spec, nodeID, baseStyle)
 }
 
 // BeforeRender processes a node's current style against its previous state.
@@ -102,10 +115,13 @@ func (e *Engine) BeforeRender(nodeID string, currentStyle render.Style, transiti
 	return result
 }
 
-// HasActive returns true if any node has running transitions.
+// HasActive returns true if any node has running transitions or animations.
 func (e *Engine) HasActive() bool {
 	for _, ns := range e.nodes {
 		if len(ns.transitions) > 0 {
+			return true
+		}
+		if ns.animSpec != nil && !ns.animDone {
 			return true
 		}
 	}
