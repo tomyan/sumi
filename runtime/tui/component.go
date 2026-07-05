@@ -137,13 +137,19 @@ func Quit() {
 
 // RunOptions configures optional behaviors for Run.
 type RunOptions struct {
-	OnPostRender func()       // called after each render
-	OnResize     func()       // called on terminal resize
-	SetApp       func(a *App) // called with the app reference before Run
+	OnPostRender func()            // called after each render
+	OnResize     func()            // called on terminal resize
+	SetApp       func(a *App)      // called with the app reference before Run
+	ColorDepth   render.ColorDepth // emission depth; DepthAuto detects from env
 }
 
 // RunWithOptions runs a component with additional configuration.
 func RunWithOptions(comp *Component, opts RunOptions) {
+	if opts.ColorDepth == render.DepthAuto {
+		render.SetColorDepth(term.DetectColorDepth())
+	} else {
+		render.SetColorDepth(opts.ColorDepth)
+	}
 	app := &App{}
 	if opts.SetApp != nil {
 		opts.SetApp(app)

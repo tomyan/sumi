@@ -130,29 +130,44 @@ func appendSGR(buf []byte, s Style) []byte {
 	if s.Strikethrough {
 		buf = append(buf, ";9"...)
 	}
-	if s.FG.IsRGB {
-		buf = append(buf, ";38;2;"...)
-		buf = strconv.AppendInt(buf, int64(s.FG.R), 10)
-		buf = append(buf, ';')
-		buf = strconv.AppendInt(buf, int64(s.FG.G), 10)
-		buf = append(buf, ';')
-		buf = strconv.AppendInt(buf, int64(s.FG.B), 10)
-	} else if code, ok := colorToFGCode(s.FG.Name); ok {
-		buf = append(buf, ';')
-		buf = strconv.AppendInt(buf, int64(code), 10)
-	}
-	if s.BG.IsRGB {
-		buf = append(buf, ";48;2;"...)
-		buf = strconv.AppendInt(buf, int64(s.BG.R), 10)
-		buf = append(buf, ';')
-		buf = strconv.AppendInt(buf, int64(s.BG.G), 10)
-		buf = append(buf, ';')
-		buf = strconv.AppendInt(buf, int64(s.BG.B), 10)
-	} else if code, ok := colorToBGCode(s.BG.Name); ok {
-		buf = append(buf, ';')
-		buf = strconv.AppendInt(buf, int64(code), 10)
-	}
+	buf = appendColorSGR(buf, quantize(s.FG), false)
+	buf = appendColorSGR(buf, quantize(s.BG), true)
 	buf = append(buf, 'm')
+	return buf
+}
+
+// appendColorSGR appends one colour's SGR parameters (already quantized).
+func appendColorSGR(buf []byte, c Color, isBG bool) []byte {
+	switch {
+	case c.IsRGB:
+		if isBG {
+			buf = append(buf, ";48;2;"...)
+		} else {
+			buf = append(buf, ";38;2;"...)
+		}
+		buf = strconv.AppendInt(buf, int64(c.R), 10)
+		buf = append(buf, ';')
+		buf = strconv.AppendInt(buf, int64(c.G), 10)
+		buf = append(buf, ';')
+		buf = strconv.AppendInt(buf, int64(c.B), 10)
+	case c.Is256:
+		if isBG {
+			buf = append(buf, ";48;5;"...)
+		} else {
+			buf = append(buf, ";38;5;"...)
+		}
+		buf = strconv.AppendInt(buf, int64(c.Index256), 10)
+	case !isBG:
+		if code, ok := colorToFGCode(c.Name); ok {
+			buf = append(buf, ';')
+			buf = strconv.AppendInt(buf, int64(code), 10)
+		}
+	default:
+		if code, ok := colorToBGCode(c.Name); ok {
+			buf = append(buf, ';')
+			buf = strconv.AppendInt(buf, int64(code), 10)
+		}
+	}
 	return buf
 }
 

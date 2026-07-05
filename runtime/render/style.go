@@ -2,9 +2,11 @@ package render
 
 // Color represents a terminal color — either a named ANSI color or 24-bit RGB.
 type Color struct {
-	Name  string // "red", "green", "cyan", "yellow", "blue", "magenta", "white", "black", "" (default)
-	IsRGB bool
-	R, G, B uint8
+	Name     string // "red", "green", "cyan", "yellow", "blue", "magenta", "white", "black", "" (default)
+	IsRGB    bool
+	R, G, B  uint8
+	Is256    bool  // colour is an xterm-256 palette index (set by depth quantization)
+	Index256 uint8 // palette index when Is256
 }
 
 // Style represents visual attributes for a terminal cell.

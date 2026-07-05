@@ -39,16 +39,28 @@ func appendAttrCodes(b *strings.Builder, s Style) {
 	}
 }
 
-// appendColorCodes appends SGR codes for foreground and background colors.
+// appendColorCodes appends SGR codes for foreground and background colors,
+// degraded to the active colour depth.
 func appendColorCodes(b *strings.Builder, s Style) {
-	if s.FG.IsRGB {
-		fmt.Fprintf(b, "\x1b[38;2;%d;%d;%dm", s.FG.R, s.FG.G, s.FG.B)
-	} else if code, ok := colorToFGCode(s.FG.Name); ok {
-		fmt.Fprintf(b, "\x1b[%dm", code)
+	fg, bg := quantize(s.FG), quantize(s.BG)
+	switch {
+	case fg.IsRGB:
+		fmt.Fprintf(b, "\x1b[38;2;%d;%d;%dm", fg.R, fg.G, fg.B)
+	case fg.Is256:
+		fmt.Fprintf(b, "\x1b[38;5;%dm", fg.Index256)
+	default:
+		if code, ok := colorToFGCode(fg.Name); ok {
+			fmt.Fprintf(b, "\x1b[%dm", code)
+		}
 	}
-	if s.BG.IsRGB {
-		fmt.Fprintf(b, "\x1b[48;2;%d;%d;%dm", s.BG.R, s.BG.G, s.BG.B)
-	} else if code, ok := colorToBGCode(s.BG.Name); ok {
-		fmt.Fprintf(b, "\x1b[%dm", code)
+	switch {
+	case bg.IsRGB:
+		fmt.Fprintf(b, "\x1b[48;2;%d;%d;%dm", bg.R, bg.G, bg.B)
+	case bg.Is256:
+		fmt.Fprintf(b, "\x1b[48;5;%dm", bg.Index256)
+	default:
+		if code, ok := colorToBGCode(bg.Name); ok {
+			fmt.Fprintf(b, "\x1b[%dm", code)
+		}
 	}
 }
