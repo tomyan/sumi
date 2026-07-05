@@ -199,6 +199,7 @@ func applyLayoutProps(n *Input, props map[string]string) {
 	applySizeProp(n, props, "height", &n.FixedHeight, &n.HeightPct, &n.HeightCalc)
 	applyIntProp(n, props, "gap", &n.Gap)
 	applyIntProp(n, props, "flex-grow", &n.FlexGrow)
+	applyFlexProps(n, props)
 	applyIntProp(n, props, "min-width", &n.MinWidth)
 	applyIntProp(n, props, "min-height", &n.MinHeight)
 	applyIntProp(n, props, "max-width", &n.MaxWidth)
@@ -228,6 +229,56 @@ func applyLayoutProps(n *Input, props map[string]string) {
 	}
 	applyPositionProps(n, props)
 	applyBorderProps(n, props)
+}
+
+// applyFlexProps handles flex-shrink, flex-basis, and the flex shorthand.
+func applyFlexProps(n *Input, props map[string]string) {
+	if v, ok := cssValue(n, props, "flex"); ok {
+		applyFlexShorthand(n, v)
+	}
+	if v, ok := cssValue(n, props, "flex-shrink"); ok {
+		n.FlexShrink = encodeShrink(v)
+	}
+	if v, ok := cssValue(n, props, "flex-basis"); ok && v != "auto" {
+		n.FlexBasis = v
+	}
+}
+
+// applyFlexShorthand parses `flex: <grow> [<shrink>] [<basis>]` and the
+// single-value forms (flex: 1 means 1 1 0).
+func applyFlexShorthand(n *Input, v string) {
+	if v == "none" {
+		n.FlexShrink = -1
+		return
+	}
+	parts := strings.Fields(v)
+	if len(parts) == 0 {
+		return
+	}
+	n.FlexGrow = ParseCellLength(parts[0])
+	n.FlexShrink = 0 // default 1
+	n.FlexBasis = "0"
+	if len(parts) > 1 {
+		n.FlexShrink = encodeShrink(parts[1])
+	}
+	if len(parts) > 2 && parts[2] != "auto" {
+		n.FlexBasis = parts[2]
+	} else if len(parts) > 2 {
+		n.FlexBasis = ""
+	}
+}
+
+// encodeShrink maps a CSS shrink factor onto the Input encoding
+// (0 = default 1, -1 = explicit 0).
+func encodeShrink(v string) int {
+	f := ParseCellLength(v)
+	if f == 0 {
+		return -1
+	}
+	if f == 1 {
+		return 0
+	}
+	return f
 }
 
 func applyMarginProps(n *Input, props map[string]string) {

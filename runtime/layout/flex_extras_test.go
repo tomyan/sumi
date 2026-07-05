@@ -103,3 +103,60 @@ func TestColumnReverse(t *testing.T) {
 		t.Errorf("second child Y = %d, want 4", got)
 	}
 }
+
+// B3b: flex-shrink, flex-basis, flex shorthand.
+
+func TestFlexShrinkDefaultCompressesOverflow(t *testing.T) {
+	// Given: two basis-10 children in a 12-wide row: deficit 8 shared evenly.
+	tree := &Input{Kind: KindBox, Direction: "row", FixedWidth: 12, FixedHeight: 1, Children: []*Input{
+		{Kind: KindBox, FlexBasis: "10", FixedHeight: 1},
+		{Kind: KindBox, FlexBasis: "10", FixedHeight: 1},
+	}}
+	box := Layout(tree, 40, 5)
+	if got := box.Children[0].Width + box.Children[1].Width; got != 12 {
+		t.Errorf("total width = %d, want 12 (shrunk to fit)", got)
+	}
+}
+
+func TestFlexShrinkZeroKeepsSize(t *testing.T) {
+	// Given: same overflow, but the first child refuses to shrink.
+	tree := &Input{Kind: KindBox, Direction: "row", FixedWidth: 12, FixedHeight: 1, Children: []*Input{
+		{Kind: KindBox, FlexBasis: "10", FlexShrink: -1, FixedHeight: 1},
+		{Kind: KindBox, FlexBasis: "10", FixedHeight: 1},
+	}}
+	box := Layout(tree, 40, 5)
+	if got := box.Children[0].Width; got != 10 {
+		t.Errorf("no-shrink child width = %d, want 10", got)
+	}
+	if got := box.Children[1].Width; got != 2 {
+		t.Errorf("shrinking child width = %d, want 2", got)
+	}
+}
+
+func TestFlexBasisSetsNaturalSize(t *testing.T) {
+	tree := &Input{Kind: KindBox, Direction: "row", FixedWidth: 30, FixedHeight: 1, Children: []*Input{
+		{Kind: KindBox, FlexBasis: "8", FixedHeight: 1},
+		{Kind: KindBox, FlexBasis: "50%", FixedHeight: 1},
+	}}
+	box := Layout(tree, 40, 5)
+	if got := box.Children[0].Width; got != 8 {
+		t.Errorf("basis 8 width = %d, want 8", got)
+	}
+	if got := box.Children[1].Width; got != 15 {
+		t.Errorf("basis 50%% width = %d, want 15 (of 30)", got)
+	}
+}
+
+func TestFlexOneEqualSplitRegardlessOfContent(t *testing.T) {
+	// Given: flex: 1 semantics — grow 1, basis 0 — content length irrelevant.
+	tree := &Input{Kind: KindBox, Direction: "row", FixedWidth: 20, FixedHeight: 1, Children: []*Input{
+		{Kind: KindBox, FlexGrow: 1, FlexBasis: "0", FixedHeight: 1,
+			Children: []*Input{{Kind: KindText, Content: "long content here"}}},
+		{Kind: KindBox, FlexGrow: 1, FlexBasis: "0", FixedHeight: 1,
+			Children: []*Input{{Kind: KindText, Content: "x"}}},
+	}}
+	box := Layout(tree, 40, 5)
+	if box.Children[0].Width != box.Children[1].Width {
+		t.Errorf("flex:1 children unequal: %d vs %d", box.Children[0].Width, box.Children[1].Width)
+	}
+}

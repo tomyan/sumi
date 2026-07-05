@@ -42,6 +42,8 @@ type Input struct {
 	LastH           int    // laid-out height from the previous pass
 	Gap             int    // space between children (cells)
 	FlexGrow        int    // flex-grow factor (0 = no grow)
+	FlexShrink      int    // 0 = CSS default (1); -1 = explicit flex-shrink: 0
+	FlexBasis       string // main-axis basis ("" = auto; cells or %)
 	Justify         string // main-axis alignment: start, end, center, space-*
 	Align           string // cross-axis alignment: start, end, center, stretch
 	AlignSelf       string // per-child cross-axis override ("" = use parent Align)
@@ -520,13 +522,13 @@ func layoutNode(input *Input, availW, availH int) *Box {
 
 	var flowBoxes []*Box
 	if input.Direction == "row" {
-		if hasFlexChildren {
+		if hasFlexChildren || hasFlexSizing(flowChildren) {
 			flowBoxes = layoutRowFlex(flowChildren, offsetX, offsetY, gap, flexAvailW, flexAvailH)
 		} else {
 			flowBoxes = layoutRow(flowChildren, offsetX, offsetY, gap, flexAvailW, flexAvailH)
 		}
 	} else {
-		if hasFlexChildren {
+		if hasFlexChildren || hasFlexSizing(flowChildren) {
 			flowBoxes = layoutColumnFlex(flowChildren, offsetX, offsetY, gap, flexAvailW, flexAvailH)
 		} else {
 			flowBoxes = layoutColumn(flowChildren, offsetX, offsetY, gap, flexAvailW, flexAvailH)
@@ -683,6 +685,59 @@ func updateSelfPointers(inputs []*Input, boxes []*Box) {
 }
 
 // hasFlexGrow returns true if any child has FlexGrow > 0.
+// hasFlexSizing reports whether any child declares an explicit flex basis
+// or shrink factor, which requires the flex layout path.
+func hasFlexSizing(children []*Input) bool {
+	for _, c := range children {
+		if c.FlexBasis != "" || c.FlexShrink != 0 {
+			return true
+		}
+	}
+	return false
+}
+
+// effectiveShrink maps the FlexShrink encoding to a factor: 0 means the CSS
+// default of 1; -1 means an explicit flex-shrink: 0.
+func effectiveShrink(c *Input) int {
+	switch c.FlexShrink {
+	case 0:
+		return 1
+	case -1:
+		return 0
+	}
+	return c.FlexShrink
+}
+
+// resolveBasis resolves a flex-basis value against the main-axis size.
+func resolveBasis(basis string, availMain int) int {
+	if strings.HasSuffix(basis, "%") {
+		if v, err := strconv.Atoi(strings.TrimSuffix(basis, "%")); err == nil {
+			return availMain * v / 100
+		}
+		return 0
+	}
+	return ParseCellLength(basis)
+}
+
+// applyShrink reduces sizes proportionally to shrink-factor-weighted size
+// until the deficit is absorbed (single pass; floors at zero).
+func applyShrink(children []*Input, sizes []int, deficit int) {
+	weight := 0
+	for i, c := range children {
+		weight += effectiveShrink(c) * sizes[i]
+	}
+	if weight <= 0 {
+		return
+	}
+	for i, c := range children {
+		cut := deficit * effectiveShrink(c) * sizes[i] / weight
+		sizes[i] -= cut
+		if sizes[i] < 0 {
+			sizes[i] = 0
+		}
+	}
+}
+
 func hasFlexGrow(children []*Input) bool {
 	for _, c := range children {
 		if c.FlexGrow > 0 {
@@ -758,7 +813,7 @@ func layoutRow(children []*Input, offsetX, offsetY, gap, availW, availH int) []*
 
 // layoutRowFlex is a two-pass row layout that distributes extra space to flex-grow children.
 func layoutRowFlex(children []*Input, offsetX, offsetY, gap, availW, availH int) []*Box {
-	// Pass 1: lay out non-flex children to get their natural width
+	// Pass 1: measure natural widths (flex-basis wins over content size)
 	naturalWidths := make([]int, len(children))
 	totalFixed := 0
 	totalGaps := 0
@@ -768,18 +823,27 @@ func layoutRowFlex(children []*Input, offsetX, offsetY, gap, availW, availH int)
 			totalGaps += gap
 		}
 		totalFixed += child.Margin.horizontal()
-		if child.FlexGrow > 0 {
+		switch {
+		case child.FlexGrow > 0:
 			totalFlex += child.FlexGrow
-		} else {
+			if child.FlexBasis != "" {
+				naturalWidths[i] = resolveBasis(child.FlexBasis, availW)
+				totalFixed += naturalWidths[i]
+			}
+		case child.FlexBasis != "":
+			naturalWidths[i] = resolveBasis(child.FlexBasis, availW)
+			totalFixed += naturalWidths[i]
+		default:
 			childBox := layoutNode(child, availW, availH)
 			naturalWidths[i] = childBox.Width
 			totalFixed += childBox.Width
 		}
 	}
 
-	// Pass 2: distribute remaining space among flex children
+	// Pass 2: distribute surplus to grow children, or shrink on deficit.
 	remaining := availW - totalFixed - totalGaps
 	if remaining < 0 {
+		applyShrink(children, naturalWidths, -remaining)
 		remaining = 0
 	}
 
@@ -797,7 +861,7 @@ func layoutRowFlex(children []*Input, offsetX, offsetY, gap, availW, availH int)
 		cursorX += m.Left
 		var childBox *Box
 		if child.FlexGrow > 0 {
-			flexWidth := flexSizes[flexIdx]
+			flexWidth := naturalWidths[i] + flexSizes[flexIdx]
 			flexIdx++
 			// Temporarily set FixedWidth so internal layout knows the determined width.
 			saved := child.FixedWidth
@@ -805,6 +869,16 @@ func layoutRowFlex(children []*Input, offsetX, offsetY, gap, availW, availH int)
 			childBox = layoutNode(child, flexWidth, availH)
 			child.FixedWidth = saved
 			childBox.Width = flexWidth
+		} else if childWidth := naturalWidths[i]; child.FlexBasis != "" || childWidth != 0 {
+			saved := child.FixedWidth
+			if child.FlexBasis != "" || effectiveShrink(child) > 0 {
+				child.FixedWidth = childWidth
+			}
+			childBox = layoutNode(child, childWidth, availH)
+			child.FixedWidth = saved
+			if child.FlexBasis != "" || effectiveShrink(child) > 0 {
+				childBox.Width = childWidth
+			}
 		} else {
 			childBox = layoutNode(child, naturalWidths[i], availH)
 		}
@@ -818,7 +892,7 @@ func layoutRowFlex(children []*Input, offsetX, offsetY, gap, availW, availH int)
 
 // layoutColumnFlex is a two-pass column layout that distributes extra space to flex-grow children.
 func layoutColumnFlex(children []*Input, offsetX, offsetY, gap, availW, availH int) []*Box {
-	// Pass 1: lay out non-flex children to get their natural height
+	// Pass 1: measure natural heights (flex-basis wins over content size)
 	naturalHeights := make([]int, len(children))
 	totalFixed := 0
 	totalGaps := 0
@@ -828,18 +902,27 @@ func layoutColumnFlex(children []*Input, offsetX, offsetY, gap, availW, availH i
 			totalGaps += gap
 		}
 		totalFixed += child.Margin.vertical()
-		if child.FlexGrow > 0 {
+		switch {
+		case child.FlexGrow > 0:
 			totalFlex += child.FlexGrow
-		} else {
+			if child.FlexBasis != "" {
+				naturalHeights[i] = resolveBasis(child.FlexBasis, availH)
+				totalFixed += naturalHeights[i]
+			}
+		case child.FlexBasis != "":
+			naturalHeights[i] = resolveBasis(child.FlexBasis, availH)
+			totalFixed += naturalHeights[i]
+		default:
 			childBox := layoutNode(child, availW, availH)
 			naturalHeights[i] = childBox.Height
 			totalFixed += childBox.Height
 		}
 	}
 
-	// Pass 2: distribute remaining space among flex children
+	// Pass 2: distribute surplus to grow children, or shrink on deficit.
 	remaining := availH - totalFixed - totalGaps
 	if remaining < 0 {
+		applyShrink(children, naturalHeights, -remaining)
 		remaining = 0
 	}
 
@@ -857,7 +940,7 @@ func layoutColumnFlex(children []*Input, offsetX, offsetY, gap, availW, availH i
 		cursorY += m.Top
 		var childBox *Box
 		if child.FlexGrow > 0 {
-			flexHeight := flexSizes[flexIdx]
+			flexHeight := naturalHeights[i] + flexSizes[flexIdx]
 			flexIdx++
 			// Temporarily set FixedHeight so internal layout (e.g. row children
 			// stretch alignment) knows the determined height.
@@ -867,7 +950,10 @@ func layoutColumnFlex(children []*Input, offsetX, offsetY, gap, availW, availH i
 			child.FixedHeight = saved
 			childBox.Height = flexHeight
 		} else {
-			childBox = layoutNode(child, availW, availH)
+			childBox = layoutNode(child, availW, naturalHeights[i])
+			if child.FlexBasis != "" || effectiveShrink(child) > 0 {
+				childBox.Height = naturalHeights[i]
+			}
 		}
 		childBox.X = offsetX + m.Left
 		childBox.Y = offsetY + cursorY
