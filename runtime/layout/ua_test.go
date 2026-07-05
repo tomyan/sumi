@@ -83,3 +83,37 @@ func TestUATextLevelElements(t *testing.T) {
 		t.Error("a/del UA styles missing")
 	}
 }
+
+// C1b glue: real table markup drives the table engine via UA display defaults.
+func TestUATableMarkupLaysOutAsTable(t *testing.T) {
+	// Given: <table><tr><th>H</th><td>data</td></tr><tr>...</tr></table>
+	tr := func(cells ...*Input) *Input {
+		return &Input{Tag: "tr", Kind: KindBox, Children: cells}
+	}
+	cell := func(tag, content string) *Input {
+		return &Input{Tag: tag, Kind: KindText, Content: content}
+	}
+	tree := &Input{Tag: "root", Kind: KindBox, Children: []*Input{
+		{Tag: "table", Kind: KindBox, Children: []*Input{
+			tr(cell("th", "Name"), cell("th", "Val")),
+			tr(cell("td", "alpha"), cell("td", "1")),
+		}},
+	}}
+
+	// When
+	ResolveStyles(tree, nil, 80, 24)
+	box := Layout(tree, 80, 24)
+
+	// Then: columns shared across rows, th bold.
+	table := box.Children[0]
+	row0, row1 := table.Children[0], table.Children[1]
+	if row0.Children[1].X != row1.Children[1].X {
+		t.Errorf("column misaligned: %d vs %d", row0.Children[1].X, row1.Children[1].X)
+	}
+	if !tree.Children[0].Children[0].Children[0].Style.Bold {
+		t.Error("th should be bold")
+	}
+	if row1.Y <= row0.Y {
+		t.Errorf("rows should stack: %d vs %d", row0.Y, row1.Y)
+	}
+}

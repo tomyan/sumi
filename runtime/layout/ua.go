@@ -13,6 +13,9 @@ li::before { content: "• "; }
 blockquote { margin: 1 2; padding: 0 0 0 1; opacity: dim; }
 pre { white-space: pre; margin: 1 0; }
 hr { height: 1; width: 100%; border-top: single; margin: 1 0; }
+table { display: table; margin: 1 0; }
+tr { display: table-row; }
+th { font-weight: bold; }
 strong, b { font-weight: bold; }
 em, i, var { font-style: italic; }
 u, a { text-decoration: underline; }
