@@ -7,10 +7,13 @@ import (
 	"strings"
 )
 
-// TimingFunction defines an easing curve via cubic bezier control points.
+// TimingFunction defines an easing curve: cubic bezier control points, or
+// a step function when Steps > 0.
 type TimingFunction struct {
-	Name               string
-	X1, Y1, X2, Y2    float64
+	Name           string
+	X1, Y1, X2, Y2 float64
+	Steps          int  // steps(n): number of jumps (0 = bezier curve)
+	JumpStart      bool // steps(n, start): jump at the start of each interval
 }
 
 // Named timing function presets (CSS standard values).
@@ -29,6 +32,9 @@ func (tf TimingFunction) Evaluate(t float64) float64 {
 	}
 	if t >= 1 {
 		return 1
+	}
+	if tf.Steps > 0 {
+		return stepValue(t, tf.Steps, tf.JumpStart)
 	}
 	// Linear special case.
 	if tf.X1 == 0 && tf.Y1 == 0 && tf.X2 == 1 && tf.Y2 == 1 {
@@ -78,6 +84,21 @@ func bezierDerivative(p1, p2, u float64) float64 {
 	return 3*inv*inv*p1 + 6*inv*u*(p2-p1) + 3*u*u*(1-p2)
 }
 
+// stepValue evaluates steps(n, start|end) per CSS: the output holds at the
+// current step and jumps between intervals (start = jump immediately).
+func stepValue(t float64, steps int, jumpStart bool) float64 {
+	n := float64(steps)
+	step := math.Floor(t * n)
+	if jumpStart {
+		step++
+	}
+	v := step / n
+	if v > 1 {
+		return 1
+	}
+	return v
+}
+
 // ParseTimingFunction parses a CSS timing function string.
 func ParseTimingFunction(s string) (TimingFunction, error) {
 	s = strings.TrimSpace(s)
@@ -92,6 +113,29 @@ func ParseTimingFunction(s string) (TimingFunction, error) {
 		return EaseOut, nil
 	case "ease-in-out":
 		return EaseInOut, nil
+	case "step-start":
+		return TimingFunction{Name: "step-start", Steps: 1, JumpStart: true}, nil
+	case "step-end":
+		return TimingFunction{Name: "step-end", Steps: 1}, nil
+	}
+	if strings.HasPrefix(s, "steps(") && strings.HasSuffix(s, ")") {
+		inner := s[len("steps(") : len(s)-1]
+		countTok, posTok, hasPos := strings.Cut(inner, ",")
+		n, err := strconv.Atoi(strings.TrimSpace(countTok))
+		if err != nil || n < 1 {
+			return TimingFunction{}, fmt.Errorf("invalid steps() count %q", inner)
+		}
+		jumpStart := false
+		if hasPos {
+			switch strings.TrimSpace(posTok) {
+			case "start", "jump-start":
+				jumpStart = true
+			case "end", "jump-end":
+			default:
+				return TimingFunction{}, fmt.Errorf("invalid steps() position %q", posTok)
+			}
+		}
+		return TimingFunction{Name: s, Steps: n, JumpStart: jumpStart}, nil
 	}
 	if strings.HasPrefix(s, "cubic-bezier(") && strings.HasSuffix(s, ")") {
 		inner := s[len("cubic-bezier(") : len(s)-1]
@@ -110,7 +154,7 @@ func ParseTimingFunction(s string) (TimingFunction, error) {
 		return TimingFunction{
 			Name: s,
 			X1:   vals[0], Y1: vals[1],
-			X2:   vals[2], Y2: vals[3],
+			X2: vals[2], Y2: vals[3],
 		}, nil
 	}
 	return TimingFunction{}, fmt.Errorf("unknown timing function: %q", s)
