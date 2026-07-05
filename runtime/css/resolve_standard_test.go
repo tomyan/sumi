@@ -130,6 +130,38 @@ func TestLegacyBooleanNamesDropped(t *testing.T) {
 	}
 }
 
+func TestToRenderStyleColorAndBackground(t *testing.T) {
+	s := ToRenderStyle(map[string]string{"color": "red", "background": "blue"})
+	if s.FG.Name != "red" || s.BG.Name != "blue" {
+		t.Errorf("FG=%+v BG=%+v", s.FG, s.BG)
+	}
+}
+
+func TestToRenderStyleBorderColorOverridesColor(t *testing.T) {
+	s := ToRenderStyle(map[string]string{"color": "red", "border-color": "cyan"})
+	if s.FG.Name != "cyan" {
+		t.Errorf("FG.Name = %q, want cyan (border-color overrides color)", s.FG.Name)
+	}
+}
+
+func TestToRenderStyleCombinedProperties(t *testing.T) {
+	s := ToRenderStyle(map[string]string{
+		"color":           "cyan",
+		"background":      "black",
+		"font-weight":     "bold",
+		"text-decoration": "underline",
+	})
+	if s.FG.Name != "cyan" || s.BG.Name != "black" || !s.Bold || !s.Underline {
+		t.Errorf("style = %+v", s)
+	}
+}
+
+func TestToRenderStyleEmptyPropertiesIsZero(t *testing.T) {
+	if s := ToRenderStyle(map[string]string{}); !s.IsZero() {
+		t.Errorf("empty props should give zero style, got %+v", s)
+	}
+}
+
 // A2: unknown and pixel-derived properties drop silently.
 func TestUnknownPropertiesDropSilently(t *testing.T) {
 	s := ToRenderStyle(map[string]string{

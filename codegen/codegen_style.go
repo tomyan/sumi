@@ -6,31 +6,73 @@ import (
 	"strings"
 
 	"github.com/tomyan/sumi/parser/style"
+	"github.com/tomyan/sumi/parser/template"
 	"github.com/tomyan/sumi/runtime/css"
 	"github.com/tomyan/sumi/runtime/render"
 )
 
-// resolveProps resolves CSS properties for a node using the stylesheet.
-// Returns nil if no stylesheet or no matching rules.
-func resolveProps(stylesheet *style.Stylesheet, tag string, attrs map[string]string) map[string]string {
+// annotateStyles walks the template tree once, resolving each element's CSS
+// against its ancestor path (selector combinators need ancestry) and storing
+// the result on the node. Must run before any tree-writing pass.
+func annotateStyles(doc *template.Document, stylesheet *style.Stylesheet) {
+	if stylesheet == nil {
+		return
+	}
+	rootPath := []css.Element{{Tag: "root"}}
+	annotateNodes(doc.Children, stylesheet, rootPath)
+}
+
+func annotateNodes(nodes []template.Node, stylesheet *style.Stylesheet, path []css.Element) {
+	for _, node := range nodes {
+		switch n := node.(type) {
+		case *template.TextElement:
+			p := childPath(path, elementFor("text", n.Attributes))
+			n.ResolvedStyles = orNil(css.Resolve(stylesheet, p))
+			n.ResolvedHover = css.ResolveHover(stylesheet, p)
+		case *template.BoxElement:
+			p := childPath(path, elementFor("box", n.Attributes))
+			n.ResolvedStyles = orNil(css.Resolve(stylesheet, p))
+			n.ResolvedHover = css.ResolveHover(stylesheet, p)
+			annotateNodes(n.Children, stylesheet, p)
+		case *template.IfNode:
+			annotateNodes(n.Then, stylesheet, path)
+			annotateNodes(n.Else, stylesheet, path)
+		case *template.ForNode:
+			annotateNodes(n.Children, stylesheet, path)
+		case *template.SlotDefNode:
+			annotateNodes(n.Children, stylesheet, path)
+		case *template.SnippetNode:
+			annotateNodes(n.Children, stylesheet, path)
+		}
+	}
+}
+
+// resolveRootProps resolves properties for the implicit root element.
+func resolveRootProps(stylesheet *style.Stylesheet) map[string]string {
 	if stylesheet == nil {
 		return nil
 	}
-	classes := parseClasses(attrs)
-	props := css.Resolve(stylesheet, tag, classes)
+	return orNil(css.Resolve(stylesheet, []css.Element{{Tag: "root"}}))
+}
+
+// childPath extends an ancestor path with one element, copying so sibling
+// subtrees never share backing arrays.
+func childPath(path []css.Element, el css.Element) []css.Element {
+	p := make([]css.Element, len(path), len(path)+1)
+	copy(p, path)
+	return append(p, el)
+}
+
+// elementFor builds the css.Element identity for a template element.
+func elementFor(tag string, attrs map[string]string) css.Element {
+	return css.Element{Tag: tag, ID: attrs["id"], Classes: parseClasses(attrs)}
+}
+
+func orNil(props map[string]string) map[string]string {
 	if len(props) == 0 {
 		return nil
 	}
 	return props
-}
-
-// resolveHoverProps resolves :hover CSS properties for a node.
-func resolveHoverProps(stylesheet *style.Stylesheet, tag string, attrs map[string]string) map[string]string {
-	if stylesheet == nil {
-		return nil
-	}
-	classes := parseClasses(attrs)
-	return css.ResolveHover(stylesheet, tag, classes)
 }
 
 // parseClasses extracts CSS class names from an element's attributes.
@@ -146,12 +188,24 @@ func writeInlineStyleFields(buf *bytes.Buffer, s render.Style) {
 	} else if s.BG.Name != "" {
 		fmt.Fprintf(buf, "BG: sumi.Color{Name: %q}, ", s.BG.Name)
 	}
-	if s.Bold { buf.WriteString("Bold: true, ") }
-	if s.Dim { buf.WriteString("Dim: true, ") }
-	if s.Italic { buf.WriteString("Italic: true, ") }
-	if s.Underline { buf.WriteString("Underline: true, ") }
-	if s.Strikethrough { buf.WriteString("Strikethrough: true, ") }
-	if s.Inverse { buf.WriteString("Inverse: true, ") }
+	if s.Bold {
+		buf.WriteString("Bold: true, ")
+	}
+	if s.Dim {
+		buf.WriteString("Dim: true, ")
+	}
+	if s.Italic {
+		buf.WriteString("Italic: true, ")
+	}
+	if s.Underline {
+		buf.WriteString("Underline: true, ")
+	}
+	if s.Strikethrough {
+		buf.WriteString("Strikethrough: true, ")
+	}
+	if s.Inverse {
+		buf.WriteString("Inverse: true, ")
+	}
 }
 
 // mergedAttr returns the value for a layout-affecting attribute.

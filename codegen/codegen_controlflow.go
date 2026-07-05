@@ -74,7 +74,7 @@ func writeAppendNode(buf *bytes.Buffer, child template.Node, stylesheet *style.S
 // writeAppendTextWithSignals emits a text node with signal auto-unwrapping for dynamic children.
 func writeAppendTextWithSignals(buf *bytes.Buffer, n *template.TextElement, stylesheet *style.Stylesheet, signals map[string]bool) {
 	content := contentExprSignals(n.Parts, signals)
-	props := resolveProps(stylesheet, "text", n.Attributes)
+	props := n.ResolvedStyles
 	buf.WriteString("&sumi.Input{\n")
 	buf.WriteString("\t\tKind: sumi.KindText,\n")
 	fmt.Fprintf(buf, "\t\tContent: %s,\n", content)

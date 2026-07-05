@@ -35,6 +35,11 @@ func (e *ExprPart) partType() string { return "expr" }
 type TextElement struct {
 	Attributes map[string]string
 	Parts      []Part
+
+	// ResolvedStyles/ResolvedHover are filled by the codegen style pre-pass
+	// (selector matching needs the ancestor path, known only during a tree walk).
+	ResolvedStyles map[string]string
+	ResolvedHover  map[string]string
 }
 
 func (t *TextElement) nodeType() string { return "text" }
@@ -43,6 +48,10 @@ func (t *TextElement) nodeType() string { return "text" }
 type BoxElement struct {
 	Attributes map[string]string
 	Children   []Node
+
+	// ResolvedStyles/ResolvedHover are filled by the codegen style pre-pass.
+	ResolvedStyles map[string]string
+	ResolvedHover  map[string]string
 }
 
 func (b *BoxElement) nodeType() string { return "box" }

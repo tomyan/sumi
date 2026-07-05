@@ -19,7 +19,7 @@ func writeLayoutTree(buf *bytes.Buffer, doc *template.Document, stylesheet *styl
 		baseIndent = 2
 	}
 	tabs := indentStr(baseIndent)
-	rootProps := resolveProps(stylesheet, "root", nil)
+	rootProps := resolveRootProps(stylesheet)
 
 	fmt.Fprintf(buf, "%sroot := &sumi.Input{\n", tabs)
 	fmt.Fprintf(buf, "%s\tKind: sumi.KindBox,\n", tabs)
@@ -138,7 +138,7 @@ func writeTextInput(buf *bytes.Buffer, n *template.TextElement, stylesheet *styl
 	if attrs == nil {
 		attrs = map[string]string{}
 	}
-	props := resolveProps(stylesheet, "text", attrs)
+	props := n.ResolvedStyles
 
 	if ext != nil && hasExprParts(n.Parts) && !ext.inDynamic {
 		writeExtractedTextNode(buf, &ext.declBuf, n, props, tabs, ext)
@@ -226,7 +226,7 @@ func writeBoxInput(buf *bytes.Buffer, n *template.BoxElement, stylesheet *style.
 		return
 	}
 	tabs := indentStr(indent)
-	props := resolveProps(stylesheet, "box", n.Attributes)
+	props := n.ResolvedStyles
 
 	fmt.Fprintf(buf, "%s{\n", tabs)
 	fmt.Fprintf(buf, "%s\tKind: sumi.KindBox,\n", tabs)
@@ -234,7 +234,7 @@ func writeBoxInput(buf *bytes.Buffer, n *template.BoxElement, stylesheet *style.
 	if props != nil {
 		writeStyleLiteral(buf, tabs, props)
 	}
-	hoverProps := resolveHoverProps(stylesheet, "box", n.Attributes)
+	hoverProps := n.ResolvedHover
 	if hoverProps != nil {
 		writeHoverStyleLiteral(buf, tabs, hoverProps)
 	}
@@ -268,7 +268,7 @@ func isFocusableBox(attrs map[string]string) bool {
 func writeExtractedCursorBox(treeBuf *bytes.Buffer, n *template.BoxElement, stylesheet *style.Stylesheet, indent int, ext *extractionCtx, focusIdx int) {
 	tabs := indentStr(indent)
 	name := ext.nextBoxName()
-	props := resolveProps(stylesheet, "box", n.Attributes)
+	props := n.ResolvedStyles
 
 	// Write declaration to declBuf (at function scope)
 	fmt.Fprintf(&ext.declBuf, "\t%s := &sumi.Input{\n", name)
@@ -338,7 +338,7 @@ func writeFocusConditionalCursor(buf *bytes.Buffer, name string, attrs map[strin
 func writeExtractedDynamicBox(treeBuf *bytes.Buffer, n *template.BoxElement, stylesheet *style.Stylesheet, indent int, ext *extractionCtx) {
 	tabs := indentStr(indent)
 	name := ext.nextBoxName()
-	props := resolveProps(stylesheet, "box", n.Attributes)
+	props := n.ResolvedStyles
 
 	// Write declaration to declBuf (at function scope, no Children)
 	fmt.Fprintf(&ext.declBuf, "\t%s := &sumi.Input{\n", name)

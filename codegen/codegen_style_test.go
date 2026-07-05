@@ -10,6 +10,15 @@ import (
 	"github.com/tomyan/sumi/parser/template"
 )
 
+func mustParseStylesheet(t *testing.T, src string) *style.Stylesheet {
+	t.Helper()
+	ss, err := style.Parse(src)
+	if err != nil {
+		t.Fatalf("stylesheet parse error: %v", err)
+	}
+	return ss
+}
+
 func TestGenerateWithNilStylesheetBackwardCompat(t *testing.T) {
 	// Given
 	doc := &template.Document{
@@ -45,11 +54,7 @@ func TestGenerateWithStylesheetAndClassOnText(t *testing.T) {
 			},
 		},
 	}
-	ss := &style.Stylesheet{
-		Rules: []style.Rule{
-			{Selector: ".title", Properties: map[string]string{"color": "red", "font-weight": "bold"}},
-		},
-	}
+	ss := mustParseStylesheet(t, `.title { color: red; font-weight: bold; }`)
 
 	// When
 	out, err := Generate(doc, nil, ss, "main")
@@ -85,14 +90,7 @@ func TestGenerateStylesheetLayoutProperties(t *testing.T) {
 			},
 		},
 	}
-	ss := &style.Stylesheet{
-		Rules: []style.Rule{
-			{Selector: ".container", Properties: map[string]string{
-				"border":  "single",
-				"padding": "1 2",
-			}},
-		},
-	}
+	ss := mustParseStylesheet(t, `.container { border: single; padding: 1 2; }`)
 
 	// When
 	out, err := Generate(doc, nil, ss, "main")
@@ -125,14 +123,7 @@ func TestGenerateInlineAttributeOverridesStylesheet(t *testing.T) {
 			},
 		},
 	}
-	ss := &style.Stylesheet{
-		Rules: []style.Rule{
-			{Selector: ".container", Properties: map[string]string{
-				"border":  "single",
-				"padding": "1",
-			}},
-		},
-	}
+	ss := mustParseStylesheet(t, `.container { border: single; padding: 1; }`)
 
 	// When
 	out, err := Generate(doc, nil, ss, "main")
@@ -166,11 +157,7 @@ func TestGenerateElementSelectorStylesheet(t *testing.T) {
 			},
 		},
 	}
-	ss := &style.Stylesheet{
-		Rules: []style.Rule{
-			{Selector: "text", Properties: map[string]string{"color": "green"}},
-		},
-	}
+	ss := mustParseStylesheet(t, `text { color: green; }`)
 
 	// When
 	out, err := Generate(doc, nil, ss, "main")

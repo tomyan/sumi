@@ -11,11 +11,13 @@ type Stylesheet struct {
 	Keyframes []Keyframe
 }
 
-// Rule represents a single CSS-like rule with a selector and properties.
+// Rule represents a single CSS-like rule with one selector and properties.
+// Selector lists (`a, b { }`) are exploded into one Rule per selector.
 type Rule struct {
-	Selector   string            // e.g. ".title", "text", ".container"
-	Pseudo     string            // e.g. "hover", "" for normal rules
-	Properties map[string]string // e.g. {"color": "green", "bold": "true"}
+	Selector   string            // raw selector text without the subject pseudo
+	Pseudo     string            // subject pseudo-class ("hover", ...); "" for none
+	Parsed     ComplexSelector   // structured form used for matching
+	Properties map[string]string // e.g. {"color": "green", "font-weight": "bold"}
 }
 
 // Keyframe represents an @keyframes animation definition.
@@ -73,11 +75,11 @@ func (p *parser) parse() (*Stylesheet, error) {
 			continue
 		}
 
-		rule, err := p.parseRule()
+		rules, err := p.parseRules()
 		if err != nil {
 			return nil, err
 		}
-		s.Rules = append(s.Rules, rule)
+		s.Rules = append(s.Rules, rules...)
 	}
 
 	return s, nil
@@ -148,59 +150,50 @@ func (p *parser) skipAtRule() error {
 	return fmt.Errorf("unterminated at-rule block at position %d", start)
 }
 
-func (p *parser) parseRule() (Rule, error) {
-	// Parse selector
-	selector := p.parseSelector()
-	if selector == "" {
-		return Rule{}, fmt.Errorf("expected selector at position %d", p.pos)
+// parseRules parses one rule block; a selector list yields one Rule per
+// selector, all sharing the block's properties.
+func (p *parser) parseRules() ([]Rule, error) {
+	selectorText := p.readSelectorText()
+	if strings.TrimSpace(selectorText) == "" {
+		return nil, fmt.Errorf("expected selector at position %d", p.pos)
 	}
 
-	p.skipWhitespace()
-
-	// Expect opening brace
 	if p.pos >= len(p.input) || p.input[p.pos] != '{' {
-		return Rule{}, fmt.Errorf("expected '{' after selector %q", selector)
+		return nil, fmt.Errorf("expected '{' after selector %q", selectorText)
 	}
 	p.pos++ // skip {
 
-	// Parse properties
 	props, err := p.parseProperties()
 	if err != nil {
-		return Rule{}, err
+		return nil, err
 	}
 
-	sel, pseudo := splitPseudo(selector)
-	return Rule{Selector: sel, Pseudo: pseudo, Properties: props}, nil
-}
-
-// splitPseudo splits "selector:pseudo" into ("selector", "pseudo").
-// Returns ("selector", "") if no pseudo-class.
-func splitPseudo(selector string) (string, string) {
-	// Find the last ':' that's part of a pseudo-class (not part of the selector itself).
-	if i := strings.LastIndex(selector, ":"); i > 0 {
-		return selector[:i], selector[i+1:]
+	selectors, err := ParseSelectorList(selectorText)
+	if err != nil {
+		return nil, err
 	}
-	return selector, ""
+
+	items := strings.Split(selectorText, ",")
+	rules := make([]Rule, len(selectors))
+	for i, sel := range selectors {
+		pseudo := sel.Parts[len(sel.Parts)-1].Pseudo
+		raw := strings.TrimSpace(items[i])
+		if pseudo != "" {
+			raw = strings.TrimSuffix(raw, ":"+pseudo)
+		}
+		rules[i] = Rule{Selector: raw, Pseudo: pseudo, Parsed: sel, Properties: props}
+	}
+	return rules, nil
 }
 
-func (p *parser) parseSelector() string {
+// readSelectorText reads raw selector text up to the opening brace.
+func (p *parser) readSelectorText() string {
 	p.skipWhitespace()
 	start := p.pos
-
-	if p.pos < len(p.input) && p.input[p.pos] == '.' {
-		// Class selector: .classname
+	for p.pos < len(p.input) && p.input[p.pos] != '{' {
 		p.pos++
-		for p.pos < len(p.input) && isSelectorChar(p.input[p.pos]) {
-			p.pos++
-		}
-	} else {
-		// Element selector: text, box
-		for p.pos < len(p.input) && isSelectorChar(p.input[p.pos]) {
-			p.pos++
-		}
 	}
-
-	return p.input[start:p.pos]
+	return strings.TrimSpace(p.input[start:p.pos])
 }
 
 func (p *parser) parseProperties() (map[string]string, error) {
@@ -373,10 +366,6 @@ func (p *parser) parseKeyframeStop() (KeyframeStop, error) {
 
 func isWhitespace(b byte) bool {
 	return b == ' ' || b == '\t' || b == '\n' || b == '\r'
-}
-
-func isSelectorChar(b byte) bool {
-	return (b >= 'a' && b <= 'z') || (b >= 'A' && b <= 'Z') || (b >= '0' && b <= '9') || b == '_' || b == '-' || b == ':'
 }
 
 func isPropertyNameChar(b byte) bool {

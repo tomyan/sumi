@@ -93,3 +93,45 @@ func TestPixelValuesOnIntAttributesDropSilently(t *testing.T) {
 		t.Errorf("pixel-derived lengths must be dropped:\n%s", src)
 	}
 }
+
+// A4 acceptance: combinator selectors resolve through the tree-walk pre-pass.
+func TestGenerateDescendantSelectorAppliesThroughNesting(t *testing.T) {
+	// Given: .panel text should style text inside the panel, not outside.
+	doc := &template.Document{
+		Children: []template.Node{
+			&template.BoxElement{
+				Attributes: map[string]string{"class": "panel"},
+				Children: []template.Node{
+					&template.BoxElement{
+						Attributes: map[string]string{},
+						Children:   []template.Node{textNode("inside")},
+					},
+				},
+			},
+			textNode("outside"),
+		},
+	}
+	ss := mustParseStylesheet(t, `.panel text { color: red; }`)
+
+	// When
+	out, err := Generate(doc, nil, ss, "main")
+
+	// Then
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	src := string(out)
+	inside := strings.Index(src, `"inside"`)
+	outside := strings.Index(src, `"outside"`)
+	red := strings.Index(src, `"red"`)
+	if red < 0 {
+		t.Fatalf("expected red style in output:\n%s", src)
+	}
+	if !(inside < red && red < outside) {
+		t.Errorf("red must style the inside text only (inside=%d red=%d outside=%d):\n%s", inside, red, outside, src)
+	}
+	// The outside text node must carry no style.
+	if seg := src[outside:min(outside+120, len(src))]; strings.Contains(seg, "red") {
+		t.Errorf("outside text must not be styled:\n%s", seg)
+	}
+}

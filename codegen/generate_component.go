@@ -29,6 +29,7 @@ type ComponentChildInfo struct {
 // GenerateComponent produces Go source for a signal-based component.
 // Returns a file containing the props struct and NewFoo constructor.
 func GenerateComponent(doc *template.Document, scriptSrc string, stylesheet *style.Stylesheet, opts ComponentOptions) ([]byte, error) {
+	annotateStyles(doc, stylesheet)
 	// Parse script with go/ast.
 	info, err := script.ParseGoAST(scriptSrc)
 	if err != nil {
