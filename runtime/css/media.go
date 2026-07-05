@@ -57,6 +57,72 @@ func conditionMatches(cond string) bool {
 	return false
 }
 
+// supportedProperties are the property names sumi consumes; @supports
+// property-name checks test membership. Custom properties always pass.
+var supportedProperties = map[string]bool{
+	"color": true, "background": true, "background-color": true,
+	"border-color": true, "font-weight": true, "font-style": true,
+	"text-decoration": true, "opacity": true, "inverse": true,
+	"flex-direction": true, "width": true, "height": true, "gap": true,
+	"flex-grow": true, "min-width": true, "justify-content": true,
+	"align-items": true, "padding": true, "display": true,
+	"overflow": true, "position": true, "top": true, "left": true,
+	"right": true, "bottom": true, "z-index": true, "border": true,
+	"border-top": true, "border-bottom": true, "border-title": true,
+	"border-collapse": true, "transition": true, "animation": true,
+}
+
+// supportsMatches evaluates an @supports condition: (property: value)
+// name checks joined by `and`. Unknown forms fail closed.
+func supportsMatches(cond string) bool {
+	for _, c := range strings.Split(cond, " and ") {
+		c = strings.TrimSpace(c)
+		c = strings.TrimPrefix(c, "(")
+		c = strings.TrimSuffix(c, ")")
+		name, _, found := strings.Cut(c, ":")
+		if !found {
+			return false
+		}
+		name = strings.TrimSpace(name)
+		if !supportedProperties[name] && !strings.HasPrefix(name, "--") {
+			return false
+		}
+	}
+	return true
+}
+
+// containerMatches evaluates an @container size condition against the
+// nearest laid-out ancestor's dimensions. Zero dimensions (not yet laid
+// out) fail closed; a second resolve pass runs after layout.
+func containerMatches(cond string, w, h int) bool {
+	for _, c := range strings.Split(cond, " and ") {
+		if !containerCondition(strings.TrimSpace(c), w, h) {
+			return false
+		}
+	}
+	return true
+}
+
+func containerCondition(cond string, w, h int) bool {
+	cond = strings.TrimPrefix(cond, "(")
+	cond = strings.TrimSuffix(cond, ")")
+	name, value, found := strings.Cut(cond, ":")
+	if !found {
+		return false
+	}
+	switch strings.TrimSpace(name) {
+	case "min-width":
+		return w > 0 && w >= cellLength(strings.TrimSpace(value))
+	case "max-width":
+		return w > 0 && w <= cellLength(strings.TrimSpace(value))
+	case "min-height":
+		return h > 0 && h >= cellLength(strings.TrimSpace(value))
+	case "max-height":
+		return h > 0 && h <= cellLength(strings.TrimSpace(value))
+	}
+	return false
+}
+
 // cellLength parses a media length (bare cells, cell, or ch units).
 func cellLength(v string) int {
 	v = strings.TrimSuffix(strings.TrimSuffix(v, "cell"), "ch")

@@ -18,6 +18,8 @@ type Rule struct {
 	Pseudo     string            // subject pseudo-class ("hover", ...); "" for none
 	Parsed     ComplexSelector   // structured form used for matching
 	Media      string            // enclosing @media query text; "" for none
+	Container  string            // enclosing @container condition; "" for none
+	Supports   string            // enclosing @supports condition; "" for none
 	Properties map[string]string // e.g. {"color": "green", "font-weight": "bold"}
 }
 
@@ -68,9 +70,9 @@ func (p *parser) parse() (*Stylesheet, error) {
 			continue
 		}
 
-		// @media blocks: rules parse normally, tagged with the query.
-		if strings.HasPrefix(p.input[p.pos:], "@media") {
-			rules, err := p.parseMediaBlock()
+		// Conditional blocks: rules parse normally, tagged with the
+		// condition text.
+		if rules, matched, err := p.parseConditionalBlock(); matched {
 			if err != nil {
 				return nil, err
 			}
@@ -161,13 +163,26 @@ func (p *parser) skipAtRule() error {
 	return fmt.Errorf("unterminated at-rule block at position %d", start)
 }
 
-// parseMediaBlock parses `@media <query> { rules... }`, tagging every
-// contained rule with the query text.
-func (p *parser) parseMediaBlock() ([]Rule, error) {
-	p.pos += len("@media")
-	query := strings.TrimSpace(p.readSelectorText())
+// parseConditionalBlock parses `@media/@container/@supports <cond> { rules }`,
+// tagging every contained rule with the condition. Reports matched=false when
+// the input isn't one of these at-rules.
+func (p *parser) parseConditionalBlock() ([]Rule, bool, error) {
+	var tag func(*Rule, string)
+	var name string
+	switch {
+	case strings.HasPrefix(p.input[p.pos:], "@media"):
+		name, tag = "@media", func(r *Rule, c string) { r.Media = c }
+	case strings.HasPrefix(p.input[p.pos:], "@container"):
+		name, tag = "@container", func(r *Rule, c string) { r.Container = c }
+	case strings.HasPrefix(p.input[p.pos:], "@supports"):
+		name, tag = "@supports", func(r *Rule, c string) { r.Supports = c }
+	default:
+		return nil, false, nil
+	}
+	p.pos += len(name)
+	cond := strings.TrimSpace(p.readSelectorText())
 	if p.pos >= len(p.input) || p.input[p.pos] != '{' {
-		return nil, fmt.Errorf("@media %s: expected '{'", query)
+		return nil, true, fmt.Errorf("%s %s: expected '{'", name, cond)
 	}
 	p.pos++ // consume outer {
 
@@ -175,21 +190,31 @@ func (p *parser) parseMediaBlock() ([]Rule, error) {
 	for {
 		p.skipWhitespaceAndComments()
 		if p.pos >= len(p.input) {
-			return nil, fmt.Errorf("@media %s: unterminated block", query)
+			return nil, true, fmt.Errorf("%s %s: unterminated block", name, cond)
 		}
 		if p.input[p.pos] == '}' {
 			p.pos++ // consume outer }
-			return rules, nil
+			return rules, true, nil
 		}
 		inner, err := p.parseRules()
 		if err != nil {
-			return nil, err
+			return nil, true, err
 		}
 		for i := range inner {
-			inner[i].Media = query
+			tag(&inner[i], cond)
 		}
 		rules = append(rules, inner...)
 	}
+}
+
+// HasContainerRules reports whether any rule is container-query dependent.
+func (s *Stylesheet) HasContainerRules() bool {
+	for _, r := range s.Rules {
+		if r.Container != "" {
+			return true
+		}
+	}
+	return false
 }
 
 // parseRules parses one rule block; a selector list yields one Rule per

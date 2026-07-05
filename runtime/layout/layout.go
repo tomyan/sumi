@@ -37,6 +37,8 @@ type Input struct {
 	HeightPct       int    // percentage of containing block height (0 = unset)
 	WidthCalc       string // CSS math expression with %, resolved at layout time
 	HeightCalc      string // CSS math expression with %, resolved at layout time
+	LastW           int    // laid-out width from the previous pass (container queries)
+	LastH           int    // laid-out height from the previous pass
 	Gap             int    // space between children (cells)
 	FlexGrow        int    // flex-grow factor (0 = no grow)
 	Justify         string // main-axis alignment: start, end, center, space-between
@@ -183,7 +185,22 @@ func Layout(input *Input, availWidth, availHeight int) *Box {
 	absolutePositions(box)
 	repositionFixed(box, availWidth, availHeight)
 	writeSelfPositions(input, box)
+	stampSizes(input, box)
 	return box
+}
+
+// stampSizes records each node's laid-out size on the Input tree so the
+// next style-resolution pass can evaluate container queries.
+func stampSizes(input *Input, box *Box) {
+	if input == nil || box == nil {
+		return
+	}
+	input.LastW, input.LastH = box.Width, box.Height
+	for i, child := range input.Children {
+		if i < len(box.Children) {
+			stampSizes(child, box.Children[i])
+		}
+	}
 }
 
 // writeSelfPositions writes absolute X/Y through SelfX/SelfY pointers

@@ -37,6 +37,7 @@ func resolveChildren(parent *Input, ss *style.Stylesheet, path []css.Element, va
 		el := siblings[elemIdx]
 		el.Siblings = siblings
 		el.Index = elemIdx
+		el.ContainerW, el.ContainerH = parent.LastW, parent.LastH
 		elemIdx++
 
 		p := make([]css.Element, len(path), len(path)+1)

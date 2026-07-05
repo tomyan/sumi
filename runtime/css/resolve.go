@@ -19,6 +19,9 @@ type Element struct {
 	Siblings []Element // all element siblings including self, in order (nil = unknown)
 	Index    int       // position of self within Siblings
 	Empty    bool      // element has no children/content
+
+	ContainerW int // nearest laid-out ancestor width (container queries)
+	ContainerH int // nearest laid-out ancestor height
 }
 
 // Resolve computes the cascaded properties for the element at the end of path.
@@ -61,6 +64,15 @@ func resolveWithPseudo(stylesheet *style.Stylesheet, path []Element, pseudo stri
 		}
 		if rule.Media != "" && !mediaMatches(rule.Media) {
 			continue
+		}
+		if rule.Supports != "" && !supportsMatches(rule.Supports) {
+			continue
+		}
+		if rule.Container != "" {
+			self := path[len(path)-1]
+			if !containerMatches(rule.Container, self.ContainerW, self.ContainerH) {
+				continue
+			}
 		}
 		if matchComplex(rule.Parsed, path) {
 			matches = append(matches, match{rule.Parsed.Specificity(), i, rule.Properties})

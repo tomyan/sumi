@@ -13,20 +13,24 @@ import (
 func Serialize(ss *Stylesheet) string {
 	var b strings.Builder
 	for i := 0; i < len(ss.Rules); {
-		media := ss.Rules[i].Media
+		atRule, cond := ruleCondition(ss.Rules[i])
 		j := i
-		for j < len(ss.Rules) && ss.Rules[j].Media == media {
+		for j < len(ss.Rules) {
+			ar, c := ruleCondition(ss.Rules[j])
+			if ar != atRule || c != cond {
+				break
+			}
 			j++
 		}
 		indent := ""
-		if media != "" {
-			fmt.Fprintf(&b, "@media %s {\n", media)
+		if cond != "" {
+			fmt.Fprintf(&b, "%s %s {\n", atRule, cond)
 			indent = "\t"
 		}
 		for _, rule := range ss.Rules[i:j] {
 			serializeRule(&b, indent, rule)
 		}
-		if media != "" {
+		if cond != "" {
 			b.WriteString("}\n")
 		}
 		i = j
@@ -35,6 +39,19 @@ func Serialize(ss *Stylesheet) string {
 		serializeKeyframe(&b, kf)
 	}
 	return b.String()
+}
+
+// ruleCondition returns the at-rule keyword and condition wrapping a rule.
+func ruleCondition(r Rule) (string, string) {
+	switch {
+	case r.Media != "":
+		return "@media", r.Media
+	case r.Container != "":
+		return "@container", r.Container
+	case r.Supports != "":
+		return "@supports", r.Supports
+	}
+	return "", ""
 }
 
 func serializeRule(b *strings.Builder, indent string, rule Rule) {

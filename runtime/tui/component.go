@@ -92,6 +92,12 @@ func TestApp(comp *Component, w, h int) *App {
 		}
 		layout.ResolveStyles(comp.Tree, comp.Stylesheet, termW, termH)
 		tree := layout.Layout(comp.Tree, termW, termH)
+		if comp.Stylesheet != nil && comp.Stylesheet.HasContainerRules() {
+			// Container queries need laid-out ancestor sizes: re-resolve
+			// against the sizes just stamped and lay out again.
+			layout.ResolveStyles(comp.Tree, comp.Stylesheet, termW, termH)
+			tree = layout.Layout(comp.Tree, termW, termH)
+		}
 		comp.LayoutResult = tree
 		if comp.AfterLayout != nil {
 			comp.AfterLayout()
@@ -176,6 +182,12 @@ func RunWithOptions(comp *Component, opts RunOptions) {
 		}
 		layout.ResolveStyles(comp.Tree, comp.Stylesheet, termW, termH)
 		tree := layout.Layout(comp.Tree, termW, termH)
+		if comp.Stylesheet != nil && comp.Stylesheet.HasContainerRules() {
+			// Container queries need laid-out ancestor sizes: re-resolve
+			// against the sizes just stamped and lay out again.
+			layout.ResolveStyles(comp.Tree, comp.Stylesheet, termW, termH)
+			tree = layout.Layout(comp.Tree, termW, termH)
+		}
 		comp.LayoutResult = tree
 		if comp.AfterLayout != nil {
 			comp.AfterLayout()
@@ -257,6 +269,12 @@ func Run(comp *Component) {
 		}
 		layout.ResolveStyles(comp.Tree, comp.Stylesheet, termW, termH)
 		tree := layout.Layout(comp.Tree, termW, termH)
+		if comp.Stylesheet != nil && comp.Stylesheet.HasContainerRules() {
+			// Container queries need laid-out ancestor sizes: re-resolve
+			// against the sizes just stamped and lay out again.
+			layout.ResolveStyles(comp.Tree, comp.Stylesheet, termW, termH)
+			tree = layout.Layout(comp.Tree, termW, termH)
+		}
 		comp.LayoutResult = tree
 		if comp.AfterLayout != nil {
 			comp.AfterLayout()

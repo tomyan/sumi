@@ -209,3 +209,65 @@ func TestResolveStylesCalcWithPercentDefersToLayout(t *testing.T) {
 		t.Errorf("laid-out width = %d, want 70", got)
 	}
 }
+
+// A13: @container queries against the nearest laid-out ancestor.
+
+func TestResolveStylesContainerQuery(t *testing.T) {
+	// Given: a child styled red only when its parent is at least 40 wide.
+	tree := &Input{Tag: "root", Kind: KindBox, Children: []*Input{
+		{Tag: "box", Classes: []string{"panel"}, Kind: KindBox,
+			Attrs: map[string]string{"width": "50"}, FixedWidth: 50,
+			Children: []*Input{
+				{Tag: "text", Classes: []string{"label"}, Kind: KindText, Content: "hi"},
+			}},
+	}}
+	ss := sheet(t, `@container (min-width: 40) { .label { color: red; } }`)
+
+	// When: first resolve knows no sizes; layout stamps them; re-resolve.
+	ResolveStyles(tree, ss, 80, 24)
+	label := tree.Children[0].Children[0]
+	if label.Style.FG.Name != "" {
+		t.Errorf("before layout, container query must not match: %+v", label.Style)
+	}
+	Layout(tree, 80, 24)
+	ResolveStyles(tree, ss, 80, 24)
+
+	// Then
+	if got := label.Style.FG.Name; got != "red" {
+		t.Errorf("after layout, FG = %q, want red", got)
+	}
+}
+
+func TestResolveStylesContainerQueryBelowThreshold(t *testing.T) {
+	tree := &Input{Tag: "root", Kind: KindBox, Children: []*Input{
+		{Tag: "box", Kind: KindBox, Attrs: map[string]string{"width": "20"}, FixedWidth: 20,
+			Children: []*Input{
+				{Tag: "text", Classes: []string{"label"}, Kind: KindText, Content: "hi"},
+			}},
+	}}
+	ss := sheet(t, `@container (min-width: 40) { .label { color: red; } }`)
+	ResolveStyles(tree, ss, 80, 24)
+	Layout(tree, 80, 24)
+	ResolveStyles(tree, ss, 80, 24)
+	if got := tree.Children[0].Children[0].Style.FG.Name; got != "" {
+		t.Errorf("FG = %q, want unset below threshold", got)
+	}
+}
+
+// A13: @supports property-name checks.
+
+func TestResolveStylesSupports(t *testing.T) {
+	tree := &Input{Tag: "root", Kind: KindBox, Children: []*Input{
+		{Tag: "text", Classes: []string{"x"}, Kind: KindText},
+	}}
+	ss := sheet(t, `
+@supports (border: single) { .x { color: red; } }
+@supports (box-shadow: 0 2px) { .x { color: blue; } }
+`)
+	ResolveStyles(tree, ss, 80, 24)
+	// @supports does property-name checks (svelterm semantics): border is
+	// consumed, box-shadow is not.
+	if got := tree.Children[0].Style.FG.Name; got != "red" {
+		t.Errorf("FG = %q, want red", got)
+	}
+}

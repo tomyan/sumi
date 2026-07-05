@@ -33,7 +33,7 @@ func TestUnknownAtRuleSkippedSilently(t *testing.T) {
 func TestUnknownAtRuleWithNestedBracesSkipped(t *testing.T) {
 	// Given
 	input := `
-@supports (display: grid) {
+@layer base {
 	.a { color: blue; }
 	.b { color: green; }
 }
