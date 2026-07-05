@@ -150,6 +150,8 @@ type RunOptions struct {
 	ColorDepth    render.ColorDepth // emission depth; DepthAuto detects from env
 	ExitOn        []string          // quit chords ("ctrl+c", "q", "escape"); nil = ctrl+c
 	ReducedMotion bool              // prefers-reduced-motion: reduce (also via SUMI_REDUCED_MOTION env)
+	ColorScheme   string            // "light" or "dark" forces the scheme (skips the OSC 11 probe); "" = detect
+	Mouse         *bool             // override mouse-mode auto-detection (hover styles / click handlers)
 }
 
 // RunWithOptions runs a component with additional configuration.
@@ -160,8 +162,16 @@ func RunWithOptions(comp *Component, opts RunOptions) {
 		render.SetColorDepth(opts.ColorDepth)
 	}
 	css.SetReducedMotion(opts.ReducedMotion || os.Getenv("SUMI_REDUCED_MOTION") != "")
+	if opts.ColorScheme != "" {
+		scheme := render.SchemeDark
+		if opts.ColorScheme == "light" {
+			scheme = render.SchemeLight
+		}
+		render.SetColorScheme(scheme)
+	}
 	app := &App{}
 	app.ExitOn = opts.ExitOn
+	app.SchemeLocked = opts.ColorScheme != ""
 	if opts.SetApp != nil {
 		opts.SetApp(app)
 	}
@@ -230,9 +240,13 @@ func RunWithOptions(comp *Component, opts RunOptions) {
 		app.OnResize = opts.OnResize
 	}
 
-	// Auto-enable mouse when any node has hover styles or click handlers.
+	// Auto-enable mouse when any node has hover styles or click handlers;
+	// an explicit option wins either way.
 	if layout.HasHoverStyles(comp.Tree) || layout.HasClickHandlers(comp.Tree) {
 		app.HasMouse = true
+	}
+	if opts.Mouse != nil {
+		app.HasMouse = *opts.Mouse
 	}
 
 	app.componentDispose = comp.Dispose

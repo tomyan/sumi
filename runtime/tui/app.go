@@ -23,6 +23,7 @@ type App struct {
 	SaveTitle    bool              // save/restore terminal title only (for dynamic titles set in doRender)
 	Dirty        bool              // set by handlers to trigger re-render
 	ExitOn       []string          // quit chords ("ctrl+c", "q", "escape"); nil = ctrl+c
+	SchemeLocked bool              // scheme forced by options; ignore OSC 11 reports
 	OnPostRender func()            // called after each converge() cycle (if non-nil)
 	quitCh       chan struct{}     // closed by Quit() to exit the event loop
 	wakeCh       chan struct{}     // receives from RequestFrame() to wake the event loop
@@ -256,6 +257,9 @@ func (a *App) dispatchEvent(evt input.Event) {
 	// Scheme reports are consumed by the framework: update light-dark()
 	// resolution and repaint.
 	if evt.Kind == input.EventScheme {
+		if a.SchemeLocked {
+			return
+		}
 		scheme := render.SchemeDark
 		if evt.Scheme == "light" {
 			scheme = render.SchemeLight
