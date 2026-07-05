@@ -1,0 +1,66 @@
+package layout
+
+// Block flow (display: block): block-level children stack vertically and
+// fill the available width; consecutive inline-level children form an
+// inline formatting context. Flex attributes (direction/gap/justify/
+// align) do not apply in block flow.
+
+// isInlineLevel reports whether a child participates in inline flow.
+// Text with editing state, non-normal white-space, or explicit sizing
+// stacks as block-level instead.
+func isInlineLevel(c *Input) bool {
+	return c.Kind == KindText && c.WhiteSpace == "" && !c.ContentEditable &&
+		c.FixedWidth == 0 && c.FixedHeight == 0
+}
+
+// layoutBlockFlow lays out a block container's flow children, returning
+// boxes index-aligned with the children.
+func layoutBlockFlow(children []*Input, offsetX, offsetY, availW, availH int) []*Box {
+	boxes := make([]*Box, len(children))
+	cursorY := 0
+	for i := 0; i < len(children); {
+		if isInlineLevel(children[i]) {
+			i = layoutInlineSegment(children, i, boxes, offsetX, offsetY, &cursorY, availW)
+			continue
+		}
+		layoutBlockChild(children[i], boxes, i, offsetX, offsetY, &cursorY, availW, availH)
+		i++
+	}
+	return boxes
+}
+
+// layoutInlineSegment lays out the run of inline-level children starting
+// at index start as one IFC, advancing the flow cursor by the segment's
+// line count. Returns the index after the segment.
+func layoutInlineSegment(children []*Input, start int, boxes []*Box, offsetX, offsetY int, cursorY *int, availW int) int {
+	end := start
+	for end < len(children) && isInlineLevel(children[end]) {
+		end++
+	}
+	segTop := offsetY + *cursorY
+	segBoxes := layoutInlineChildren(children[start:end], offsetX, segTop, availW)
+	height := 0
+	for j, segBox := range segBoxes {
+		boxes[start+j] = segBox
+		if segBox.Fragments != nil && segBox.Y+segBox.Height-segTop > height {
+			height = segBox.Y + segBox.Height - segTop
+		}
+	}
+	*cursorY += height
+	return end
+}
+
+// layoutBlockChild places one block-level child at the flow cursor,
+// applying its margins (auto horizontal margins centre it).
+func layoutBlockChild(child *Input, boxes []*Box, i, offsetX, offsetY int, cursorY *int, availW, availH int) {
+	m := child.Margin
+	*cursorY += m.Top
+	childBox := layoutNode(child, maxInt(availW-m.horizontal(), 0), availH)
+	childBox.X = offsetX + m.Left
+	if m.autoCentreX() && childBox.Width < availW {
+		childBox.X = offsetX + (availW-childBox.Width)/2
+	}
+	childBox.Y = offsetY + *cursorY
+	*cursorY += childBox.Height + m.Bottom
+	boxes[i] = childBox
+}

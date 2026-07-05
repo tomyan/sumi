@@ -610,15 +610,13 @@ func layoutNode(input *Input, availW, availH int) *Box {
 		}
 	}
 
-	isIFC := input.Display == "block" && isInlineContext(flowChildren)
-
 	var flowBoxes []*Box
 	if input.Display == "grid" {
 		flowBoxes = layoutGrid(input, flowChildren, offsetX, offsetY, flexAvailW, flexAvailH)
 	} else if input.Display == "table" {
 		flowBoxes = layoutTable(input, flowChildren, offsetX, offsetY, flexAvailW, flexAvailH)
-	} else if isIFC {
-		flowBoxes = layoutInlineChildren(flowChildren, offsetX, offsetY, contentAvailW)
+	} else if input.Display == "block" {
+		flowBoxes = layoutBlockFlow(flowChildren, offsetX, offsetY, contentAvailW, childAvailH)
 	} else if input.Direction == "row" && input.FlexWrap {
 		flowBoxes = layoutRowWrap(flowChildren, offsetX, offsetY, gap, flexAvailW, flexAvailH)
 	} else if input.Direction == "row" {
@@ -658,7 +656,7 @@ func layoutNode(input *Input, availW, availH int) *Box {
 	if reversed {
 		justify = flipJustify(justify)
 	}
-	skipFlexAlignment := input.FlexWrap || input.Display == "grid" || input.Display == "table" || isIFC
+	skipFlexAlignment := input.FlexWrap || input.Display == "grid" || input.Display == "table" || input.Display == "block"
 	if justify != "" && justify != "start" && !skipFlexAlignment {
 		if input.Direction == "row" {
 			applyJustifyRow(flowBoxes, offsetX, contentAvailW, justify)
@@ -705,6 +703,10 @@ func layoutNode(input *Input, availW, availH int) *Box {
 		box.Width = availW
 	} else {
 		box.Width = contentW + insetW
+	}
+	// Block boxes fill the available width (CSS block-level auto width).
+	if input.Display == "block" && input.FixedWidth == 0 && availW > box.Width {
+		box.Width = availW
 	}
 	// Overflow containers fill available width when no fixed width is set.
 	if input.Overflow != "" && input.FixedWidth == 0 && availW > box.Width {

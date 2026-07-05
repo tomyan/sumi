@@ -8,22 +8,6 @@ type Fragment struct {
 	Text string
 }
 
-// isInlineContext reports whether a container's flow children can form
-// an inline formatting context: text nodes with normal white-space and
-// no sizing or editing state. Anything else falls back to stacking.
-func isInlineContext(children []*Input) bool {
-	if len(children) == 0 {
-		return false
-	}
-	for _, c := range children {
-		if c.Kind != KindText || c.WhiteSpace != "" || c.ContentEditable ||
-			c.FixedWidth > 0 || c.FixedHeight > 0 {
-			return false
-		}
-	}
-	return true
-}
-
 // layoutInlineChildren lays out text runs as one inline formatting
 // context: whitespace collapses, lines break across run boundaries, and
 // each run's Box receives box-relative Fragments plus a bounding rect.

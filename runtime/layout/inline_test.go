@@ -135,14 +135,14 @@ func TestInlineFlowSingleRunDegeneratesToWrap(t *testing.T) {
 	assertFragment(t, "text", text, 1, Fragment{X: 0, Y: 1, Text: "world"})
 }
 
-func TestInlineFlowBailsOutForNonInlineChildren(t *testing.T) {
-	// Given: a box child means no IFC — children stack as before.
+func TestLegacyContainersNeverFragment(t *testing.T) {
+	// Given: no display set — the legacy flex-column default keeps
+	// per-node text layout (no IFC).
 	p := &Input{
-		Kind:    KindBox,
-		Display: "block",
+		Kind: KindBox,
 		Children: []*Input{
 			{Kind: KindText, Content: "text"},
-			{Kind: KindBox, FixedWidth: 5, FixedHeight: 2},
+			{Kind: KindText, Content: "more"},
 		},
 	}
 
@@ -154,7 +154,7 @@ func TestInlineFlowBailsOutForNonInlineChildren(t *testing.T) {
 		t.Errorf("unexpected fragments: %+v", box.Children[0].Fragments)
 	}
 	if box.Children[1].Y != 1 {
-		t.Errorf("box child Y = %d, want 1 (stacked)", box.Children[1].Y)
+		t.Errorf("second text Y = %d, want 1 (stacked)", box.Children[1].Y)
 	}
 }
 
