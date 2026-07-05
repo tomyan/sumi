@@ -73,6 +73,8 @@ func applyResolvedProps(n *Input, props, hover, focus map[string]string) {
 	if focus != nil {
 		n.FocusStyle = css.ToRenderStyle(focus)
 	}
+	n.Transitions = css.ParseTransitions(props)
+	n.AnimationSpec = css.ParseAnimation(props)
 	applyLayoutProps(n, props)
 }
 

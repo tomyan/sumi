@@ -33,8 +33,6 @@ func NewTodo(props TodoProps) *sumi.Component {
 		Tag:       "box",
 		Classes:   []string{"container"},
 		Attrs:     map[string]string{"class": "container", "onkey": "handleKey"},
-		Padding:   sumi.ParsePadding("1 2"),
-		Border:    "single",
 		CursorCol: -1,
 		CursorRow: -1,
 	}

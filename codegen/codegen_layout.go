@@ -19,14 +19,12 @@ func writeLayoutTree(buf *bytes.Buffer, doc *template.Document, stylesheet *styl
 		baseIndent = 2
 	}
 	tabs := indentStr(baseIndent)
-	rootProps := resolveRootProps(stylesheet)
 
 	fmt.Fprintf(buf, "%sroot := &sumi.Input{\n", tabs)
 	fmt.Fprintf(buf, "%s\tKind: sumi.KindBox,\n", tabs)
 	writeIdentityFields(buf, tabs, "root", nil)
 	rootAttrs := map[string]string{"flex-direction": "column"}
 	writeBoxAttributes(buf, tabs, rootAttrs, nil)
-	_ = rootProps
 	if hasDynamicChildren(doc.Children) {
 		if ext != nil {
 			// Build-once: root.Children rebuilt in sync
@@ -137,10 +135,9 @@ func writeTextInput(buf *bytes.Buffer, n *template.TextElement, stylesheet *styl
 	if attrs == nil {
 		attrs = map[string]string{}
 	}
-	props := n.ResolvedStyles
 
 	if ext != nil && hasExprParts(n.Parts) && !ext.inDynamic {
-		writeExtractedTextNode(buf, &ext.declBuf, n, props, tabs, ext)
+		writeExtractedTextNode(buf, &ext.declBuf, n, tabs, ext)
 		return
 	}
 
@@ -158,14 +155,14 @@ func writeTextInput(buf *bytes.Buffer, n *template.TextElement, stylesheet *styl
 	fmt.Fprintf(buf, "%s\tContent: %s,\n", tabs, content)
 	if ce, ok := attrs["contenteditable"]; ok && ce == "true" {
 		fmt.Fprintf(buf, "%s\tContentEditable: true,\n", tabs)
-		writeCursorAttr(buf, tabs, attrs, props)
+		writeCursorAttr(buf, tabs, attrs, nil)
 	}
 	fmt.Fprintf(buf, "%s},\n", tabs)
 }
 
 // writeExtractedTextNode extracts an expression text node as a named variable.
 // The declaration goes to declBuf; a variable reference goes to the tree buf.
-func writeExtractedTextNode(treeBuf, declBuf *bytes.Buffer, n *template.TextElement, props map[string]string, tabs string, ext *extractionCtx) {
+func writeExtractedTextNode(treeBuf, declBuf *bytes.Buffer, n *template.TextElement, tabs string, ext *extractionCtx) {
 	name := ext.nextNodeName()
 	var expr string
 	if len(ext.signals) > 0 {
@@ -179,7 +176,6 @@ func writeExtractedTextNode(treeBuf, declBuf *bytes.Buffer, n *template.TextElem
 	fmt.Fprintf(declBuf, "\t\tKind:    sumi.KindText,\n")
 	writeIdentityFields(declBuf, "\t", "text", n.Attributes)
 	fmt.Fprintf(declBuf, "\t\tContent: %s,\n", expr)
-	_ = props
 	fmt.Fprintf(declBuf, "\t}\n")
 
 	// Record sync entry
@@ -217,21 +213,16 @@ func writeBoxInput(buf *bytes.Buffer, n *template.BoxElement, stylesheet *style.
 		writeExtractedDynamicBox(buf, n, stylesheet, indent, ext)
 		return
 	}
-	if ext != nil && !ext.inDynamic && (hasDynamicCursor(n.Attributes) || (focusIdx >= 0 && n.ResolvedFocus != nil)) {
+	if ext != nil && !ext.inDynamic && (hasDynamicCursor(n.Attributes) || focusIdx >= 0) {
 		writeExtractedCursorBox(buf, n, stylesheet, indent, ext, focusIdx)
 		return
 	}
 	tabs := indentStr(indent)
-	props := n.ResolvedStyles
 
 	fmt.Fprintf(buf, "%s{\n", tabs)
 	fmt.Fprintf(buf, "%s\tKind: sumi.KindBox,\n", tabs)
 	writeIdentityFields(buf, tabs, "box", n.Attributes)
 	writeBoxAttributes(buf, tabs, n.Attributes, nil)
-	if props != nil {
-		writeTransitions(buf, tabs, props)
-		writeAnimationSpec(buf, tabs, props)
-	}
 	writeBoxChildren(buf, n.Children, stylesheet, indent, tabs, ext)
 	fmt.Fprintf(buf, "%s},\n", tabs)
 }
@@ -258,7 +249,6 @@ func isFocusableBox(attrs map[string]string) bool {
 func writeExtractedCursorBox(treeBuf *bytes.Buffer, n *template.BoxElement, stylesheet *style.Stylesheet, indent int, ext *extractionCtx, focusIdx int) {
 	tabs := indentStr(indent)
 	name := ext.nextBoxName()
-	props := n.ResolvedStyles
 
 	// Render children first into a temp buffer: nested expression nodes
 	// extract their own declarations into declBuf, which must precede this
@@ -277,10 +267,6 @@ func writeExtractedCursorBox(treeBuf *bytes.Buffer, n *template.BoxElement, styl
 	fmt.Fprintf(&ext.declBuf, "\t\tKind: sumi.KindBox,\n")
 	writeIdentityFields(&ext.declBuf, "\t", "box", n.Attributes)
 	writeBoxAttributes(&ext.declBuf, "\t", n.Attributes, nil)
-	if props != nil {
-		writeTransitions(&ext.declBuf, "\t", props)
-		writeAnimationSpec(&ext.declBuf, "\t", props)
-	}
 	ext.declBuf.Write(childBuf.Bytes())
 	fmt.Fprintf(&ext.declBuf, "\t}\n")
 
@@ -288,7 +274,7 @@ func writeExtractedCursorBox(treeBuf *bytes.Buffer, n *template.BoxElement, styl
 	if hasDynamicCursor(n.Attributes) {
 		writeCursorSync(&ext.syncBuf, name, n.Attributes, focusIdx)
 	}
-	if focusIdx >= 0 && n.ResolvedFocus != nil {
+	if focusIdx >= 0 {
 		fmt.Fprintf(&ext.syncBuf, "\t\t%s.Focused = focusIndex == %d\n", name, focusIdx)
 	}
 
@@ -339,16 +325,12 @@ func writeFocusConditionalCursor(buf *bytes.Buffer, name string, attrs map[strin
 func writeExtractedDynamicBox(treeBuf *bytes.Buffer, n *template.BoxElement, stylesheet *style.Stylesheet, indent int, ext *extractionCtx) {
 	tabs := indentStr(indent)
 	name := ext.nextBoxName()
-	props := n.ResolvedStyles
 
 	// Write declaration to declBuf (at function scope, no Children)
 	fmt.Fprintf(&ext.declBuf, "\t%s := &sumi.Input{\n", name)
 	fmt.Fprintf(&ext.declBuf, "\t\tKind: sumi.KindBox,\n")
 	writeIdentityFields(&ext.declBuf, "\t", "box", n.Attributes)
-	writeBoxAttributes(&ext.declBuf, "\t", n.Attributes, props)
-	if props != nil {
-		writeStyleLiteral(&ext.declBuf, "\t", props)
-	}
+	writeBoxAttributes(&ext.declBuf, "\t", n.Attributes, nil)
 	fmt.Fprintf(&ext.declBuf, "\t}\n")
 
 	// Write dynamic children rebuild to syncBuf

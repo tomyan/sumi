@@ -15,7 +15,6 @@ import (
 // Used for .sumi files with no <script> block or no signal declarations.
 // Emits func Run() and func CreateApp(w, h int) *tui.App.
 func Generate(doc *template.Document, sc *script.Script, stylesheet *style.Stylesheet, packageName string) ([]byte, error) {
-	annotateStyles(doc, stylesheet)
 	var buf bytes.Buffer
 	fmt.Fprintf(&buf, "package %s\n\n", packageName)
 	hasExprs := docHasExprs(doc)
