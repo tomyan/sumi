@@ -111,7 +111,7 @@ func isHTMLTagName(tag string) bool {
 var containerTags = map[string]bool{
 	"div": true, "section": true, "main": true, "header": true,
 	"footer": true, "nav": true, "article": true, "aside": true,
-	"ul": true, "ol": true, "blockquote": true, "table": true,
+	"ul": true, "ol": true, "li": true, "blockquote": true, "table": true,
 	"thead": true, "tbody": true, "tfoot": true, "tr": true,
 }
 
@@ -137,6 +137,14 @@ func (p *parser) parseHTMLElement(tag string) (Node, error) {
 		if err != nil {
 			return nil, err
 		}
+		if containerTags[tag] {
+			// Container tags keep their box form so pseudo-element markers
+			// and borders work; the text body becomes an implicit child.
+			text := node.(*TextElement)
+			text.Attributes = map[string]string{}
+			text.Tag = ""
+			return &BoxElement{Tag: tag, Attributes: attrs, Children: []Node{text}}, nil
+		}
 		return retagText(node, tag), nil
 	}
 	children, err := p.parseChildren(tag)
@@ -161,8 +169,8 @@ func (p *parser) htmlBodyIsText(tag string) bool {
 	if strings.Contains(body, "{if ") || strings.Contains(body, "{for ") {
 		return false
 	}
-	if strings.TrimSpace(body) == "" && containerTags[tag] {
-		return false
+	if strings.TrimSpace(body) == "" {
+		return !containerTags[tag]
 	}
 	return true
 }

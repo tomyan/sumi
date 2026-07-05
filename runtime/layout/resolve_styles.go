@@ -16,9 +16,10 @@ import (
 // Spliced child-component subtrees (identified by Tag "root") are skipped:
 // they resolve against their own component's stylesheet.
 func ResolveStyles(root *Input, ss *style.Stylesheet, viewportW, viewportH int) {
-	if root == nil || ss == nil {
+	if root == nil {
 		return
 	}
+	ss = withUA(ss)
 	css.SetViewport(viewportW, viewportH)
 	rootEl := css.Element{Tag: "root"}
 	props := css.Resolve(ss, []css.Element{rootEl})
