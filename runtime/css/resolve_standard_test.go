@@ -175,3 +175,34 @@ func TestUnknownPropertiesDropSilently(t *testing.T) {
 		t.Errorf("unknown/pixel properties must produce zero style, got %+v", s)
 	}
 }
+
+// F2b: numeric opacity becomes a blend factor on the element's colours;
+// the dim keyword and non-RGB fallbacks keep the terminal dim attribute.
+func TestOpacityNumericBecomesAlpha(t *testing.T) {
+	// Given / When — RGB colours pick up alpha
+	s := ToRenderStyle(map[string]string{
+		"color": "#ff0000", "background": "#0000ff", "opacity": "0.5",
+	})
+
+	// Then
+	if s.FG.A != 128 || s.BG.A != 128 {
+		t.Errorf("alpha = fg %d bg %d, want 128/128", s.FG.A, s.BG.A)
+	}
+	if s.Dim {
+		t.Error("numeric opacity on RGB colours should not dim")
+	}
+
+	// When — named colour can't blend: falls back to dim
+	s = ToRenderStyle(map[string]string{"color": "red", "opacity": "0.5"})
+
+	// Then
+	if !s.Dim {
+		t.Error("non-RGB colour with numeric opacity should fall back to dim")
+	}
+
+	// When — the dim keyword stays dim
+	s = ToRenderStyle(map[string]string{"opacity": "dim"})
+	if !s.Dim {
+		t.Error("opacity: dim should set Dim")
+	}
+}

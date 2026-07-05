@@ -14,9 +14,7 @@ func ToRenderStyle(props map[string]string) render.Style {
 	var s render.Style
 	applyColorProps(&s, props)
 	applyTextProps(&s, props)
-	if v, ok := props["opacity"]; ok && opacityIsDim(v) {
-		s.Dim = true
-	}
+	applyOpacity(&s, props["opacity"])
 	if props["inverse"] == "true" {
 		s.Inverse = true
 	}
@@ -77,12 +75,32 @@ func fontWeightIsBold(v string) bool {
 	return err == nil && n >= 700
 }
 
-// opacityIsDim reports whether an opacity value maps to the terminal dim
-// attribute: the non-standard keyword `dim`, or any numeric value below 1.
-func opacityIsDim(v string) bool {
-	if v == "dim" {
-		return true
+// applyOpacity maps opacity onto the style. Numeric values below 1
+// become a blend factor (alpha) on the element's RGB colours, composited
+// at paint time; the dim keyword — and numeric opacity when the colours
+// are not RGB and so cannot blend — uses the terminal dim attribute.
+func applyOpacity(s *render.Style, v string) {
+	if v == "" {
+		return
 	}
-	f, err := strconv.ParseFloat(v, 64)
-	return err == nil && f < 1
+	if v == "dim" {
+		s.Dim = true
+		return
+	}
+	alpha, err := strconv.ParseFloat(v, 64)
+	if err != nil || alpha >= 1 {
+		return
+	}
+	blended := false
+	if s.FG.IsRGB {
+		s.FG = withAlpha(s.FG, alpha)
+		blended = true
+	}
+	if s.BG.IsRGB {
+		s.BG = withAlpha(s.BG, alpha)
+		blended = true
+	}
+	if !blended {
+		s.Dim = true
+	}
 }
