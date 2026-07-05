@@ -89,3 +89,49 @@ func handleClick(evt *sumi.DOMEvent) {
 		t.Errorf("event-aware handler must not be wrapped:\n%s", src)
 	}
 }
+
+// C13: expression-valued attributes are patched in the sync effect.
+func TestGenerateDynamicAttrsSync(t *testing.T) {
+	// Given
+	scriptSrc := `locked := sumi.New(false)
+theme := sumi.New("dark")
+
+func cls() string {
+    return "panel " + theme.Get()
+}`
+	doc := &template.Document{
+		Children: []template.Node{
+			&template.BoxElement{
+				Tag: "div",
+				Attributes: map[string]string{
+					"class":    "{cls()}",
+					"disabled": "{locked.Get()}",
+				},
+				Children: []template.Node{
+					&template.TextElement{Tag: "span", Parts: []template.Part{&template.StringPart{Value: "body"}}},
+				},
+			},
+		},
+	}
+
+	// When
+	out, err := GenerateComponent(doc, scriptSrc, nil, ComponentOptions{
+		PackageName:   "dyn",
+		ComponentName: "Dyn",
+	})
+
+	// Then
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	src := string(out)
+	for _, want := range []string{
+		`.Classes = sumi.SplitClasses(cls())`,
+		`.Attrs["class"] = cls()`,
+		`.Attrs["disabled"] = sumi.AttrString(locked.Get())`,
+	} {
+		if !strings.Contains(src, want) {
+			t.Errorf("missing %q in generated source:\n%s", want, src)
+		}
+	}
+}

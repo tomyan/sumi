@@ -137,7 +137,7 @@ func writeTextInput(buf *bytes.Buffer, n *template.TextElement, stylesheet *styl
 		attrs = map[string]string{}
 	}
 
-	if ext != nil && hasExprParts(n.Parts) && !ext.inDynamic {
+	if ext != nil && !ext.inDynamic && (hasExprParts(n.Parts) || hasDynamicSyncAttrs(attrs)) {
 		writeExtractedTextNode(buf, &ext.declBuf, n, tabs, ext)
 		return
 	}
@@ -181,11 +181,14 @@ func writeExtractedTextNode(treeBuf, declBuf *bytes.Buffer, n *template.TextElem
 	writeOnHandlers(declBuf, "\t", n.Attributes, nil, ext)
 	fmt.Fprintf(declBuf, "\t}\n")
 
-	// Record sync entry
-	ext.nodes = append(ext.nodes, extractedNode{
-		varName:  name,
-		syncExpr: expr,
-	})
+	// Record sync entries: content (when dynamic) and state attributes.
+	if hasExprParts(n.Parts) {
+		ext.nodes = append(ext.nodes, extractedNode{
+			varName:  name,
+			syncExpr: expr,
+		})
+	}
+	writeAttrSync(&ext.syncBuf, name, n.Attributes)
 
 	// Write reference in tree
 	fmt.Fprintf(treeBuf, "%s%s,\n", tabs, name)
@@ -209,7 +212,7 @@ func writeBoxInput(buf *bytes.Buffer, n *template.BoxElement, stylesheet *style.
 		writeExtractedDynamicBox(buf, n, stylesheet, indent, ext)
 		return
 	}
-	if ext != nil && !ext.inDynamic && hasDynamicCursor(n.Attributes) {
+	if ext != nil && !ext.inDynamic && (hasDynamicCursor(n.Attributes) || hasDynamicSyncAttrs(n.Attributes)) {
 		writeExtractedCursorBox(buf, n, stylesheet, indent, ext)
 		return
 	}
@@ -221,6 +224,46 @@ func writeBoxInput(buf *bytes.Buffer, n *template.BoxElement, stylesheet *style.
 	writeBoxAttributes(buf, tabs, n.Attributes, nil, ext)
 	writeBoxChildren(buf, n.Children, stylesheet, indent, tabs, ext)
 	fmt.Fprintf(buf, "%s},\n", tabs)
+}
+
+// dynamicSyncAttrs are state-carrying attributes whose {expr} values are
+// patched in the sync effect. on* handlers, cursor and layout attributes
+// have dedicated emitters and are not listed here.
+var dynamicSyncAttrs = map[string]bool{
+	"class": true, "disabled": true, "checked": true, "open": true,
+	"selected": true, "value": true, "href": true, "maxlength": true,
+	"readonly": true,
+}
+
+// hasDynamicSyncAttrs reports whether any state attribute is expression-valued.
+func hasDynamicSyncAttrs(attrs map[string]string) bool {
+	for k, v := range attrs {
+		if dynamicSyncAttrs[k] && isExprValue(v) {
+			return true
+		}
+	}
+	return false
+}
+
+// writeAttrSync emits sync patches for expression-valued state attributes.
+// class also refreshes the Classes slice used by selector matching.
+func writeAttrSync(buf *bytes.Buffer, name string, attrs map[string]string) {
+	keys := make([]string, 0, len(attrs))
+	for k, v := range attrs {
+		if dynamicSyncAttrs[k] && isExprValue(v) {
+			keys = append(keys, k)
+		}
+	}
+	sort.Strings(keys)
+	for _, k := range keys {
+		expr := extractExprValue(attrs[k])
+		if k == "class" {
+			fmt.Fprintf(buf, "\t\t%s.Classes = sumi.SplitClasses(%s)\n", name, expr)
+			fmt.Fprintf(buf, "\t\t%s.Attrs[\"class\"] = %s\n", name, expr)
+			continue
+		}
+		fmt.Fprintf(buf, "\t\t%s.Attrs[%q] = sumi.AttrString(%s)\n", name, k, expr)
+	}
 }
 
 // hasDynamicCursor returns true if cursor-x or cursor-y contains an expression.
@@ -260,10 +303,11 @@ func writeExtractedCursorBox(treeBuf *bytes.Buffer, n *template.BoxElement, styl
 	ext.declBuf.Write(childBuf.Bytes())
 	fmt.Fprintf(&ext.declBuf, "\t}\n")
 
-	// Write sync entries: cursor patching.
+	// Write sync entries: cursor and state-attribute patching.
 	if hasDynamicCursor(n.Attributes) {
 		writeCursorSync(&ext.syncBuf, name, n.Attributes)
 	}
+	writeAttrSync(&ext.syncBuf, name, n.Attributes)
 
 	// Write reference in tree
 	fmt.Fprintf(treeBuf, "%s%s,\n", tabs, name)
@@ -293,6 +337,7 @@ func writeExtractedDynamicBox(treeBuf *bytes.Buffer, n *template.BoxElement, sty
 	writeIdentityFields(&ext.declBuf, "\t", boxTagOf(n), n.Attributes)
 	writeBoxAttributes(&ext.declBuf, "\t", n.Attributes, nil, ext)
 	fmt.Fprintf(&ext.declBuf, "\t}\n")
+	writeAttrSync(&ext.syncBuf, name, n.Attributes)
 
 	// Write dynamic children rebuild to syncBuf
 	writeDynamicChildrenSync(&ext.syncBuf, name, n.Children, stylesheet, ext.signals)

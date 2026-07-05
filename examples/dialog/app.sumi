@@ -1,0 +1,59 @@
+<script>
+confirming := sumi.New(false)
+status := sumi.New("untouched")
+
+func openDialog() {
+    confirming.Set(true)
+}
+
+func confirmYes() {
+    status.Set("deleted")
+    confirming.Set(false)
+}
+
+func confirmNo() {
+    status.Set("kept")
+    confirming.Set(false)
+}
+
+func dialogClosed(evt *sumi.DOMEvent) {
+    confirming.Set(false)
+}
+
+func handleKey(evt sumi.Event) {
+    if evt.Kind == sumi.EventSignal { sumi.Quit(); return }
+    if evt.Ctrl && evt.Rune == 'c' { sumi.Quit(); return }
+    if evt.Rune == 'q' { sumi.Quit(); return }
+}
+</script>
+
+<style>
+dialog {
+    border: single;
+    position: absolute;
+    top: 2;
+    left: 4;
+    z-index: 10;
+    padding: 0 1;
+}
+button {
+    width: 14;
+}
+button:focus {
+    color: yellow;
+}
+.hint {
+    opacity: dim;
+}
+</style>
+
+<div onkey="handleKey">
+    <span class="hint">Enter opens the dialog; q quits</span>
+    <button onclick={openDialog}>Delete all</button>
+    <span>Status: {status}</span>
+    <dialog open={confirming.Get()} onclose={dialogClosed}>
+        <span>Really delete everything?</span>
+        <button onclick={confirmYes}>Yes</button>
+        <button onclick={confirmNo}>No</button>
+    </dialog>
+</div>

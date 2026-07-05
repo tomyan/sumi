@@ -5,6 +5,7 @@ package prelude
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/tomyan/sumi/parser/style"
 	"github.com/tomyan/sumi/runtime/anim"
@@ -158,3 +159,16 @@ var GetSize = term.GetSize
 
 var Sprint = fmt.Sprint
 var Sprintf = fmt.Sprintf
+
+// --- dynamic attributes ---
+
+// SplitClasses splits a class attribute value into class names.
+func SplitClasses(s string) []string {
+	return strings.Fields(s)
+}
+
+// AttrString renders a dynamic attribute value (bool, int, string, ...)
+// as its attribute string form.
+func AttrString(v any) string {
+	return fmt.Sprint(v)
+}

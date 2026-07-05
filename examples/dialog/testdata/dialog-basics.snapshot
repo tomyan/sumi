@@ -1,0 +1,33 @@
+=== Frame: initial ===
+<<dim>>Enter opens the dialog; q quits<</>>
+  <<yellow>>Delete all<</>>
+Status: untouched
+
+=== Frame: opened ===
+<<dim>>Enter opens the dialog; q quits<</>>
+  Delete all
+Stat┌───────────────────────────┐
+    │ Really delete everything? │
+    │      Yes                  │
+    │       No                  │
+    └───────────────────────────┘
+
+=== Frame: chose-no ===
+<<dim>>Enter opens the dialog; q quits<</>>
+  <<yellow>>Delete all<</>>
+Status: kept
+
+=== Frame: reopened ===
+<<dim>>Enter opens the dialog; q quits<</>>
+  Delete all
+Stat┌───────────────────────────┐
+    │ Really delete everything? │
+    │      Yes                  │
+    │       No                  │
+    └───────────────────────────┘
+
+=== Frame: escaped ===
+<<dim>>Enter opens the dialog; q quits<</>>
+  <<yellow>>Delete all<</>>
+Status: kept
+
