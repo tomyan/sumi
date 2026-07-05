@@ -22,11 +22,12 @@ func ResolveStyles(root *Input, ss *style.Stylesheet, viewportW, viewportH int) 
 	css.SetViewport(viewportW, viewportH)
 	rootEl := css.Element{Tag: "root"}
 	props := css.Resolve(ss, []css.Element{rootEl})
-	applyResolvedProps(root, props, nil, nil)
-	resolveChildren(root, ss, []css.Element{rootEl})
+	vars := customPropsFrom(nil, props)
+	applyResolvedProps(root, expandProps(props, vars), nil, nil)
+	resolveChildren(root, ss, []css.Element{rootEl}, vars)
 }
 
-func resolveChildren(parent *Input, ss *style.Stylesheet, path []css.Element) {
+func resolveChildren(parent *Input, ss *style.Stylesheet, path []css.Element, vars map[string]string) {
 	siblings := elementSiblings(parent.Children)
 	elemIdx := 0
 	for _, child := range parent.Children {
@@ -42,9 +43,63 @@ func resolveChildren(parent *Input, ss *style.Stylesheet, path []css.Element) {
 		copy(p, path)
 		p = append(p, el)
 
-		applyResolvedProps(child, css.Resolve(ss, p), css.ResolveHover(ss, p), css.ResolveFocus(ss, p))
-		resolveChildren(child, ss, p)
+		props := css.Resolve(ss, p)
+		childVars := customPropsFrom(vars, props)
+		applyResolvedProps(child,
+			expandProps(props, childVars),
+			expandProps(css.ResolveHover(ss, p), childVars),
+			expandProps(css.ResolveFocus(ss, p), childVars))
+		resolveChildren(child, ss, p, childVars)
 	}
+}
+
+// customPropsFrom merges --custom-property declarations into the inherited
+// variable scope; returns the inherited map unchanged when a node declares
+// none (copy-on-write).
+func customPropsFrom(inherited, props map[string]string) map[string]string {
+	var merged map[string]string
+	for k, v := range props {
+		if !strings.HasPrefix(k, "--") {
+			continue
+		}
+		if merged == nil {
+			merged = make(map[string]string, len(inherited)+1)
+			for ik, iv := range inherited {
+				merged[ik] = iv
+			}
+		}
+		merged[k] = v
+	}
+	if merged == nil {
+		return inherited
+	}
+	return merged
+}
+
+// expandProps substitutes var() references in every value; values that
+// expand to nothing are dropped (graceful drop), and custom properties
+// themselves are removed from the applied set.
+func expandProps(props, vars map[string]string) map[string]string {
+	if props == nil {
+		return nil
+	}
+	out := make(map[string]string, len(props))
+	for k, v := range props {
+		if strings.HasPrefix(k, "--") {
+			continue
+		}
+		if strings.Contains(v, "var(") {
+			v = strings.TrimSpace(css.ExpandVarRefs(v, vars))
+			if v == "" {
+				continue
+			}
+		}
+		out[k] = v
+	}
+	if len(out) == 0 {
+		return nil
+	}
+	return out
 }
 
 // elementSiblings builds the sibling identity list for structural matching.

@@ -112,3 +112,62 @@ func TestResolveStylesNilStylesheetNoop(t *testing.T) {
 	tree := &Input{Tag: "root", Kind: KindBox}
 	ResolveStyles(tree, nil, 80, 24) // must not panic
 }
+
+// A11: var() custom properties inherit down the tree.
+
+func TestResolveStylesVarInheritance(t *testing.T) {
+	// Given: a theme variable on root, used two levels down.
+	tree := &Input{Tag: "root", Kind: KindBox, Children: []*Input{
+		{Tag: "box", Kind: KindBox, Children: []*Input{
+			{Tag: "text", Classes: []string{"accented"}, Kind: KindText},
+		}},
+	}}
+	ss := sheet(t, `root { --accent: cyan; } .accented { color: var(--accent); }`)
+
+	// When
+	ResolveStyles(tree, ss, 80, 24)
+
+	// Then
+	if got := tree.Children[0].Children[0].Style.FG.Name; got != "cyan" {
+		t.Errorf("FG = %q, want cyan via inherited var", got)
+	}
+}
+
+func TestResolveStylesVarShadowing(t *testing.T) {
+	tree := &Input{Tag: "root", Kind: KindBox, Children: []*Input{
+		{Tag: "box", Classes: []string{"override"}, Kind: KindBox, Children: []*Input{
+			{Tag: "text", Classes: []string{"accented"}, Kind: KindText},
+		}},
+		{Tag: "text", Classes: []string{"accented"}, Kind: KindText},
+	}}
+	ss := sheet(t, `root { --accent: cyan; } .override { --accent: magenta; } .accented { color: var(--accent); }`)
+	ResolveStyles(tree, ss, 80, 24)
+	if got := tree.Children[0].Children[0].Style.FG.Name; got != "magenta" {
+		t.Errorf("shadowed FG = %q, want magenta", got)
+	}
+	if got := tree.Children[1].Style.FG.Name; got != "cyan" {
+		t.Errorf("root-scope FG = %q, want cyan", got)
+	}
+}
+
+func TestResolveStylesVarInLayoutProp(t *testing.T) {
+	tree := &Input{Tag: "root", Kind: KindBox, Children: []*Input{
+		{Tag: "box", Classes: []string{"sized"}, Kind: KindBox},
+	}}
+	ss := sheet(t, `root { --panel-width: 30; } .sized { width: var(--panel-width); }`)
+	ResolveStyles(tree, ss, 80, 24)
+	if got := tree.Children[0].FixedWidth; got != 30 {
+		t.Errorf("FixedWidth = %d, want 30 via var", got)
+	}
+}
+
+func TestResolveStylesUnresolvedVarDropsProperty(t *testing.T) {
+	tree := &Input{Tag: "root", Kind: KindBox, Children: []*Input{
+		{Tag: "text", Classes: []string{"x"}, Kind: KindText},
+	}}
+	ss := sheet(t, `.x { color: var(--nope); }`)
+	ResolveStyles(tree, ss, 80, 24)
+	if got := tree.Children[0].Style.FG.Name; got != "" {
+		t.Errorf("FG = %q, want unset", got)
+	}
+}
