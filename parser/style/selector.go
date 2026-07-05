@@ -6,13 +6,22 @@ import (
 )
 
 // SimpleSelector is one compound selector: an optional tag plus any number of
-// class, id, and pseudo-class qualifiers (e.g. `box.panel#main:hover`).
+// class, id, attribute, and pseudo-class qualifiers
+// (e.g. `box.panel#main[focusable=true]:hover`).
 // The universal selector `*` parses to an empty SimpleSelector.
 type SimpleSelector struct {
-	Tag     string   // "" matches any tag
-	ID      string   // "" matches any id
-	Classes []string // all must be present
-	Pseudo  string   // pseudo-class name ("hover", ...); "" for none
+	Tag     string        // "" matches any tag
+	ID      string        // "" matches any id
+	Classes []string      // all must be present
+	Attrs   []AttrMatcher // all must match
+	Pseudo  string        // pseudo-class name ("hover", ...); "" for none
+}
+
+// AttrMatcher is one attribute selector: [name], [name=v], [name^=v], etc.
+type AttrMatcher struct {
+	Name  string
+	Op    string // "", "=", "^=", "$=", "*=", "~=", "|="
+	Value string
 }
 
 // ComplexSelector is a combinator chain; the subject (rightmost compound)
@@ -47,7 +56,7 @@ func (c ComplexSelector) Specificity() Specificity {
 		if p.ID != "" {
 			sp.IDs++
 		}
-		sp.Classes += len(p.Classes)
+		sp.Classes += len(p.Classes) + len(p.Attrs)
 		if p.Pseudo != "" {
 			sp.Classes++
 		}
@@ -107,7 +116,8 @@ func tokenizeSelector(text string) []string {
 	return strings.Fields(text)
 }
 
-// parseSimpleSelector parses one compound like `box.panel#main:hover` or `*`.
+// parseSimpleSelector parses one compound like `box.panel#main[a=v]:hover`
+// or `*`.
 func parseSimpleSelector(tok string) (SimpleSelector, error) {
 	var s SimpleSelector
 	if tok == "*" {
@@ -115,7 +125,7 @@ func parseSimpleSelector(tok string) (SimpleSelector, error) {
 	}
 	rest := tok
 	// Leading tag name (up to the first qualifier).
-	if i := strings.IndexAny(rest, ".#:"); i != 0 {
+	if i := strings.IndexAny(rest, ".#:["); i != 0 {
 		if i < 0 {
 			s.Tag = rest
 			return s, nil
@@ -125,8 +135,21 @@ func parseSimpleSelector(tok string) (SimpleSelector, error) {
 	}
 	for rest != "" {
 		kind := rest[0]
+		if kind == '[' {
+			end := strings.IndexByte(rest, ']')
+			if end < 0 {
+				return SimpleSelector{}, fmt.Errorf("unterminated attribute selector in %q", tok)
+			}
+			attr, err := parseAttrMatcher(rest[1:end])
+			if err != nil {
+				return SimpleSelector{}, err
+			}
+			s.Attrs = append(s.Attrs, attr)
+			rest = rest[end+1:]
+			continue
+		}
 		rest = rest[1:]
-		end := strings.IndexAny(rest, ".#:")
+		end := strings.IndexAny(rest, ".#:[")
 		if end < 0 {
 			end = len(rest)
 		}
@@ -145,4 +168,25 @@ func parseSimpleSelector(tok string) (SimpleSelector, error) {
 		}
 	}
 	return s, nil
+}
+
+// parseAttrMatcher parses the inside of an attribute selector: `name`,
+// `name=value`, `name^=value`, ... Values may be single- or double-quoted.
+func parseAttrMatcher(body string) (AttrMatcher, error) {
+	body = strings.TrimSpace(body)
+	if body == "" {
+		return AttrMatcher{}, fmt.Errorf("empty attribute selector")
+	}
+	for _, op := range []string{"^=", "$=", "*=", "~=", "|=", "="} {
+		if i := strings.Index(body, op); i >= 0 {
+			name := strings.TrimSpace(body[:i])
+			value := strings.TrimSpace(body[i+len(op):])
+			value = strings.Trim(value, `"'`)
+			if name == "" {
+				return AttrMatcher{}, fmt.Errorf("attribute selector missing name: [%s]", body)
+			}
+			return AttrMatcher{Name: name, Op: op, Value: value}, nil
+		}
+	}
+	return AttrMatcher{Name: body}, nil
 }

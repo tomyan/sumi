@@ -65,7 +65,7 @@ func childPath(path []css.Element, el css.Element) []css.Element {
 
 // elementFor builds the css.Element identity for a template element.
 func elementFor(tag string, attrs map[string]string) css.Element {
-	return css.Element{Tag: tag, ID: attrs["id"], Classes: parseClasses(attrs)}
+	return css.Element{Tag: tag, ID: attrs["id"], Classes: parseClasses(attrs), Attrs: attrs}
 }
 
 func orNil(props map[string]string) map[string]string {

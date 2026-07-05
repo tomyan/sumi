@@ -2,16 +2,18 @@ package css
 
 import (
 	"sort"
+	"strings"
 
 	"github.com/tomyan/sumi/parser/style"
 )
 
 // Element identifies one node on the path from the root to the element being
-// styled: its tag name, id, and class list.
+// styled: its tag name, id, class list, and attributes.
 type Element struct {
 	Tag     string
 	ID      string
 	Classes []string
+	Attrs   map[string]string
 }
 
 // Resolve computes the cascaded properties for the element at the end of path.
@@ -103,7 +105,41 @@ func matchSimple(s style.SimpleSelector, e Element) bool {
 			return false
 		}
 	}
+	for _, a := range s.Attrs {
+		if !matchAttr(a, e.Attrs) {
+			return false
+		}
+	}
 	return true
+}
+
+func matchAttr(m style.AttrMatcher, attrs map[string]string) bool {
+	v, ok := attrs[m.Name]
+	if !ok {
+		return false
+	}
+	switch m.Op {
+	case "":
+		return true
+	case "=":
+		return v == m.Value
+	case "^=":
+		return m.Value != "" && strings.HasPrefix(v, m.Value)
+	case "$=":
+		return m.Value != "" && strings.HasSuffix(v, m.Value)
+	case "*=":
+		return m.Value != "" && strings.Contains(v, m.Value)
+	case "~=":
+		for _, word := range strings.Fields(v) {
+			if word == m.Value {
+				return true
+			}
+		}
+		return false
+	case "|=":
+		return v == m.Value || strings.HasPrefix(v, m.Value+"-")
+	}
+	return false
 }
 
 func hasClass(classes []string, want string) bool {
