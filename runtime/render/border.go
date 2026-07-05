@@ -34,6 +34,43 @@ func glyphsFor(borderStyle string) borderGlyphs {
 	return borderStyleGlyphs["single"]
 }
 
+// blockEdges holds the block-glyph edge characters of a block border
+// style. These have no box-drawing corners: inner styles leave corners
+// blank, outer and full styles extend the horizontal edge through them.
+type blockEdges struct {
+	top, bottom, left, right rune
+	corners                  bool // draw the horizontal glyph in the corners
+}
+
+var blockEdgeGlyphs = map[string]blockEdges{
+	"eighth-cell-inner": {'▁', '▔', '▕', '▏', false},
+	"eighth-cell-outer": {'▔', '▁', '▏', '▕', true},
+	"half-cell-inner":   {'▄', '▀', '▐', '▌', false},
+	"half-cell-outer":   {'▀', '▄', '▌', '▐', true},
+	"full-cell":         {'█', '█', '█', '█', true},
+}
+
+// drawBlockBorder draws a block-glyph border. Corners follow the style's
+// convention (blank for inner styles, horizontal-extended otherwise).
+func (b *Buffer) drawBlockBorder(row, col, width, height int, g blockEdges, style Style) {
+	right := col + width - 1
+	bottom := row + height - 1
+	for c := col + 1; c < right; c++ {
+		b.SetStyledCell(row, c, g.top, style)
+		b.SetStyledCell(bottom, c, g.bottom, style)
+	}
+	for r := row + 1; r < bottom; r++ {
+		b.SetStyledCell(r, col, g.left, style)
+		b.SetStyledCell(r, right, g.right, style)
+	}
+	if g.corners {
+		b.SetStyledCell(row, col, g.top, style)
+		b.SetStyledCell(row, right, g.top, style)
+		b.SetStyledCell(bottom, col, g.bottom, style)
+		b.SetStyledCell(bottom, right, g.bottom, style)
+	}
+}
+
 // DrawBorder draws a single-line Unicode box border at (row, col) with the given
 // width and height. Out-of-bounds portions are clipped. Width or height < 2, or
 // style "" / "none" results in a no-op.
@@ -49,6 +86,11 @@ func (b *Buffer) DrawStyledBorder(row, col, width, height int, borderStyle strin
 		return
 	}
 	if width < 2 || height < 2 {
+		return
+	}
+
+	if block, ok := blockEdgeGlyphs[borderStyle]; ok {
+		b.drawBlockBorder(row, col, width, height, block, style)
 		return
 	}
 

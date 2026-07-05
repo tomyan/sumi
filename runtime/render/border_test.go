@@ -306,3 +306,51 @@ func TestBorderTitleUsesStyleGlyphs(t *testing.T) {
 		t.Errorf("title not rendered: %c%c", b.Cell(0, 3).Ch, b.Cell(0, 4).Ch)
 	}
 }
+
+// F1b: block-edge border styles.
+func TestDrawBlockBorders(t *testing.T) {
+	// Given / When — an eighth-cell-inner border
+	b := NewBuffer(4, 3)
+	b.DrawStyledBorder(0, 0, 4, 3, "eighth-cell-inner", Style{})
+
+	// Then — thin edges hug the content; corners stay blank
+	if got := b.Cell(0, 1).Ch; got != '▁' {
+		t.Errorf("top edge = %q, want ▁", got)
+	}
+	if got := b.Cell(2, 1).Ch; got != '▔' {
+		t.Errorf("bottom edge = %q, want ▔", got)
+	}
+	if got := b.Cell(1, 0).Ch; got != '▕' {
+		t.Errorf("left edge = %q, want ▕", got)
+	}
+	if got := b.Cell(1, 3).Ch; got != '▏' {
+		t.Errorf("right edge = %q, want ▏", got)
+	}
+	if got := b.Cell(0, 0).Ch; got != 0 && got != ' ' {
+		t.Errorf("inner corner = %q, want blank", got)
+	}
+
+	// When — full-cell extends through the corners
+	b2 := NewBuffer(4, 3)
+	b2.DrawStyledBorder(0, 0, 4, 3, "full-cell", Style{})
+
+	// Then
+	if got := b2.Cell(0, 0).Ch; got != '█' {
+		t.Errorf("full-cell corner = %q, want █", got)
+	}
+	if got := b2.Cell(1, 0).Ch; got != '█' {
+		t.Errorf("full-cell side = %q, want █", got)
+	}
+
+	// When — half-cell-outer
+	b3 := NewBuffer(4, 3)
+	b3.DrawStyledBorder(0, 0, 4, 3, "half-cell-outer", Style{})
+
+	// Then — top half-blocks extend through corners
+	if got := b3.Cell(0, 0).Ch; got != '▀' {
+		t.Errorf("half-outer corner = %q, want ▀", got)
+	}
+	if got := b3.Cell(1, 0).Ch; got != '▌' {
+		t.Errorf("half-outer left = %q, want ▌", got)
+	}
+}
