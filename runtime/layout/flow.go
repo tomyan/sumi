@@ -5,12 +5,24 @@ package layout
 // inline formatting context. Flex attributes (direction/gap/justify/
 // align) do not apply in block flow.
 
-// isInlineLevel reports whether a child participates in inline flow.
-// Text with editing state, non-normal white-space, or explicit sizing
-// stacks as block-level instead.
+// isInlineLevel reports whether a child participates in inline flow:
+// plain text runs, and display:inline elements whose content is itself
+// inline-level. Text with editing state, non-normal white-space, or
+// explicit sizing stacks as block-level instead.
 func isInlineLevel(c *Input) bool {
-	return c.Kind == KindText && c.WhiteSpace == "" && !c.ContentEditable &&
-		c.FixedWidth == 0 && c.FixedHeight == 0
+	if c.Kind == KindText {
+		return c.WhiteSpace == "" && !c.ContentEditable &&
+			c.FixedWidth == 0 && c.FixedHeight == 0
+	}
+	if c.Display != "inline" {
+		return false
+	}
+	for _, gc := range c.Children {
+		if gc != nil && gc.Display != "none" && !isInlineLevel(gc) {
+			return false
+		}
+	}
+	return true
 }
 
 // layoutBlockFlow lays out a block container's flow children, returning

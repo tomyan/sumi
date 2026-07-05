@@ -8,21 +8,116 @@ type Fragment struct {
 	Text string
 }
 
-// layoutInlineChildren lays out text runs as one inline formatting
-// context: whitespace collapses, lines break across run boundaries, and
-// each run's Box receives box-relative Fragments plus a bounding rect.
+// layoutInlineChildren lays out inline-level children as one inline
+// formatting context: text runs are gathered depth-first through
+// display:inline elements, whitespace collapses, lines break across run
+// boundaries, and each run's Box receives box-relative Fragments plus a
+// bounding rect. Inline elements keep their pairwise child structure
+// with a union bounding rect.
 func layoutInlineChildren(children []*Input, offsetX, offsetY, availW int) []*Box {
-	texts := make([]string, len(children))
-	for i, child := range children {
-		texts[i] = transformText(child.Content, child.TextTransform)
+	var runs []*Input
+	gatherInlineRuns(children, &runs)
+	texts := make([]string, len(runs))
+	for i, run := range runs {
+		texts[i] = transformText(run.Content, run.TextTransform)
 	}
 	perRun := breakInline(texts, availW)
+	runIdx := 0
+	return buildInlineBoxes(children, perRun, &runIdx, offsetX, offsetY)
+}
 
+// gatherInlineRuns appends the text runs under children depth-first,
+// recursing through inline elements. Order matches buildInlineBoxes.
+func gatherInlineRuns(children []*Input, runs *[]*Input) {
+	for _, c := range children {
+		if c == nil || c.Display == "none" {
+			continue
+		}
+		if c.Kind == KindText {
+			*runs = append(*runs, c)
+			continue
+		}
+		gatherInlineRuns(c.Children, runs)
+	}
+}
+
+// buildInlineBoxes converts the broken runs back into a Box forest that
+// mirrors the Input structure. display:none children keep their nil
+// placeholder convention.
+func buildInlineBoxes(children []*Input, perRun [][]Fragment, runIdx *int, offsetX, offsetY int) []*Box {
 	boxes := make([]*Box, len(children))
-	for i, child := range children {
-		boxes[i] = fragmentBox(child, perRun[i], offsetX, offsetY)
+	for i, c := range children {
+		if c == nil || c.Display == "none" {
+			continue
+		}
+		if c.Kind == KindText {
+			boxes[i] = fragmentBox(c, perRun[*runIdx], offsetX, offsetY)
+			*runIdx++
+			continue
+		}
+		boxes[i] = buildInlineElementBox(c, perRun, runIdx, offsetX, offsetY)
 	}
 	return boxes
+}
+
+// buildInlineElementBox builds an inline element's Box: children are
+// built in container coordinates, the element takes their union rect,
+// and the children are re-based onto the element's origin.
+func buildInlineElementBox(c *Input, perRun [][]Fragment, runIdx *int, offsetX, offsetY int) *Box {
+	childBoxes := buildInlineBoxes(c.Children, perRun, runIdx, offsetX, offsetY)
+	box := &Box{
+		Kind:       KindBox,
+		Key:        c.Key,
+		Style:      c.Style,
+		HoverStyle: c.HoverStyle,
+		Hovered:    c.Hovered,
+		FocusStyle: c.FocusStyle,
+		Focused:    c.Focused,
+		Visibility: c.Visibility,
+		CursorCol:  -1,
+		CursorRow:  -1,
+		X:          offsetX,
+		Y:          offsetY,
+		Children:   childBoxes,
+	}
+	unionChildRects(box, childBoxes)
+	return box
+}
+
+// unionChildRects sizes box to the union of its children's rects and
+// re-bases the children onto the box origin.
+func unionChildRects(box *Box, children []*Box) {
+	first := true
+	maxX, maxY := 0, 0
+	for _, cb := range children {
+		if cb == nil || (cb.Width == 0 && cb.Height == 0) {
+			continue
+		}
+		if first || cb.X < box.X {
+			box.X = cb.X
+		}
+		if first || cb.Y < box.Y {
+			box.Y = cb.Y
+		}
+		if first || cb.X+cb.Width > maxX {
+			maxX = cb.X + cb.Width
+		}
+		if first || cb.Y+cb.Height > maxY {
+			maxY = cb.Y + cb.Height
+		}
+		first = false
+	}
+	if first {
+		return
+	}
+	box.Width = maxX - box.X
+	box.Height = maxY - box.Y
+	for _, cb := range children {
+		if cb != nil {
+			cb.X -= box.X
+			cb.Y -= box.Y
+		}
+	}
 }
 
 // fragmentBox builds a text Box from its line fragments (given in
