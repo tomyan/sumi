@@ -225,6 +225,7 @@ func applyLayoutProps(n *Input, props map[string]string) {
 		n.Display = v
 	}
 	applyTextLayoutProps(n, props)
+	applyGridProps(n, props)
 	if v, ok := cssValue(n, props, "overflow"); ok {
 		n.Overflow = v
 	}
@@ -248,6 +249,28 @@ func applyTextLayoutProps(n *Input, props map[string]string) {
 	}
 	if v, ok := cssValue(n, props, "visibility"); ok {
 		n.Visibility = v
+	}
+}
+
+// applyGridProps handles grid container and item properties.
+func applyGridProps(n *Input, props map[string]string) {
+	if v, ok := cssValue(n, props, "grid-template-columns"); ok {
+		n.GridTemplateColumns = v
+	}
+	if v, ok := cssValue(n, props, "grid-template-rows"); ok {
+		n.GridTemplateRows = v
+	}
+	if v, ok := cssValue(n, props, "grid-template-areas"); ok {
+		n.GridTemplateAreas = v
+	}
+	if v, ok := cssValue(n, props, "grid-column"); ok {
+		n.GridColumn = v
+	}
+	if v, ok := cssValue(n, props, "grid-row"); ok {
+		n.GridRow = v
+	}
+	if v, ok := cssValue(n, props, "grid-area"); ok {
+		n.GridArea = v
 	}
 }
 

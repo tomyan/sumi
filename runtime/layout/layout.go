@@ -31,68 +31,74 @@ type Input struct {
 	Classes []string          // class attribute, split
 	Attrs   map[string]string // template attributes (attribute selectors)
 
-	Direction       string // "column" (default) or "row"
-	FixedWidth      int    // 0 = auto
-	FixedHeight     int    // 0 = auto
-	WidthPct        int    // percentage of containing block width (0 = unset)
-	HeightPct       int    // percentage of containing block height (0 = unset)
-	WidthCalc       string // CSS math expression with %, resolved at layout time
-	HeightCalc      string // CSS math expression with %, resolved at layout time
-	LastW           int    // laid-out width from the previous pass (container queries)
-	LastH           int    // laid-out height from the previous pass
-	Gap             int    // space between children (cells)
-	FlexGrow        int    // flex-grow factor (0 = no grow)
-	FlexShrink      int    // 0 = CSS default (1); -1 = explicit flex-shrink: 0
-	FlexBasis       string // main-axis basis ("" = auto; cells or %)
-	FlexWrap        bool   // flex-wrap: wrap (row containers)
-	Justify         string // main-axis alignment: start, end, center, space-*
-	Align           string // cross-axis alignment: start, end, center, stretch
-	AlignSelf       string // per-child cross-axis override ("" = use parent Align)
-	Order           int    // flex order (lower first; ties keep source order)
-	Overflow        string // "hidden", "scroll", "auto", or "" (visible)
-	MinWidth        int    // minimum width (0 = no minimum)
-	MinHeight       int    // minimum height (0 = no minimum)
-	MaxWidth        int    // maximum width (0 = no maximum)
-	MaxHeight       int    // maximum height (0 = no maximum)
-	ContentBox      bool   // box-sizing: content-box (sizes exclude border+padding)
-	Display         string // "" (default) or "none" (hidden from layout)
-	TextAlign       string // "left" (default), "center", "right"
-	WhiteSpace      string // "" normal (wrap), "nowrap", "pre"
-	TextOverflow    string // "", "ellipsis", "ellipsis-middle"
-	TextTransform   string // "", "uppercase", "lowercase", "capitalize"
-	Visibility      string // "" visible, "hidden" (occupies space, not painted)
-	Position        string // "" (static), "relative", "absolute", "fixed", "sticky"
-	ZIndex          int    // paint order (higher renders on top)
-	Top             int    // offset from top (for positioned elements)
-	Left            int    // offset from left (for positioned elements)
-	Right           int    // offset from right (for positioned elements)
-	Bottom          int    // offset from bottom (for positioned elements)
-	SelfW           *int   // if non-nil, receives computed width after layout
-	SelfH           *int   // if non-nil, receives computed height after layout
-	SelfX           *int   // if non-nil, receives absolute X position after layout
-	SelfY           *int   // if non-nil, receives absolute Y position after layout
-	CursorCol       int    // cursor column within content (-1 = no cursor)
-	CursorRow       int    // cursor row within content (-1 = no cursor)
-	Focusable       bool   // true if this element can receive focus
-	FocusIndex      int    // assigned focus index (0-based) for Tab cycling
-	Padding         Padding
-	Margin          Margin
-	Border          string                // "single", "none", or ""
-	BorderTop       string                // top-only border: "single" or ""
-	BorderBottom    string                // bottom-only border: "single" or ""
-	BorderTitle     string                // text to display in the top border edge
-	BorderCollapse  bool                  // when true, children share borders
-	Scroll          *ScrollState          // if non-nil, layout populates and applies scroll state
-	ContentEditable bool                  // when true, renders an inverse cursor at CursorCol/CursorRow
-	Style           render.Style          // resolved style for this node
-	HoverStyle      render.Style          // style applied when mouse is over this node
-	Hovered         bool                  // set by the framework before render
-	FocusStyle      render.Style          // style applied when this node has focus
-	Focused         bool                  // set by generated sync before render
-	OnClick         func()                // called when this node is clicked
-	Transitions     []anim.TransitionSpec // CSS transition config (set by codegen)
-	AnimationSpec   *anim.AnimationSpec   // CSS animation config (set by codegen)
-	Children        []*Input
+	Direction           string // "column" (default) or "row"
+	FixedWidth          int    // 0 = auto
+	FixedHeight         int    // 0 = auto
+	WidthPct            int    // percentage of containing block width (0 = unset)
+	HeightPct           int    // percentage of containing block height (0 = unset)
+	WidthCalc           string // CSS math expression with %, resolved at layout time
+	HeightCalc          string // CSS math expression with %, resolved at layout time
+	LastW               int    // laid-out width from the previous pass (container queries)
+	LastH               int    // laid-out height from the previous pass
+	Gap                 int    // space between children (cells)
+	FlexGrow            int    // flex-grow factor (0 = no grow)
+	FlexShrink          int    // 0 = CSS default (1); -1 = explicit flex-shrink: 0
+	FlexBasis           string // main-axis basis ("" = auto; cells or %)
+	FlexWrap            bool   // flex-wrap: wrap (row containers)
+	Justify             string // main-axis alignment: start, end, center, space-*
+	Align               string // cross-axis alignment: start, end, center, stretch
+	AlignSelf           string // per-child cross-axis override ("" = use parent Align)
+	Order               int    // flex order (lower first; ties keep source order)
+	Overflow            string // "hidden", "scroll", "auto", or "" (visible)
+	MinWidth            int    // minimum width (0 = no minimum)
+	MinHeight           int    // minimum height (0 = no minimum)
+	MaxWidth            int    // maximum width (0 = no maximum)
+	MaxHeight           int    // maximum height (0 = no maximum)
+	ContentBox          bool   // box-sizing: content-box (sizes exclude border+padding)
+	Display             string // "" (default) or "none" (hidden from layout)
+	GridTemplateColumns string // grid track spec (display: grid)
+	GridTemplateRows    string
+	GridTemplateAreas   string // quoted area rows
+	GridColumn          string // item placement: "2", "1 / 3", "span 2"
+	GridRow             string
+	GridArea            string // named area reference
+	TextAlign           string // "left" (default), "center", "right"
+	WhiteSpace          string // "" normal (wrap), "nowrap", "pre"
+	TextOverflow        string // "", "ellipsis", "ellipsis-middle"
+	TextTransform       string // "", "uppercase", "lowercase", "capitalize"
+	Visibility          string // "" visible, "hidden" (occupies space, not painted)
+	Position            string // "" (static), "relative", "absolute", "fixed", "sticky"
+	ZIndex              int    // paint order (higher renders on top)
+	Top                 int    // offset from top (for positioned elements)
+	Left                int    // offset from left (for positioned elements)
+	Right               int    // offset from right (for positioned elements)
+	Bottom              int    // offset from bottom (for positioned elements)
+	SelfW               *int   // if non-nil, receives computed width after layout
+	SelfH               *int   // if non-nil, receives computed height after layout
+	SelfX               *int   // if non-nil, receives absolute X position after layout
+	SelfY               *int   // if non-nil, receives absolute Y position after layout
+	CursorCol           int    // cursor column within content (-1 = no cursor)
+	CursorRow           int    // cursor row within content (-1 = no cursor)
+	Focusable           bool   // true if this element can receive focus
+	FocusIndex          int    // assigned focus index (0-based) for Tab cycling
+	Padding             Padding
+	Margin              Margin
+	Border              string                // "single", "none", or ""
+	BorderTop           string                // top-only border: "single" or ""
+	BorderBottom        string                // bottom-only border: "single" or ""
+	BorderTitle         string                // text to display in the top border edge
+	BorderCollapse      bool                  // when true, children share borders
+	Scroll              *ScrollState          // if non-nil, layout populates and applies scroll state
+	ContentEditable     bool                  // when true, renders an inverse cursor at CursorCol/CursorRow
+	Style               render.Style          // resolved style for this node
+	HoverStyle          render.Style          // style applied when mouse is over this node
+	Hovered             bool                  // set by the framework before render
+	FocusStyle          render.Style          // style applied when this node has focus
+	Focused             bool                  // set by generated sync before render
+	OnClick             func()                // called when this node is clicked
+	Transitions         []anim.TransitionSpec // CSS transition config (set by codegen)
+	AnimationSpec       *anim.AnimationSpec   // CSS animation config (set by codegen)
+	Children            []*Input
 }
 
 // Padding holds inset values for each side.
@@ -591,7 +597,9 @@ func layoutNode(input *Input, availW, availH int) *Box {
 	}
 
 	var flowBoxes []*Box
-	if input.Direction == "row" && input.FlexWrap {
+	if input.Display == "grid" {
+		flowBoxes = layoutGrid(input, flowChildren, offsetX, offsetY, flexAvailW, flexAvailH)
+	} else if input.Direction == "row" && input.FlexWrap {
 		flowBoxes = layoutRowWrap(flowChildren, offsetX, offsetY, gap, flexAvailW, flexAvailH)
 	} else if input.Direction == "row" {
 		if hasFlexChildren || hasFlexSizing(flowChildren) {
@@ -630,7 +638,7 @@ func layoutNode(input *Input, availW, availH int) *Box {
 	if reversed {
 		justify = flipJustify(justify)
 	}
-	if justify != "" && justify != "start" && !input.FlexWrap {
+	if justify != "" && justify != "start" && !input.FlexWrap && input.Display != "grid" {
 		if input.Direction == "row" {
 			applyJustifyRow(flowBoxes, offsetX, contentAvailW, justify)
 		} else if input.FixedHeight > 0 {
@@ -644,7 +652,7 @@ func layoutNode(input *Input, availW, availH int) *Box {
 	if align == "" {
 		align = "stretch"
 	}
-	if (align != "start" || hasSelfAlignment(flowChildren)) && !input.FlexWrap {
+	if (align != "start" || hasSelfAlignment(flowChildren)) && !input.FlexWrap && input.Display != "grid" {
 		if input.Direction == "row" {
 			crossSize := rowCrossSize(contentAvailH, input.FixedHeight, flowBoxes)
 			applyAlignRow(flowBoxes, flowChildren, offsetY, crossSize, align)
