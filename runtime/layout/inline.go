@@ -8,63 +8,90 @@ type Fragment struct {
 	Text string
 }
 
-// layoutInlineChildren lays out inline-level children as one inline
-// formatting context: text runs are gathered depth-first through
-// display:inline elements, whitespace collapses, lines break across run
-// boundaries, and each run's Box receives box-relative Fragments plus a
-// bounding rect. Inline elements keep their pairwise child structure
-// with a union bounding rect.
-func layoutInlineChildren(children []*Input, offsetX, offsetY, availW int) []*Box {
-	var runs []*Input
-	gatherInlineRuns(children, &runs)
-	texts := make([]string, len(runs))
-	for i, run := range runs {
-		texts[i] = transformText(run.Content, run.TextTransform)
-	}
-	perRun := breakInline(texts, availW)
-	runIdx := 0
-	return buildInlineBoxes(children, perRun, &runIdx, offsetX, offsetY)
+// inlineItem is one participant in an inline formatting context: a text
+// run, or an inline-block atom (an unbreakable pre-laid-out box).
+type inlineItem struct {
+	input *Input
+	text  string // collapsed source text (text runs only)
+	atom  bool
+	box   *Box // atom's laid-out box (atoms only)
 }
 
-// gatherInlineRuns appends the text runs under children depth-first,
-// recursing through inline elements. Order matches buildInlineBoxes.
-func gatherInlineRuns(children []*Input, runs *[]*Input) {
+// layoutInlineChildren lays out inline-level children as one inline
+// formatting context: text runs are gathered depth-first through
+// display:inline elements (inline-block boxes join as atoms),
+// whitespace collapses, lines break across run boundaries, and each
+// run's Box receives box-relative Fragments plus a bounding rect.
+// Inline elements keep their pairwise child structure with a union
+// bounding rect.
+func layoutInlineChildren(children []*Input, offsetX, offsetY, availW, availH int) []*Box {
+	var items []inlineItem
+	gatherInlineItems(children, &items, availW, availH)
+	perItem := breakInline(items, availW)
+	itemIdx := 0
+	return buildInlineBoxes(children, items, perItem, &itemIdx, offsetX, offsetY)
+}
+
+// gatherInlineItems appends the IFC participants under children
+// depth-first, recursing through inline elements. Order matches
+// buildInlineBoxes.
+func gatherInlineItems(children []*Input, items *[]inlineItem, availW, availH int) {
 	for _, c := range children {
 		if c == nil || c.HiddenFromLayout() {
 			continue
 		}
 		if c.Kind == KindText {
-			*runs = append(*runs, c)
+			*items = append(*items, inlineItem{input: c, text: transformText(c.Content, c.TextTransform)})
 			continue
 		}
-		gatherInlineRuns(c.Children, runs)
+		if c.Display == "inline-block" {
+			*items = append(*items, inlineItem{input: c, atom: true, box: layoutNode(c, availW, availH)})
+			continue
+		}
+		gatherInlineItems(c.Children, items, availW, availH)
 	}
 }
 
 // buildInlineBoxes converts the broken runs back into a Box forest that
 // mirrors the Input structure. display:none children keep their nil
 // placeholder convention.
-func buildInlineBoxes(children []*Input, perRun [][]Fragment, runIdx *int, offsetX, offsetY int) []*Box {
+func buildInlineBoxes(children []*Input, items []inlineItem, perItem [][]Fragment, itemIdx *int, offsetX, offsetY int) []*Box {
 	boxes := make([]*Box, len(children))
 	for i, c := range children {
 		if c == nil || c.HiddenFromLayout() {
 			continue
 		}
 		if c.Kind == KindText {
-			boxes[i] = fragmentBox(c, perRun[*runIdx], offsetX, offsetY)
-			*runIdx++
+			boxes[i] = fragmentBox(c, perItem[*itemIdx], offsetX, offsetY)
+			*itemIdx++
 			continue
 		}
-		boxes[i] = buildInlineElementBox(c, perRun, runIdx, offsetX, offsetY)
+		if c.Display == "inline-block" {
+			boxes[i] = placeAtomBox(items[*itemIdx], perItem[*itemIdx], offsetX, offsetY)
+			*itemIdx++
+			continue
+		}
+		boxes[i] = buildInlineElementBox(c, items, perItem, itemIdx, offsetX, offsetY)
 	}
 	return boxes
+}
+
+// placeAtomBox positions an atom's pre-laid-out box at its line slot
+// (top-aligned on the line).
+func placeAtomBox(item inlineItem, frags []Fragment, offsetX, offsetY int) *Box {
+	box := item.box
+	if len(frags) > 0 {
+		box.X = offsetX + frags[0].X
+		box.Y = offsetY + frags[0].Y
+	}
+	return box
 }
 
 // buildInlineElementBox builds an inline element's Box: children are
 // built in container coordinates, the element takes their union rect,
 // and the children are re-based onto the element's origin.
-func buildInlineElementBox(c *Input, perRun [][]Fragment, runIdx *int, offsetX, offsetY int) *Box {
-	childBoxes := buildInlineBoxes(c.Children, perRun, runIdx, offsetX, offsetY)
+func buildInlineElementBox(c *Input, items []inlineItem, perItem [][]Fragment, itemIdx *int, offsetX, offsetY int) *Box {
+	childBoxes := buildInlineBoxes(c.Children, items, perItem, itemIdx, offsetX, offsetY)
 	box := &Box{
 		Kind:       KindBox,
 		Key:        c.Key,

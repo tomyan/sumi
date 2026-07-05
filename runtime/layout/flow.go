@@ -14,6 +14,9 @@ func isInlineLevel(c *Input) bool {
 		return c.Display != "block" && c.WhiteSpace == "" && !c.ContentEditable &&
 			c.FixedWidth == 0 && c.FixedHeight == 0
 	}
+	if c.Display == "inline-block" {
+		return true
+	}
 	if c.Display != "inline" {
 		return false
 	}
@@ -35,7 +38,7 @@ func layoutBlockFlow(children []*Input, offsetX, offsetY, availW, availH int) []
 	prevMarginBottom := 0
 	for i := 0; i < len(children); {
 		if isInlineLevel(children[i]) {
-			i = layoutInlineSegment(children, i, boxes, offsetX, offsetY, &cursorY, availW)
+			i = layoutInlineSegment(children, i, boxes, offsetX, offsetY, &cursorY, availW, availH)
 			prevMarginBottom = 0
 			continue
 		}
@@ -53,17 +56,17 @@ func layoutBlockFlow(children []*Input, offsetX, offsetY, availW, availH int) []
 // layoutInlineSegment lays out the run of inline-level children starting
 // at index start as one IFC, advancing the flow cursor by the segment's
 // line count. Returns the index after the segment.
-func layoutInlineSegment(children []*Input, start int, boxes []*Box, offsetX, offsetY int, cursorY *int, availW int) int {
+func layoutInlineSegment(children []*Input, start int, boxes []*Box, offsetX, offsetY int, cursorY *int, availW, availH int) int {
 	end := start
 	for end < len(children) && isInlineLevel(children[end]) {
 		end++
 	}
 	segTop := offsetY + *cursorY
-	segBoxes := layoutInlineChildren(children[start:end], offsetX, segTop, availW)
+	segBoxes := layoutInlineChildren(children[start:end], offsetX, segTop, availW, availH)
 	height := 0
 	for j, segBox := range segBoxes {
 		boxes[start+j] = segBox
-		if segBox.Fragments != nil && segBox.Y+segBox.Height-segTop > height {
+		if segBox != nil && segBox.Height > 0 && segBox.Y+segBox.Height-segTop > height {
 			height = segBox.Y + segBox.Height - segTop
 		}
 	}
