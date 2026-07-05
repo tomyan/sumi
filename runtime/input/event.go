@@ -1,6 +1,7 @@
 package input
 
 import (
+	"fmt"
 	"io"
 	"syscall"
 )
@@ -38,6 +39,18 @@ const (
 	KeyEscape    SpecialKey = "escape"
 	KeyBackspace SpecialKey = "backspace"
 	KeyDelete    SpecialKey = "delete"
+	KeyF1        SpecialKey = "f1"
+	KeyF2        SpecialKey = "f2"
+	KeyF3        SpecialKey = "f3"
+	KeyF4        SpecialKey = "f4"
+	KeyF5        SpecialKey = "f5"
+	KeyF6        SpecialKey = "f6"
+	KeyF7        SpecialKey = "f7"
+	KeyF8        SpecialKey = "f8"
+	KeyF9        SpecialKey = "f9"
+	KeyF10       SpecialKey = "f10"
+	KeyF11       SpecialKey = "f11"
+	KeyF12       SpecialKey = "f12"
 )
 
 // Event represents a terminal input event.
@@ -99,6 +112,16 @@ func parseEscapeSequence(r io.Reader) (Event, error) {
 
 	if b == ']' {
 		return parseOSC(r)
+	}
+	if b == 'O' {
+		// SS3 function keys: ESC O P..S = F1..F4.
+		next, err := readByte(r)
+		if err == nil {
+			if key, ok := ss3FunctionKey(next); ok {
+				return Event{Kind: EventSpecial, Special: key}, nil
+			}
+		}
+		return Event{Kind: EventSpecial, Special: KeyEscape}, nil
 	}
 	if b != '[' {
 		// ESC followed by a printable character is Alt+key
@@ -241,9 +264,32 @@ func numericCSIKey(num int) (SpecialKey, bool) {
 		return KeyPgUp, true
 	case 6:
 		return KeyPgDn, true
+	case 11, 12, 13, 14, 15:
+		return SpecialKey(fmt.Sprintf("f%d", num-10)), true
+	case 17, 18, 19, 20, 21:
+		return SpecialKey(fmt.Sprintf("f%d", num-11)), true
+	case 23:
+		return KeyF11, true
+	case 24:
+		return KeyF12, true
 	default:
 		return "", false
 	}
+}
+
+// ss3FunctionKey maps SS3 final bytes to F1–F4.
+func ss3FunctionKey(b byte) (SpecialKey, bool) {
+	switch b {
+	case 'P':
+		return KeyF1, true
+	case 'Q':
+		return KeyF2, true
+	case 'R':
+		return KeyF3, true
+	case 'S':
+		return KeyF4, true
+	}
+	return "", false
 }
 
 func readByte(r io.Reader) (byte, error) {
