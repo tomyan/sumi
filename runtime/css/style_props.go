@@ -24,17 +24,23 @@ func ToRenderStyle(props map[string]string) render.Style {
 }
 
 func applyColorProps(s *render.Style, props map[string]string) {
-	if v, ok := props["color"]; ok {
-		s.FG = parseColor(v)
+	setColor(&s.FG, props["color"])
+	// border-color: currentColor keeps the color value already in FG.
+	if v := props["border-color"]; !strings.EqualFold(v, "currentColor") {
+		setColor(&s.FG, v)
 	}
-	if v, ok := props["border-color"]; ok {
-		s.FG = parseColor(v)
+	setColor(&s.BG, props["background"])
+	setColor(&s.BG, props["background-color"])
+}
+
+// setColor parses a colour value into dst; unset or invalid values leave
+// dst untouched (graceful drop).
+func setColor(dst *render.Color, v string) {
+	if v == "" {
+		return
 	}
-	if v, ok := props["background"]; ok {
-		s.BG = parseColor(v)
-	}
-	if v, ok := props["background-color"]; ok {
-		s.BG = parseColor(v)
+	if c, ok := ParseColorValue(v); ok {
+		*dst = c
 	}
 }
 
@@ -79,32 +85,4 @@ func opacityIsDim(v string) bool {
 	}
 	f, err := strconv.ParseFloat(v, 64)
 	return err == nil && f < 1
-}
-
-// parseColor parses a CSS colour value — either a named colour ("red") or hex ("#ff5555").
-func parseColor(v string) render.Color {
-	if len(v) == 7 && v[0] == '#' {
-		r := hexByte(v[1], v[2])
-		g := hexByte(v[3], v[4])
-		b := hexByte(v[5], v[6])
-		return render.Color{IsRGB: true, R: r, G: g, B: b}
-	}
-	return render.Color{Name: v}
-}
-
-func hexByte(hi, lo byte) uint8 {
-	return hexNibble(hi)<<4 | hexNibble(lo)
-}
-
-func hexNibble(b byte) uint8 {
-	switch {
-	case b >= '0' && b <= '9':
-		return b - '0'
-	case b >= 'a' && b <= 'f':
-		return b - 'a' + 10
-	case b >= 'A' && b <= 'F':
-		return b - 'A' + 10
-	default:
-		return 0
-	}
 }
