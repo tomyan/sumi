@@ -1,5 +1,7 @@
 package layout
 
+import "github.com/tomyan/sumi/runtime/render"
+
 // Block flow (display: block): block-level children stack vertically and
 // fill the available width; consecutive inline-level children form an
 // inline formatting context. Flex attributes (direction/gap/justify/
@@ -29,10 +31,21 @@ func isInlineLevel(c *Input) bool {
 }
 
 // layoutBlockFlow lays out a block container's flow children, returning
-// boxes index-aligned with the children. Adjacent block siblings'
-// vertical margins collapse to their maximum (positive margins only);
-// inline content between blocks resets the collapse context.
+// boxes index-aligned with the children. display:contents elements are
+// flattened first so their children participate directly in this flow,
+// then reassembled into union-rect placeholder boxes. Adjacent block
+// siblings' vertical margins collapse to their maximum (positive
+// margins only); inline content between blocks resets the collapse
+// context.
 func layoutBlockFlow(children []*Input, offsetX, offsetY, availW, availH int) []*Box {
+	var flat []*Input
+	flattenContents(children, &flat)
+	flatBoxes := layoutFlatBlockFlow(flat, offsetX, offsetY, availW, availH)
+	idx := 0
+	return reassembleContents(children, flatBoxes, &idx)
+}
+
+func layoutFlatBlockFlow(children []*Input, offsetX, offsetY, availW, availH int) []*Box {
 	boxes := make([]*Box, len(children))
 	cursorY := 0
 	prevMarginBottom := 0
@@ -49,6 +62,53 @@ func layoutBlockFlow(children []*Input, offsetX, offsetY, availW, availH int) []
 		layoutBlockChild(child, boxes, i, offsetX, offsetY, &cursorY, availW, availH)
 		prevMarginBottom = child.Margin.Bottom
 		i++
+	}
+	return boxes
+}
+
+// flattenContents appends the flow participants, replacing each
+// display:contents element with its own (recursively flattened)
+// children.
+func flattenContents(children []*Input, out *[]*Input) {
+	for _, c := range children {
+		if c == nil || c.HiddenFromLayout() {
+			continue
+		}
+		if c.Display == "contents" {
+			flattenContents(c.Children, out)
+			continue
+		}
+		*out = append(*out, c)
+	}
+}
+
+// reassembleContents rebuilds the original child structure from the
+// flat flow boxes, wrapping each contents element's children in a
+// union-rect placeholder that paints nothing of its own.
+func reassembleContents(children []*Input, flatBoxes []*Box, idx *int) []*Box {
+	boxes := make([]*Box, len(children))
+	for i, c := range children {
+		if c == nil || c.HiddenFromLayout() {
+			continue
+		}
+		if c.Display != "contents" {
+			boxes[i] = flatBoxes[*idx]
+			*idx++
+			continue
+		}
+		sub := reassembleContents(c.Children, flatBoxes, idx)
+		style := c.Style
+		style.BG = render.Color{} // contents generates no box: nothing painted
+		box := &Box{
+			Kind:      KindBox,
+			Key:       c.Key,
+			Style:     style,
+			CursorCol: -1,
+			CursorRow: -1,
+			Children:  sub,
+		}
+		unionChildRects(box, sub)
+		boxes[i] = box
 	}
 	return boxes
 }
