@@ -4,7 +4,7 @@ import "testing"
 
 func TestParseSnippetDefinition(t *testing.T) {
 	// Given
-	input := `<box>{snippet item(name string)}<text>{name}</text>{/snippet}</box>`
+	input := `<div>{snippet item(name string)}<span>{name}</span>{/snippet}</div>`
 
 	// When
 	doc, err := Parse(input)
@@ -31,7 +31,7 @@ func TestParseSnippetDefinition(t *testing.T) {
 
 func TestParseRenderSnippet(t *testing.T) {
 	// Given
-	input := `<box>{render item("hello")}</box>`
+	input := `<div>{render item("hello")}</div>`
 
 	// When
 	doc, err := Parse(input)

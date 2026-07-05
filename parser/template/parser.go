@@ -68,9 +68,9 @@ func (p *parser) parseElement() (Node, error) {
 	}
 	switch {
 	case tagName == "text":
-		return p.parseTextTag()
+		return nil, fmt.Errorf("the <text> tag was removed; use <span> (or another HTML text element)")
 	case tagName == "box":
-		return p.parseBoxElement()
+		return nil, fmt.Errorf("the <box> tag was removed; use <div> (or another HTML container element)")
 	case tagName == "title":
 		return p.parseTitleElement()
 	case strings.HasPrefix(tagName, "slot:"):
@@ -166,8 +166,10 @@ func (p *parser) htmlBodyIsText(tag string) bool {
 		return false
 	}
 	body := rest[:lt]
-	if strings.Contains(body, "{if ") || strings.Contains(body, "{for ") {
-		return false
+	for _, marker := range []string{"{if ", "{for ", "{render ", "{snippet ", "{slot"} {
+		if strings.Contains(body, marker) {
+			return false
+		}
 	}
 	if strings.TrimSpace(body) == "" {
 		return !containerTags[tag]
@@ -190,18 +192,6 @@ func (p *parser) readTagName() string {
 	})
 }
 
-// parseTextTag parses attributes and body of a <text> element.
-func (p *parser) parseTextTag() (Node, error) {
-	attrs, err := p.parseAttributes()
-	if err != nil {
-		return nil, err
-	}
-	if err := p.expectClose("text"); err != nil {
-		return nil, err
-	}
-	return p.parseTextElement(attrs)
-}
-
 func (p *parser) parseTitleElement() (Node, error) {
 	if err := p.expectClose("title"); err != nil {
 		return nil, err
@@ -215,24 +205,6 @@ func (p *parser) parseTitleElement() (Node, error) {
 	p.pos += closeIdx + len(closingTag)
 	parts := parseTextParts(content)
 	return &TitleElement{Parts: parts}, nil
-}
-
-func (p *parser) parseBoxElement() (Node, error) {
-	attrs, err := p.parseAttributes()
-	if err != nil {
-		return nil, err
-	}
-	if err := p.expectClose("box"); err != nil {
-		return nil, err
-	}
-	children, err := p.parseChildren("box")
-	if err != nil {
-		return nil, err
-	}
-	if attrs == nil {
-		attrs = make(map[string]string)
-	}
-	return &BoxElement{Attributes: attrs, Children: children}, nil
 }
 
 func (p *parser) parseComponentElement(name string) (Node, error) {

@@ -12,10 +12,10 @@ func TestGenerateBoxWithBorderAndPadding(t *testing.T) {
 	// Given
 	dir := t.TempDir()
 	sumiFile := filepath.Join(dir, "boxed.sumi")
-	input := `<box border="single" padding="1">
-  <text>Hello, Sumi!</text>
-  <text>Box layout works!</text>
-</box>`
+	input := `<div border="single" padding="1">
+  <span>Hello, Sumi!</span>
+  <span>Box layout works!</span>
+</div>`
 	if err := os.WriteFile(sumiFile, []byte(input), 0644); err != nil {
 		t.Fatal(err)
 	}
@@ -59,7 +59,7 @@ func TestGenerateNestedBoxes(t *testing.T) {
 	// Given
 	dir := t.TempDir()
 	sumiFile := filepath.Join(dir, "nested.sumi")
-	input := `<box><box border="single"><text>Nested</text></box></box>`
+	input := `<div><div border="single"><span>Nested</span></div></div>`
 	if err := os.WriteFile(sumiFile, []byte(input), 0644); err != nil {
 		t.Fatal(err)
 	}
@@ -94,9 +94,9 @@ func TestGenerateBoxWithDirectionAndSize(t *testing.T) {
 	// Given
 	dir := t.TempDir()
 	sumiFile := filepath.Join(dir, "sized.sumi")
-	input := `<box direction="column" width="40" height="10">
-  <text>Sized box</text>
-</box>`
+	input := `<div direction="column" width="40" height="10">
+  <span>Sized box</span>
+</div>`
 	if err := os.WriteFile(sumiFile, []byte(input), 0644); err != nil {
 		t.Fatal(err)
 	}
@@ -134,11 +134,11 @@ func TestGenerateMixedBoxesAndText(t *testing.T) {
 	// Given
 	dir := t.TempDir()
 	sumiFile := filepath.Join(dir, "mixed.sumi")
-	input := `<text>Top-level text</text>
-<box border="single">
-  <text>Inside box</text>
-</box>
-<text>Bottom text</text>`
+	input := `<span>Top-level text</span>
+<div border="single">
+  <span>Inside box</span>
+</div>
+<span>Bottom text</span>`
 	if err := os.WriteFile(sumiFile, []byte(input), 0644); err != nil {
 		t.Fatal(err)
 	}

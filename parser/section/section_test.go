@@ -6,7 +6,7 @@ import (
 
 func TestParseTemplateOnly(t *testing.T) {
 	// Given
-	input := `<text>Hello</text>`
+	input := `<span>Hello</span>`
 
 	// When
 	got, err := Parse(input)
@@ -15,8 +15,8 @@ func TestParseTemplateOnly(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	if got.Template != "<text>Hello</text>" {
-		t.Errorf("Template = %q, want %q", got.Template, "<text>Hello</text>")
+	if got.Template != "<span>Hello</span>" {
+		t.Errorf("Template = %q, want %q", got.Template, "<span>Hello</span>")
 	}
 	if got.Script != "" {
 		t.Errorf("Script = %q, want empty", got.Script)
@@ -36,7 +36,7 @@ count := $state(0)
 .title { color: green; }
 </style>
 
-<text>Hello</text>`
+<span>Hello</span>`
 
 	// When
 	got, err := Parse(input)
@@ -51,8 +51,8 @@ count := $state(0)
 	if got.Style != "\n.title { color: green; }\n" {
 		t.Errorf("Style = %q, want %q", got.Style, "\n.title { color: green; }\n")
 	}
-	if got.Template != "<text>Hello</text>" {
-		t.Errorf("Template = %q, want %q", got.Template, "<text>Hello</text>")
+	if got.Template != "<span>Hello</span>" {
+		t.Errorf("Template = %q, want %q", got.Template, "<span>Hello</span>")
 	}
 }
 
@@ -62,7 +62,7 @@ func TestParseScriptAndTemplate(t *testing.T) {
 name := $state("world")
 </script>
 
-<text>Hello, {name}</text>`
+<span>Hello, {name}</span>`
 
 	// When
 	got, err := Parse(input)
@@ -77,8 +77,8 @@ name := $state("world")
 	if got.Style != "" {
 		t.Errorf("Style = %q, want empty", got.Style)
 	}
-	if got.Template != "<text>Hello, {name}</text>" {
-		t.Errorf("Template = %q, want %q", got.Template, "<text>Hello, {name}</text>")
+	if got.Template != "<span>Hello, {name}</span>" {
+		t.Errorf("Template = %q, want %q", got.Template, "<span>Hello, {name}</span>")
 	}
 }
 
@@ -112,7 +112,7 @@ func TestParseImportsSection(t *testing.T) {
 x := $state(0)
 </script>
 
-<text>Hello</text>`
+<span>Hello</span>`
 
 	// When
 	got, err := Parse(input)
@@ -127,15 +127,15 @@ x := $state(0)
 	if got.Script != "\nx := $state(0)\n" {
 		t.Errorf("Script = %q, want %q", got.Script, "\nx := $state(0)\n")
 	}
-	if got.Template != "<text>Hello</text>" {
-		t.Errorf("Template = %q, want %q", got.Template, "<text>Hello</text>")
+	if got.Template != "<span>Hello</span>" {
+		t.Errorf("Template = %q, want %q", got.Template, "<span>Hello</span>")
 	}
 }
 
 func TestParseNoImportsSection(t *testing.T) {
 	// Given
 	input := `<script>x := 1</script>
-<text>Hello</text>`
+<span>Hello</span>`
 
 	// When
 	got, err := Parse(input)
@@ -156,7 +156,7 @@ x := 1
 </script>
 
 
-<text>Hello</text>
+<span>Hello</span>
   `
 
 	// When
@@ -169,7 +169,7 @@ x := 1
 	if got.Script != "\nx := 1\n" {
 		t.Errorf("Script = %q, want %q", got.Script, "\nx := 1\n")
 	}
-	if got.Template != "<text>Hello</text>" {
-		t.Errorf("Template = %q, want %q", got.Template, "<text>Hello</text>")
+	if got.Template != "<span>Hello</span>" {
+		t.Errorf("Template = %q, want %q", got.Template, "<span>Hello</span>")
 	}
 }

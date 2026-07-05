@@ -4,7 +4,7 @@ import "testing"
 
 func TestParseSlotPlaceholder(t *testing.T) {
 	// Given — component template with a slot placeholder
-	input := `<box><slot:header /><slot:children /></box>`
+	input := `<div><slot:header /><slot:children /></div>`
 
 	// When
 	doc, err := Parse(input)
@@ -37,7 +37,7 @@ func TestParseSlotPlaceholder(t *testing.T) {
 
 func TestParseSlotWithDefault(t *testing.T) {
 	// Given — slot with default content
-	input := `<box><slot:header><text>Default Title</text></slot:header></box>`
+	input := `<div><slot:header><span>Default Title</span></slot:header></div>`
 
 	// When
 	doc, err := Parse(input)
@@ -61,7 +61,7 @@ func TestParseSlotWithDefault(t *testing.T) {
 
 func TestParseSlotDefinition(t *testing.T) {
 	// Given — consumer provides slot content
-	input := `<box>{slot header}<text>My Title</text>{/slot}<text>Body</text></box>`
+	input := `<div>{slot header}<span>My Title</span>{/slot}<span>Body</span></div>`
 
 	// When
 	doc, err := Parse(input)

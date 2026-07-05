@@ -12,7 +12,7 @@ func TestGenerateFileCreatesGoFile(t *testing.T) {
 	// Given
 	dir := t.TempDir()
 	sumiFile := filepath.Join(dir, "hello.sumi")
-	if err := os.WriteFile(sumiFile, []byte(`<text>Hello, Sumi!</text>`), 0644); err != nil {
+	if err := os.WriteFile(sumiFile, []byte(`<span>Hello, Sumi!</span>`), 0644); err != nil {
 		t.Fatal(err)
 	}
 
@@ -33,7 +33,7 @@ func TestGenerateFileProducesValidGo(t *testing.T) {
 	// Given
 	dir := t.TempDir()
 	sumiFile := filepath.Join(dir, "hello.sumi")
-	if err := os.WriteFile(sumiFile, []byte(`<text>Hello, Sumi!</text>`), 0644); err != nil {
+	if err := os.WriteFile(sumiFile, []byte(`<span>Hello, Sumi!</span>`), 0644); err != nil {
 		t.Fatal(err)
 	}
 
@@ -64,7 +64,7 @@ func TestGenerateFileUsesDirectoryAsPackageName(t *testing.T) {
 		t.Fatal(err)
 	}
 	sumiFile := filepath.Join(subdir, "hello.sumi")
-	if err := os.WriteFile(sumiFile, []byte(`<text>Hello</text>`), 0644); err != nil {
+	if err := os.WriteFile(sumiFile, []byte(`<span>Hello</span>`), 0644); err != nil {
 		t.Fatal(err)
 	}
 
@@ -89,7 +89,7 @@ func TestGenerateDirectoryProcessesAllSumiFiles(t *testing.T) {
 	// Given
 	dir := t.TempDir()
 	for _, name := range []string{"foo.sumi", "bar.sumi"} {
-		if err := os.WriteFile(filepath.Join(dir, name), []byte(`<text>Hello</text>`), 0644); err != nil {
+		if err := os.WriteFile(filepath.Join(dir, name), []byte(`<span>Hello</span>`), 0644); err != nil {
 			t.Fatal(err)
 		}
 	}
@@ -117,7 +117,7 @@ func TestGenerateDirectoryDefaultsToCurrentDir(t *testing.T) {
 	// Given
 	dir := t.TempDir()
 	sumiFile := filepath.Join(dir, "app.sumi")
-	if err := os.WriteFile(sumiFile, []byte(`<text>Hello</text>`), 0644); err != nil {
+	if err := os.WriteFile(sumiFile, []byte(`<span>Hello</span>`), 0644); err != nil {
 		t.Fatal(err)
 	}
 	orig, err := os.Getwd()
@@ -144,7 +144,7 @@ func TestGenerateFileReportsParseError(t *testing.T) {
 	// Given
 	dir := t.TempDir()
 	sumiFile := filepath.Join(dir, "bad.sumi")
-	if err := os.WriteFile(sumiFile, []byte(`<text>Hello`), 0644); err != nil {
+	if err := os.WriteFile(sumiFile, []byte(`<span>Hello`), 0644); err != nil {
 		t.Fatal(err)
 	}
 
@@ -185,7 +185,7 @@ func TestGenerateFileUsesPackageMainWhenMainGoExists(t *testing.T) {
 		t.Fatal(err)
 	}
 	sumiFile := filepath.Join(subdir, "hello.sumi")
-	if err := os.WriteFile(sumiFile, []byte(`<text>Hello</text>`), 0644); err != nil {
+	if err := os.WriteFile(sumiFile, []byte(`<span>Hello</span>`), 0644); err != nil {
 		t.Fatal(err)
 	}
 
@@ -217,7 +217,7 @@ func TestGenerateFileWithStyleBlock(t *testing.T) {
   font-weight: bold;
 }
 </style>
-<text class="title">Hello</text>`
+<span class="title">Hello</span>`
 	if err := os.WriteFile(sumiFile, []byte(input), 0644); err != nil {
 		t.Fatal(err)
 	}

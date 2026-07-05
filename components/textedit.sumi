@@ -793,8 +793,8 @@ func handleEvent(evt sumi.Event) {
 }
 </style>
 
-<box focusable="true" onkey="handleEvent" cursor-x={cursorX()} cursor-y="0">
-    <box flex-direction="row">
-        <text>{visiblePreSel()}</text><text class="selection">{visibleSel()}</text><text>{visiblePostSel()}</text><text class="placeholder">{visiblePlaceholder()}</text>
-    </box>
-</box>
+<div focusable="true" onkey="handleEvent" cursor-x={cursorX()} cursor-y="0">
+    <div flex-direction="row">
+        <span>{visiblePreSel()}</span><span class="selection">{visibleSel()}</span><span>{visiblePostSel()}</span><span class="placeholder">{visiblePlaceholder()}</span>
+    </div>
+</div>

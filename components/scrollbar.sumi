@@ -239,10 +239,10 @@ func handleEvent(evt sumi.Event) {
 }
 </style>
 
-<box flex-direction="row" focusable="true" onkey="handleEvent">
-    <text class="dim">{spacer()}</text>
-    <text class="dim">{startArrow()}</text>
-    <text class="dim">{trackText()}</text>
-    <text class="dim">{endArrow()}</text>
-    <text class="dim">{spacer()}</text>
-</box>
+<div flex-direction="row" focusable="true" onkey="handleEvent">
+    <span class="dim">{spacer()}</span>
+    <span class="dim">{startArrow()}</span>
+    <span class="dim">{trackText()}</span>
+    <span class="dim">{endArrow()}</span>
+    <span class="dim">{spacer()}</span>
+</div>

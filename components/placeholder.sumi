@@ -1,4 +1,4 @@
 <script>
 var label string = "hello"
 </script>
-<text>{label}</text>
+<span>{label}</span>

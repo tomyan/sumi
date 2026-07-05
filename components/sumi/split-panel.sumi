@@ -16,7 +16,7 @@ var panelHeight int
 }
 </style>
 
-<box class="root">
-    <box class="panel" border-title={leftTitle} height={panelHeight}></box>
-    <box class="panel" border-title={rightTitle} height={panelHeight}></box>
-</box>
+<div class="root">
+    <div class="panel" border-title={leftTitle} height={panelHeight}></div>
+    <div class="panel" border-title={rightTitle} height={panelHeight}></div>
+</div>

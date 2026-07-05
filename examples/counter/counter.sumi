@@ -36,8 +36,8 @@ func handleKey(evt sumi.Event) {
 }
 </script>
 
-<box class="container" onkey="handleKey">
-    <text class="title">Sumi Counter</text>
-    <text class="hint">Press any key to increment, q to quit</text>
-    <text class="count">Count: {count} (doubled: {doubled})</text>
-</box>
+<div class="container" onkey="handleKey">
+    <span class="title">Sumi Counter</span>
+    <span class="hint">Press any key to increment, q to quit</span>
+    <span class="count">Count: {count} (doubled: {doubled})</span>
+</div>

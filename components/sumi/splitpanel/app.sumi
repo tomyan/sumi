@@ -10,7 +10,7 @@ func handleKey(evt sumi.Event) {
 .panel { flex-grow: 1; border: single; padding: 0 1; }
 </style>
 
-<box class="root" onkey="handleKey">
-    <box class="panel" border-title="Actual" height="5"></box>
-    <box class="panel" border-title="Expected" height="5"></box>
-</box>
+<div class="root" onkey="handleKey">
+    <div class="panel" border-title="Actual" height="5"></div>
+    <div class="panel" border-title="Expected" height="5"></div>
+</div>

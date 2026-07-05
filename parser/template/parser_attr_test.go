@@ -4,7 +4,7 @@ import "testing"
 
 func TestParseExpressionAttribute(t *testing.T) {
 	// Given — attribute with curly braces for expression
-	input := `<box onkey={handleKey}><text>hello</text></box>`
+	input := `<div onkey={handleKey}><span>hello</span></div>`
 
 	// When
 	doc, err := Parse(input)
@@ -21,7 +21,7 @@ func TestParseExpressionAttribute(t *testing.T) {
 
 func TestParseExpressionAttributeWithSpaces(t *testing.T) {
 	// Given — expression with spaces inside curlies
-	input := `<box width={w - 2}><text>hello</text></box>`
+	input := `<div width={w - 2}><span>hello</span></div>`
 
 	// When
 	doc, err := Parse(input)
@@ -78,7 +78,7 @@ func TestParseMixedAttributeSyntax(t *testing.T) {
 
 func TestParseBoxExpressionAttribute(t *testing.T) {
 	// Given — box element with expression attribute
-	input := `<box cursor-x={cursor}><text>hi</text></box>`
+	input := `<div cursor-x={cursor}><span>hi</span></div>`
 
 	// When
 	doc, err := Parse(input)
@@ -95,7 +95,7 @@ func TestParseBoxExpressionAttribute(t *testing.T) {
 
 func TestParseQuotedAttributeUnchanged(t *testing.T) {
 	// Given — existing quoted syntax still works
-	input := `<box direction="row"><text>hi</text></box>`
+	input := `<div direction="row"><span>hi</span></div>`
 
 	// When
 	doc, err := Parse(input)

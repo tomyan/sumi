@@ -40,25 +40,25 @@
 }
 </style>
 
-<box>
-    <box class="header">
-        <text class="title">Sumi Flexbox Dashboard</text>
-    </box>
-    <text class="hint">Press q to quit</text>
-    <box class="panels">
-        <box class="panel">
-            <text class="panel-title">Left Panel</text>
-            <text>This panel uses flex-grow</text>
-            <text>to fill available space.</text>
-        </box>
-        <box class="panel">
-            <text class="panel-title">Right Panel</text>
-            <text>Both panels share the</text>
-            <text>width equally.</text>
-        </box>
-    </box>
-    <box class="footer">
-        <text class="status">Ready</text>
-        <text class="version">sumi v0.1</text>
-    </box>
-</box>
+<div>
+    <div class="header">
+        <span class="title">Sumi Flexbox Dashboard</span>
+    </div>
+    <span class="hint">Press q to quit</span>
+    <div class="panels">
+        <div class="panel">
+            <span class="panel-title">Left Panel</span>
+            <span>This panel uses flex-grow</span>
+            <span>to fill available space.</span>
+        </div>
+        <div class="panel">
+            <span class="panel-title">Right Panel</span>
+            <span>Both panels share the</span>
+            <span>width equally.</span>
+        </div>
+    </div>
+    <div class="footer">
+        <span class="status">Ready</span>
+        <span class="version">sumi v0.1</span>
+    </div>
+</div>

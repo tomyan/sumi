@@ -142,47 +142,47 @@ func handleKey(evt sumi.Event) {
 }
 </script>
 
-<box onkey="handleKey">
-    <box class="panels">
-        <box class="actual" border-title="Actual" height={pvComponentHeight()}></box>
-        <box class="expected" border-title="Expected" height={pvComponentHeight()}></box>
-    </box>
-    <box flex-direction="row">
+<div onkey="handleKey">
+    <div class="panels">
+        <div class="actual" border-title="Actual" height={pvComponentHeight()}></div>
+        <div class="expected" border-title="Expected" height={pvComponentHeight()}></div>
+    </div>
+    <div flex-direction="row">
         {if interactive.Get()}
-            <text class="key">esc</text><text class="label"> Exit  </text>
-            <text class="interactive"> INTERACTIVE </text>
-            <text class="info">  {pvScenarioName()}  Frame {current+1}/{pvStepCount()}  {pvStepName(current)}</text>
+            <span class="key">esc</span><span class="label"> Exit  </span>
+            <span class="interactive"> INTERACTIVE </span>
+            <span class="info">  {pvScenarioName()}  Frame {current+1}/{pvStepCount()}  {pvStepName(current)}</span>
         {else}
             {if pvIsEditorFocused()}
-                <text class="focus-indicator"> {pvFocusName()} </text>
-                <text class="key">C-\</text><text class="label"> Exit  </text>
-                <text class="key">C-\ h</text><text class="label"> Prev  </text>
-                <text class="key">C-\ l</text><text class="label"> Next  </text>
+                <span class="focus-indicator"> {pvFocusName()} </span>
+                <span class="key">C-\</span><span class="label"> Exit  </span>
+                <span class="key">C-\ h</span><span class="label"> Prev  </span>
+                <span class="key">C-\ l</span><span class="label"> Next  </span>
             {else}
-                <text class="key">h</text><text class="label"> Prev  </text>
-                <text class="key">l</text><text class="label"> Next  </text>
-                <text class="key">u</text><text class="label"> Update  </text>
-                <text class="key">i</text><text class="label"> Interactive  </text>
-                <text class="key">1</text><text class="label"> Source  </text>
-                <text class="key">2</text><text class="label"> Snap  </text>
-                <text class="key">3</text><text class="label"> Scenario  </text>
-                <text class="key">q</text><text class="label"> Quit  </text>
+                <span class="key">h</span><span class="label"> Prev  </span>
+                <span class="key">l</span><span class="label"> Next  </span>
+                <span class="key">u</span><span class="label"> Update  </span>
+                <span class="key">i</span><span class="label"> Interactive  </span>
+                <span class="key">1</span><span class="label"> Source  </span>
+                <span class="key">2</span><span class="label"> Snap  </span>
+                <span class="key">3</span><span class="label"> Scenario  </span>
+                <span class="key">q</span><span class="label"> Quit  </span>
             {/if}
             {if matchStatus.Get() == 1}
-                <text class="match"> MATCH </text>
+                <span class="match"> MATCH </span>
             {else}
                 {if matchStatus.Get() == 0}
-                    <text class="no-snap"> NO SNAPSHOT </text>
+                    <span class="no-snap"> NO SNAPSHOT </span>
                 {else}
-                    <text class="diff"> DIFF </text>
+                    <span class="diff"> DIFF </span>
                 {/if}
             {/if}
-            <text class="info">  {pvScenarioName()}  Frame {current+1}/{pvStepCount()}  {pvStepName(current)}</text>
+            <span class="info">  {pvScenarioName()}  Frame {current+1}/{pvStepCount()}  {pvStepName(current)}</span>
         {/if}
-    </box>
-    <box class="editors">
-        <box class="editor-left" border-title={pvSourceTitle()}></box>
-        <box class="editor-right" border-title={pvSnapshotTitle()}></box>
-    </box>
-    <box class="scenario-editor" border-title={pvScenarioTitle()}></box>
-</box>
+    </div>
+    <div class="editors">
+        <div class="editor-left" border-title={pvSourceTitle()}></div>
+        <div class="editor-right" border-title={pvSnapshotTitle()}></div>
+    </div>
+    <div class="scenario-editor" border-title={pvScenarioTitle()}></div>
+</div>

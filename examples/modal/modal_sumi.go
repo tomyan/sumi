@@ -37,7 +37,7 @@ func NewModal(props ModalProps) *sumi.Component {
 			var cs []*sumi.Input
 			cs = append(cs, &sumi.Input{
 				Kind:      sumi.KindBox,
-				Tag:       "box",
+				Tag:       "div",
 				Classes:   []string{"container"},
 				Attrs:     map[string]string{"class": "container", "onkey": "handleKey"},
 				CursorCol: -1,
@@ -45,21 +45,21 @@ func NewModal(props ModalProps) *sumi.Component {
 				Children: []*sumi.Input{
 					{
 						Kind:    sumi.KindText,
-						Tag:     "text",
+						Tag:     "span",
 						Classes: []string{"title"},
 						Attrs:   map[string]string{"class": "title"},
 						Content: "Modal Demo",
 					},
 					{
 						Kind:    sumi.KindText,
-						Tag:     "text",
+						Tag:     "span",
 						Classes: []string{"hint"},
 						Attrs:   map[string]string{"class": "hint"},
 						Content: "Press any key to toggle modal, q to quit",
 					},
 					{
 						Kind:    sumi.KindText,
-						Tag:     "text",
+						Tag:     "span",
 						Content: "Background content here",
 					},
 				},
@@ -67,7 +67,7 @@ func NewModal(props ModalProps) *sumi.Component {
 			if showModal.Get() {
 				cs = append(cs, &sumi.Input{
 					Kind:        sumi.KindBox,
-					Tag:         "box",
+					Tag:         "div",
 					Classes:     []string{"modal"},
 					Attrs:       map[string]string{"class": "modal", "height": "8", "left": "10", "position": "fixed", "top": "5", "width": "40", "z-index": "2"},
 					FixedWidth:  40,
@@ -81,19 +81,19 @@ func NewModal(props ModalProps) *sumi.Component {
 					Children: []*sumi.Input{
 						{
 							Kind:    sumi.KindText,
-							Tag:     "text",
+							Tag:     "span",
 							Classes: []string{"modal-title"},
 							Attrs:   map[string]string{"class": "modal-title"},
 							Content: "Modal Dialog",
 						},
 						{
 							Kind:    sumi.KindText,
-							Tag:     "text",
+							Tag:     "span",
 							Content: "This is a fixed-position modal overlay.",
 						},
 						{
 							Kind:    sumi.KindText,
-							Tag:     "text",
+							Tag:     "span",
 							Classes: []string{"hint"},
 							Attrs:   map[string]string{"class": "hint"},
 							Content: "Press any key to close",

@@ -9,6 +9,6 @@ var onclick func()
 }
 </style>
 
-<box class="btn">
-    <text>[ {label} ]</text>
-</box>
+<div class="btn">
+    <span>[ {label} ]</span>
+</div>

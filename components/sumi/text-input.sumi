@@ -35,10 +35,10 @@ func scrollbarVisible() bool {
 }
 </style>
 
-<box width="24">
-    <box flex-direction="row">
-        <text>[</text>
-        <text class="indicator">{leftIndicator()}</text>
+<div width="24">
+    <div flex-direction="row">
+        <span>[</span>
+        <span class="indicator">{leftIndicator()}</span>
         <textedit
             flex-grow="1"
             bind:value={value}
@@ -50,13 +50,13 @@ func scrollbarVisible() bool {
             readonly={readonly}
             strip={strip}
         />
-        <text class="indicator">{rightIndicator()}</text>
-        <text>]</text>
-    </box>
+        <span class="indicator">{rightIndicator()}</span>
+        <span>]</span>
+    </div>
     <scrollbar
         contentSize={len(value)}
         viewSize={contentW.Get()}
         bind:offset={viewOffset}
         visible={scrollbarVisible()}
     />
-</box>
+</div>

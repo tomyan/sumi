@@ -6,7 +6,7 @@ import (
 
 func TestParseIfBasic(t *testing.T) {
 	// Given
-	input := `{if x}<text>Yes</text>{/if}`
+	input := `{if x}<span>Yes</span>{/if}`
 
 	// When
 	doc, err := Parse(input)
@@ -40,7 +40,7 @@ func TestParseIfBasic(t *testing.T) {
 
 func TestParseIfElse(t *testing.T) {
 	// Given
-	input := `{if count > 0}<text>Has items</text>{else}<text>Empty</text>{/if}`
+	input := `{if count > 0}<span>Has items</span>{else}<span>Empty</span>{/if}`
 
 	// When
 	doc, err := Parse(input)
@@ -67,7 +67,7 @@ func TestParseIfElse(t *testing.T) {
 
 func TestParseIfAtRoot(t *testing.T) {
 	// Given
-	input := `<text>Before</text>{if visible}<text>Shown</text>{/if}<text>After</text>`
+	input := `<span>Before</span>{if visible}<span>Shown</span>{/if}<span>After</span>`
 
 	// When
 	doc, err := Parse(input)
@@ -95,7 +95,7 @@ func TestParseIfAtRoot(t *testing.T) {
 
 func TestParseIfInBox(t *testing.T) {
 	// Given
-	input := `<box>{if x}<text>Inside</text>{/if}</box>`
+	input := `<div>{if x}<span>Inside</span>{/if}</div>`
 
 	// When
 	doc, err := Parse(input)
@@ -119,7 +119,7 @@ func TestParseIfInBox(t *testing.T) {
 
 func TestParseIfMultipleChildren(t *testing.T) {
 	// Given
-	input := `{if x}<text>A</text><text>B</text><box><text>C</text></box>{/if}`
+	input := `{if x}<span>A</span><span>B</span><div><span>C</span></div>{/if}`
 
 	// When
 	doc, err := Parse(input)
@@ -136,7 +136,7 @@ func TestParseIfMultipleChildren(t *testing.T) {
 
 func TestParseIfNestedInIf(t *testing.T) {
 	// Given
-	input := `{if x}{if y}<text>Both</text>{/if}{/if}`
+	input := `{if x}{if y}<span>Both</span>{/if}{/if}`
 
 	// When
 	doc, err := Parse(input)
@@ -163,7 +163,7 @@ func TestParseIfNestedInIf(t *testing.T) {
 
 func TestParseIfMissingClose(t *testing.T) {
 	// Given
-	input := `{if x}<text>Hello</text>`
+	input := `{if x}<span>Hello</span>`
 
 	// When
 	_, err := Parse(input)
@@ -176,7 +176,7 @@ func TestParseIfMissingClose(t *testing.T) {
 
 func TestParseForBasic(t *testing.T) {
 	// Given
-	input := `{for i := range items}<text>{i}</text>{/for}`
+	input := `{for i := range items}<span>{i}</span>{/for}`
 
 	// When
 	doc, err := Parse(input)
@@ -202,7 +202,7 @@ func TestParseForBasic(t *testing.T) {
 
 func TestParseForWithIndex(t *testing.T) {
 	// Given
-	input := `{for i, item := range items}<text>{i}: {item}</text>{/for}`
+	input := `{for i, item := range items}<span>{i}: {item}</span>{/for}`
 
 	// When
 	doc, err := Parse(input)
@@ -219,7 +219,7 @@ func TestParseForWithIndex(t *testing.T) {
 
 func TestParseForInBox(t *testing.T) {
 	// Given
-	input := `<box>{for i := range items}<text>{i}</text>{/for}</box>`
+	input := `<div>{for i := range items}<span>{i}</span>{/for}</div>`
 
 	// When
 	doc, err := Parse(input)
@@ -243,7 +243,7 @@ func TestParseForInBox(t *testing.T) {
 
 func TestParseForContainingIf(t *testing.T) {
 	// Given
-	input := `{for i := range items}{if i > 0}<text>sep</text>{/if}<text>{i}</text>{/for}`
+	input := `{for i := range items}{if i > 0}<span>sep</span>{/if}<span>{i}</span>{/for}`
 
 	// When
 	doc, err := Parse(input)
@@ -268,7 +268,7 @@ func TestParseForContainingIf(t *testing.T) {
 
 func TestParseForWithKey(t *testing.T) {
 	// Given
-	input := `{for i, item := range items key=item.ID}<text>{item}</text>{/for}`
+	input := `{for i, item := range items key=item.ID}<span>{item}</span>{/for}`
 
 	// When
 	doc, err := Parse(input)
@@ -288,7 +288,7 @@ func TestParseForWithKey(t *testing.T) {
 
 func TestParseForWithoutKey(t *testing.T) {
 	// Given
-	input := `{for i := range items}<text>{i}</text>{/for}`
+	input := `{for i := range items}<span>{i}</span>{/for}`
 
 	// When
 	doc, err := Parse(input)
@@ -308,7 +308,7 @@ func TestParseForWithoutKey(t *testing.T) {
 
 func TestParseForKeyWithComplexExpr(t *testing.T) {
 	// Given
-	input := `{for i, item := range items key=fmt.Sprint(i)}<text>{item}</text>{/for}`
+	input := `{for i, item := range items key=fmt.Sprint(i)}<span>{item}</span>{/for}`
 
 	// When
 	doc, err := Parse(input)
@@ -328,7 +328,7 @@ func TestParseForKeyWithComplexExpr(t *testing.T) {
 
 func TestParseForMissingClose(t *testing.T) {
 	// Given
-	input := `{for i := range items}<text>{i}</text>`
+	input := `{for i := range items}<span>{i}</span>`
 
 	// When
 	_, err := Parse(input)

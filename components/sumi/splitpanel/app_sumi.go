@@ -17,7 +17,7 @@ func Run() {
 		Children: []*sumi.Input{
 			{
 				Kind:      sumi.KindBox,
-				Tag:       "box",
+				Tag:       "div",
 				Classes:   []string{"root"},
 				Attrs:     map[string]string{"class": "root", "onkey": "handleKey"},
 				CursorCol: -1,
@@ -25,7 +25,7 @@ func Run() {
 				Children: []*sumi.Input{
 					{
 						Kind:        sumi.KindBox,
-						Tag:         "box",
+						Tag:         "div",
 						Classes:     []string{"panel"},
 						Attrs:       map[string]string{"border-title": "Actual", "class": "panel", "height": "5"},
 						FixedHeight: 5,
@@ -35,7 +35,7 @@ func Run() {
 					},
 					{
 						Kind:        sumi.KindBox,
-						Tag:         "box",
+						Tag:         "div",
 						Classes:     []string{"panel"},
 						Attrs:       map[string]string{"border-title": "Expected", "class": "panel", "height": "5"},
 						FixedHeight: 5,
@@ -84,7 +84,7 @@ func CreateApp(w, h int) *sumi.App {
 		Children: []*sumi.Input{
 			{
 				Kind:      sumi.KindBox,
-				Tag:       "box",
+				Tag:       "div",
 				Classes:   []string{"root"},
 				Attrs:     map[string]string{"class": "root", "onkey": "handleKey"},
 				CursorCol: -1,
@@ -92,7 +92,7 @@ func CreateApp(w, h int) *sumi.App {
 				Children: []*sumi.Input{
 					{
 						Kind:        sumi.KindBox,
-						Tag:         "box",
+						Tag:         "div",
 						Classes:     []string{"panel"},
 						Attrs:       map[string]string{"border-title": "Actual", "class": "panel", "height": "5"},
 						FixedHeight: 5,
@@ -102,7 +102,7 @@ func CreateApp(w, h int) *sumi.App {
 					},
 					{
 						Kind:        sumi.KindBox,
-						Tag:         "box",
+						Tag:         "div",
 						Classes:     []string{"panel"},
 						Attrs:       map[string]string{"border-title": "Expected", "class": "panel", "height": "5"},
 						FixedHeight: 5,

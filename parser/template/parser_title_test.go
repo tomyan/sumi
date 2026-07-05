@@ -72,7 +72,7 @@ func TestParseTitleWithExpression(t *testing.T) {
 func TestParseTitleAndBox(t *testing.T) {
 	// Given
 	input := `<title>My App</title>
-<box><text>Hello</text></box>`
+<div><span>Hello</span></div>`
 
 	// When
 	doc, err := Parse(input)

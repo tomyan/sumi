@@ -55,7 +55,7 @@ func TestGenerateSingleFileStillWorks(t *testing.T) {
 	// Given a single .sumi file with no component references
 	dir := t.TempDir()
 	sumiFile := filepath.Join(dir, "hello.sumi")
-	if err := os.WriteFile(sumiFile, []byte(`<text>Hello</text>`), 0644); err != nil {
+	if err := os.WriteFile(sumiFile, []byte(`<span>Hello</span>`), 0644); err != nil {
 		t.Fatal(err)
 	}
 

@@ -17,7 +17,7 @@ func Run() {
 		Children: []*sumi.Input{
 			{
 				Kind:      sumi.KindBox,
-				Tag:       "box",
+				Tag:       "div",
 				Attrs:     map[string]string{"border": "single", "padding": "1 2"},
 				Padding:   sumi.ParsePadding("1 2"),
 				Border:    "single",
@@ -26,17 +26,17 @@ func Run() {
 				Children: []*sumi.Input{
 					{
 						Kind:    sumi.KindText,
-						Tag:     "text",
+						Tag:     "span",
 						Content: "Welcome to Sumi!",
 					},
 					{
 						Kind:    sumi.KindText,
-						Tag:     "text",
+						Tag:     "span",
 						Content: "A declarative TTY framework for Go.",
 					},
 					{
 						Kind:      sumi.KindBox,
-						Tag:       "box",
+						Tag:       "div",
 						Attrs:     map[string]string{"border": "single", "padding": "0 1"},
 						Padding:   sumi.ParsePadding("0 1"),
 						Border:    "single",
@@ -45,7 +45,7 @@ func Run() {
 						Children: []*sumi.Input{
 							{
 								Kind:    sumi.KindText,
-								Tag:     "text",
+								Tag:     "span",
 								Content: "Press Enter to exit.",
 							},
 						},
@@ -89,7 +89,7 @@ func CreateApp(w, h int) *sumi.App {
 		Children: []*sumi.Input{
 			{
 				Kind:      sumi.KindBox,
-				Tag:       "box",
+				Tag:       "div",
 				Attrs:     map[string]string{"border": "single", "padding": "1 2"},
 				Padding:   sumi.ParsePadding("1 2"),
 				Border:    "single",
@@ -98,17 +98,17 @@ func CreateApp(w, h int) *sumi.App {
 				Children: []*sumi.Input{
 					{
 						Kind:    sumi.KindText,
-						Tag:     "text",
+						Tag:     "span",
 						Content: "Welcome to Sumi!",
 					},
 					{
 						Kind:    sumi.KindText,
-						Tag:     "text",
+						Tag:     "span",
 						Content: "A declarative TTY framework for Go.",
 					},
 					{
 						Kind:      sumi.KindBox,
-						Tag:       "box",
+						Tag:       "div",
 						Attrs:     map[string]string{"border": "single", "padding": "0 1"},
 						Padding:   sumi.ParsePadding("0 1"),
 						Border:    "single",
@@ -117,7 +117,7 @@ func CreateApp(w, h int) *sumi.App {
 						Children: []*sumi.Input{
 							{
 								Kind:    sumi.KindText,
-								Tag:     "text",
+								Tag:     "span",
 								Content: "Press Enter to exit.",
 							},
 						},

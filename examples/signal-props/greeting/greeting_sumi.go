@@ -32,12 +32,12 @@ func NewGreeting(props GreetingProps) *sumi.Component {
 
 	node0 := &sumi.Input{
 		Kind:    sumi.KindText,
-		Tag:     "text",
+		Tag:     "span",
 		Content: sumi.Sprintf("Hello, %v!", name),
 	}
 	node1 := &sumi.Input{
 		Kind:    sumi.KindText,
-		Tag:     "text",
+		Tag:     "span",
 		Content: sumi.Sprintf("Keys pressed: %v", count.Get()),
 	}
 	root := &sumi.Input{
@@ -49,7 +49,7 @@ func NewGreeting(props GreetingProps) *sumi.Component {
 		Children: []*sumi.Input{
 			{
 				Kind:      sumi.KindBox,
-				Tag:       "box",
+				Tag:       "div",
 				Attrs:     map[string]string{"onkey": "handleKey"},
 				CursorCol: -1,
 				CursorRow: -1,

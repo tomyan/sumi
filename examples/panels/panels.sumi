@@ -23,20 +23,20 @@
 }
 </style>
 
-<box class="layout">
-    <box class="left-col">
-        <box class="panel" border-title="Panel 1">
-            <text class="title">Top-left panel</text>
-            <text>Content goes here</text>
-        </box>
-        <box class="panel" border-title="Panel 2">
-            <text class="title">Bottom-left panel</text>
-            <text>More content here</text>
-        </box>
-    </box>
-    <box class="panel" border-title="Panel 3">
-        <text class="title">Right panel</text>
-        <text>This panel spans the full height</text>
-        <text class="hint">Press q to quit</text>
-    </box>
-</box>
+<div class="layout">
+    <div class="left-col">
+        <div class="panel" border-title="Panel 1">
+            <span class="title">Top-left panel</span>
+            <span>Content goes here</span>
+        </div>
+        <div class="panel" border-title="Panel 2">
+            <span class="title">Bottom-left panel</span>
+            <span>More content here</span>
+        </div>
+    </div>
+    <div class="panel" border-title="Panel 3">
+        <span class="title">Right panel</span>
+        <span>This panel spans the full height</span>
+        <span class="hint">Press q to quit</span>
+    </div>
+</div>

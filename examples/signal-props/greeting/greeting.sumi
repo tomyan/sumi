@@ -12,7 +12,7 @@ func handleKey(evt sumi.Event) {
 }
 </script>
 
-<box onkey="handleKey">
-    <text>Hello, {name}!</text>
-    <text>Keys pressed: {count}</text>
-</box>
+<div onkey="handleKey">
+    <span>Hello, {name}!</span>
+    <span>Keys pressed: {count}</span>
+</div>

@@ -26,9 +26,9 @@ func handleKey(evt sumi.Event) {
 }
 </script>
 
-<box class="container" onkey="handleKey">
-    <text class="title">Text Input Demo</text>
-    <text class="hint">Type to enter your name</text>
-    <text class="label">Name:</text>
-    <text>You typed: {name}</text>
-</box>
+<div class="container" onkey="handleKey">
+    <span class="title">Text Input Demo</span>
+    <span class="hint">Type to enter your name</span>
+    <span class="label">Name:</span>
+    <span>You typed: {name}</span>
+</div>

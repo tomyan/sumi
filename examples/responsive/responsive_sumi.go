@@ -24,7 +24,7 @@ func NewResponsive(props ResponsiveProps) *sumi.Component {
 
 	node0 := &sumi.Input{
 		Kind:    sumi.KindText,
-		Tag:     "text",
+		Tag:     "span",
 		Classes: []string{"dims"},
 		Attrs:   map[string]string{"class": "dims"},
 		Content: sumi.Sprintf("Terminal: %vx%v", width.Get(), height.Get()),
@@ -38,7 +38,7 @@ func NewResponsive(props ResponsiveProps) *sumi.Component {
 		Children: []*sumi.Input{
 			{
 				Kind:      sumi.KindBox,
-				Tag:       "box",
+				Tag:       "div",
 				Classes:   []string{"header"},
 				Attrs:     map[string]string{"class": "header", "onkey": "handleKey"},
 				CursorCol: -1,
@@ -46,7 +46,7 @@ func NewResponsive(props ResponsiveProps) *sumi.Component {
 				Children: []*sumi.Input{
 					{
 						Kind:    sumi.KindText,
-						Tag:     "text",
+						Tag:     "span",
 						Classes: []string{"title"},
 						Attrs:   map[string]string{"class": "title"},
 						Content: "Sumi Responsive Demo",
@@ -54,7 +54,7 @@ func NewResponsive(props ResponsiveProps) *sumi.Component {
 					node0,
 					{
 						Kind:    sumi.KindText,
-						Tag:     "text",
+						Tag:     "span",
 						Classes: []string{"hint"},
 						Attrs:   map[string]string{"class": "hint"},
 						Content: "Resize your terminal to see this update! Press q to quit.",

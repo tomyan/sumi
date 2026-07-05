@@ -16,8 +16,8 @@ func handleKey(evt sumi.Event) {
 .count { color: yellow; font-weight: bold; }
 </style>
 
-<box class="container" onkey="handleKey">
-    <text class="title">Signal Counter</text>
-    <text>Press any key to increment, q to quit</text>
-    <text class="count">Count: {count}</text>
-</box>
+<div class="container" onkey="handleKey">
+    <span class="title">Signal Counter</span>
+    <span>Press any key to increment, q to quit</span>
+    <span class="count">Count: {count}</span>
+</div>

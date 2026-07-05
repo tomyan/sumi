@@ -33,14 +33,14 @@ func handleKey(evt sumi.Event) {
 }
 </script>
 
-<box class="container" onkey="handleKey">
-    <text class="title">Todo List</text>
-    <text class="hint">Press any key to cycle, q to quit</text>
+<div class="container" onkey="handleKey">
+    <span class="title">Todo List</span>
+    <span class="hint">Press any key to cycle, q to quit</span>
     {for i, item := range items.Get() key=item}
         {if i == selected.Get()}
-            <text class="selected">> {item}</text>
+            <span class="selected">> {item}</span>
         {else}
-            <text>  {item}</text>
+            <span>  {item}</span>
         {/if}
     {/for}
-</box>
+</div>

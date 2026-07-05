@@ -30,7 +30,7 @@ func NewTodo(props TodoProps) *sumi.Component {
 
 	box0 := &sumi.Input{
 		Kind:      sumi.KindBox,
-		Tag:       "box",
+		Tag:       "div",
 		Classes:   []string{"container"},
 		Attrs:     map[string]string{"class": "container", "onkey": "handleKey"},
 		CursorCol: -1,
@@ -52,14 +52,14 @@ func NewTodo(props TodoProps) *sumi.Component {
 			var cs []*sumi.Input
 			cs = append(cs, &sumi.Input{
 				Kind:    sumi.KindText,
-				Tag:     "text",
+				Tag:     "span",
 				Classes: []string{"title"},
 				Attrs:   map[string]string{"class": "title"},
 				Content: "Todo List",
 			})
 			cs = append(cs, &sumi.Input{
 				Kind:    sumi.KindText,
-				Tag:     "text",
+				Tag:     "span",
 				Classes: []string{"hint"},
 				Attrs:   map[string]string{"class": "hint"},
 				Content: "Press any key to cycle, q to quit",
@@ -68,7 +68,7 @@ func NewTodo(props TodoProps) *sumi.Component {
 				if i == selected.Get() {
 					cs = append(cs, &sumi.Input{
 						Kind:    sumi.KindText,
-						Tag:     "text",
+						Tag:     "span",
 						Classes: []string{"selected"},
 						Attrs:   map[string]string{"class": "selected"},
 						Content: sumi.Sprintf("> %v", item),
@@ -76,7 +76,7 @@ func NewTodo(props TodoProps) *sumi.Component {
 				} else {
 					cs = append(cs, &sumi.Input{
 						Kind:    sumi.KindText,
-						Tag:     "text",
+						Tag:     "span",
 						Content: sumi.Sprintf("  %v", item),
 					})
 				}

@@ -37,7 +37,7 @@ func assertParts(t *testing.T, te *TextElement, expected []Part) {
 
 func TestParseSingleTextElement(t *testing.T) {
 	// When
-	doc, err := Parse(`<text>Hello</text>`)
+	doc, err := Parse(`<span>Hello</span>`)
 
 	// Then
 	if err != nil {
@@ -55,7 +55,7 @@ func TestParseSingleTextElement(t *testing.T) {
 
 func TestParseTwoTextElements(t *testing.T) {
 	// When
-	doc, err := Parse(`<text>Hello</text><text>World</text>`)
+	doc, err := Parse(`<span>Hello</span><span>World</span>`)
 
 	// Then
 	if err != nil {
@@ -78,7 +78,7 @@ func TestParseTwoTextElements(t *testing.T) {
 
 func TestParseEmptyTextElement(t *testing.T) {
 	// When
-	doc, err := Parse(`<text></text>`)
+	doc, err := Parse(`<span></span>`)
 
 	// Then
 	if err != nil {
@@ -98,7 +98,7 @@ func TestParseEmptyTextElement(t *testing.T) {
 
 func TestParseWhitespaceBetweenElementsIgnored(t *testing.T) {
 	// When
-	doc, err := Parse("  <text>A</text>  \n  <text>B</text>  ")
+	doc, err := Parse("  <span>A</span>  \n  <span>B</span>  ")
 
 	// Then
 	if err != nil {
@@ -115,7 +115,7 @@ func TestParseWhitespaceBetweenElementsIgnored(t *testing.T) {
 
 func TestParseMissingClosingTagReturnsError(t *testing.T) {
 	// When
-	_, err := Parse(`<text>Hello`)
+	_, err := Parse(`<span>Hello`)
 
 	// Then
 	if err == nil {
@@ -125,7 +125,7 @@ func TestParseMissingClosingTagReturnsError(t *testing.T) {
 
 func TestParseBoxWithSingleTextChild(t *testing.T) {
 	// When
-	doc, err := Parse(`<box><text>Hello</text></box>`)
+	doc, err := Parse(`<div><span>Hello</span></div>`)
 
 	// Then
 	if err != nil {
@@ -153,7 +153,7 @@ func TestParseBoxWithSingleTextChild(t *testing.T) {
 
 func TestParseBoxWithDirectionAndTwoChildren(t *testing.T) {
 	// When
-	doc, err := Parse(`<box direction="column"><text>A</text><text>B</text></box>`)
+	doc, err := Parse(`<div direction="column"><span>A</span><span>B</span></div>`)
 
 	// Then
 	if err != nil {
@@ -177,7 +177,7 @@ func TestParseBoxWithDirectionAndTwoChildren(t *testing.T) {
 
 func TestParseBoxWithMultipleAttributes(t *testing.T) {
 	// When
-	doc, err := Parse(`<box width="40" height="10" border="single" padding="1 2"><text>X</text></box>`)
+	doc, err := Parse(`<div width="40" height="10" border="single" padding="1 2"><span>X</span></div>`)
 
 	// Then
 	if err != nil {
@@ -199,7 +199,7 @@ func TestParseBoxWithMultipleAttributes(t *testing.T) {
 
 func TestParseNestedBoxes(t *testing.T) {
 	// When
-	doc, err := Parse(`<box><box><text>Deep</text></box></box>`)
+	doc, err := Parse(`<div><div><span>Deep</span></div></div>`)
 
 	// Then
 	if err != nil {
@@ -222,7 +222,7 @@ func TestParseNestedBoxes(t *testing.T) {
 
 func TestParseEmptyBox(t *testing.T) {
 	// When
-	doc, err := Parse(`<box></box>`)
+	doc, err := Parse(`<div></div>`)
 
 	// Then
 	if err != nil {
@@ -239,20 +239,20 @@ func TestParseEmptyBox(t *testing.T) {
 
 func TestParseBoxMissingClosingTag(t *testing.T) {
 	// When
-	_, err := Parse(`<box><text>Hello</text>`)
+	_, err := Parse(`<div><span>Hello</span>`)
 
 	// Then
 	if err == nil {
-		t.Fatal("expected error for missing </box> closing tag, got nil")
+		t.Fatal("expected error for missing </div> closing tag, got nil")
 	}
 }
 
 func TestParseBoxWithWhitespaceBetweenChildren(t *testing.T) {
 	// Given
-	input := `<box>
-  <text>A</text>
-  <text>B</text>
-</box>`
+	input := `<div>
+  <span>A</span>
+  <span>B</span>
+</div>`
 
 	// When
 	doc, err := Parse(input)
@@ -269,7 +269,7 @@ func TestParseBoxWithWhitespaceBetweenChildren(t *testing.T) {
 
 func TestParseWhitespaceInsideTextPreserved(t *testing.T) {
 	// When
-	doc, err := Parse(`<text>  Hello  </text>`)
+	doc, err := Parse(`<span>  Hello  </span>`)
 
 	// Then
 	if err != nil {

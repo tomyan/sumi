@@ -143,7 +143,7 @@ func NewPreview(props PreviewProps) *sumi.Component {
 
 	box0 := &sumi.Input{
 		Kind:      sumi.KindBox,
-		Tag:       "box",
+		Tag:       "div",
 		Attrs:     map[string]string{"flex-direction": "row"},
 		Direction: "row",
 		CursorCol: -1,
@@ -158,14 +158,14 @@ func NewPreview(props PreviewProps) *sumi.Component {
 		Children: []*sumi.Input{
 			{
 				Kind:      sumi.KindBox,
-				Tag:       "box",
+				Tag:       "div",
 				Attrs:     map[string]string{"onkey": "handleKey"},
 				CursorCol: -1,
 				CursorRow: -1,
 				Children: []*sumi.Input{
 					{
 						Kind:      sumi.KindBox,
-						Tag:       "box",
+						Tag:       "div",
 						Classes:   []string{"panels"},
 						Attrs:     map[string]string{"class": "panels"},
 						CursorCol: -1,
@@ -173,7 +173,7 @@ func NewPreview(props PreviewProps) *sumi.Component {
 						Children: []*sumi.Input{
 							{
 								Kind:        sumi.KindBox,
-								Tag:         "box",
+								Tag:         "div",
 								Classes:     []string{"actual"},
 								Attrs:       map[string]string{"border-title": "Actual", "class": "actual", "height": "{pvComponentHeight()}"},
 								FixedHeight: pvComponentHeight(),
@@ -183,7 +183,7 @@ func NewPreview(props PreviewProps) *sumi.Component {
 							},
 							{
 								Kind:        sumi.KindBox,
-								Tag:         "box",
+								Tag:         "div",
 								Classes:     []string{"expected"},
 								Attrs:       map[string]string{"border-title": "Expected", "class": "expected", "height": "{pvComponentHeight()}"},
 								FixedHeight: pvComponentHeight(),
@@ -196,7 +196,7 @@ func NewPreview(props PreviewProps) *sumi.Component {
 					box0,
 					{
 						Kind:      sumi.KindBox,
-						Tag:       "box",
+						Tag:       "div",
 						Classes:   []string{"editors"},
 						Attrs:     map[string]string{"class": "editors"},
 						CursorCol: -1,
@@ -204,7 +204,7 @@ func NewPreview(props PreviewProps) *sumi.Component {
 						Children: []*sumi.Input{
 							{
 								Kind:        sumi.KindBox,
-								Tag:         "box",
+								Tag:         "div",
 								Classes:     []string{"editor-left"},
 								Attrs:       map[string]string{"border-title": "{pvSourceTitle()}", "class": "editor-left"},
 								BorderTitle: pvSourceTitle(),
@@ -213,7 +213,7 @@ func NewPreview(props PreviewProps) *sumi.Component {
 							},
 							{
 								Kind:        sumi.KindBox,
-								Tag:         "box",
+								Tag:         "div",
 								Classes:     []string{"editor-right"},
 								Attrs:       map[string]string{"border-title": "{pvSnapshotTitle()}", "class": "editor-right"},
 								BorderTitle: pvSnapshotTitle(),
@@ -224,7 +224,7 @@ func NewPreview(props PreviewProps) *sumi.Component {
 					},
 					{
 						Kind:        sumi.KindBox,
-						Tag:         "box",
+						Tag:         "div",
 						Classes:     []string{"scenario-editor"},
 						Attrs:       map[string]string{"border-title": "{pvScenarioTitle()}", "class": "scenario-editor"},
 						BorderTitle: pvScenarioTitle(),
@@ -242,28 +242,28 @@ func NewPreview(props PreviewProps) *sumi.Component {
 			if interactive.Get() {
 				cs = append(cs, &sumi.Input{
 					Kind:    sumi.KindText,
-					Tag:     "text",
+					Tag:     "span",
 					Classes: []string{"key"},
 					Attrs:   map[string]string{"class": "key"},
 					Content: "esc",
 				})
 				cs = append(cs, &sumi.Input{
 					Kind:    sumi.KindText,
-					Tag:     "text",
+					Tag:     "span",
 					Classes: []string{"label"},
 					Attrs:   map[string]string{"class": "label"},
 					Content: " Exit  ",
 				})
 				cs = append(cs, &sumi.Input{
 					Kind:    sumi.KindText,
-					Tag:     "text",
+					Tag:     "span",
 					Classes: []string{"interactive"},
 					Attrs:   map[string]string{"class": "interactive"},
 					Content: " INTERACTIVE ",
 				})
 				cs = append(cs, &sumi.Input{
 					Kind:    sumi.KindText,
-					Tag:     "text",
+					Tag:     "span",
 					Classes: []string{"info"},
 					Attrs:   map[string]string{"class": "info"},
 					Content: sumi.Sprintf("  %v  Frame %v/%v  %v", pvScenarioName(), current.Get()+1, pvStepCount(), pvStepName(current.Get())),
@@ -272,49 +272,49 @@ func NewPreview(props PreviewProps) *sumi.Component {
 				if pvIsEditorFocused() {
 					cs = append(cs, &sumi.Input{
 						Kind:    sumi.KindText,
-						Tag:     "text",
+						Tag:     "span",
 						Classes: []string{"focus-indicator"},
 						Attrs:   map[string]string{"class": "focus-indicator"},
 						Content: sumi.Sprintf(" %v ", pvFocusName()),
 					})
 					cs = append(cs, &sumi.Input{
 						Kind:    sumi.KindText,
-						Tag:     "text",
+						Tag:     "span",
 						Classes: []string{"key"},
 						Attrs:   map[string]string{"class": "key"},
 						Content: "C-\\",
 					})
 					cs = append(cs, &sumi.Input{
 						Kind:    sumi.KindText,
-						Tag:     "text",
+						Tag:     "span",
 						Classes: []string{"label"},
 						Attrs:   map[string]string{"class": "label"},
 						Content: " Exit  ",
 					})
 					cs = append(cs, &sumi.Input{
 						Kind:    sumi.KindText,
-						Tag:     "text",
+						Tag:     "span",
 						Classes: []string{"key"},
 						Attrs:   map[string]string{"class": "key"},
 						Content: "C-\\ h",
 					})
 					cs = append(cs, &sumi.Input{
 						Kind:    sumi.KindText,
-						Tag:     "text",
+						Tag:     "span",
 						Classes: []string{"label"},
 						Attrs:   map[string]string{"class": "label"},
 						Content: " Prev  ",
 					})
 					cs = append(cs, &sumi.Input{
 						Kind:    sumi.KindText,
-						Tag:     "text",
+						Tag:     "span",
 						Classes: []string{"key"},
 						Attrs:   map[string]string{"class": "key"},
 						Content: "C-\\ l",
 					})
 					cs = append(cs, &sumi.Input{
 						Kind:    sumi.KindText,
-						Tag:     "text",
+						Tag:     "span",
 						Classes: []string{"label"},
 						Attrs:   map[string]string{"class": "label"},
 						Content: " Next  ",
@@ -322,112 +322,112 @@ func NewPreview(props PreviewProps) *sumi.Component {
 				} else {
 					cs = append(cs, &sumi.Input{
 						Kind:    sumi.KindText,
-						Tag:     "text",
+						Tag:     "span",
 						Classes: []string{"key"},
 						Attrs:   map[string]string{"class": "key"},
 						Content: "h",
 					})
 					cs = append(cs, &sumi.Input{
 						Kind:    sumi.KindText,
-						Tag:     "text",
+						Tag:     "span",
 						Classes: []string{"label"},
 						Attrs:   map[string]string{"class": "label"},
 						Content: " Prev  ",
 					})
 					cs = append(cs, &sumi.Input{
 						Kind:    sumi.KindText,
-						Tag:     "text",
+						Tag:     "span",
 						Classes: []string{"key"},
 						Attrs:   map[string]string{"class": "key"},
 						Content: "l",
 					})
 					cs = append(cs, &sumi.Input{
 						Kind:    sumi.KindText,
-						Tag:     "text",
+						Tag:     "span",
 						Classes: []string{"label"},
 						Attrs:   map[string]string{"class": "label"},
 						Content: " Next  ",
 					})
 					cs = append(cs, &sumi.Input{
 						Kind:    sumi.KindText,
-						Tag:     "text",
+						Tag:     "span",
 						Classes: []string{"key"},
 						Attrs:   map[string]string{"class": "key"},
 						Content: "u",
 					})
 					cs = append(cs, &sumi.Input{
 						Kind:    sumi.KindText,
-						Tag:     "text",
+						Tag:     "span",
 						Classes: []string{"label"},
 						Attrs:   map[string]string{"class": "label"},
 						Content: " Update  ",
 					})
 					cs = append(cs, &sumi.Input{
 						Kind:    sumi.KindText,
-						Tag:     "text",
+						Tag:     "span",
 						Classes: []string{"key"},
 						Attrs:   map[string]string{"class": "key"},
 						Content: "i",
 					})
 					cs = append(cs, &sumi.Input{
 						Kind:    sumi.KindText,
-						Tag:     "text",
+						Tag:     "span",
 						Classes: []string{"label"},
 						Attrs:   map[string]string{"class": "label"},
 						Content: " Interactive  ",
 					})
 					cs = append(cs, &sumi.Input{
 						Kind:    sumi.KindText,
-						Tag:     "text",
+						Tag:     "span",
 						Classes: []string{"key"},
 						Attrs:   map[string]string{"class": "key"},
 						Content: "1",
 					})
 					cs = append(cs, &sumi.Input{
 						Kind:    sumi.KindText,
-						Tag:     "text",
+						Tag:     "span",
 						Classes: []string{"label"},
 						Attrs:   map[string]string{"class": "label"},
 						Content: " Source  ",
 					})
 					cs = append(cs, &sumi.Input{
 						Kind:    sumi.KindText,
-						Tag:     "text",
+						Tag:     "span",
 						Classes: []string{"key"},
 						Attrs:   map[string]string{"class": "key"},
 						Content: "2",
 					})
 					cs = append(cs, &sumi.Input{
 						Kind:    sumi.KindText,
-						Tag:     "text",
+						Tag:     "span",
 						Classes: []string{"label"},
 						Attrs:   map[string]string{"class": "label"},
 						Content: " Snap  ",
 					})
 					cs = append(cs, &sumi.Input{
 						Kind:    sumi.KindText,
-						Tag:     "text",
+						Tag:     "span",
 						Classes: []string{"key"},
 						Attrs:   map[string]string{"class": "key"},
 						Content: "3",
 					})
 					cs = append(cs, &sumi.Input{
 						Kind:    sumi.KindText,
-						Tag:     "text",
+						Tag:     "span",
 						Classes: []string{"label"},
 						Attrs:   map[string]string{"class": "label"},
 						Content: " Scenario  ",
 					})
 					cs = append(cs, &sumi.Input{
 						Kind:    sumi.KindText,
-						Tag:     "text",
+						Tag:     "span",
 						Classes: []string{"key"},
 						Attrs:   map[string]string{"class": "key"},
 						Content: "q",
 					})
 					cs = append(cs, &sumi.Input{
 						Kind:    sumi.KindText,
-						Tag:     "text",
+						Tag:     "span",
 						Classes: []string{"label"},
 						Attrs:   map[string]string{"class": "label"},
 						Content: " Quit  ",
@@ -436,7 +436,7 @@ func NewPreview(props PreviewProps) *sumi.Component {
 				if matchStatus.Get() == 1 {
 					cs = append(cs, &sumi.Input{
 						Kind:    sumi.KindText,
-						Tag:     "text",
+						Tag:     "span",
 						Classes: []string{"match"},
 						Attrs:   map[string]string{"class": "match"},
 						Content: " MATCH ",
@@ -445,7 +445,7 @@ func NewPreview(props PreviewProps) *sumi.Component {
 					if matchStatus.Get() == 0 {
 						cs = append(cs, &sumi.Input{
 							Kind:    sumi.KindText,
-							Tag:     "text",
+							Tag:     "span",
 							Classes: []string{"no-snap"},
 							Attrs:   map[string]string{"class": "no-snap"},
 							Content: " NO SNAPSHOT ",
@@ -453,7 +453,7 @@ func NewPreview(props PreviewProps) *sumi.Component {
 					} else {
 						cs = append(cs, &sumi.Input{
 							Kind:    sumi.KindText,
-							Tag:     "text",
+							Tag:     "span",
 							Classes: []string{"diff"},
 							Attrs:   map[string]string{"class": "diff"},
 							Content: " DIFF ",
@@ -462,7 +462,7 @@ func NewPreview(props PreviewProps) *sumi.Component {
 				}
 				cs = append(cs, &sumi.Input{
 					Kind:    sumi.KindText,
-					Tag:     "text",
+					Tag:     "span",
 					Classes: []string{"info"},
 					Attrs:   map[string]string{"class": "info"},
 					Content: sumi.Sprintf("  %v  Frame %v/%v  %v", pvScenarioName(), current.Get()+1, pvStepCount(), pvStepName(current.Get())),

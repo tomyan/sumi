@@ -15,7 +15,7 @@ func handleKey(evt sumi.Event) {
 .count { color: yellow; font-weight: bold; }
 </style>
 
-<box onkey="handleKey">
-    <text class="label">{label}:</text>
-    <text class="count">{count}</text>
-</box>
+<div onkey="handleKey">
+    <span class="label">{label}:</span>
+    <span class="count">{count}</span>
+</div>

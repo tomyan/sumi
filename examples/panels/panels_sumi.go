@@ -17,7 +17,7 @@ func Run() {
 		Children: []*sumi.Input{
 			{
 				Kind:      sumi.KindBox,
-				Tag:       "box",
+				Tag:       "div",
 				Classes:   []string{"layout"},
 				Attrs:     map[string]string{"class": "layout"},
 				CursorCol: -1,
@@ -25,7 +25,7 @@ func Run() {
 				Children: []*sumi.Input{
 					{
 						Kind:      sumi.KindBox,
-						Tag:       "box",
+						Tag:       "div",
 						Classes:   []string{"left-col"},
 						Attrs:     map[string]string{"class": "left-col"},
 						CursorCol: -1,
@@ -33,7 +33,7 @@ func Run() {
 						Children: []*sumi.Input{
 							{
 								Kind:        sumi.KindBox,
-								Tag:         "box",
+								Tag:         "div",
 								Classes:     []string{"panel"},
 								Attrs:       map[string]string{"border-title": "Panel 1", "class": "panel"},
 								BorderTitle: "Panel 1",
@@ -42,21 +42,21 @@ func Run() {
 								Children: []*sumi.Input{
 									{
 										Kind:    sumi.KindText,
-										Tag:     "text",
+										Tag:     "span",
 										Classes: []string{"title"},
 										Attrs:   map[string]string{"class": "title"},
 										Content: "Top-left panel",
 									},
 									{
 										Kind:    sumi.KindText,
-										Tag:     "text",
+										Tag:     "span",
 										Content: "Content goes here",
 									},
 								},
 							},
 							{
 								Kind:        sumi.KindBox,
-								Tag:         "box",
+								Tag:         "div",
 								Classes:     []string{"panel"},
 								Attrs:       map[string]string{"border-title": "Panel 2", "class": "panel"},
 								BorderTitle: "Panel 2",
@@ -65,14 +65,14 @@ func Run() {
 								Children: []*sumi.Input{
 									{
 										Kind:    sumi.KindText,
-										Tag:     "text",
+										Tag:     "span",
 										Classes: []string{"title"},
 										Attrs:   map[string]string{"class": "title"},
 										Content: "Bottom-left panel",
 									},
 									{
 										Kind:    sumi.KindText,
-										Tag:     "text",
+										Tag:     "span",
 										Content: "More content here",
 									},
 								},
@@ -81,7 +81,7 @@ func Run() {
 					},
 					{
 						Kind:        sumi.KindBox,
-						Tag:         "box",
+						Tag:         "div",
 						Classes:     []string{"panel"},
 						Attrs:       map[string]string{"border-title": "Panel 3", "class": "panel"},
 						BorderTitle: "Panel 3",
@@ -90,19 +90,19 @@ func Run() {
 						Children: []*sumi.Input{
 							{
 								Kind:    sumi.KindText,
-								Tag:     "text",
+								Tag:     "span",
 								Classes: []string{"title"},
 								Attrs:   map[string]string{"class": "title"},
 								Content: "Right panel",
 							},
 							{
 								Kind:    sumi.KindText,
-								Tag:     "text",
+								Tag:     "span",
 								Content: "This panel spans the full height",
 							},
 							{
 								Kind:    sumi.KindText,
-								Tag:     "text",
+								Tag:     "span",
 								Classes: []string{"hint"},
 								Attrs:   map[string]string{"class": "hint"},
 								Content: "Press q to quit",
@@ -150,7 +150,7 @@ func CreateApp(w, h int) *sumi.App {
 		Children: []*sumi.Input{
 			{
 				Kind:      sumi.KindBox,
-				Tag:       "box",
+				Tag:       "div",
 				Classes:   []string{"layout"},
 				Attrs:     map[string]string{"class": "layout"},
 				CursorCol: -1,
@@ -158,7 +158,7 @@ func CreateApp(w, h int) *sumi.App {
 				Children: []*sumi.Input{
 					{
 						Kind:      sumi.KindBox,
-						Tag:       "box",
+						Tag:       "div",
 						Classes:   []string{"left-col"},
 						Attrs:     map[string]string{"class": "left-col"},
 						CursorCol: -1,
@@ -166,7 +166,7 @@ func CreateApp(w, h int) *sumi.App {
 						Children: []*sumi.Input{
 							{
 								Kind:        sumi.KindBox,
-								Tag:         "box",
+								Tag:         "div",
 								Classes:     []string{"panel"},
 								Attrs:       map[string]string{"border-title": "Panel 1", "class": "panel"},
 								BorderTitle: "Panel 1",
@@ -175,21 +175,21 @@ func CreateApp(w, h int) *sumi.App {
 								Children: []*sumi.Input{
 									{
 										Kind:    sumi.KindText,
-										Tag:     "text",
+										Tag:     "span",
 										Classes: []string{"title"},
 										Attrs:   map[string]string{"class": "title"},
 										Content: "Top-left panel",
 									},
 									{
 										Kind:    sumi.KindText,
-										Tag:     "text",
+										Tag:     "span",
 										Content: "Content goes here",
 									},
 								},
 							},
 							{
 								Kind:        sumi.KindBox,
-								Tag:         "box",
+								Tag:         "div",
 								Classes:     []string{"panel"},
 								Attrs:       map[string]string{"border-title": "Panel 2", "class": "panel"},
 								BorderTitle: "Panel 2",
@@ -198,14 +198,14 @@ func CreateApp(w, h int) *sumi.App {
 								Children: []*sumi.Input{
 									{
 										Kind:    sumi.KindText,
-										Tag:     "text",
+										Tag:     "span",
 										Classes: []string{"title"},
 										Attrs:   map[string]string{"class": "title"},
 										Content: "Bottom-left panel",
 									},
 									{
 										Kind:    sumi.KindText,
-										Tag:     "text",
+										Tag:     "span",
 										Content: "More content here",
 									},
 								},
@@ -214,7 +214,7 @@ func CreateApp(w, h int) *sumi.App {
 					},
 					{
 						Kind:        sumi.KindBox,
-						Tag:         "box",
+						Tag:         "div",
 						Classes:     []string{"panel"},
 						Attrs:       map[string]string{"border-title": "Panel 3", "class": "panel"},
 						BorderTitle: "Panel 3",
@@ -223,19 +223,19 @@ func CreateApp(w, h int) *sumi.App {
 						Children: []*sumi.Input{
 							{
 								Kind:    sumi.KindText,
-								Tag:     "text",
+								Tag:     "span",
 								Classes: []string{"title"},
 								Attrs:   map[string]string{"class": "title"},
 								Content: "Right panel",
 							},
 							{
 								Kind:    sumi.KindText,
-								Tag:     "text",
+								Tag:     "span",
 								Content: "This panel spans the full height",
 							},
 							{
 								Kind:    sumi.KindText,
-								Tag:     "text",
+								Tag:     "span",
 								Classes: []string{"hint"},
 								Attrs:   map[string]string{"class": "hint"},
 								Content: "Press q to quit",

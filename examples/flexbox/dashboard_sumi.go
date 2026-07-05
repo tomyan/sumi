@@ -17,13 +17,13 @@ func Run() {
 		Children: []*sumi.Input{
 			{
 				Kind:      sumi.KindBox,
-				Tag:       "box",
+				Tag:       "div",
 				CursorCol: -1,
 				CursorRow: -1,
 				Children: []*sumi.Input{
 					{
 						Kind:      sumi.KindBox,
-						Tag:       "box",
+						Tag:       "div",
 						Classes:   []string{"header"},
 						Attrs:     map[string]string{"class": "header"},
 						CursorCol: -1,
@@ -31,7 +31,7 @@ func Run() {
 						Children: []*sumi.Input{
 							{
 								Kind:    sumi.KindText,
-								Tag:     "text",
+								Tag:     "span",
 								Classes: []string{"title"},
 								Attrs:   map[string]string{"class": "title"},
 								Content: "Sumi Flexbox Dashboard",
@@ -40,14 +40,14 @@ func Run() {
 					},
 					{
 						Kind:    sumi.KindText,
-						Tag:     "text",
+						Tag:     "span",
 						Classes: []string{"hint"},
 						Attrs:   map[string]string{"class": "hint"},
 						Content: "Press q to quit",
 					},
 					{
 						Kind:      sumi.KindBox,
-						Tag:       "box",
+						Tag:       "div",
 						Classes:   []string{"panels"},
 						Attrs:     map[string]string{"class": "panels"},
 						CursorCol: -1,
@@ -55,7 +55,7 @@ func Run() {
 						Children: []*sumi.Input{
 							{
 								Kind:      sumi.KindBox,
-								Tag:       "box",
+								Tag:       "div",
 								Classes:   []string{"panel"},
 								Attrs:     map[string]string{"class": "panel"},
 								CursorCol: -1,
@@ -63,26 +63,26 @@ func Run() {
 								Children: []*sumi.Input{
 									{
 										Kind:    sumi.KindText,
-										Tag:     "text",
+										Tag:     "span",
 										Classes: []string{"panel-title"},
 										Attrs:   map[string]string{"class": "panel-title"},
 										Content: "Left Panel",
 									},
 									{
 										Kind:    sumi.KindText,
-										Tag:     "text",
+										Tag:     "span",
 										Content: "This panel uses flex-grow",
 									},
 									{
 										Kind:    sumi.KindText,
-										Tag:     "text",
+										Tag:     "span",
 										Content: "to fill available space.",
 									},
 								},
 							},
 							{
 								Kind:      sumi.KindBox,
-								Tag:       "box",
+								Tag:       "div",
 								Classes:   []string{"panel"},
 								Attrs:     map[string]string{"class": "panel"},
 								CursorCol: -1,
@@ -90,19 +90,19 @@ func Run() {
 								Children: []*sumi.Input{
 									{
 										Kind:    sumi.KindText,
-										Tag:     "text",
+										Tag:     "span",
 										Classes: []string{"panel-title"},
 										Attrs:   map[string]string{"class": "panel-title"},
 										Content: "Right Panel",
 									},
 									{
 										Kind:    sumi.KindText,
-										Tag:     "text",
+										Tag:     "span",
 										Content: "Both panels share the",
 									},
 									{
 										Kind:    sumi.KindText,
-										Tag:     "text",
+										Tag:     "span",
 										Content: "width equally.",
 									},
 								},
@@ -111,7 +111,7 @@ func Run() {
 					},
 					{
 						Kind:      sumi.KindBox,
-						Tag:       "box",
+						Tag:       "div",
 						Classes:   []string{"footer"},
 						Attrs:     map[string]string{"class": "footer"},
 						CursorCol: -1,
@@ -119,14 +119,14 @@ func Run() {
 						Children: []*sumi.Input{
 							{
 								Kind:    sumi.KindText,
-								Tag:     "text",
+								Tag:     "span",
 								Classes: []string{"status"},
 								Attrs:   map[string]string{"class": "status"},
 								Content: "Ready",
 							},
 							{
 								Kind:    sumi.KindText,
-								Tag:     "text",
+								Tag:     "span",
 								Classes: []string{"version"},
 								Attrs:   map[string]string{"class": "version"},
 								Content: "sumi v0.1",
@@ -174,13 +174,13 @@ func CreateApp(w, h int) *sumi.App {
 		Children: []*sumi.Input{
 			{
 				Kind:      sumi.KindBox,
-				Tag:       "box",
+				Tag:       "div",
 				CursorCol: -1,
 				CursorRow: -1,
 				Children: []*sumi.Input{
 					{
 						Kind:      sumi.KindBox,
-						Tag:       "box",
+						Tag:       "div",
 						Classes:   []string{"header"},
 						Attrs:     map[string]string{"class": "header"},
 						CursorCol: -1,
@@ -188,7 +188,7 @@ func CreateApp(w, h int) *sumi.App {
 						Children: []*sumi.Input{
 							{
 								Kind:    sumi.KindText,
-								Tag:     "text",
+								Tag:     "span",
 								Classes: []string{"title"},
 								Attrs:   map[string]string{"class": "title"},
 								Content: "Sumi Flexbox Dashboard",
@@ -197,14 +197,14 @@ func CreateApp(w, h int) *sumi.App {
 					},
 					{
 						Kind:    sumi.KindText,
-						Tag:     "text",
+						Tag:     "span",
 						Classes: []string{"hint"},
 						Attrs:   map[string]string{"class": "hint"},
 						Content: "Press q to quit",
 					},
 					{
 						Kind:      sumi.KindBox,
-						Tag:       "box",
+						Tag:       "div",
 						Classes:   []string{"panels"},
 						Attrs:     map[string]string{"class": "panels"},
 						CursorCol: -1,
@@ -212,7 +212,7 @@ func CreateApp(w, h int) *sumi.App {
 						Children: []*sumi.Input{
 							{
 								Kind:      sumi.KindBox,
-								Tag:       "box",
+								Tag:       "div",
 								Classes:   []string{"panel"},
 								Attrs:     map[string]string{"class": "panel"},
 								CursorCol: -1,
@@ -220,26 +220,26 @@ func CreateApp(w, h int) *sumi.App {
 								Children: []*sumi.Input{
 									{
 										Kind:    sumi.KindText,
-										Tag:     "text",
+										Tag:     "span",
 										Classes: []string{"panel-title"},
 										Attrs:   map[string]string{"class": "panel-title"},
 										Content: "Left Panel",
 									},
 									{
 										Kind:    sumi.KindText,
-										Tag:     "text",
+										Tag:     "span",
 										Content: "This panel uses flex-grow",
 									},
 									{
 										Kind:    sumi.KindText,
-										Tag:     "text",
+										Tag:     "span",
 										Content: "to fill available space.",
 									},
 								},
 							},
 							{
 								Kind:      sumi.KindBox,
-								Tag:       "box",
+								Tag:       "div",
 								Classes:   []string{"panel"},
 								Attrs:     map[string]string{"class": "panel"},
 								CursorCol: -1,
@@ -247,19 +247,19 @@ func CreateApp(w, h int) *sumi.App {
 								Children: []*sumi.Input{
 									{
 										Kind:    sumi.KindText,
-										Tag:     "text",
+										Tag:     "span",
 										Classes: []string{"panel-title"},
 										Attrs:   map[string]string{"class": "panel-title"},
 										Content: "Right Panel",
 									},
 									{
 										Kind:    sumi.KindText,
-										Tag:     "text",
+										Tag:     "span",
 										Content: "Both panels share the",
 									},
 									{
 										Kind:    sumi.KindText,
-										Tag:     "text",
+										Tag:     "span",
 										Content: "width equally.",
 									},
 								},
@@ -268,7 +268,7 @@ func CreateApp(w, h int) *sumi.App {
 					},
 					{
 						Kind:      sumi.KindBox,
-						Tag:       "box",
+						Tag:       "div",
 						Classes:   []string{"footer"},
 						Attrs:     map[string]string{"class": "footer"},
 						CursorCol: -1,
@@ -276,14 +276,14 @@ func CreateApp(w, h int) *sumi.App {
 						Children: []*sumi.Input{
 							{
 								Kind:    sumi.KindText,
-								Tag:     "text",
+								Tag:     "span",
 								Classes: []string{"status"},
 								Attrs:   map[string]string{"class": "status"},
 								Content: "Ready",
 							},
 							{
 								Kind:    sumi.KindText,
-								Tag:     "text",
+								Tag:     "span",
 								Classes: []string{"version"},
 								Attrs:   map[string]string{"class": "version"},
 								Content: "sumi v0.1",

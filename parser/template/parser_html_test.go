@@ -88,13 +88,14 @@ func TestUppercaseStillComponent(t *testing.T) {
 	}
 }
 
-func TestLegacyBoxTextStillParse(t *testing.T) {
-	doc, err := Parse(`<box><text>hi</text></box>`)
-	if err != nil {
-		t.Fatalf("parse error: %v", err)
+func TestLegacyBoxTextRejected(t *testing.T) {
+	if _, err := Parse(`<div><span>hi</span></div>`); err != nil {
+		t.Fatalf("div/span must parse: %v", err)
 	}
-	b := doc.Children[0].(*BoxElement)
-	if b.Tag != "" {
-		t.Errorf("legacy box tag = %q, want empty", b.Tag)
+	if _, err := Parse(`<box></box>`); err == nil {
+		t.Error("<box> must be rejected with a helpful error")
+	}
+	if _, err := Parse(`<span>ok</span><text>no</text>`); err == nil {
+		t.Error("<text> must be rejected with a helpful error")
 	}
 }

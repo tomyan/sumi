@@ -16,8 +16,8 @@ root { overflow: auto; min-width: 48; }
 .hint { color: cyan; opacity: dim; }
 </style>
 
-<box class="header" onkey="handleKey">
-    <text class="title">Sumi Responsive Demo</text>
-    <text class="dims">Terminal: {width}x{height}</text>
-    <text class="hint">Resize your terminal to see this update! Press q to quit.</text>
-</box>
+<div class="header" onkey="handleKey">
+    <span class="title">Sumi Responsive Demo</span>
+    <span class="dims">Terminal: {width}x{height}</span>
+    <span class="hint">Resize your terminal to see this update! Press q to quit.</span>
+</div>

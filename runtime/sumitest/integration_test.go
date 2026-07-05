@@ -17,7 +17,7 @@ import (
 //	  $state count = 0
 //	  function increment() { count++ }
 //	</script>
-//	<box onkey="increment">Count: {count}</box>
+//	<div onkey="increment">Count: {count}</div>
 func createCounterApp(w, h int) *tui.App {
 	count := 0
 

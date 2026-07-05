@@ -8,7 +8,7 @@ import (
 
 func TestParseTextWithExpressionOnly(t *testing.T) {
 	// When
-	doc, err := Parse(`<text>{count}</text>`)
+	doc, err := Parse(`<span>{count}</span>`)
 
 	// Then
 	if err != nil {
@@ -20,7 +20,7 @@ func TestParseTextWithExpressionOnly(t *testing.T) {
 
 func TestParseTextWithStringAndExpression(t *testing.T) {
 	// When
-	doc, err := Parse(`<text>Count: {count}</text>`)
+	doc, err := Parse(`<span>Count: {count}</span>`)
 
 	// Then
 	if err != nil {
@@ -35,7 +35,7 @@ func TestParseTextWithStringAndExpression(t *testing.T) {
 
 func TestParseTextWithTwoExpressions(t *testing.T) {
 	// When
-	doc, err := Parse(`<text>{a} and {b}</text>`)
+	doc, err := Parse(`<span>{a} and {b}</span>`)
 
 	// Then
 	if err != nil {
@@ -51,7 +51,7 @@ func TestParseTextWithTwoExpressions(t *testing.T) {
 
 func TestParseTextWithExpressionContainingSpaces(t *testing.T) {
 	// When
-	doc, err := Parse(`<text>Count: {count + 1}!</text>`)
+	doc, err := Parse(`<span>Count: {count + 1}!</span>`)
 
 	// Then
 	if err != nil {
@@ -69,7 +69,7 @@ func TestParseTextWithExpressionContainingSpaces(t *testing.T) {
 
 func TestParseTextWithClassAttribute(t *testing.T) {
 	// When
-	doc, err := Parse(`<text class="title">Hello</text>`)
+	doc, err := Parse(`<span class="title">Hello</span>`)
 
 	// Then
 	if err != nil {
@@ -93,7 +93,7 @@ func TestParseTextWithClassAttribute(t *testing.T) {
 
 func TestParseTextWithoutAttributesBackwardCompat(t *testing.T) {
 	// When
-	doc, err := Parse(`<text>Hello</text>`)
+	doc, err := Parse(`<span>Hello</span>`)
 
 	// Then
 	if err != nil {
@@ -109,7 +109,7 @@ func TestParseTextWithoutAttributesBackwardCompat(t *testing.T) {
 
 func TestParseTextWithMultipleAttributes(t *testing.T) {
 	// When
-	doc, err := Parse(`<text class="title" id="heading">Content</text>`)
+	doc, err := Parse(`<span class="title" id="heading">Content</span>`)
 
 	// Then
 	if err != nil {
@@ -133,7 +133,7 @@ func TestParseTextWithMultipleAttributes(t *testing.T) {
 
 func TestParseTextWithClassInsideBox(t *testing.T) {
 	// When
-	doc, err := Parse(`<box><text class="label">Name</text></box>`)
+	doc, err := Parse(`<div><span class="label">Name</span></div>`)
 
 	// Then
 	if err != nil {

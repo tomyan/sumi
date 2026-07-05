@@ -81,7 +81,7 @@ func TestParseComponentMultipleAttributes(t *testing.T) {
 
 func TestParseComponentInsideBox(t *testing.T) {
 	// Given
-	input := `<box><counter label="X" /></box>`
+	input := `<div><counter label="X" /></div>`
 
 	// When
 	doc, err := Parse(input)
@@ -108,7 +108,7 @@ func TestParseComponentInsideBox(t *testing.T) {
 
 func TestParseMultipleComponentsInBox(t *testing.T) {
 	// Given
-	input := `<box><counter label="A" /><counter label="B" /></box>`
+	input := `<div><counter label="A" /><counter label="B" /></div>`
 
 	// When
 	doc, err := Parse(input)
@@ -156,7 +156,7 @@ func TestParseComponentWithClosingTag(t *testing.T) {
 
 func TestParseComponentMixedWithText(t *testing.T) {
 	// Given
-	input := `<box><text>Title</text><counter /></box>`
+	input := `<div><span>Title</span><counter /></div>`
 
 	// When
 	doc, err := Parse(input)
@@ -250,7 +250,7 @@ func TestParseNamespacedComponentWithAttributes(t *testing.T) {
 
 func TestParseNamespacedComponentInsideBox(t *testing.T) {
 	// Given
-	input := `<box><sumi:TextInput bind:value={x} /></box>`
+	input := `<div><sumi:TextInput bind:value={x} /></div>`
 
 	// When
 	doc, err := Parse(input)
