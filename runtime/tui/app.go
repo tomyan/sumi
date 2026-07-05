@@ -173,6 +173,10 @@ func (a *App) Run() {
 		fmt.Fprintf(os.Stdout, "\033]2;%s\007", a.Title)
 	}
 
+	// Query the terminal background colour; the OSC 11 reply arrives on
+	// stdin as an EventScheme and drives light-dark() resolution.
+	fmt.Fprint(os.Stdout, "\033]11;?\007")
+
 	eventCh := make(chan input.Event, 64)
 	go func() {
 		for {
@@ -243,6 +247,19 @@ func (a *App) runLoop(eventCh <-chan input.Event, resizeCh <-chan struct{}, sigC
 // dispatchEvent calls OnEvent if set.
 // If no OnEvent handler is set, SIGINT/SIGTERM signals quit the app by default.
 func (a *App) dispatchEvent(evt input.Event) {
+	// Scheme reports are consumed by the framework: update light-dark()
+	// resolution and repaint.
+	if evt.Kind == input.EventScheme {
+		scheme := render.SchemeDark
+		if evt.Scheme == "light" {
+			scheme = render.SchemeLight
+		}
+		if scheme != render.GetColorScheme() {
+			render.SetColorScheme(scheme)
+			a.Dirty = true
+		}
+		return
+	}
 	// Track mouse position for hover.
 	if evt.Kind == input.EventMouse {
 		a.mouseX = evt.Mouse.X

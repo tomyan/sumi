@@ -17,20 +17,21 @@ const (
 	EventPaste                    // bracketed paste
 	EventFocus                    // terminal focus gained
 	EventBlur                     // terminal focus lost
+	EventScheme                   // terminal colour-scheme report (OSC 11)
 )
 
 // SpecialKey identifies a special key.
 type SpecialKey string
 
 const (
-	KeyUp       SpecialKey = "up"
-	KeyDown     SpecialKey = "down"
-	KeyLeft     SpecialKey = "left"
-	KeyRight    SpecialKey = "right"
-	KeyPgUp     SpecialKey = "pgup"
-	KeyPgDn     SpecialKey = "pgdn"
-	KeyHome     SpecialKey = "home"
-	KeyEnd      SpecialKey = "end"
+	KeyUp        SpecialKey = "up"
+	KeyDown      SpecialKey = "down"
+	KeyLeft      SpecialKey = "left"
+	KeyRight     SpecialKey = "right"
+	KeyPgUp      SpecialKey = "pgup"
+	KeyPgDn      SpecialKey = "pgdn"
+	KeyHome      SpecialKey = "home"
+	KeyEnd       SpecialKey = "end"
 	KeyTab       SpecialKey = "tab"
 	KeyShiftTab  SpecialKey = "shift-tab"
 	KeyEnter     SpecialKey = "enter"
@@ -41,15 +42,16 @@ const (
 
 // Event represents a terminal input event.
 type Event struct {
-	Kind    EventKind
-	Rune    rune           // set for EventKey
-	Ctrl    bool           // true if Ctrl modifier was held
-	Shift   bool           // true if Shift modifier was held
-	Alt     bool           // true if Alt modifier was held
-	Special SpecialKey     // set for EventSpecial
-	Mouse   MouseEvent     // set for EventMouse
+	Kind      EventKind
+	Rune      rune           // set for EventKey
+	Ctrl      bool           // true if Ctrl modifier was held
+	Shift     bool           // true if Shift modifier was held
+	Alt       bool           // true if Alt modifier was held
+	Special   SpecialKey     // set for EventSpecial
+	Mouse     MouseEvent     // set for EventMouse
 	Signal    syscall.Signal // set for EventSignal
 	PasteText string         // set for EventPaste
+	Scheme    string         // set for EventScheme: "light" or "dark"
 }
 
 // ReadEvent reads a single input event from the reader.
@@ -95,6 +97,9 @@ func parseEscapeSequence(r io.Reader) (Event, error) {
 		return Event{Kind: EventSpecial, Special: KeyEscape}, nil
 	}
 
+	if b == ']' {
+		return parseOSC(r)
+	}
 	if b != '[' {
 		// ESC followed by a printable character is Alt+key
 		if b >= 32 && b < 127 {
