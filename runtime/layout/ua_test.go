@@ -117,3 +117,29 @@ func TestUATableMarkupLaysOutAsTable(t *testing.T) {
 		t.Errorf("rows should stack: %d vs %d", row0.Y, row1.Y)
 	}
 }
+
+// C2: the rest of the text-level vocabulary (kbd uses inverse — borders
+// are unsupported on text nodes; mark is black-on-yellow like svelterm).
+func TestUAKbdAbbrSampMark(t *testing.T) {
+	tree := &Input{Tag: "root", Kind: KindBox, Children: []*Input{
+		{Tag: "abbr", Kind: KindText, Content: "HTML"},
+		{Tag: "samp", Kind: KindText, Content: "$ out"},
+		{Tag: "kbd", Kind: KindText, Content: "Ctrl+C"},
+		{Tag: "mark", Kind: KindText, Content: "hit"},
+	}}
+	ResolveStyles(tree, nil, 80, 24)
+
+	abbr, samp, kbd, mark := tree.Children[0], tree.Children[1], tree.Children[2], tree.Children[3]
+	if !abbr.Style.Underline {
+		t.Errorf("abbr should be underlined: %+v", abbr.Style)
+	}
+	if samp.Style.FG.Name != "cyan" {
+		t.Errorf("samp FG = %q, want cyan", samp.Style.FG.Name)
+	}
+	if !kbd.Style.Inverse {
+		t.Errorf("kbd should be inverse: %+v", kbd.Style)
+	}
+	if mark.Style.BG.Name != "yellow" || mark.Style.FG.Name != "black" {
+		t.Errorf("mark = fg %q bg %q, want black on yellow", mark.Style.FG.Name, mark.Style.BG.Name)
+	}
+}

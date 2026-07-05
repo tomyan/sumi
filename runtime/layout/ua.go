@@ -22,9 +22,12 @@ input[type="checkbox"], input[type="radio"] { width: 3; }
 progress, meter { width: 20; }
 strong, b { font-weight: bold; }
 em, i, var { font-style: italic; }
-u, a { text-decoration: underline; }
+u, a, abbr { text-decoration: underline; }
 s, del { text-decoration: line-through; }
-mark { inverse: true; }
+mark { background: yellow; color: black; }
+kbd { inverse: true; }
+samp { color: cyan; }
+caption { text-align: center; }
 `
 
 var uaStylesheet = mustParseUA()
