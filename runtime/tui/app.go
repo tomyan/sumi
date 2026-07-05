@@ -15,19 +15,19 @@ import (
 // App owns the terminal event loop for a Sumi application.
 // Generated code builds the tree, defines handlers, and calls app.Run().
 type App struct {
-	OnRender  func()            // called to perform a render
-	OnEvent   func(input.Event) // called for each input event
-	OnResize  func()            // called on terminal resize
-	HasMouse  bool              // enable SGR mouse mode
-	Title     string            // static terminal title (saved/set/restored around Run)
-	SaveTitle bool              // save/restore terminal title only (for dynamic titles set in doRender)
+	OnRender     func()            // called to perform a render
+	OnEvent      func(input.Event) // called for each input event
+	OnResize     func()            // called on terminal resize
+	HasMouse     bool              // enable SGR mouse mode
+	Title        string            // static terminal title (saved/set/restored around Run)
+	SaveTitle    bool              // save/restore terminal title only (for dynamic titles set in doRender)
 	Dirty        bool              // set by handlers to trigger re-render
 	OnPostRender func()            // called after each converge() cycle (if non-nil)
 	quitCh       chan struct{}     // closed by Quit() to exit the event loop
 	wakeCh       chan struct{}     // receives from RequestFrame() to wake the event loop
-	doCh         chan func()      // queued functions to run on the main goroutine
-	mouseX       int              // latest mouse X (0-indexed)
-	mouseY       int              // latest mouse Y (0-indexed)
+	doCh         chan func()       // queued functions to run on the main goroutine
+	mouseX       int               // latest mouse X (0-indexed)
+	mouseY       int               // latest mouse Y (0-indexed)
 
 	// Test mode fields — set by CreateApp for synchronous stepping.
 	TestWidth  int            // test viewport width (0 = use real terminal)
