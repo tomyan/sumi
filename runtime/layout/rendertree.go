@@ -52,7 +52,27 @@ func renderTreeFull(buf *render.Buffer, box *Box, clip *render.Clip, inherited r
 	renderBackground(buf, box, clip)
 	renderBorder(buf, box)
 	renderContent(buf, box, clip)
+	renderCells(buf, box, clip)
 	renderScrollbarsAndChildrenFull(buf, box, clip, box.Style, engine, counter)
+}
+
+// renderCells blits per-cell styled content (ansi/region elements) at the
+// box's content origin, clipped to the content area.
+func renderCells(buf *render.Buffer, box *Box, clip *render.Clip) {
+	if box.Cells == nil {
+		return
+	}
+	b := borderSize(box.Border)
+	originX := box.X + b + box.Padding.Left
+	originY := box.Y + b + box.Padding.Top
+	maxW := box.Width - 2*b - box.Padding.Left - box.Padding.Right
+	maxH := box.Height - 2*b - box.Padding.Top - box.Padding.Bottom
+	for row := 0; row < box.Cells.Height() && row < maxH; row++ {
+		for col := 0; col < box.Cells.Width() && col < maxW; col++ {
+			c := box.Cells.Cell(row, col)
+			buf.SetStyledCellClipped(originY+row, originX+col, c.Ch, c.Style, clip)
+		}
+	}
 }
 
 // renderBackground fills the box area with spaces using the box's BG color.

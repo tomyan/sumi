@@ -145,6 +145,8 @@ func syncProjection(n *layout.Input) {
 		syncDetailsElement(n)
 	case "dialog":
 		syncDialogElement(n)
+	case "ansi":
+		syncAnsiElement(n)
 	}
 }
 
@@ -176,6 +178,10 @@ func resyncInputElements(comp *Component) bool {
 			beforeContent, beforeCursor := child.Content, n.CursorCol
 			syncProjection(n)
 			if child.Content != beforeContent || n.CursorCol != beforeCursor {
+				changed = true
+			}
+		case "region":
+			if resyncRegionElement(comp, n) {
 				changed = true
 			}
 		}

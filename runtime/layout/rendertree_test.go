@@ -138,3 +138,52 @@ func TestRenderTreeScrollbarNarrowsContentClip(t *testing.T) {
 		t.Errorf("expected '9' at col 8 (content clipped), got %c", ch)
 	}
 }
+
+// C14/C15: a box with Cells blits the buffer at its content origin.
+func TestRenderTreeBlitsCells(t *testing.T) {
+	// Given — a 3x2 cell grid inside a bordered box
+	cells := render.NewBuffer(3, 2)
+	cells.SetStyledCell(0, 0, 'A', render.Style{FG: render.Color{Name: "red"}})
+	cells.SetStyledCell(1, 2, 'Z', render.Style{})
+	tree := &Input{Kind: KindBox, Children: []*Input{
+		{Kind: KindBox, Border: "single", FixedWidth: 5, FixedHeight: 4, Cells: cells},
+	}}
+
+	// When
+	box := Layout(tree, 10, 6)
+	buf := render.NewBuffer(10, 6)
+	RenderTree(buf, box, nil)
+
+	// Then — cells land inside the border
+	if got := buf.Cell(1, 1); got.Ch != 'A' || got.Style.FG.Name != "red" {
+		t.Errorf("cell(1,1) = %c %v, want styled A", got.Ch, got.Style.FG)
+	}
+	if got := buf.Cell(2, 3); got.Ch != 'Z' {
+		t.Errorf("cell(2,3) = %c, want Z", got.Ch)
+	}
+}
+
+// Cells larger than the box clip to its content area.
+func TestRenderTreeClipsCellsToContentArea(t *testing.T) {
+	// Given — a 10-wide grid in a 4-wide borderless box
+	cells := render.NewBuffer(10, 1)
+	for i := 0; i < 10; i++ {
+		cells.SetStyledCell(0, i, rune('0'+i), render.Style{})
+	}
+	tree := &Input{Kind: KindBox, Children: []*Input{
+		{Kind: KindBox, FixedWidth: 4, FixedHeight: 1, Cells: cells},
+	}}
+
+	// When
+	box := Layout(tree, 20, 3)
+	buf := render.NewBuffer(20, 3)
+	RenderTree(buf, box, nil)
+
+	// Then
+	if got := buf.Cell(0, 3); got.Ch != '3' {
+		t.Errorf("cell(0,3) = %c, want 3", got.Ch)
+	}
+	if got := buf.Cell(0, 4); got.Ch == '4' {
+		t.Errorf("cell(0,4) leaked outside the box: %c", got.Ch)
+	}
+}

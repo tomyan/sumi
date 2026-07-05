@@ -92,6 +92,7 @@ type Input struct {
 	BorderCollapse      bool                  // when true, children share borders
 	Scroll              *ScrollState          // if non-nil, layout populates and applies scroll state
 	Edit                *edit.State           // editing state for input elements (runtime-initialized)
+	Cells               *render.Buffer        // per-cell styled content, blitted at the content origin (ansi/region)
 	ContentEditable     bool                  // when true, renders an inverse cursor at CursorCol/CursorRow
 	Style               render.Style          // resolved style for this node
 	HoverStyle          render.Style          // style applied when mouse is over this node
@@ -131,6 +132,8 @@ type Box struct {
 	Bottom                   int          // offset from bottom (propagated from Input)
 	Children                 []*Box
 	Content                  string                // text content if text node
+	Cells                    *render.Buffer        // per-cell styled content (ansi/region), blitted at the content origin
+	Padding                  Padding               // insets (propagated from Input; content origin for Cells)
 	Lines                    []string              // wrapped lines (nil = single line, use Content)
 	TextAlign                string                // per-line alignment within the box width
 	TextOverflow             string                // truncation mode for overflowing lines
@@ -448,6 +451,8 @@ func layoutNode(input *Input, availW, availH int) *Box {
 		Hovered:         input.Hovered,
 		FocusStyle:      input.FocusStyle,
 		Focused:         input.Focused,
+		Cells:           input.Cells,
+		Padding:         input.Padding,
 		Transitions:     input.Transitions,
 		AnimationSpec:   input.AnimationSpec,
 		Border:          border,

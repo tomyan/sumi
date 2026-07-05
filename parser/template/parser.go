@@ -99,6 +99,7 @@ var htmlTags = map[string]bool{
 	"button": true, "input": true, "textarea": true, "select": true,
 	"option": true, "progress": true, "meter": true, "details": true,
 	"summary": true, "dialog": true, "img": true,
+	"ansi": true, "region": true,
 }
 
 // isHTMLTagName reports whether a tag is a recognised HTML element name.
@@ -115,7 +116,7 @@ var containerTags = map[string]bool{
 	"ul": true, "ol": true, "li": true, "blockquote": true, "table": true,
 	"thead": true, "tbody": true, "tfoot": true, "tr": true,
 	"button": true, "textarea": true, "dialog": true, "details": true,
-	"select": true,
+	"select": true, "ansi": true, "region": true,
 }
 
 // parseHTMLElement parses any HTML element. Bodies containing child
