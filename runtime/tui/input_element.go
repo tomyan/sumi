@@ -1,6 +1,8 @@
 package tui
 
 import (
+	"strconv"
+	"strings"
 	"unicode/utf8"
 
 	"github.com/tomyan/sumi/runtime/edit"
@@ -22,19 +24,68 @@ func ensureEditState(n *layout.Input) *edit.State {
 	return n.Edit
 }
 
-// syncInputElement projects editing state onto the element: the value
-// renders in an implicit text child, and the cursor shows only while
-// the element is focused.
+// syncInputElement projects editing state onto the element: the value —
+// masked for password inputs, windowed to the laid-out width — renders
+// in an implicit text child; the cursor shows only while focused.
 func syncInputElement(n *layout.Input, focused bool) {
 	state := ensureEditState(n)
-	child := ensureValueChild(n)
-	child.Content = state.Value
+	display := state.Value
+	if n.Attrs["type"] == "password" {
+		display = strings.Repeat("•", utf8.RuneCountInString(state.Value))
+	}
+	display = windowDisplay(n, state, display)
+	ensureValueChild(n).Content = display
 	if focused {
-		n.CursorCol = state.Cursor
+		n.CursorCol = state.Cursor - state.ViewOffset
 		n.CursorRow = 0
 	} else {
 		n.CursorCol = -1
 	}
+}
+
+// windowDisplay slides the view offset so the cursor stays visible when
+// the value exceeds the element's laid-out content width.
+func windowDisplay(n *layout.Input, state *edit.State, display string) string {
+	contentW := inputContentWidth(n)
+	if contentW <= 0 {
+		state.ViewOffset = 0
+		return display
+	}
+	runes := []rune(display)
+	maxOffset := 0
+	if len(runes)+1 > contentW {
+		maxOffset = len(runes) + 1 - contentW // +1 keeps a cell for the caret
+	}
+	if state.ViewOffset > state.Cursor {
+		state.ViewOffset = state.Cursor
+	}
+	if state.Cursor-state.ViewOffset > contentW-1 {
+		state.ViewOffset = state.Cursor - (contentW - 1)
+	}
+	if state.ViewOffset > maxOffset {
+		state.ViewOffset = maxOffset
+	}
+	if state.ViewOffset < 0 {
+		state.ViewOffset = 0
+	}
+	end := state.ViewOffset + contentW
+	if end > len(runes) {
+		end = len(runes)
+	}
+	return string(runes[state.ViewOffset:end])
+}
+
+// inputContentWidth returns the width available for the value inside the
+// element's borders and padding, from the previous layout pass.
+func inputContentWidth(n *layout.Input) int {
+	w := n.LastW
+	if w <= 0 {
+		return 0
+	}
+	if n.Border != "" && n.Border != "none" {
+		w -= 2
+	}
+	return w - n.Padding.Left - n.Padding.Right
 }
 
 // ensureValueChild returns the implicit text child that displays the value.
@@ -49,9 +100,43 @@ func ensureValueChild(n *layout.Input) *layout.Input {
 	return child
 }
 
+// resyncInputElements re-projects input elements after layout, when the
+// laid-out width (LastW) is fresh — value windowing depends on it.
+// Returns true when any projection changed, requesting another pass.
+func resyncInputElements(comp *Component) bool {
+	focusables := layout.CollectFocusables(comp.Tree)
+	changed := false
+	for i, f := range focusables {
+		if f.Tag != "input" {
+			continue
+		}
+		child := ensureValueChild(f)
+		beforeContent, beforeCursor := child.Content, f.CursorCol
+		syncInputElement(f, i == comp.FocusIndex)
+		if child.Content != beforeContent || f.CursorCol != beforeCursor {
+			changed = true
+		}
+	}
+	return changed
+}
+
+// inputConstraints reads maxlength/readonly attributes.
+func inputConstraints(n *layout.Input) edit.Constraints {
+	c := edit.Constraints{}
+	if v, ok := n.Attrs["maxlength"]; ok {
+		if max, err := strconv.Atoi(v); err == nil {
+			c.MaxLength = max
+		}
+	}
+	if v, ok := n.Attrs["readonly"]; ok && v != "false" {
+		c.ReadOnly = true
+	}
+	return c
+}
+
 // editFocusedInput applies an editing key to the focused input element as
-// its keydown default action, then dispatches an "input" DOM event with
-// the new value and cursor. Returns true when the key was consumed.
+// its keydown default action. An "input" DOM event fires only when the
+// value actually changed. Returns true when the key was consumed.
 func editFocusedInput(comp *Component, evt input.Event) bool {
 	path := layout.FocusablePath(comp.Tree, comp.FocusIndex)
 	if len(path) == 0 {
@@ -62,11 +147,14 @@ func editFocusedInput(comp *Component, evt input.Event) bool {
 		return false
 	}
 	state := ensureEditState(target)
-	if !edit.HandleKey(state, evt) {
+	before := state.Value
+	if !edit.HandleKeyWith(state, evt, inputConstraints(target)) {
 		return false
 	}
 	syncInputElement(target, true)
-	layout.DispatchDOM(path, &layout.DOMEvent{Type: "input", Key: evt,
-		Data: map[string]any{"value": state.Value, "cursor": state.Cursor}})
+	if state.Value != before {
+		layout.DispatchDOM(path, &layout.DOMEvent{Type: "input", Key: evt,
+			Data: map[string]any{"value": state.Value, "cursor": state.Cursor}})
+	}
 	return true
 }

@@ -25,6 +25,10 @@ type State struct {
 	Value  string
 	Cursor int // rune offset into Value
 
+	// ViewOffset is the first visible rune when the value exceeds the
+	// visible width; maintained by the presentation layer, not the ops.
+	ViewOffset int
+
 	// Undo/redo for current input.
 	undoStack []snapshot
 	redoStack []snapshot

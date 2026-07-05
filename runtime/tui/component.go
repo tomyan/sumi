@@ -101,6 +101,9 @@ func TestApp(comp *Component, w, h int) *App {
 			tree = layout.Layout(comp.Tree, termW, termH)
 		}
 		comp.LayoutResult = tree
+		if resyncInputElements(comp) {
+			app.Dirty = true
+		}
 		if comp.AfterLayout != nil {
 			comp.AfterLayout()
 		}
@@ -182,6 +185,9 @@ func RunWithOptions(comp *Component, opts RunOptions) {
 			tree = layout.Layout(comp.Tree, termW, termH)
 		}
 		comp.LayoutResult = tree
+		if resyncInputElements(comp) {
+			app.Dirty = true
+		}
 		if comp.AfterLayout != nil {
 			comp.AfterLayout()
 		}
@@ -260,6 +266,9 @@ func Run(comp *Component) {
 			tree = layout.Layout(comp.Tree, termW, termH)
 		}
 		comp.LayoutResult = tree
+		if resyncInputElements(comp) {
+			app.Dirty = true
+		}
 		if comp.AfterLayout != nil {
 			comp.AfterLayout()
 		}
