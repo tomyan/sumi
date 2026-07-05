@@ -21,6 +21,7 @@ type extractionCtx struct {
 	count             int
 	boxCount          int
 	signals           map[string]bool              // signal variable names (for auto-unwrapping in expressions)
+	eventFuncs        map[string]bool              // declared funcs with params — emitted as direct DOM handler refs
 	componentChildren map[string]ComponentChildInfo // child components for template
 	declBuf           bytes.Buffer
 	syncBuf           bytes.Buffer // dynamic children rebuild code (for {if}/{for} inside sumi.Effect)

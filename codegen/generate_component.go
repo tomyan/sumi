@@ -167,6 +167,12 @@ func writeConstructor(buf *bytes.Buffer, name string, info *script.ScriptInfo, d
 	ext := newExtractionCtx()
 	ext.signals = info.Signals
 	ext.componentChildren = opts.Components
+	ext.eventFuncs = make(map[string]bool)
+	for _, f := range info.Funcs {
+		if f.Params != "" {
+			ext.eventFuncs[f.Name] = true
+		}
+	}
 	var treeBuf bytes.Buffer
 	writeLayoutTree(&treeBuf, doc, stylesheet, false, ext)
 	buf.Write(ext.declBuf.Bytes())

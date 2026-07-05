@@ -3,6 +3,7 @@ package codegen
 import (
 	"bytes"
 	"fmt"
+	"sort"
 	"strconv"
 	"strings"
 
@@ -24,7 +25,7 @@ func writeLayoutTree(buf *bytes.Buffer, doc *template.Document, stylesheet *styl
 	fmt.Fprintf(buf, "%s\tKind: sumi.KindBox,\n", tabs)
 	writeIdentityFields(buf, tabs, "root", nil)
 	rootAttrs := map[string]string{"flex-direction": "column"}
-	writeBoxAttributes(buf, tabs, rootAttrs, nil)
+	writeBoxAttributes(buf, tabs, rootAttrs, nil, ext)
 	if hasDynamicChildren(doc.Children) {
 		if ext != nil {
 			// Build-once: root.Children rebuilt in sync
@@ -215,7 +216,7 @@ func writeBoxInput(buf *bytes.Buffer, n *template.BoxElement, stylesheet *style.
 	fmt.Fprintf(buf, "%s{\n", tabs)
 	fmt.Fprintf(buf, "%s\tKind: sumi.KindBox,\n", tabs)
 	writeIdentityFields(buf, tabs, boxTagOf(n), n.Attributes)
-	writeBoxAttributes(buf, tabs, n.Attributes, nil)
+	writeBoxAttributes(buf, tabs, n.Attributes, nil, ext)
 	writeBoxChildren(buf, n.Children, stylesheet, indent, tabs, ext)
 	fmt.Fprintf(buf, "%s},\n", tabs)
 }
@@ -253,7 +254,7 @@ func writeExtractedCursorBox(treeBuf *bytes.Buffer, n *template.BoxElement, styl
 	fmt.Fprintf(&ext.declBuf, "\t%s := &sumi.Input{\n", name)
 	fmt.Fprintf(&ext.declBuf, "\t\tKind: sumi.KindBox,\n")
 	writeIdentityFields(&ext.declBuf, "\t", boxTagOf(n), n.Attributes)
-	writeBoxAttributes(&ext.declBuf, "\t", n.Attributes, nil)
+	writeBoxAttributes(&ext.declBuf, "\t", n.Attributes, nil, ext)
 	ext.declBuf.Write(childBuf.Bytes())
 	fmt.Fprintf(&ext.declBuf, "\t}\n")
 
@@ -288,7 +289,7 @@ func writeExtractedDynamicBox(treeBuf *bytes.Buffer, n *template.BoxElement, sty
 	fmt.Fprintf(&ext.declBuf, "\t%s := &sumi.Input{\n", name)
 	fmt.Fprintf(&ext.declBuf, "\t\tKind: sumi.KindBox,\n")
 	writeIdentityFields(&ext.declBuf, "\t", boxTagOf(n), n.Attributes)
-	writeBoxAttributes(&ext.declBuf, "\t", n.Attributes, nil)
+	writeBoxAttributes(&ext.declBuf, "\t", n.Attributes, nil, ext)
 	fmt.Fprintf(&ext.declBuf, "\t}\n")
 
 	// Write dynamic children rebuild to syncBuf
@@ -299,7 +300,7 @@ func writeExtractedDynamicBox(treeBuf *bytes.Buffer, n *template.BoxElement, sty
 }
 
 // writeBoxAttributes writes direction, width, height, padding, and border fields.
-func writeBoxAttributes(buf *bytes.Buffer, tabs string, attrs map[string]string, props map[string]string) {
+func writeBoxAttributes(buf *bytes.Buffer, tabs string, attrs map[string]string, props map[string]string, ext *extractionCtx) {
 	if dir, ok := mergedAttr(attrs, props, "flex-direction"); ok {
 		fmt.Fprintf(buf, "%s\tDirection: %q,\n", tabs, dir)
 	}
@@ -370,10 +371,41 @@ func writeBoxAttributes(buf *bytes.Buffer, tabs string, attrs map[string]string,
 	if ce, ok := mergedAttr(attrs, props, "contenteditable"); ok && ce == "true" {
 		fmt.Fprintf(buf, "%s\tContentEditable: true,\n", tabs)
 	}
-	if oc, ok := mergedAttr(attrs, props, "onclick"); ok && isExprValue(oc) {
-		fmt.Fprintf(buf, "%s\tOnClick: %s,\n", tabs, extractExprValue(oc))
-	}
+	writeOnHandlers(buf, tabs, attrs, props, ext)
 	writeCursorAttr(buf, tabs, attrs, props)
+}
+
+// writeOnHandlers emits the On event-handler map from on<type>={expr}
+// attributes ("onclick" → "click"). Handlers declared with parameters are
+// referenced directly (they take *sumi.DOMEvent); anything else is treated
+// as a zero-arg func and wrapped with a nil check. The string-valued onkey
+// attribute is legacy and handled separately via OnKey.
+func writeOnHandlers(buf *bytes.Buffer, tabs string, attrs, props map[string]string, ext *extractionCtx) {
+	var types []string
+	for key, val := range attrs {
+		if strings.HasPrefix(key, "on") && len(key) > 2 && isExprValue(val) {
+			types = append(types, key[2:])
+		}
+	}
+	if len(types) == 0 {
+		return
+	}
+	sort.Strings(types)
+	fmt.Fprintf(buf, "%s\tOn: map[string]func(*sumi.DOMEvent){\n", tabs)
+	for _, typ := range types {
+		val, _ := mergedAttr(attrs, props, "on"+typ)
+		expr := extractExprValue(val)
+		if ext != nil && ext.eventFuncs[expr] {
+			fmt.Fprintf(buf, "%s\t\t%q: %s,\n", tabs, typ, expr)
+			continue
+		}
+		fmt.Fprintf(buf, "%s\t\t%q: func(evt *sumi.DOMEvent) {\n", tabs, typ)
+		fmt.Fprintf(buf, "%s\t\t\tif h := (%s); h != nil {\n", tabs, expr)
+		fmt.Fprintf(buf, "%s\t\t\t\th()\n", tabs)
+		fmt.Fprintf(buf, "%s\t\t\t}\n", tabs)
+		fmt.Fprintf(buf, "%s\t\t},\n", tabs)
+	}
+	fmt.Fprintf(buf, "%s\t},\n", tabs)
 }
 
 // writeCursorAttr writes CursorCol and CursorRow fields.

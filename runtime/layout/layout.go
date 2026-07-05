@@ -97,8 +97,8 @@ type Input struct {
 	Hovered             bool                  // set by the framework before render
 	FocusStyle          render.Style          // style applied when this node has focus
 	Focused             bool                  // set by the tui runtime before render
-	OnClick             func()                // called when this node is clicked
-	OnKey               func(input.Event)     // key/focus/blur handler (focusable elements)
+	On                  map[string]func(*DOMEvent) // DOM event handlers by type ("click", "keydown", ...)
+	OnKey               func(input.Event)          // key/focus/blur handler (focusable elements)
 	Transitions         []anim.TransitionSpec // CSS transition config (set by codegen)
 	AnimationSpec       *anim.AnimationSpec   // CSS animation config (set by codegen)
 	Children            []*Input

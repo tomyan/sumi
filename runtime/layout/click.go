@@ -1,13 +1,11 @@
 package layout
 
-// FindClickHandler walks the Input/Box tree and returns the OnClick handler
-// of the deepest Input whose Box contains (x, y). Returns nil if no handler
-// is found at the click position.
-//
-// Always walks into all children because fixed-position descendants may have
-// viewport-relative coordinates outside the parent's bounds.
-func FindClickHandler(input *Input, box *Box, x, y int) func() {
-	if input == nil {
+// HitTestPath returns the chain of Inputs from root to the deepest node
+// whose Box contains (x, y). Ancestors stay on the path even when the
+// point lies outside their own bounds (fixed-position descendants have
+// viewport-relative coordinates). Returns nil when nothing is hit.
+func HitTestPath(input *Input, box *Box, x, y int) []*Input {
+	if input == nil || box == nil {
 		return nil
 	}
 
@@ -17,31 +15,26 @@ func FindClickHandler(input *Input, box *Box, x, y int) func() {
 			continue
 		}
 		var childBox *Box
-		if box != nil && i < len(box.Children) && box.Children[i] != nil {
+		if i < len(box.Children) && box.Children[i] != nil {
 			childBox = box.Children[i]
 		}
-		if h := FindClickHandler(child, childBox, x, y); h != nil {
-			return h
+		if path := HitTestPath(child, childBox, x, y); path != nil {
+			return append([]*Input{input}, path...)
 		}
 	}
 
-	// This node is a click target only if the click is within its bounds.
-	if box == nil {
-		return nil
-	}
-	hit := x >= box.X && x < box.X+box.Width && y >= box.Y && y < box.Y+box.Height
-	if hit {
-		return input.OnClick
+	if x >= box.X && x < box.X+box.Width && y >= box.Y && y < box.Y+box.Height {
+		return []*Input{input}
 	}
 	return nil
 }
 
-// HasClickHandlers returns true if any node in the tree has an OnClick handler.
+// HasClickHandlers returns true if any node in the tree handles "click".
 func HasClickHandlers(input *Input) bool {
 	if input == nil {
 		return false
 	}
-	if input.OnClick != nil {
+	if input.On["click"] != nil {
 		return true
 	}
 	for _, child := range input.Children {

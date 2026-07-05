@@ -88,9 +88,8 @@ func componentEventHandler(app *App, comp *Component) func(input.Event) {
 	return func(evt input.Event) {
 		dispatchMouseScroll(evt, comp)
 		if evt.Kind == input.EventMouse && evt.Mouse.Action == input.MousePress && evt.Mouse.Button == input.ButtonLeft {
-			if h := layout.FindClickHandler(comp.Tree, comp.LayoutResult, evt.Mouse.X, evt.Mouse.Y); h != nil {
-				h()
-			}
+			path := layout.HitTestPath(comp.Tree, comp.LayoutResult, evt.Mouse.X, evt.Mouse.Y)
+			layout.DispatchDOM(path, &layout.DOMEvent{Type: "click", Key: evt})
 		}
 		if handleFocusCycle(comp, evt) {
 			app.Dirty = true

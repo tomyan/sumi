@@ -19,6 +19,7 @@ import (
 // --- layout ---
 
 type Input = layout.Input
+type DOMEvent = layout.DOMEvent
 type Padding = layout.Padding
 type ScrollState = layout.ScrollState
 type TransitionSpec = anim.TransitionSpec

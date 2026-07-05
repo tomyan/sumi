@@ -1,0 +1,30 @@
+<script>
+count := sumi.New(0)
+
+func increment() {
+    count.Update(func(n int) int { return n + 1 })
+}
+
+func handleKey(evt sumi.Event) {
+    if evt.Kind == sumi.EventSignal { sumi.Quit(); return }
+    if evt.Ctrl && evt.Rune == 'c' { sumi.Quit(); return }
+    if evt.Rune == 'q' { sumi.Quit(); return }
+}
+</script>
+
+<style>
+.btn {
+    border: single;
+    width: 16;
+}
+.btn:hover {
+    border-color: cyan;
+}
+</style>
+
+<div onkey="handleKey">
+    <div class="btn" onclick={increment}>
+        <span>[ Click me ]</span>
+    </div>
+    <span>Count: {count}</span>
+</div>
