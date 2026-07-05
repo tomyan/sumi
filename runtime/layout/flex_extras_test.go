@@ -160,3 +160,45 @@ func TestFlexOneEqualSplitRegardlessOfContent(t *testing.T) {
 		t.Errorf("flex:1 children unequal: %d vs %d", box.Children[0].Width, box.Children[1].Width)
 	}
 }
+
+// B3c: flex-wrap.
+
+func TestFlexWrapBreaksLines(t *testing.T) {
+	// Given: three 8-wide items in a 20-wide wrap container with gap 1.
+	tree := &Input{Kind: KindBox, Direction: "row", FlexWrap: true, FixedWidth: 20, Gap: 1, Children: []*Input{
+		{Kind: KindBox, FixedWidth: 8, FixedHeight: 1},
+		{Kind: KindBox, FixedWidth: 8, FixedHeight: 1},
+		{Kind: KindBox, FixedWidth: 8, FixedHeight: 1},
+	}}
+
+	// When
+	box := Layout(tree, 40, 10)
+
+	// Then: first two on line one, third wraps.
+	if box.Children[0].Y != box.Children[1].Y {
+		t.Errorf("first two should share a line: %d vs %d", box.Children[0].Y, box.Children[1].Y)
+	}
+	if got := box.Children[2].Y; got <= box.Children[0].Y {
+		t.Errorf("third child Y = %d, want below line one", got)
+	}
+	if got := box.Children[2].X; got != 0 {
+		t.Errorf("wrapped child X = %d, want 0", got)
+	}
+	if got := box.Height; got != 3 {
+		t.Errorf("container height = %d, want 3 (two 1-high lines + gap)", got)
+	}
+}
+
+func TestFlexWrapSingleLineNoChange(t *testing.T) {
+	tree := &Input{Kind: KindBox, Direction: "row", FlexWrap: true, FixedWidth: 30, Gap: 1, Children: []*Input{
+		{Kind: KindBox, FixedWidth: 8, FixedHeight: 1},
+		{Kind: KindBox, FixedWidth: 8, FixedHeight: 1},
+	}}
+	box := Layout(tree, 40, 10)
+	if box.Children[0].Y != 0 || box.Children[1].Y != 0 {
+		t.Errorf("single line expected: Ys = %d, %d", box.Children[0].Y, box.Children[1].Y)
+	}
+	if got := box.Children[1].X; got != 9 {
+		t.Errorf("second X = %d, want 9", got)
+	}
+}

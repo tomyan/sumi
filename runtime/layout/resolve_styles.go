@@ -242,6 +242,9 @@ func applyFlexProps(n *Input, props map[string]string) {
 	if v, ok := cssValue(n, props, "flex-basis"); ok && v != "auto" {
 		n.FlexBasis = v
 	}
+	if v, ok := cssValue(n, props, "flex-wrap"); ok {
+		n.FlexWrap = v == "wrap"
+	}
 }
 
 // applyFlexShorthand parses `flex: <grow> [<shrink>] [<basis>]` and the

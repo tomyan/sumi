@@ -44,6 +44,7 @@ type Input struct {
 	FlexGrow        int    // flex-grow factor (0 = no grow)
 	FlexShrink      int    // 0 = CSS default (1); -1 = explicit flex-shrink: 0
 	FlexBasis       string // main-axis basis ("" = auto; cells or %)
+	FlexWrap        bool   // flex-wrap: wrap (row containers)
 	Justify         string // main-axis alignment: start, end, center, space-*
 	Align           string // cross-axis alignment: start, end, center, stretch
 	AlignSelf       string // per-child cross-axis override ("" = use parent Align)
@@ -521,7 +522,9 @@ func layoutNode(input *Input, availW, availH int) *Box {
 	}
 
 	var flowBoxes []*Box
-	if input.Direction == "row" {
+	if input.Direction == "row" && input.FlexWrap {
+		flowBoxes = layoutRowWrap(flowChildren, offsetX, offsetY, gap, flexAvailW, flexAvailH)
+	} else if input.Direction == "row" {
 		if hasFlexChildren || hasFlexSizing(flowChildren) {
 			flowBoxes = layoutRowFlex(flowChildren, offsetX, offsetY, gap, flexAvailW, flexAvailH)
 		} else {
@@ -558,7 +561,7 @@ func layoutNode(input *Input, availW, availH int) *Box {
 	if reversed {
 		justify = flipJustify(justify)
 	}
-	if justify != "" && justify != "start" {
+	if justify != "" && justify != "start" && !input.FlexWrap {
 		if input.Direction == "row" {
 			applyJustifyRow(flowBoxes, offsetX, contentAvailW, justify)
 		} else if input.FixedHeight > 0 {
@@ -572,7 +575,7 @@ func layoutNode(input *Input, availW, availH int) *Box {
 	if align == "" {
 		align = "stretch"
 	}
-	if align != "start" || hasSelfAlignment(flowChildren) {
+	if (align != "start" || hasSelfAlignment(flowChildren)) && !input.FlexWrap {
 		if input.Direction == "row" {
 			crossSize := rowCrossSize(contentAvailH, input.FixedHeight, flowBoxes)
 			applyAlignRow(flowBoxes, flowChildren, offsetY, crossSize, align)
@@ -958,6 +961,34 @@ func layoutColumnFlex(children []*Input, offsetX, offsetY, gap, availW, availH i
 		childBox.X = offsetX + m.Left
 		childBox.Y = offsetY + cursorY
 		cursorY += childBox.Height + m.Bottom
+		boxes[i] = childBox
+	}
+	return boxes
+}
+
+// layoutRowWrap places children horizontally, wrapping to a new line when
+// the next child would not fit. Lines stack with the container gap; grow
+// and per-line alignment are not applied to wrapped rows (v1).
+func layoutRowWrap(children []*Input, offsetX, offsetY, gap, availW, availH int) []*Box {
+	boxes := make([]*Box, len(children))
+	cursorX, cursorY, lineH := 0, 0, 0
+	for i, child := range children {
+		m := child.Margin
+		childBox := layoutNode(child, maxInt(availW-m.horizontal(), 0), availH)
+		w := childBox.Width + m.horizontal()
+		if cursorX > 0 && cursorX+gap+w > availW {
+			cursorX = 0
+			cursorY += lineH + gap
+			lineH = 0
+		} else if cursorX > 0 {
+			cursorX += gap
+		}
+		childBox.X = offsetX + cursorX + m.Left
+		childBox.Y = offsetY + cursorY + m.Top
+		cursorX += w
+		if h := childBox.Height + m.vertical(); h > lineH {
+			lineH = h
+		}
 		boxes[i] = childBox
 	}
 	return boxes
