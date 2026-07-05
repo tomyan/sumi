@@ -99,7 +99,6 @@ func (p *parser) parseControlFlowChildren(keyword string) ([]Node, bool, error) 
 	var children []Node
 
 	for {
-		p.skipWhitespace()
 		if p.pos >= len(p.input) {
 			return nil, false, fmt.Errorf("missing closing {/%s}", keyword)
 		}
@@ -111,7 +110,7 @@ func (p *parser) parseControlFlowChildren(keyword string) ([]Node, bool, error) 
 			p.pos += len(elseTag)
 			return children, true, nil
 		}
-		if p.input[p.pos] == '{' {
+		if p.input[p.pos] == '{' && p.controlFlowStart() {
 			child, err := p.parseControlFlow()
 			if err != nil {
 				return nil, false, err
@@ -127,6 +126,8 @@ func (p *parser) parseControlFlowChildren(keyword string) ([]Node, bool, error) 
 			children = append(children, child)
 			continue
 		}
-		return nil, false, fmt.Errorf("unexpected character %q in {%s} block at position %d", p.input[p.pos], keyword, p.pos)
+		if node := p.parseLooseText(); node != nil {
+			children = append(children, node)
+		}
 	}
 }

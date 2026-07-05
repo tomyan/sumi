@@ -364,8 +364,13 @@ vt100 assertions for end-to-end slices; unit tests for parser/css/layout.
   NEXT (bigger slices, in rough value order — each wants a fresh
   session):
   - B4 block/inline flow + margin collapse (LAST remaining B item;
-    inline runs through wrapped text are the hard part — needs a
-    text-run model; gates C1/C2 full fidelity).
+    gates C1/C2 full fidelity). DESIGNED 2026-07-05 — see
+    design-b4-block-inline.md (decisions resolved with Tom: real
+    inline-run IFC with Box.Fragments — note svelterm itself has NO
+    text-run model, we exceed parity here; UA block default with clean
+    migration to explicit display:flex, no compat shim; CSS whitespace
+    collapse at layout time; margin collapse = adjacent block siblings,
+    positive-only, block flow only). Slices B4a..B4g in the design doc.
   - D5 global selection + clipboard (drag/word/line inverse painting,
     OSC 52 + pbcopy fallback; svelterm src/input/selection.ts is the
     reference).

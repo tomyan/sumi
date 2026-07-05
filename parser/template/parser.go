@@ -272,26 +272,31 @@ func (p *parser) parseChildren(tagName string) ([]Node, error) {
 	}
 }
 
-// parseNextChild parses one child element or detects the closing tag.
+// parseNextChild parses one child element, control-flow block, or loose
+// text run, or detects the closing tag. Dropped formatting gaps loop
+// until a real child or the closing tag is found.
 // Returns (nil, true, nil) when the closing tag is consumed.
 func (p *parser) parseNextChild(closingTag, tagName string) (Node, bool, error) {
-	p.skipWhitespace()
-	if p.pos >= len(p.input) {
-		return nil, false, fmt.Errorf("missing closing </%s> tag", tagName)
+	for {
+		if p.pos >= len(p.input) {
+			return nil, false, fmt.Errorf("missing closing </%s> tag", tagName)
+		}
+		if strings.HasPrefix(p.input[p.pos:], closingTag) {
+			p.pos += len(closingTag)
+			return nil, true, nil
+		}
+		if p.input[p.pos] == '<' {
+			child, err := p.parseElement()
+			return child, false, err
+		}
+		if p.input[p.pos] == '{' && p.controlFlowStart() {
+			child, err := p.parseControlFlow()
+			return child, false, err
+		}
+		if node := p.parseLooseText(); node != nil {
+			return node, false, nil
+		}
 	}
-	if strings.HasPrefix(p.input[p.pos:], closingTag) {
-		p.pos += len(closingTag)
-		return nil, true, nil
-	}
-	if p.input[p.pos] == '{' {
-		child, err := p.parseControlFlow()
-		return child, false, err
-	}
-	if p.input[p.pos] != '<' {
-		return nil, false, fmt.Errorf("unexpected character %q inside <%s> at position %d", p.input[p.pos], tagName, p.pos)
-	}
-	child, err := p.parseElement()
-	return child, false, err
 }
 
 func (p *parser) parseAttributes() (map[string]string, error) {
