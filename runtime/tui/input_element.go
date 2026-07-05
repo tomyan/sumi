@@ -147,6 +147,8 @@ func syncProjection(n *layout.Input) {
 		syncDialogElement(n)
 	case "ansi":
 		syncAnsiElement(n)
+	case "img":
+		syncImgElement(n)
 	}
 }
 
