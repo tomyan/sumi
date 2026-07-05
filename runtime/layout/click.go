@@ -29,6 +29,23 @@ func HitTestPath(input *Input, box *Box, x, y int) []*Input {
 	return nil
 }
 
+// PathTo returns the chain of Inputs from root to target, or nil when
+// target is not in the tree.
+func PathTo(root, target *Input) []*Input {
+	if root == nil {
+		return nil
+	}
+	if root == target {
+		return []*Input{root}
+	}
+	for _, child := range root.Children {
+		if p := PathTo(child, target); p != nil {
+			return append([]*Input{root}, p...)
+		}
+	}
+	return nil
+}
+
 // HasClickHandlers returns true if any node in the tree handles "click".
 func HasClickHandlers(input *Input) bool {
 	if input == nil {

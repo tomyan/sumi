@@ -184,9 +184,13 @@ func activateFocused(comp *Component, evt input.Event) bool {
 }
 
 // runClickDefault performs the default action for a click, walking from
-// the target upward: toggle the first checkable, or open the first
-// anchor's href.
+// the target upward: toggle the first checkable, open the first anchor's
+// href, or activate the first label's control.
 func runClickDefault(comp *Component, path []*layout.Input, evt input.Event) {
+	clickDefault(comp, path, evt, true)
+}
+
+func clickDefault(comp *Component, path []*layout.Input, evt input.Event, followLabels bool) {
 	for i := len(path) - 1; i >= 0; i-- {
 		n := path[i]
 		if isCheckable(n) {
@@ -198,6 +202,9 @@ func runClickDefault(comp *Component, path []*layout.Input, evt input.Event) {
 				OpenURL(href)
 				return
 			}
+		}
+		if followLabels && n.Tag == "label" && activateLabel(comp, n, evt) {
+			return
 		}
 	}
 }
