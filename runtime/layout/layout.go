@@ -599,6 +599,8 @@ func layoutNode(input *Input, availW, availH int) *Box {
 	var flowBoxes []*Box
 	if input.Display == "grid" {
 		flowBoxes = layoutGrid(input, flowChildren, offsetX, offsetY, flexAvailW, flexAvailH)
+	} else if input.Display == "table" {
+		flowBoxes = layoutTable(input, flowChildren, offsetX, offsetY, flexAvailW, flexAvailH)
 	} else if input.Direction == "row" && input.FlexWrap {
 		flowBoxes = layoutRowWrap(flowChildren, offsetX, offsetY, gap, flexAvailW, flexAvailH)
 	} else if input.Direction == "row" {
@@ -638,7 +640,8 @@ func layoutNode(input *Input, availW, availH int) *Box {
 	if reversed {
 		justify = flipJustify(justify)
 	}
-	if justify != "" && justify != "start" && !input.FlexWrap && input.Display != "grid" {
+	skipFlexAlignment := input.FlexWrap || input.Display == "grid" || input.Display == "table"
+	if justify != "" && justify != "start" && !skipFlexAlignment {
 		if input.Direction == "row" {
 			applyJustifyRow(flowBoxes, offsetX, contentAvailW, justify)
 		} else if input.FixedHeight > 0 {
@@ -652,7 +655,7 @@ func layoutNode(input *Input, availW, availH int) *Box {
 	if align == "" {
 		align = "stretch"
 	}
-	if (align != "start" || hasSelfAlignment(flowChildren)) && !input.FlexWrap && input.Display != "grid" {
+	if (align != "start" || hasSelfAlignment(flowChildren)) && !skipFlexAlignment {
 		if input.Direction == "row" {
 			crossSize := rowCrossSize(contentAvailH, input.FixedHeight, flowBoxes)
 			applyAlignRow(flowBoxes, flowChildren, offsetY, crossSize, align)
