@@ -8,8 +8,9 @@ import "testing"
 func TestUnknownAtRuleSkippedSilently(t *testing.T) {
 	// Given
 	input := `
-@media (display-mode: browser) {
-	.card { box-shadow: 0 2px 8px #0004; }
+@font-face {
+	font-family: "Whatever";
+	src: url(x.woff2);
 }
 .card { color: red; }
 `

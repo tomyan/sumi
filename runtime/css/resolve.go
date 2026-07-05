@@ -59,6 +59,9 @@ func resolveWithPseudo(stylesheet *style.Stylesheet, path []Element, pseudo stri
 		if rule.Pseudo != pseudo {
 			continue
 		}
+		if rule.Media != "" && !mediaMatches(rule.Media) {
+			continue
+		}
 		if matchComplex(rule.Parsed, path) {
 			matches = append(matches, match{rule.Parsed.Specificity(), i, rule.Properties})
 		}

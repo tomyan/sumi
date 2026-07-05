@@ -17,6 +17,7 @@ type Rule struct {
 	Selector   string            // raw selector text without the subject pseudo
 	Pseudo     string            // subject pseudo-class ("hover", ...); "" for none
 	Parsed     ComplexSelector   // structured form used for matching
+	Media      string            // enclosing @media query text; "" for none
 	Properties map[string]string // e.g. {"color": "green", "font-weight": "bold"}
 }
 
@@ -64,6 +65,16 @@ func (p *parser) parse() (*Stylesheet, error) {
 				return nil, err
 			}
 			s.Keyframes = append(s.Keyframes, kf)
+			continue
+		}
+
+		// @media blocks: rules parse normally, tagged with the query.
+		if strings.HasPrefix(p.input[p.pos:], "@media") {
+			rules, err := p.parseMediaBlock()
+			if err != nil {
+				return nil, err
+			}
+			s.Rules = append(s.Rules, rules...)
 			continue
 		}
 
@@ -148,6 +159,37 @@ func (p *parser) skipAtRule() error {
 		p.pos++
 	}
 	return fmt.Errorf("unterminated at-rule block at position %d", start)
+}
+
+// parseMediaBlock parses `@media <query> { rules... }`, tagging every
+// contained rule with the query text.
+func (p *parser) parseMediaBlock() ([]Rule, error) {
+	p.pos += len("@media")
+	query := strings.TrimSpace(p.readSelectorText())
+	if p.pos >= len(p.input) || p.input[p.pos] != '{' {
+		return nil, fmt.Errorf("@media %s: expected '{'", query)
+	}
+	p.pos++ // consume outer {
+
+	var rules []Rule
+	for {
+		p.skipWhitespaceAndComments()
+		if p.pos >= len(p.input) {
+			return nil, fmt.Errorf("@media %s: unterminated block", query)
+		}
+		if p.input[p.pos] == '}' {
+			p.pos++ // consume outer }
+			return rules, nil
+		}
+		inner, err := p.parseRules()
+		if err != nil {
+			return nil, err
+		}
+		for i := range inner {
+			inner[i].Media = query
+		}
+		rules = append(rules, inner...)
+	}
 }
 
 // parseRules parses one rule block; a selector list yields one Rule per
