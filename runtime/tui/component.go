@@ -184,6 +184,9 @@ func RunWithOptions(comp *Component, opts RunOptions) {
 		}
 		syncFocus(comp)
 		layout.ResolveStyles(comp.Tree, comp.Stylesheet, termW, termH)
+		if stepLengthTransitions(comp.Tree, engine) {
+			app.RequestFrame()
+		}
 		tree := layout.Layout(comp.Tree, termW, termH)
 		if comp.Stylesheet != nil && comp.Stylesheet.HasContainerRules() {
 			// Container queries need laid-out ancestor sizes: re-resolve
@@ -266,6 +269,9 @@ func Run(comp *Component) {
 		}
 		syncFocus(comp)
 		layout.ResolveStyles(comp.Tree, comp.Stylesheet, termW, termH)
+		if stepLengthTransitions(comp.Tree, engine) {
+			app.RequestFrame()
+		}
 		tree := layout.Layout(comp.Tree, termW, termH)
 		if comp.Stylesheet != nil && comp.Stylesheet.HasContainerRules() {
 			// Container queries need laid-out ancestor sizes: re-resolve

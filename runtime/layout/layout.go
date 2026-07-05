@@ -101,6 +101,7 @@ type Input struct {
 	Focused             bool                  // set by the tui runtime before render
 	On                  map[string]func(*DOMEvent) // DOM event handlers by type ("click", "keydown", "focus", ...)
 	Transitions         []anim.TransitionSpec // CSS transition config (set by codegen)
+	LengthAnim          *anim.LengthState     // in-flight width/height transitions (runtime-initialized)
 	AnimationSpec       *anim.AnimationSpec   // CSS animation config (set by codegen)
 	Children            []*Input
 }
