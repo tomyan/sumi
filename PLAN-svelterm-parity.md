@@ -303,13 +303,42 @@ vt100 assertions for end-to-end slices; unit tests for parser/css/layout.
   scale; decode cached via Attrs["sumi:img-src"]. Deferred: data:
   URIs, async load/reflow, kitty graphics protocol.
 
-  NEXT: F1 border styles (double/rounded/heavy/ascii + eighth/half
-  cell variants, border-corner, per-side left/right — independent,
-  author-visible). Then D4 suspend/exitOn, D5 selection+clipboard,
-  D3 kitty keyboard, D7 terminal matrix CI. B7c table borders, B4
-  block/inline flow. E2-E4 animation. F2 alpha, F3 inline mode,
-  F4 RunOptions parity. Then G tooling, H components, I docs/site,
-  J blog (gated on A–H).
+  F1 DONE (line styles): DrawStyledBorder glyph families single/
+  double/rounded/heavy/ascii, unknown → single fallback; collapse
+  junction merging stays single-only (sumi extra). F1b remains:
+  eighth/half/full-cell block edges + border-corner + per-side
+  left/right toggles (svelterm border.ts BLOCK_EDGES is the
+  reference; inner/outer corner semantics differ per style).
+  D4a DONE: App.ExitOn / RunOptions.ExitOn quit chords ("ctrl+x",
+  single char, special-key name), default ctrl+c; fires only when
+  nothing consumed the event. D4b remains: Ctrl+Z suspend/restore
+  (restore termios+altscreen+modes, SIGTSTP self, SIGCONT re-enter
+  + repaint; needs a subprocess/PTY test — runtime/pty exists).
+  E3a DONE: animation-play-state paused freezes elapsed (pause point
+  recorded at the render that sees paused; resume shifts animStart).
+  E4 DONE: prefers-reduced-motion media feature; RunOptions.
+  ReducedMotion + SUMI_REDUCED_MOTION env; authors gate animation
+  rules in @media. E3b remains: var()/light-dark() resolution at
+  animation start — keyframe stops are baked to render.Style at
+  CODEGEN (writeKeyframeRegistration), so vars need stops to carry
+  raw props resolved at start; NOTE light-dark() may already work
+  via the ColorPair emission mechanism — verify before building.
+
+  NEXT (bigger slices, in rough value order):
+  - E2 length transitions (width/height step whole cells): engine
+    needs a pre-layout hook with stable node IDs — check how
+    rendertree's nodeID counter is derived before designing.
+  - B7c table borders (collapse/spacing/table-layout:fixed/colgroup).
+  - B4 block/inline flow + margin collapse (gates C1/C2 fidelity).
+  - D5 global selection + clipboard (drag/word/line, OSC 52 exists).
+  - D3 kitty keyboard protocol; D7 terminal matrix CI.
+  - F2 alpha compositing (colors parse-and-drop alpha since A7).
+  - F3 inline mode + FrameLog; F4 io injection/onLog/mouse toggle.
+  - G1 sumi init (blocked-ish: go.mod needs a published module path
+    or replace directive), G2 sumi dev, G3 sumi inspect.
+  - H component library (needs cross-dir component consumption in
+    the generate CLI — the registry work skipped at C4/C6).
+  - I docs/site, J blog (gated on A–H complete).
   (original C3a sketch follows for reference)
   - C3a-sketch: layout.DOMEvent {Type, Key input.Event, Data map, Target
     *Input, StopPropagation, PreventDefault} (layout may import input —
