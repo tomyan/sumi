@@ -10,6 +10,10 @@ type AppProps struct {
 func NewApp(props AppProps) *sumi.Component {
 	name := sumi.New("")
 
+	nameChanged := func(evt *sumi.DOMEvent) {
+		name.Set(evt.Data["value"].(string))
+	}
+
 	handleKey := func(evt sumi.Event) {
 		if evt.Kind == sumi.EventSignal {
 			sumi.Quit()
@@ -24,7 +28,7 @@ func NewApp(props AppProps) *sumi.Component {
 	node0 := &sumi.Input{
 		Kind:    sumi.KindText,
 		Tag:     "span",
-		Content: sumi.Sprintf("You typed: %v", name.Get()),
+		Content: sumi.Sprintf("Hello, %v!", name.Get()),
 	}
 	root := &sumi.Input{
 		Kind:      sumi.KindBox,
@@ -36,31 +40,32 @@ func NewApp(props AppProps) *sumi.Component {
 			{
 				Kind:      sumi.KindBox,
 				Tag:       "div",
-				Classes:   []string{"container"},
-				Attrs:     map[string]string{"class": "container", "onkey": "handleKey"},
+				Classes:   []string{"form"},
+				Attrs:     map[string]string{"class": "form", "onkey": "handleKey"},
 				CursorCol: -1,
 				CursorRow: -1,
 				Children: []*sumi.Input{
 					{
 						Kind:    sumi.KindText,
 						Tag:     "span",
-						Classes: []string{"title"},
-						Attrs:   map[string]string{"class": "title"},
-						Content: "Text Input Demo",
-					},
-					{
-						Kind:    sumi.KindText,
-						Tag:     "span",
 						Classes: []string{"hint"},
 						Attrs:   map[string]string{"class": "hint"},
-						Content: "Type to enter your name",
+						Content: "Type your name; Ctrl+C quits",
 					},
 					{
 						Kind:    sumi.KindText,
 						Tag:     "span",
-						Classes: []string{"label"},
-						Attrs:   map[string]string{"class": "label"},
 						Content: "Name:",
+					},
+					{
+						Kind:  sumi.KindBox,
+						Tag:   "input",
+						Attrs: map[string]string{"oninput": "{nameChanged}", "value": ""},
+						On: map[string]func(*sumi.DOMEvent){
+							"input": nameChanged,
+						},
+						CursorCol: -1,
+						CursorRow: -1,
 					},
 					node0,
 				},
@@ -69,12 +74,12 @@ func NewApp(props AppProps) *sumi.Component {
 	}
 
 	sumi.Effect(func() {
-		node0.Content = sumi.Sprintf("You typed: %v", name.Get())
+		node0.Content = sumi.Sprintf("Hello, %v!", name.Get())
 	})
 
 	return &sumi.Component{
 		Tree:       root,
 		OnEvent:    handleKey,
-		Stylesheet: sumi.MustParseStylesheet(".container {\n\tborder: single;\n\tpadding: 1 2;\n}\n.title {\n\tcolor: green;\n\tfont-weight: bold;\n}\n.hint {\n\tcolor: cyan;\n\topacity: dim;\n}\n.label {\n\tcolor: yellow;\n\tfont-weight: bold;\n}\n"),
+		Stylesheet: sumi.MustParseStylesheet(".form {\n\tpadding: 1 2;\n}\ninput {\n\tbackground: #333333;\n}\ninput:focus {\n\tbackground: #444444;\n}\n.hint {\n\topacity: dim;\n}\n"),
 	}
 }

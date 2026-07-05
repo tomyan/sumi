@@ -1,24 +1,9 @@
-<style>
-.container {
-    border: single;
-    padding: 1 2;
-}
-.title {
-    color: green;
-    font-weight: bold;
-}
-.hint {
-    color: cyan;
-    opacity: dim;
-}
-.label {
-    color: yellow;
-    font-weight: bold;
-}
-</style>
-
 <script>
 name := sumi.New("")
+
+func nameChanged(evt *sumi.DOMEvent) {
+    name.Set(evt.Data["value"].(string))
+}
 
 func handleKey(evt sumi.Event) {
     if evt.Kind == sumi.EventSignal { sumi.Quit(); return }
@@ -26,9 +11,24 @@ func handleKey(evt sumi.Event) {
 }
 </script>
 
-<div class="container" onkey="handleKey">
-    <span class="title">Text Input Demo</span>
-    <span class="hint">Type to enter your name</span>
-    <span class="label">Name:</span>
-    <span>You typed: {name}</span>
+<style>
+.form {
+    padding: 1 2;
+}
+input {
+    background: #333333;
+}
+input:focus {
+    background: #444444;
+}
+.hint {
+    opacity: dim;
+}
+</style>
+
+<div class="form" onkey="handleKey">
+    <span class="hint">Type your name; Ctrl+C quits</span>
+    <span>Name:</span>
+    <input value="" oninput={nameChanged} />
+    <span>Hello, {name}!</span>
 </div>

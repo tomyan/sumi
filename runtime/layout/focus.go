@@ -5,6 +5,7 @@ package layout
 // select, summary).
 var controlTags = map[string]bool{
 	"button": true,
+	"input":  true,
 }
 
 // IsFocusable reports whether a node participates in focus traversal:

@@ -1,0 +1,21 @@
+=== Frame: initial ===
+
+  <<dim>>Type your name; Ctrl+C quits<</>>
+  Name:
+  <<>>                    <</>>
+  Hello, !
+
+=== Frame: typed-name ===
+
+  <<dim>>Type your name; Ctrl+C quits<</>>
+  Name:
+  Ada<<>>                 <</>>
+  Hello, Ada!
+
+=== Frame: edited-in-middle ===
+
+  <<dim>>Type your name; Ctrl+C quits<</>>
+  Name:
+  Dr Ada<<>>              <</>>
+  Hello, Dr Ada!
+

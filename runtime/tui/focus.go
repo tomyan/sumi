@@ -29,6 +29,11 @@ func syncFocus(comp *Component) {
 		comp.FocusIndex = len(focusables) - 1
 	}
 	stampFocus(focusables, comp.FocusIndex)
+	for i, f := range focusables {
+		if f.Tag == "input" {
+			syncInputElement(f, i == comp.FocusIndex)
+		}
+	}
 }
 
 // handleFocusCycle consumes Tab/Shift-Tab when the tree has focusable
@@ -139,6 +144,9 @@ func applyDefaultActions(comp *Component, evt input.Event, dom *layout.DOMEvent)
 		return false
 	}
 	if handleFocusCycle(comp, evt) {
+		return true
+	}
+	if editFocusedInput(comp, evt) {
 		return true
 	}
 	return activateFocusedOnEnter(comp, evt)

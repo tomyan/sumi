@@ -8,6 +8,7 @@ import (
 
 	"github.com/tomyan/sumi/runtime/anim"
 	"github.com/tomyan/sumi/runtime/css"
+	"github.com/tomyan/sumi/runtime/edit"
 	"github.com/tomyan/sumi/runtime/render"
 )
 
@@ -90,6 +91,7 @@ type Input struct {
 	BorderTitle         string                // text to display in the top border edge
 	BorderCollapse      bool                  // when true, children share borders
 	Scroll              *ScrollState          // if non-nil, layout populates and applies scroll state
+	Edit                *edit.State           // editing state for input elements (runtime-initialized)
 	ContentEditable     bool                  // when true, renders an inverse cursor at CursorCol/CursorRow
 	Style               render.Style          // resolved style for this node
 	HoverStyle          render.Style          // style applied when mouse is over this node
