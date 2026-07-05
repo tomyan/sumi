@@ -348,6 +348,8 @@ func writeBoxAttributes(buf *bytes.Buffer, tabs string, attrs map[string]string,
 	writeSizeAttr(buf, tabs, attrs, props, "width", "FixedWidth", "WidthPct")
 	writeSizeAttr(buf, tabs, attrs, props, "height", "FixedHeight", "HeightPct")
 	writeIntAttr(buf, tabs, attrs, props, "gap", "Gap")
+	writeIntAttr(buf, tabs, attrs, props, "colspan", "ColSpan")
+	writeIntAttr(buf, tabs, attrs, props, "rowspan", "RowSpan")
 	writeIntAttr(buf, tabs, attrs, props, "min-height", "MinHeight")
 	writeIntAttr(buf, tabs, attrs, props, "max-width", "MaxWidth")
 	writeIntAttr(buf, tabs, attrs, props, "max-height", "MaxHeight")

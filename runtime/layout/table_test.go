@@ -84,3 +84,94 @@ func TestTableCellsStretchToRowHeight(t *testing.T) {
 		t.Errorf("short cell height = %d, want 3 (stretched)", got)
 	}
 }
+
+// B7b: colspan/rowspan, caption, row groups.
+
+func TestTableColspanWidensCell(t *testing.T) {
+	tree := &Input{Kind: KindBox, Children: []*Input{{
+		Kind: KindBox, Display: "table", Children: []*Input{
+			{Kind: KindBox, Display: "table-row", Children: []*Input{
+				{Kind: KindBox, ColSpan: 2, Children: []*Input{{Kind: KindText, Content: "wide"}}},
+			}},
+			{Kind: KindBox, Display: "table-row", Children: []*Input{
+				{Kind: KindBox, Children: []*Input{{Kind: KindText, Content: "aaaaa"}}},
+				{Kind: KindBox, Children: []*Input{{Kind: KindText, Content: "bbb"}}},
+			}},
+		},
+	}}}
+	box := Layout(tree, 60, 10)
+	table := box.Children[0]
+	spanCell := table.Children[0].Children[0]
+	if got := spanCell.Width; got != 8 {
+		t.Errorf("colspan cell width = %d, want 8 (5+3)", got)
+	}
+}
+
+func TestTableRowspanExtendsHeight(t *testing.T) {
+	tree := &Input{Kind: KindBox, Children: []*Input{{
+		Kind: KindBox, Display: "table", Children: []*Input{
+			{Kind: KindBox, Display: "table-row", Children: []*Input{
+				{Kind: KindBox, RowSpan: 2, Children: []*Input{{Kind: KindText, Content: "tall"}}},
+				{Kind: KindBox, Children: []*Input{{Kind: KindText, Content: "r1"}}},
+			}},
+			{Kind: KindBox, Display: "table-row", Children: []*Input{
+				{Kind: KindBox, Children: []*Input{{Kind: KindText, Content: "r2"}}},
+			}},
+		},
+	}}}
+	box := Layout(tree, 60, 10)
+	table := box.Children[0]
+	tall := table.Children[0].Children[0]
+	if got := tall.Height; got != 2 {
+		t.Errorf("rowspan cell height = %d, want 2", got)
+	}
+	// Second row's cell lands in column 2 (column 1 occupied).
+	r2cell := table.Children[1].Children[0]
+	if got := r2cell.X; got != 4 {
+		t.Errorf("second-row cell X = %d, want 4 (after 4-wide col)", got)
+	}
+}
+
+func TestTableCaptionAboveRows(t *testing.T) {
+	tree := &Input{Kind: KindBox, Children: []*Input{{
+		Kind: KindBox, Display: "table", Children: []*Input{
+			{Tag: "caption", Kind: KindText, Content: "My Table"},
+			{Kind: KindBox, Display: "table-row", Children: []*Input{
+				{Kind: KindBox, Children: []*Input{{Kind: KindText, Content: "cell"}}},
+			}},
+		},
+	}}}
+	box := Layout(tree, 60, 10)
+	table := box.Children[0]
+	if got := table.Children[0].Y; got != 0 {
+		t.Errorf("caption Y = %d, want 0", got)
+	}
+	if got := table.Children[1].Y; got != 1 {
+		t.Errorf("row Y = %d, want 1 (below caption)", got)
+	}
+}
+
+func TestTableRowGroupsFlatten(t *testing.T) {
+	tree := &Input{Kind: KindBox, Children: []*Input{{
+		Kind: KindBox, Display: "table", Children: []*Input{
+			{Tag: "thead", Kind: KindBox, Children: []*Input{
+				{Kind: KindBox, Display: "table-row", Children: []*Input{
+					{Kind: KindBox, Children: []*Input{{Kind: KindText, Content: "head"}}},
+				}},
+			}},
+			{Tag: "tbody", Kind: KindBox, Children: []*Input{
+				{Kind: KindBox, Display: "table-row", Children: []*Input{
+					{Kind: KindBox, Children: []*Input{{Kind: KindText, Content: "body"}}},
+				}},
+			}},
+		},
+	}}}
+	box := Layout(tree, 60, 10)
+	table := box.Children[0]
+	if len(table.Children) != 2 {
+		t.Fatalf("rows = %d, want 2 (groups flattened)", len(table.Children))
+	}
+	if table.Children[1].Y != 1 {
+		t.Errorf("tbody row Y = %d, want 1", table.Children[1].Y)
+	}
+}

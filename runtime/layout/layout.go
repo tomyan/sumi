@@ -62,6 +62,8 @@ type Input struct {
 	GridColumn          string // item placement: "2", "1 / 3", "span 2"
 	GridRow             string
 	GridArea            string // named area reference
+	ColSpan             int    // table cell colspan (0/1 = single column)
+	RowSpan             int    // table cell rowspan
 	TextAlign           string // "left" (default), "center", "right"
 	WhiteSpace          string // "" normal (wrap), "nowrap", "pre"
 	TextOverflow        string // "", "ellipsis", "ellipsis-middle"
