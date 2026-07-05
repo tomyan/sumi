@@ -58,7 +58,7 @@ func writeStaticRenderFunc(buf *bytes.Buffer, hasStyles bool) {
 	buf.WriteString("\tdoRender := func() {\n")
 	writeTermSizeWithTestMode(buf)
 	if hasStyles {
-		buf.WriteString("\t\tsumi.ResolveStyles(root, stylesheet)\n")
+		buf.WriteString("\t\tsumi.ResolveStyles(root, stylesheet, termW, termH)\n")
 	}
 	buf.WriteString("\t\ttree := sumi.Layout(root, termW, termH)\n")
 	buf.WriteString("\t\tbuf := sumi.NewBuffer(termW, termH)\n")

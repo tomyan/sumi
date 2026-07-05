@@ -111,7 +111,7 @@ func TestGenerateStylesheetLayoutProperties(t *testing.T) {
 	if !strings.Contains(src, "MustParseStylesheet") || !strings.Contains(src, "border: single") {
 		t.Errorf("expected embedded stylesheet with layout rules:\n%s", src)
 	}
-	if !strings.Contains(src, "sumi.ResolveStyles(root, stylesheet)") {
+	if !strings.Contains(src, "sumi.ResolveStyles(root, stylesheet, termW, termH)") {
 		t.Errorf("static render must resolve styles at runtime:\n%s", src)
 	}
 }

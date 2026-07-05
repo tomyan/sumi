@@ -90,7 +90,7 @@ func TestApp(comp *Component, w, h int) *App {
 		} else {
 			termW, termH = term.GetSize(int(os.Stdin.Fd()))
 		}
-		layout.ResolveStyles(comp.Tree, comp.Stylesheet)
+		layout.ResolveStyles(comp.Tree, comp.Stylesheet, termW, termH)
 		tree := layout.Layout(comp.Tree, termW, termH)
 		comp.LayoutResult = tree
 		if comp.AfterLayout != nil {
@@ -174,7 +174,7 @@ func RunWithOptions(comp *Component, opts RunOptions) {
 		if comp.LayoutResult != nil {
 			layout.UpdateHover(comp.Tree, comp.LayoutResult, app.mouseX, app.mouseY)
 		}
-		layout.ResolveStyles(comp.Tree, comp.Stylesheet)
+		layout.ResolveStyles(comp.Tree, comp.Stylesheet, termW, termH)
 		tree := layout.Layout(comp.Tree, termW, termH)
 		comp.LayoutResult = tree
 		if comp.AfterLayout != nil {
@@ -255,7 +255,7 @@ func Run(comp *Component) {
 		if comp.LayoutResult != nil {
 			layout.UpdateHover(comp.Tree, comp.LayoutResult, app.mouseX, app.mouseY)
 		}
-		layout.ResolveStyles(comp.Tree, comp.Stylesheet)
+		layout.ResolveStyles(comp.Tree, comp.Stylesheet, termW, termH)
 		tree := layout.Layout(comp.Tree, termW, termH)
 		comp.LayoutResult = tree
 		if comp.AfterLayout != nil {

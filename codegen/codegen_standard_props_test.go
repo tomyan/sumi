@@ -130,7 +130,7 @@ func TestGenerateDescendantSelectorAppliesThroughNesting(t *testing.T) {
 	if !strings.Contains(src, "MustParseStylesheet") || !strings.Contains(src, ".panel text") {
 		t.Errorf("expected embedded stylesheet with descendant rule:\n%s", src)
 	}
-	if !strings.Contains(src, "sumi.ResolveStyles(root, stylesheet)") {
+	if !strings.Contains(src, "sumi.ResolveStyles(root, stylesheet, termW, termH)") {
 		t.Errorf("static render must resolve styles at runtime:\n%s", src)
 	}
 }

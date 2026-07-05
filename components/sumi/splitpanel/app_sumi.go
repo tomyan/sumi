@@ -55,7 +55,7 @@ func Run() {
 		} else {
 			termW, termH = sumi.GetSize(int(os.Stdin.Fd()))
 		}
-		sumi.ResolveStyles(root, stylesheet)
+		sumi.ResolveStyles(root, stylesheet, termW, termH)
 		tree := sumi.Layout(root, termW, termH)
 		buf := sumi.NewBuffer(termW, termH)
 		sumi.RenderTree(buf, tree, nil)
@@ -122,7 +122,7 @@ func CreateApp(w, h int) *sumi.App {
 		} else {
 			termW, termH = sumi.GetSize(int(os.Stdin.Fd()))
 		}
-		sumi.ResolveStyles(root, stylesheet)
+		sumi.ResolveStyles(root, stylesheet, termW, termH)
 		tree := sumi.Layout(root, termW, termH)
 		buf := sumi.NewBuffer(termW, termH)
 		sumi.RenderTree(buf, tree, nil)

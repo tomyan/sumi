@@ -15,10 +15,11 @@ import (
 // when a matching declaration provides a value.
 // Spliced child-component subtrees (identified by Tag "root") are skipped:
 // they resolve against their own component's stylesheet.
-func ResolveStyles(root *Input, ss *style.Stylesheet) {
+func ResolveStyles(root *Input, ss *style.Stylesheet, viewportW, viewportH int) {
 	if root == nil || ss == nil {
 		return
 	}
+	css.SetViewport(viewportW, viewportH)
 	rootEl := css.Element{Tag: "root"}
 	props := css.Resolve(ss, []css.Element{rootEl})
 	applyResolvedProps(root, props, nil, nil)

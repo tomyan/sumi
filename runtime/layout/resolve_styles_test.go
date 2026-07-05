@@ -27,7 +27,7 @@ func TestResolveStylesAppliesVisualAndLayout(t *testing.T) {
 	ss := sheet(t, `.panel { border: single; padding: 1 2; } .panel text { color: red; }`)
 
 	// When
-	ResolveStyles(tree, ss)
+	ResolveStyles(tree, ss, 80, 24)
 
 	// Then
 	panel := tree.Children[0]
@@ -45,7 +45,7 @@ func TestResolveStylesInlineAttrWins(t *testing.T) {
 			Attrs: map[string]string{"border": "double"}, Border: "double"},
 	}}
 	ss := sheet(t, `.a { border: single; }`)
-	ResolveStyles(tree, ss)
+	ResolveStyles(tree, ss, 80, 24)
 	if got := tree.Children[0].Border; got != "double" {
 		t.Errorf("border = %q, inline attr must win", got)
 	}
@@ -65,7 +65,7 @@ func TestResolveStylesRuntimeSiblingsInForContent(t *testing.T) {
 	ss := sheet(t, `.list text:nth-child(odd) { color: red; }`)
 
 	// When
-	ResolveStyles(tree, ss)
+	ResolveStyles(tree, ss, 80, 24)
 
 	// Then: 1st and 3rd stripe, 2nd doesn't.
 	if items[0].Style.FG.Name != "red" || items[2].Style.FG.Name != "red" {
@@ -85,7 +85,7 @@ func TestResolveStylesSkipsComponentSubtrees(t *testing.T) {
 	ss := sheet(t, `text { color: red; }`)
 
 	// When
-	ResolveStyles(tree, ss)
+	ResolveStyles(tree, ss, 80, 24)
 
 	// Then: the component's text is styled by ITS stylesheet, not the parent's.
 	if got := compRoot.Children[0].Style.FG.Name; got == "red" {
@@ -98,7 +98,7 @@ func TestResolveStylesHoverAndFocus(t *testing.T) {
 		{Tag: "box", Classes: []string{"btn"}, Kind: KindBox},
 	}}
 	ss := sheet(t, `.btn:hover { background: cyan; } .btn:focus { border-color: green; }`)
-	ResolveStyles(tree, ss)
+	ResolveStyles(tree, ss, 80, 24)
 	btn := tree.Children[0]
 	if btn.HoverStyle.BG.Name != "cyan" {
 		t.Errorf("HoverStyle = %+v", btn.HoverStyle)
@@ -110,5 +110,5 @@ func TestResolveStylesHoverAndFocus(t *testing.T) {
 
 func TestResolveStylesNilStylesheetNoop(t *testing.T) {
 	tree := &Input{Tag: "root", Kind: KindBox}
-	ResolveStyles(tree, nil) // must not panic
+	ResolveStyles(tree, nil, 80, 24) // must not panic
 }
