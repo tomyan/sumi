@@ -25,6 +25,8 @@ type Input struct {
 	Direction   string       // "column" (default) or "row"
 	FixedWidth  int          // 0 = auto
 	FixedHeight int          // 0 = auto
+	WidthPct    int          // percentage of containing block width (0 = unset)
+	HeightPct   int          // percentage of containing block height (0 = unset)
 	Gap         int          // space between children (cells)
 	FlexGrow    int          // flex-grow factor (0 = no grow)
 	Justify     string       // main-axis alignment: start, end, center, space-between
@@ -120,8 +122,7 @@ func ParsePadding(s string) Padding {
 	parts := strings.Fields(s)
 	vals := make([]int, len(parts))
 	for i, p := range parts {
-		v, _ := strconv.Atoi(p)
-		vals[i] = v
+		vals[i] = ParseCellLength(p)
 	}
 
 	switch len(vals) {
@@ -134,6 +135,18 @@ func ParsePadding(s string) Padding {
 	default:
 		return Padding{}
 	}
+}
+
+// ParseCellLength parses a cell-count length: a bare integer, or one with the
+// `cell` unit or its exact alias `ch` (1ch = 1cell). Anything else — including
+// pixel-derived units — yields 0 (the graceful-drop policy).
+func ParseCellLength(s string) int {
+	s = strings.TrimSuffix(strings.TrimSuffix(s, "cell"), "ch")
+	v, err := strconv.Atoi(s)
+	if err != nil {
+		return 0
+	}
+	return v
 }
 
 // hasBorder returns true if the input has a visible border.
@@ -202,7 +215,25 @@ func absolutePositions(box *Box) {
 	}
 }
 
+// resolvePercentSizes converts WidthPct/HeightPct into fixed sizes against the
+// containing block's available space. Returns a shallow copy so the build-once
+// input tree is never mutated; sizes re-resolve on every layout pass.
+func resolvePercentSizes(input *Input, availW, availH int) *Input {
+	if input.WidthPct == 0 && input.HeightPct == 0 {
+		return input
+	}
+	resolved := *input
+	if input.WidthPct > 0 {
+		resolved.FixedWidth = availW * input.WidthPct / 100
+	}
+	if input.HeightPct > 0 {
+		resolved.FixedHeight = availH * input.HeightPct / 100
+	}
+	return &resolved
+}
+
 func layoutNode(input *Input, availW, availH int) *Box {
+	input = resolvePercentSizes(input, availW, availH)
 	border := input.Border
 	if input.BorderCollapse {
 		border = "" // children's borders form the parent frame
@@ -793,10 +824,10 @@ func canStretch(input *Input, isWidth bool) bool {
 	if input.Kind == KindText {
 		return false
 	}
-	if isWidth && input.FixedWidth > 0 {
+	if isWidth && (input.FixedWidth > 0 || input.WidthPct > 0) {
 		return false
 	}
-	if !isWidth && input.FixedHeight > 0 {
+	if !isWidth && (input.FixedHeight > 0 || input.HeightPct > 0) {
 		return false
 	}
 	return true

@@ -361,8 +361,8 @@ func writeBoxAttributes(buf *bytes.Buffer, tabs string, attrs map[string]string,
 	if dir, ok := mergedAttr(attrs, props, "flex-direction"); ok {
 		fmt.Fprintf(buf, "%s\tDirection: %q,\n", tabs, dir)
 	}
-	writeIntAttr(buf, tabs, attrs, props, "width", "FixedWidth")
-	writeIntAttr(buf, tabs, attrs, props, "height", "FixedHeight")
+	writeSizeAttr(buf, tabs, attrs, props, "width", "FixedWidth", "WidthPct")
+	writeSizeAttr(buf, tabs, attrs, props, "height", "FixedHeight", "HeightPct")
 	writeIntAttr(buf, tabs, attrs, props, "gap", "Gap")
 	writeIntAttr(buf, tabs, attrs, props, "flex-grow", "FlexGrow")
 	if j, ok := mergedAttr(attrs, props, "justify-content"); ok {
@@ -483,11 +483,41 @@ func writeIntAttr(buf *bytes.Buffer, tabs string, attrs, props map[string]string
 		fmt.Fprintf(buf, "%s\t%s: %s,\n", tabs, fieldName, extractExprValue(val))
 		return
 	}
-	v, err := strconv.Atoi(val)
-	if err != nil {
+	v, ok := parseCellLength(val)
+	if !ok {
 		return
 	}
 	fmt.Fprintf(buf, "%s\t%s: %d,\n", tabs, fieldName, v)
+}
+
+// writeSizeAttr handles width/height, which additionally accept percentages:
+// a trailing % emits the Pct field instead of the fixed one.
+func writeSizeAttr(buf *bytes.Buffer, tabs string, attrs, props map[string]string, attrKey, fixedField, pctField string) {
+	val, ok := mergedAttr(attrs, props, attrKey)
+	if !ok {
+		return
+	}
+	if pct, isPct := strings.CutSuffix(val, "%"); isPct {
+		v, err := strconv.Atoi(pct)
+		if err != nil {
+			return
+		}
+		fmt.Fprintf(buf, "%s\t%s: %d,\n", tabs, pctField, v)
+		return
+	}
+	writeIntAttr(buf, tabs, attrs, props, attrKey, fixedField)
+}
+
+// parseCellLength parses a cell-count length: a bare integer, or one with the
+// `cell` unit or its alias `ch`. Reports false for anything else so
+// pixel-derived units drop silently.
+func parseCellLength(s string) (int, bool) {
+	s = strings.TrimSuffix(strings.TrimSuffix(s, "cell"), "ch")
+	v, err := strconv.Atoi(s)
+	if err != nil {
+		return 0, false
+	}
+	return v, true
 }
 
 // writeBoxChildren writes the Children field of a box input if there are children.
