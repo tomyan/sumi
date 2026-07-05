@@ -12,6 +12,28 @@ func (c CollapsedEdges) IsZero() bool {
 	return !c.Top && !c.Right && !c.Bottom && !c.Left
 }
 
+// borderGlyphs holds the drawing characters of a border style family.
+type borderGlyphs struct {
+	tl, tr, bl, br, h, v rune
+}
+
+// borderStyleGlyphs maps border style names to glyph families. Unknown
+// styles fall back to single (graceful drop of the unknown name).
+var borderStyleGlyphs = map[string]borderGlyphs{
+	"single":  {'┌', '┐', '└', '┘', '─', '│'},
+	"double":  {'╔', '╗', '╚', '╝', '═', '║'},
+	"rounded": {'╭', '╮', '╰', '╯', '─', '│'},
+	"heavy":   {'┏', '┓', '┗', '┛', '━', '┃'},
+	"ascii":   {'+', '+', '+', '+', '-', '|'},
+}
+
+func glyphsFor(borderStyle string) borderGlyphs {
+	if g, ok := borderStyleGlyphs[borderStyle]; ok {
+		return g
+	}
+	return borderStyleGlyphs["single"]
+}
+
 // DrawBorder draws a single-line Unicode box border at (row, col) with the given
 // width and height. Out-of-bounds portions are clipped. Width or height < 2, or
 // style "" / "none" results in a no-op.
@@ -32,23 +54,24 @@ func (b *Buffer) DrawStyledBorder(row, col, width, height int, borderStyle strin
 
 	right := col + width - 1
 	bottom := row + height - 1
+	g := glyphsFor(borderStyle)
 
 	// Corners
-	b.SetStyledCell(row, col, '┌', style)
-	b.SetStyledCell(row, right, '┐', style)
-	b.SetStyledCell(bottom, col, '└', style)
-	b.SetStyledCell(bottom, right, '┘', style)
+	b.SetStyledCell(row, col, g.tl, style)
+	b.SetStyledCell(row, right, g.tr, style)
+	b.SetStyledCell(bottom, col, g.bl, style)
+	b.SetStyledCell(bottom, right, g.br, style)
 
 	// Top and bottom horizontal edges
 	for c := col + 1; c < right; c++ {
-		b.SetStyledCell(row, c, '─', style)
-		b.SetStyledCell(bottom, c, '─', style)
+		b.SetStyledCell(row, c, g.h, style)
+		b.SetStyledCell(bottom, c, g.h, style)
 	}
 
 	// Left and right vertical edges
 	for r := row + 1; r < bottom; r++ {
-		b.SetStyledCell(r, col, '│', style)
-		b.SetStyledCell(r, right, '│', style)
+		b.SetStyledCell(r, col, g.v, style)
+		b.SetStyledCell(r, right, g.v, style)
 	}
 }
 

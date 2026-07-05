@@ -256,3 +256,53 @@ func TestDrawBorderInteriorUntouched(t *testing.T) {
 		}
 	}
 }
+
+// F1: border styles select glyph families.
+func TestDrawStyledBorderStyles(t *testing.T) {
+	cases := []struct {
+		style          string
+		tl, tr, bl, br rune
+		h, v           rune
+	}{
+		{"double", '╔', '╗', '╚', '╝', '═', '║'},
+		{"rounded", '╭', '╮', '╰', '╯', '─', '│'},
+		{"heavy", '┏', '┓', '┗', '┛', '━', '┃'},
+		{"ascii", '+', '+', '+', '+', '-', '|'},
+		{"unknown-style", '┌', '┐', '└', '┘', '─', '│'}, // falls back to single
+	}
+	for _, tc := range cases {
+		t.Run(tc.style, func(t *testing.T) {
+			// Given / When
+			b := NewBuffer(4, 3)
+			b.DrawStyledBorder(0, 0, 4, 3, tc.style, Style{})
+
+			// Then
+			got := [][2]rune{
+				{b.Cell(0, 0).Ch, tc.tl}, {b.Cell(0, 3).Ch, tc.tr},
+				{b.Cell(2, 0).Ch, tc.bl}, {b.Cell(2, 3).Ch, tc.br},
+				{b.Cell(0, 1).Ch, tc.h}, {b.Cell(1, 0).Ch, tc.v},
+			}
+			for i, g := range got {
+				if g[0] != g[1] {
+					t.Errorf("glyph %d = %c, want %c", i, g[0], g[1])
+				}
+			}
+		})
+	}
+}
+
+// F1: the border title's horizontal filler matches the border style.
+func TestBorderTitleUsesStyleGlyphs(t *testing.T) {
+	// Given / When
+	b := NewBuffer(12, 3)
+	b.DrawStyledBorder(0, 0, 12, 3, "double", Style{})
+	b.DrawStyledBorderTitle(0, 0, 12, "Hi", Style{})
+
+	// Then — corners stay double and the title is embedded
+	if b.Cell(0, 0).Ch != '╔' {
+		t.Errorf("corner = %c, want ╔", b.Cell(0, 0).Ch)
+	}
+	if b.Cell(0, 3).Ch != 'H' || b.Cell(0, 4).Ch != 'i' {
+		t.Errorf("title not rendered: %c%c", b.Cell(0, 3).Ch, b.Cell(0, 4).Ch)
+	}
+}
