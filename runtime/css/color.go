@@ -83,11 +83,20 @@ func splitTopLevelCommas(s string) []string {
 
 func hexColor(v string) (render.Color, bool) {
 	h := strings.TrimPrefix(v, "#")
+	alpha := 1.0
 	switch len(h) {
-	case 3, 4: // #rgb / #rgba
+	case 4: // #rgba
+		if a, err := strconv.ParseUint(string([]byte{h[3], h[3]}), 16, 16); err == nil {
+			alpha = float64(a) / 255
+		}
 		h = expandShortHex(h[:3])
+	case 3: // #rgb
+		h = expandShortHex(h)
 	case 6: // #rrggbb
-	case 8: // #rrggbbaa — alpha ignored
+	case 8: // #rrggbbaa
+		if a, err := strconv.ParseUint(h[6:], 16, 16); err == nil {
+			alpha = float64(a) / 255
+		}
 		h = h[:6]
 	default:
 		return render.Color{}, false
@@ -96,7 +105,26 @@ func hexColor(v string) (render.Color, bool) {
 	if err != nil {
 		return render.Color{}, false
 	}
-	return rgbColor(float64(n>>16&0xff), float64(n>>8&0xff), float64(n&0xff)), true
+	c := rgbColor(float64(n>>16&0xff), float64(n>>8&0xff), float64(n&0xff))
+	return withAlpha(c, alpha), true
+}
+
+// withAlpha stamps a parsed alpha component onto a colour for paint-time
+// compositing. Full opacity leaves the colour untouched; anything else
+// lands in [1, 254] so an unset A (0) always means opaque.
+func withAlpha(c render.Color, alpha float64) render.Color {
+	if alpha >= 1 {
+		return c
+	}
+	a := int(alpha*255 + 0.5)
+	if a < 1 {
+		a = 1
+	}
+	if a > 254 {
+		a = 254
+	}
+	c.A = uint8(a)
+	return c
 }
 
 func expandShortHex(h string) string {
@@ -109,11 +137,17 @@ func expandShortHex(h string) string {
 }
 
 func functionColor(name, args string) (render.Color, bool) {
-	nums, ok := colorArgs(args)
+	nums, alpha, ok := colorArgs(args)
 	if !ok || len(nums) < 3 {
 		return render.Color{}, false
 	}
-	c := nums[:3]
+	if col, ok2 := baseFunctionColor(name, nums[:3]); ok2 {
+		return withAlpha(col, alpha), true
+	}
+	return render.Color{}, false
+}
+
+func baseFunctionColor(name string, c []component) (render.Color, bool) {
 	switch name {
 	case "rgb", "rgba":
 		return rgbColor(c[0].value(255), c[1].value(255), c[2].value(255)), true
@@ -175,10 +209,14 @@ func (c component) angle() float64 {
 }
 
 // colorArgs tokenizes function arguments in legacy (comma) or modern (space,
-// slash-alpha) syntax. The alpha component, if present, is dropped.
-func colorArgs(args string) ([]component, bool) {
+// slash-alpha) syntax, returning the alpha component (1 when absent).
+func colorArgs(args string) ([]component, float64, bool) {
 	args = strings.ReplaceAll(args, ",", " ")
+	alpha := 1.0
 	if i := strings.IndexByte(args, '/'); i >= 0 {
+		if a, ok := parseComponent(strings.TrimSpace(args[i+1:])); ok {
+			alpha = a.value(1)
+		}
 		args = args[:i]
 	}
 	fields := strings.Fields(args)
@@ -186,11 +224,16 @@ func colorArgs(args string) ([]component, bool) {
 	for _, f := range fields {
 		c, ok := parseComponent(f)
 		if !ok {
-			return nil, false
+			return nil, 1, false
 		}
 		out = append(out, c)
 	}
-	return out, true
+	// Legacy four-argument form: rgb(255, 0, 0, 0.5).
+	if len(out) == 4 {
+		alpha = out[3].value(1)
+		out = out[:3]
+	}
+	return out, alpha, true
 }
 
 func parseComponent(f string) (component, bool) {

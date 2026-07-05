@@ -148,3 +148,27 @@ func TestParseLightDarkInvalidArm(t *testing.T) {
 		t.Error("invalid arm should fail the whole value")
 	}
 }
+
+// F2: alpha components survive parsing for paint-time compositing.
+func TestParseColorAlphaKept(t *testing.T) {
+	cases := []struct {
+		in    string
+		wantA uint8
+	}{
+		{"#ff000080", 128},
+		{"rgb(255 0 0 / 0.5)", 128},
+		{"#ff0000ff", 0},    // fully opaque → no alpha
+		{"rgb(255 0 0)", 0}, // no alpha given
+		{"#ff000000", 1},    // fully transparent clamps to minimum
+	}
+	for _, tc := range cases {
+		c, ok := ParseColorValue(tc.in)
+		if !ok {
+			t.Errorf("%s did not parse", tc.in)
+			continue
+		}
+		if c.A != tc.wantA {
+			t.Errorf("%s: A = %d, want %d", tc.in, c.A, tc.wantA)
+		}
+	}
+}

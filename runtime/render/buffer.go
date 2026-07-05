@@ -183,12 +183,13 @@ func (b *Buffer) WriteText(row, col int, text string) {
 	}
 }
 
-// SetStyledCell sets the character and style at (row, col). Out-of-bounds is a no-op.
+// SetStyledCell sets the character and style at (row, col), compositing
+// translucent colours over the existing cell. Out-of-bounds is a no-op.
 func (b *Buffer) SetStyledCell(row, col int, ch rune, style Style) {
 	if row < 0 || row >= b.height || col < 0 || col >= b.width {
 		return
 	}
-	b.cells[row][col] = Cell{Ch: ch, Style: style}
+	b.cells[row][col] = Cell{Ch: ch, Style: b.compositeStyle(row, col, style)}
 }
 
 // WriteStyledText writes a styled string starting at (row, col), truncating at the buffer edge.
