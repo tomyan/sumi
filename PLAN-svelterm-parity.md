@@ -324,20 +324,39 @@ vt100 assertions for end-to-end slices; unit tests for parser/css/layout.
   raw props resolved at start; NOTE light-dark() may already work
   via the ColorPair emission mechanism — verify before building.
 
+  E2 DONE: Engine.StepLength — width/height transitions step whole
+  cells; state keyed per node (anim.LengthState on Input, no render
+  IDs); mid-flight retargeting restarts from the displayed value;
+  Run paths step between resolve and layout (TestApp deliberately
+  doesn't animate — deterministic snapshots). CSS-driven lengths
+  only (resolver restamps targets; inline width attrs don't).
+  F2a DONE: Color.A (0=opaque); alpha survives parsing (#rrggbbaa,
+  #rgba, slash + legacy 4-arg fn syntax, clamped [1,254]); Buffer
+  cell writes composite BG over backdrop BG and FG over effective
+  backdrop; non-RGB backdrops paint opaque; stored cells always
+  opaque so diff/SGR/depth never see alpha.
+  F2b DONE: numeric opacity <1 = alpha on the element's RGB colours;
+  `dim` keyword and non-blendable colours keep the Dim attribute.
+  F4a DONE: RunOptions.ColorScheme (forces + locks against OSC 11
+  via App.SchemeLocked) and RunOptions.Mouse *bool override.
+  B7c-1 DONE: border-spacing (h v; UA table default 2 0 = svelterm
+  parity) threaded through column offsets/row widths/colspans;
+  table-layout: fixed sizes from first row (explicit widths hold,
+  remainder splits evenly).
+
   NEXT (bigger slices, in rough value order):
-  - E2 length transitions (width/height step whole cells): engine
-    needs a pre-layout hook with stable node IDs — check how
-    rendertree's nodeID counter is derived before designing.
-  - B7c table borders (collapse/spacing/table-layout:fixed/colgroup).
+  - B7c-2 collapsed cell borders (cells with border + table
+    border-collapse share edges via the existing junction machinery)
+    + colgroup width hints + empty-cells.
   - B4 block/inline flow + margin collapse (gates C1/C2 fidelity).
   - D5 global selection + clipboard (drag/word/line, OSC 52 exists).
-  - D3 kitty keyboard protocol; D7 terminal matrix CI.
-  - F2 alpha compositing (colors parse-and-drop alpha since A7).
-  - F3 inline mode + FrameLog; F4 io injection/onLog/mouse toggle.
-  - G1 sumi init (blocked-ish: go.mod needs a published module path
-    or replace directive), G2 sumi dev, G3 sumi inspect.
-  - H component library (needs cross-dir component consumption in
-    the generate CLI — the registry work skipped at C4/C6).
+  - D3 kitty keyboard protocol; D4b Ctrl+Z suspend; D7 matrix CI.
+  - E3b keyframe var()/light-dark() at start (check ColorPair first).
+  - F1b block-edge border styles; F3 inline mode + FrameLog;
+    F4b io injection + onLog.
+  - G1 sumi init (needs published module path or replace), G2 dev,
+    G3 inspect.
+  - H component library (needs cross-dir component consumption).
   - I docs/site, J blog (gated on A–H complete).
   (original C3a sketch follows for reference)
   - C3a-sketch: layout.DOMEvent {Type, Key input.Event, Data map, Target
