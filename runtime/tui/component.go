@@ -71,9 +71,11 @@ type Component struct {
 	Dispose      func()
 	Dirty        bool                               // set by AfterLayout to request a re-render pass
 	LayoutResult *layout.Box                        // set before AfterLayout with the latest layout result
-	FocusIndex   int                                // index into CollectFocusables(Tree) of the focused element
+	FocusIndex   int                                // index into the focus scope's focusables of the focused element
 	Keyframes    map[string]*anim.KeyframeAnimation // named keyframe animations from CSS
 	Stylesheet   *style.Stylesheet                  // component CSS for runtime resolution
+
+	lastFocusScope *layout.Input // focus-trap scope from the previous render (open dialog or tree root)
 }
 
 // TestApp creates a test-mode App from a Component with the given viewport dimensions.

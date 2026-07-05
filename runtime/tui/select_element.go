@@ -102,7 +102,7 @@ func moveSelect(comp *Component, path []*layout.Input, sel *layout.Input, delta 
 // selectKeydown is the keydown default action for a focused select:
 // arrows move with wraparound, Space and Enter advance.
 func selectKeydown(comp *Component, evt input.Event) bool {
-	path := layout.FocusablePath(comp.Tree, comp.FocusIndex)
+	path := focusedPath(comp)
 	if len(path) == 0 {
 		return false
 	}

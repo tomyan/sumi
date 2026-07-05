@@ -123,6 +123,8 @@ func syncProjection(n *layout.Input) {
 		syncBarElement(n)
 	case "details":
 		syncDetailsElement(n)
+	case "dialog":
+		syncDialogElement(n)
 	}
 }
 
@@ -183,7 +185,7 @@ func inputConstraints(n *layout.Input) edit.Constraints {
 // its keydown default action. An "input" DOM event fires only when the
 // value actually changed. Returns true when the key was consumed.
 func editFocusedInput(comp *Component, evt input.Event) bool {
-	path := layout.FocusablePath(comp.Tree, comp.FocusIndex)
+	path := focusedPath(comp)
 	if len(path) == 0 {
 		return false
 	}

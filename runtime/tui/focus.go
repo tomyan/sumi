@@ -9,7 +9,7 @@ import (
 // stamping Focused flags and dispatching EventFocus to its handler.
 // Called once before the initial render.
 func initFocus(comp *Component) {
-	focusables := layout.CollectFocusables(comp.Tree)
+	focusables := scopedFocusables(comp)
 	if len(focusables) == 0 {
 		return
 	}
@@ -22,12 +22,22 @@ func initFocus(comp *Component) {
 // re-projects UA elements. Called before each render so dynamically
 // rebuilt subtrees stay correct.
 func syncFocus(comp *Component) {
-	focusables := layout.CollectFocusables(comp.Tree)
-	if len(focusables) > 0 {
-		if comp.FocusIndex >= len(focusables) {
-			comp.FocusIndex = len(focusables) - 1
+	scope := focusScope(comp)
+	if scope != comp.lastFocusScope {
+		if comp.lastFocusScope != nil {
+			comp.FocusIndex = 0 // focus is pulled into (or back out of) the new scope
 		}
-		stampFocus(focusables, comp.FocusIndex)
+		comp.lastFocusScope = scope
+	}
+	for _, f := range layout.CollectFocusables(comp.Tree) {
+		f.Focused = false
+	}
+	scoped := layout.CollectFocusables(scope)
+	if len(scoped) > 0 {
+		if comp.FocusIndex >= len(scoped) {
+			comp.FocusIndex = len(scoped) - 1
+		}
+		scoped[comp.FocusIndex].Focused = true
 	}
 	syncProjections(comp.Tree)
 }
@@ -42,7 +52,7 @@ func handleFocusCycle(comp *Component, evt input.Event) bool {
 	if evt.Special != input.KeyTab && evt.Special != input.KeyShiftTab {
 		return false
 	}
-	focusables := layout.CollectFocusables(comp.Tree)
+	focusables := scopedFocusables(comp)
 	if len(focusables) == 0 {
 		return false
 	}
@@ -77,7 +87,7 @@ func focusClickedElement(comp *Component, path []*layout.Input) {
 	if target == nil {
 		return
 	}
-	focusables := layout.CollectFocusables(comp.Tree)
+	focusables := scopedFocusables(comp)
 	idx := -1
 	for i, f := range focusables {
 		if f == target {
@@ -123,7 +133,7 @@ func dispatchKeyToFocused(comp *Component, evt input.Event) *layout.DOMEvent {
 	default:
 		return nil
 	}
-	path := layout.FocusablePath(comp.Tree, comp.FocusIndex)
+	path := focusedPath(comp)
 	if len(path) == 0 {
 		return nil
 	}
@@ -138,6 +148,9 @@ func dispatchKeyToFocused(comp *Component, evt input.Event) *layout.DOMEvent {
 func applyDefaultActions(comp *Component, evt input.Event, dom *layout.DOMEvent) bool {
 	if dom != nil && dom.DefaultPrevented() {
 		return false
+	}
+	if dialogEscape(comp, evt) {
+		return true
 	}
 	if handleFocusCycle(comp, evt) {
 		return true
@@ -161,7 +174,7 @@ func activateFocused(comp *Component, evt input.Event) bool {
 	if !isEnter && !isSpace {
 		return false
 	}
-	path := layout.FocusablePath(comp.Tree, comp.FocusIndex)
+	path := focusedPath(comp)
 	if len(path) == 0 {
 		return false
 	}
@@ -230,6 +243,9 @@ func componentEventHandler(app *App, comp *Component) func(input.Event) {
 		dispatchMouseScroll(evt, comp)
 		if evt.Kind == input.EventMouse && evt.Mouse.Action == input.MousePress && evt.Mouse.Button == input.ButtonLeft {
 			path := layout.HitTestPath(comp.Tree, comp.LayoutResult, evt.Mouse.X, evt.Mouse.Y)
+			if !pathInFocusScope(comp, path) {
+				path = nil // a modal dialog captures clicks outside it
+			}
 			focusClickedElement(comp, path)
 			dom := &layout.DOMEvent{Type: "click", Key: evt}
 			layout.DispatchDOM(path, dom)
