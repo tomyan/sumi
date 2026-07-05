@@ -16,14 +16,12 @@ func Run() {
 		CursorRow: -1,
 		Children: []*sumi.Input{
 			{
-				Kind:           sumi.KindBox,
-				Tag:            "box",
-				Classes:        []string{"root"},
-				Attrs:          map[string]string{"class": "root", "onkey": "handleKey"},
-				Direction:      "row",
-				BorderCollapse: true,
-				CursorCol:      -1,
-				CursorRow:      -1,
+				Kind:      sumi.KindBox,
+				Tag:       "box",
+				Classes:   []string{"root"},
+				Attrs:     map[string]string{"class": "root", "onkey": "handleKey"},
+				CursorCol: -1,
+				CursorRow: -1,
 				Children: []*sumi.Input{
 					{
 						Kind:        sumi.KindBox,
@@ -31,9 +29,6 @@ func Run() {
 						Classes:     []string{"panel"},
 						Attrs:       map[string]string{"border-title": "Actual", "class": "panel", "height": "5"},
 						FixedHeight: 5,
-						FlexGrow:    1,
-						Padding:     sumi.ParsePadding("0 1"),
-						Border:      "single",
 						BorderTitle: "Actual",
 						CursorCol:   -1,
 						CursorRow:   -1,
@@ -44,9 +39,6 @@ func Run() {
 						Classes:     []string{"panel"},
 						Attrs:       map[string]string{"border-title": "Expected", "class": "panel", "height": "5"},
 						FixedHeight: 5,
-						FlexGrow:    1,
-						Padding:     sumi.ParsePadding("0 1"),
-						Border:      "single",
 						BorderTitle: "Expected",
 						CursorCol:   -1,
 						CursorRow:   -1,
@@ -55,6 +47,7 @@ func Run() {
 			},
 		},
 	}
+	stylesheet := sumi.MustParseStylesheet(".root {\n\tborder-collapse: collapse;\n\tflex-direction: row;\n}\n.panel {\n\tborder: single;\n\tflex-grow: 1;\n\tpadding: 0 1;\n}\n")
 	doRender := func() {
 		var termW, termH int
 		if app.TestWidth > 0 {
@@ -62,6 +55,7 @@ func Run() {
 		} else {
 			termW, termH = sumi.GetSize(int(os.Stdin.Fd()))
 		}
+		sumi.ResolveStyles(root, stylesheet)
 		tree := sumi.Layout(root, termW, termH)
 		buf := sumi.NewBuffer(termW, termH)
 		sumi.RenderTree(buf, tree, nil)
@@ -89,14 +83,12 @@ func CreateApp(w, h int) *sumi.App {
 		CursorRow: -1,
 		Children: []*sumi.Input{
 			{
-				Kind:           sumi.KindBox,
-				Tag:            "box",
-				Classes:        []string{"root"},
-				Attrs:          map[string]string{"class": "root", "onkey": "handleKey"},
-				Direction:      "row",
-				BorderCollapse: true,
-				CursorCol:      -1,
-				CursorRow:      -1,
+				Kind:      sumi.KindBox,
+				Tag:       "box",
+				Classes:   []string{"root"},
+				Attrs:     map[string]string{"class": "root", "onkey": "handleKey"},
+				CursorCol: -1,
+				CursorRow: -1,
 				Children: []*sumi.Input{
 					{
 						Kind:        sumi.KindBox,
@@ -104,9 +96,6 @@ func CreateApp(w, h int) *sumi.App {
 						Classes:     []string{"panel"},
 						Attrs:       map[string]string{"border-title": "Actual", "class": "panel", "height": "5"},
 						FixedHeight: 5,
-						FlexGrow:    1,
-						Padding:     sumi.ParsePadding("0 1"),
-						Border:      "single",
 						BorderTitle: "Actual",
 						CursorCol:   -1,
 						CursorRow:   -1,
@@ -117,9 +106,6 @@ func CreateApp(w, h int) *sumi.App {
 						Classes:     []string{"panel"},
 						Attrs:       map[string]string{"border-title": "Expected", "class": "panel", "height": "5"},
 						FixedHeight: 5,
-						FlexGrow:    1,
-						Padding:     sumi.ParsePadding("0 1"),
-						Border:      "single",
 						BorderTitle: "Expected",
 						CursorCol:   -1,
 						CursorRow:   -1,
@@ -128,6 +114,7 @@ func CreateApp(w, h int) *sumi.App {
 			},
 		},
 	}
+	stylesheet := sumi.MustParseStylesheet(".root {\n\tborder-collapse: collapse;\n\tflex-direction: row;\n}\n.panel {\n\tborder: single;\n\tflex-grow: 1;\n\tpadding: 0 1;\n}\n")
 	doRender := func() {
 		var termW, termH int
 		if app.TestWidth > 0 {
@@ -135,6 +122,7 @@ func CreateApp(w, h int) *sumi.App {
 		} else {
 			termW, termH = sumi.GetSize(int(os.Stdin.Fd()))
 		}
+		sumi.ResolveStyles(root, stylesheet)
 		tree := sumi.Layout(root, termW, termH)
 		buf := sumi.NewBuffer(termW, termH)
 		sumi.RenderTree(buf, tree, nil)

@@ -40,8 +40,6 @@ func NewModal(props ModalProps) *sumi.Component {
 				Tag:       "box",
 				Classes:   []string{"container"},
 				Attrs:     map[string]string{"class": "container", "onkey": "handleKey"},
-				Padding:   sumi.ParsePadding("1 2"),
-				Border:    "single",
 				CursorCol: -1,
 				CursorRow: -1,
 				Children: []*sumi.Input{
@@ -51,10 +49,6 @@ func NewModal(props ModalProps) *sumi.Component {
 						Classes: []string{"title"},
 						Attrs:   map[string]string{"class": "title"},
 						Content: "Modal Demo",
-						Style: sumi.Style{
-							FG:   sumi.Color{Name: "green"},
-							Bold: true,
-						},
 					},
 					{
 						Kind:    sumi.KindText,
@@ -62,10 +56,6 @@ func NewModal(props ModalProps) *sumi.Component {
 						Classes: []string{"hint"},
 						Attrs:   map[string]string{"class": "hint"},
 						Content: "Press any key to toggle modal, q to quit",
-						Style: sumi.Style{
-							FG:  sumi.Color{Name: "cyan"},
-							Dim: true,
-						},
 					},
 					{
 						Kind:    sumi.KindText,
@@ -82,18 +72,12 @@ func NewModal(props ModalProps) *sumi.Component {
 					Attrs:       map[string]string{"class": "modal", "height": "8", "left": "10", "position": "fixed", "top": "5", "width": "40", "z-index": "2"},
 					FixedWidth:  40,
 					FixedHeight: 8,
-					Padding:     sumi.ParsePadding("1 2"),
-					Border:      "single",
 					Position:    "fixed",
 					Top:         5,
 					Left:        10,
 					ZIndex:      2,
 					CursorCol:   -1,
 					CursorRow:   -1,
-					Style: sumi.Style{
-						FG: sumi.Color{Name: "yellow"},
-						BG: sumi.Color{Name: "black"},
-					},
 					Children: []*sumi.Input{
 						{
 							Kind:    sumi.KindText,
@@ -101,10 +85,6 @@ func NewModal(props ModalProps) *sumi.Component {
 							Classes: []string{"modal-title"},
 							Attrs:   map[string]string{"class": "modal-title"},
 							Content: "Modal Dialog",
-							Style: sumi.Style{
-								FG:   sumi.Color{Name: "yellow"},
-								Bold: true,
-							},
 						},
 						{
 							Kind:    sumi.KindText,
@@ -117,10 +97,6 @@ func NewModal(props ModalProps) *sumi.Component {
 							Classes: []string{"hint"},
 							Attrs:   map[string]string{"class": "hint"},
 							Content: "Press any key to close",
-							Style: sumi.Style{
-								FG:  sumi.Color{Name: "cyan"},
-								Dim: true,
-							},
 						},
 					},
 				})

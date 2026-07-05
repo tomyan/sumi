@@ -168,7 +168,6 @@ func NewPreview(props PreviewProps) *sumi.Component {
 						Tag:       "box",
 						Classes:   []string{"panels"},
 						Attrs:     map[string]string{"class": "panels"},
-						Direction: "row",
 						CursorCol: -1,
 						CursorRow: -1,
 						Children: []*sumi.Input{
@@ -178,15 +177,9 @@ func NewPreview(props PreviewProps) *sumi.Component {
 								Classes:     []string{"actual"},
 								Attrs:       map[string]string{"border-title": "Actual", "class": "actual", "height": "{pvComponentHeight()}"},
 								FixedHeight: pvComponentHeight(),
-								FlexGrow:    1,
-								Padding:     sumi.ParsePadding("0 1"),
-								Border:      "single",
 								BorderTitle: "Actual",
 								CursorCol:   -1,
 								CursorRow:   -1,
-								Style: sumi.Style{
-									FG: sumi.Color{Name: "cyan"},
-								},
 							},
 							{
 								Kind:        sumi.KindBox,
@@ -194,15 +187,9 @@ func NewPreview(props PreviewProps) *sumi.Component {
 								Classes:     []string{"expected"},
 								Attrs:       map[string]string{"border-title": "Expected", "class": "expected", "height": "{pvComponentHeight()}"},
 								FixedHeight: pvComponentHeight(),
-								FlexGrow:    1,
-								Padding:     sumi.ParsePadding("0 1"),
-								Border:      "single",
 								BorderTitle: "Expected",
 								CursorCol:   -1,
 								CursorRow:   -1,
-								Style: sumi.Style{
-									FG: sumi.Color{Name: "blue"},
-								},
 							},
 						},
 					},
@@ -212,8 +199,6 @@ func NewPreview(props PreviewProps) *sumi.Component {
 						Tag:       "box",
 						Classes:   []string{"editors"},
 						Attrs:     map[string]string{"class": "editors"},
-						Direction: "row",
-						FlexGrow:  1,
 						CursorCol: -1,
 						CursorRow: -1,
 						Children: []*sumi.Input{
@@ -222,28 +207,18 @@ func NewPreview(props PreviewProps) *sumi.Component {
 								Tag:         "box",
 								Classes:     []string{"editor-left"},
 								Attrs:       map[string]string{"border-title": "{pvSourceTitle()}", "class": "editor-left"},
-								FlexGrow:    1,
-								Border:      "single",
 								BorderTitle: pvSourceTitle(),
 								CursorCol:   -1,
 								CursorRow:   -1,
-								Style: sumi.Style{
-									FG: sumi.Color{Name: "magenta"},
-								},
 							},
 							{
 								Kind:        sumi.KindBox,
 								Tag:         "box",
 								Classes:     []string{"editor-right"},
 								Attrs:       map[string]string{"border-title": "{pvSnapshotTitle()}", "class": "editor-right"},
-								FlexGrow:    1,
-								Border:      "single",
 								BorderTitle: pvSnapshotTitle(),
 								CursorCol:   -1,
 								CursorRow:   -1,
-								Style: sumi.Style{
-									FG: sumi.Color{Name: "magenta"},
-								},
 							},
 						},
 					},
@@ -252,14 +227,9 @@ func NewPreview(props PreviewProps) *sumi.Component {
 						Tag:         "box",
 						Classes:     []string{"scenario-editor"},
 						Attrs:       map[string]string{"border-title": "{pvScenarioTitle()}", "class": "scenario-editor"},
-						FlexGrow:    1,
-						Border:      "single",
 						BorderTitle: pvScenarioTitle(),
 						CursorCol:   -1,
 						CursorRow:   -1,
-						Style: sumi.Style{
-							FG: sumi.Color{Name: "magenta"},
-						},
 					},
 				},
 			},
@@ -276,9 +246,6 @@ func NewPreview(props PreviewProps) *sumi.Component {
 					Classes: []string{"key"},
 					Attrs:   map[string]string{"class": "key"},
 					Content: "esc",
-					Style: sumi.Style{
-						Inverse: true,
-					},
 				})
 				cs = append(cs, &sumi.Input{
 					Kind:    sumi.KindText,
@@ -286,9 +253,6 @@ func NewPreview(props PreviewProps) *sumi.Component {
 					Classes: []string{"label"},
 					Attrs:   map[string]string{"class": "label"},
 					Content: " Exit  ",
-					Style: sumi.Style{
-						Dim: true,
-					},
 				})
 				cs = append(cs, &sumi.Input{
 					Kind:    sumi.KindText,
@@ -296,10 +260,6 @@ func NewPreview(props PreviewProps) *sumi.Component {
 					Classes: []string{"interactive"},
 					Attrs:   map[string]string{"class": "interactive"},
 					Content: " INTERACTIVE ",
-					Style: sumi.Style{
-						FG:   sumi.Color{Name: "green"},
-						Bold: true,
-					},
 				})
 				cs = append(cs, &sumi.Input{
 					Kind:    sumi.KindText,
@@ -307,9 +267,6 @@ func NewPreview(props PreviewProps) *sumi.Component {
 					Classes: []string{"info"},
 					Attrs:   map[string]string{"class": "info"},
 					Content: sumi.Sprintf("  %v  Frame %v/%v  %v", pvScenarioName(), current.Get()+1, pvStepCount(), pvStepName(current.Get())),
-					Style: sumi.Style{
-						Bold: true,
-					},
 				})
 			} else {
 				if pvIsEditorFocused() {
@@ -319,10 +276,6 @@ func NewPreview(props PreviewProps) *sumi.Component {
 						Classes: []string{"focus-indicator"},
 						Attrs:   map[string]string{"class": "focus-indicator"},
 						Content: sumi.Sprintf(" %v ", pvFocusName()),
-						Style: sumi.Style{
-							FG:   sumi.Color{Name: "cyan"},
-							Bold: true,
-						},
 					})
 					cs = append(cs, &sumi.Input{
 						Kind:    sumi.KindText,
@@ -330,9 +283,6 @@ func NewPreview(props PreviewProps) *sumi.Component {
 						Classes: []string{"key"},
 						Attrs:   map[string]string{"class": "key"},
 						Content: "C-\\",
-						Style: sumi.Style{
-							Inverse: true,
-						},
 					})
 					cs = append(cs, &sumi.Input{
 						Kind:    sumi.KindText,
@@ -340,9 +290,6 @@ func NewPreview(props PreviewProps) *sumi.Component {
 						Classes: []string{"label"},
 						Attrs:   map[string]string{"class": "label"},
 						Content: " Exit  ",
-						Style: sumi.Style{
-							Dim: true,
-						},
 					})
 					cs = append(cs, &sumi.Input{
 						Kind:    sumi.KindText,
@@ -350,9 +297,6 @@ func NewPreview(props PreviewProps) *sumi.Component {
 						Classes: []string{"key"},
 						Attrs:   map[string]string{"class": "key"},
 						Content: "C-\\ h",
-						Style: sumi.Style{
-							Inverse: true,
-						},
 					})
 					cs = append(cs, &sumi.Input{
 						Kind:    sumi.KindText,
@@ -360,9 +304,6 @@ func NewPreview(props PreviewProps) *sumi.Component {
 						Classes: []string{"label"},
 						Attrs:   map[string]string{"class": "label"},
 						Content: " Prev  ",
-						Style: sumi.Style{
-							Dim: true,
-						},
 					})
 					cs = append(cs, &sumi.Input{
 						Kind:    sumi.KindText,
@@ -370,9 +311,6 @@ func NewPreview(props PreviewProps) *sumi.Component {
 						Classes: []string{"key"},
 						Attrs:   map[string]string{"class": "key"},
 						Content: "C-\\ l",
-						Style: sumi.Style{
-							Inverse: true,
-						},
 					})
 					cs = append(cs, &sumi.Input{
 						Kind:    sumi.KindText,
@@ -380,9 +318,6 @@ func NewPreview(props PreviewProps) *sumi.Component {
 						Classes: []string{"label"},
 						Attrs:   map[string]string{"class": "label"},
 						Content: " Next  ",
-						Style: sumi.Style{
-							Dim: true,
-						},
 					})
 				} else {
 					cs = append(cs, &sumi.Input{
@@ -391,9 +326,6 @@ func NewPreview(props PreviewProps) *sumi.Component {
 						Classes: []string{"key"},
 						Attrs:   map[string]string{"class": "key"},
 						Content: "h",
-						Style: sumi.Style{
-							Inverse: true,
-						},
 					})
 					cs = append(cs, &sumi.Input{
 						Kind:    sumi.KindText,
@@ -401,9 +333,6 @@ func NewPreview(props PreviewProps) *sumi.Component {
 						Classes: []string{"label"},
 						Attrs:   map[string]string{"class": "label"},
 						Content: " Prev  ",
-						Style: sumi.Style{
-							Dim: true,
-						},
 					})
 					cs = append(cs, &sumi.Input{
 						Kind:    sumi.KindText,
@@ -411,9 +340,6 @@ func NewPreview(props PreviewProps) *sumi.Component {
 						Classes: []string{"key"},
 						Attrs:   map[string]string{"class": "key"},
 						Content: "l",
-						Style: sumi.Style{
-							Inverse: true,
-						},
 					})
 					cs = append(cs, &sumi.Input{
 						Kind:    sumi.KindText,
@@ -421,9 +347,6 @@ func NewPreview(props PreviewProps) *sumi.Component {
 						Classes: []string{"label"},
 						Attrs:   map[string]string{"class": "label"},
 						Content: " Next  ",
-						Style: sumi.Style{
-							Dim: true,
-						},
 					})
 					cs = append(cs, &sumi.Input{
 						Kind:    sumi.KindText,
@@ -431,9 +354,6 @@ func NewPreview(props PreviewProps) *sumi.Component {
 						Classes: []string{"key"},
 						Attrs:   map[string]string{"class": "key"},
 						Content: "u",
-						Style: sumi.Style{
-							Inverse: true,
-						},
 					})
 					cs = append(cs, &sumi.Input{
 						Kind:    sumi.KindText,
@@ -441,9 +361,6 @@ func NewPreview(props PreviewProps) *sumi.Component {
 						Classes: []string{"label"},
 						Attrs:   map[string]string{"class": "label"},
 						Content: " Update  ",
-						Style: sumi.Style{
-							Dim: true,
-						},
 					})
 					cs = append(cs, &sumi.Input{
 						Kind:    sumi.KindText,
@@ -451,9 +368,6 @@ func NewPreview(props PreviewProps) *sumi.Component {
 						Classes: []string{"key"},
 						Attrs:   map[string]string{"class": "key"},
 						Content: "i",
-						Style: sumi.Style{
-							Inverse: true,
-						},
 					})
 					cs = append(cs, &sumi.Input{
 						Kind:    sumi.KindText,
@@ -461,9 +375,6 @@ func NewPreview(props PreviewProps) *sumi.Component {
 						Classes: []string{"label"},
 						Attrs:   map[string]string{"class": "label"},
 						Content: " Interactive  ",
-						Style: sumi.Style{
-							Dim: true,
-						},
 					})
 					cs = append(cs, &sumi.Input{
 						Kind:    sumi.KindText,
@@ -471,9 +382,6 @@ func NewPreview(props PreviewProps) *sumi.Component {
 						Classes: []string{"key"},
 						Attrs:   map[string]string{"class": "key"},
 						Content: "1",
-						Style: sumi.Style{
-							Inverse: true,
-						},
 					})
 					cs = append(cs, &sumi.Input{
 						Kind:    sumi.KindText,
@@ -481,9 +389,6 @@ func NewPreview(props PreviewProps) *sumi.Component {
 						Classes: []string{"label"},
 						Attrs:   map[string]string{"class": "label"},
 						Content: " Source  ",
-						Style: sumi.Style{
-							Dim: true,
-						},
 					})
 					cs = append(cs, &sumi.Input{
 						Kind:    sumi.KindText,
@@ -491,9 +396,6 @@ func NewPreview(props PreviewProps) *sumi.Component {
 						Classes: []string{"key"},
 						Attrs:   map[string]string{"class": "key"},
 						Content: "2",
-						Style: sumi.Style{
-							Inverse: true,
-						},
 					})
 					cs = append(cs, &sumi.Input{
 						Kind:    sumi.KindText,
@@ -501,9 +403,6 @@ func NewPreview(props PreviewProps) *sumi.Component {
 						Classes: []string{"label"},
 						Attrs:   map[string]string{"class": "label"},
 						Content: " Snap  ",
-						Style: sumi.Style{
-							Dim: true,
-						},
 					})
 					cs = append(cs, &sumi.Input{
 						Kind:    sumi.KindText,
@@ -511,9 +410,6 @@ func NewPreview(props PreviewProps) *sumi.Component {
 						Classes: []string{"key"},
 						Attrs:   map[string]string{"class": "key"},
 						Content: "3",
-						Style: sumi.Style{
-							Inverse: true,
-						},
 					})
 					cs = append(cs, &sumi.Input{
 						Kind:    sumi.KindText,
@@ -521,9 +417,6 @@ func NewPreview(props PreviewProps) *sumi.Component {
 						Classes: []string{"label"},
 						Attrs:   map[string]string{"class": "label"},
 						Content: " Scenario  ",
-						Style: sumi.Style{
-							Dim: true,
-						},
 					})
 					cs = append(cs, &sumi.Input{
 						Kind:    sumi.KindText,
@@ -531,9 +424,6 @@ func NewPreview(props PreviewProps) *sumi.Component {
 						Classes: []string{"key"},
 						Attrs:   map[string]string{"class": "key"},
 						Content: "q",
-						Style: sumi.Style{
-							Inverse: true,
-						},
 					})
 					cs = append(cs, &sumi.Input{
 						Kind:    sumi.KindText,
@@ -541,9 +431,6 @@ func NewPreview(props PreviewProps) *sumi.Component {
 						Classes: []string{"label"},
 						Attrs:   map[string]string{"class": "label"},
 						Content: " Quit  ",
-						Style: sumi.Style{
-							Dim: true,
-						},
 					})
 				}
 				if matchStatus.Get() == 1 {
@@ -553,10 +440,6 @@ func NewPreview(props PreviewProps) *sumi.Component {
 						Classes: []string{"match"},
 						Attrs:   map[string]string{"class": "match"},
 						Content: " MATCH ",
-						Style: sumi.Style{
-							FG:   sumi.Color{Name: "green"},
-							Bold: true,
-						},
 					})
 				} else {
 					if matchStatus.Get() == 0 {
@@ -566,10 +449,6 @@ func NewPreview(props PreviewProps) *sumi.Component {
 							Classes: []string{"no-snap"},
 							Attrs:   map[string]string{"class": "no-snap"},
 							Content: " NO SNAPSHOT ",
-							Style: sumi.Style{
-								FG:   sumi.Color{Name: "yellow"},
-								Bold: true,
-							},
 						})
 					} else {
 						cs = append(cs, &sumi.Input{
@@ -578,10 +457,6 @@ func NewPreview(props PreviewProps) *sumi.Component {
 							Classes: []string{"diff"},
 							Attrs:   map[string]string{"class": "diff"},
 							Content: " DIFF ",
-							Style: sumi.Style{
-								FG:   sumi.Color{Name: "red"},
-								Bold: true,
-							},
 						})
 					}
 				}
@@ -591,9 +466,6 @@ func NewPreview(props PreviewProps) *sumi.Component {
 					Classes: []string{"info"},
 					Attrs:   map[string]string{"class": "info"},
 					Content: sumi.Sprintf("  %v  Frame %v/%v  %v", pvScenarioName(), current.Get()+1, pvStepCount(), pvStepName(current.Get())),
-					Style: sumi.Style{
-						Bold: true,
-					},
 				})
 			}
 			return cs

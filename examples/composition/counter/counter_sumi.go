@@ -28,10 +28,6 @@ func NewCounter(props CounterProps) *sumi.Component {
 		Classes: []string{"label"},
 		Attrs:   map[string]string{"class": "label"},
 		Content: sumi.Sprintf("%v:", label),
-		Style: sumi.Style{
-			FG:   sumi.Color{Name: "cyan"},
-			Bold: true,
-		},
 	}
 	node1 := &sumi.Input{
 		Kind:    sumi.KindText,
@@ -39,10 +35,6 @@ func NewCounter(props CounterProps) *sumi.Component {
 		Classes: []string{"count"},
 		Attrs:   map[string]string{"class": "count"},
 		Content: sumi.Sprintf("%v", count.Get()),
-		Style: sumi.Style{
-			FG:   sumi.Color{Name: "yellow"},
-			Bold: true,
-		},
 	}
 	root := &sumi.Input{
 		Kind:      sumi.KindBox,

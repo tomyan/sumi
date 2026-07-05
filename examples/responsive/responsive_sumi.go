@@ -28,17 +28,11 @@ func NewResponsive(props ResponsiveProps) *sumi.Component {
 		Classes: []string{"dims"},
 		Attrs:   map[string]string{"class": "dims"},
 		Content: sumi.Sprintf("Terminal: %vx%v", width.Get(), height.Get()),
-		Style: sumi.Style{
-			FG:   sumi.Color{Name: "yellow"},
-			Bold: true,
-		},
 	}
 	root := &sumi.Input{
 		Kind:      sumi.KindBox,
 		Tag:       "root",
 		Direction: "column",
-		Overflow:  "auto",
-		MinWidth:  48,
 		CursorCol: -1,
 		CursorRow: -1,
 		Children: []*sumi.Input{
@@ -47,13 +41,8 @@ func NewResponsive(props ResponsiveProps) *sumi.Component {
 				Tag:       "box",
 				Classes:   []string{"header"},
 				Attrs:     map[string]string{"class": "header", "onkey": "handleKey"},
-				Padding:   sumi.ParsePadding("1 2"),
-				Border:    "single",
 				CursorCol: -1,
 				CursorRow: -1,
-				Style: sumi.Style{
-					FG: sumi.Color{Name: "cyan"},
-				},
 				Children: []*sumi.Input{
 					{
 						Kind:    sumi.KindText,
@@ -61,10 +50,6 @@ func NewResponsive(props ResponsiveProps) *sumi.Component {
 						Classes: []string{"title"},
 						Attrs:   map[string]string{"class": "title"},
 						Content: "Sumi Responsive Demo",
-						Style: sumi.Style{
-							FG:   sumi.Color{Name: "green"},
-							Bold: true,
-						},
 					},
 					node0,
 					{
@@ -73,10 +58,6 @@ func NewResponsive(props ResponsiveProps) *sumi.Component {
 						Classes: []string{"hint"},
 						Attrs:   map[string]string{"class": "hint"},
 						Content: "Resize your terminal to see this update! Press q to quit.",
-						Style: sumi.Style{
-							FG:  sumi.Color{Name: "cyan"},
-							Dim: true,
-						},
 					},
 				},
 			},

@@ -38,8 +38,6 @@ func NewApp(props AppProps) *sumi.Component {
 				Tag:       "box",
 				Classes:   []string{"container"},
 				Attrs:     map[string]string{"class": "container", "onkey": "handleKey"},
-				Padding:   sumi.ParsePadding("1 2"),
-				Border:    "single",
 				CursorCol: -1,
 				CursorRow: -1,
 				Children: []*sumi.Input{
@@ -49,10 +47,6 @@ func NewApp(props AppProps) *sumi.Component {
 						Classes: []string{"title"},
 						Attrs:   map[string]string{"class": "title"},
 						Content: "Text Input Demo",
-						Style: sumi.Style{
-							FG:   sumi.Color{Name: "green"},
-							Bold: true,
-						},
 					},
 					{
 						Kind:    sumi.KindText,
@@ -60,10 +54,6 @@ func NewApp(props AppProps) *sumi.Component {
 						Classes: []string{"hint"},
 						Attrs:   map[string]string{"class": "hint"},
 						Content: "Type to enter your name",
-						Style: sumi.Style{
-							FG:  sumi.Color{Name: "cyan"},
-							Dim: true,
-						},
 					},
 					{
 						Kind:    sumi.KindText,
@@ -71,10 +61,6 @@ func NewApp(props AppProps) *sumi.Component {
 						Classes: []string{"label"},
 						Attrs:   map[string]string{"class": "label"},
 						Content: "Name:",
-						Style: sumi.Style{
-							FG:   sumi.Color{Name: "yellow"},
-							Bold: true,
-						},
 					},
 					node0,
 				},

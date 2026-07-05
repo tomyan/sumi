@@ -121,18 +121,17 @@ func TestGenerateDescendantSelectorAppliesThroughNesting(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 	src := string(out)
-	inside := strings.Index(src, `"inside"`)
-	outside := strings.Index(src, `"outside"`)
-	red := strings.Index(src, `"red"`)
-	if red < 0 {
-		t.Fatalf("expected red style in output:\n%s", src)
+	// Styles are runtime-resolved: no baked literals, stylesheet embedded,
+	// and the static render resolves before layout. Descendant-matching
+	// behaviour itself is covered by layout.ResolveStyles tests.
+	if strings.Contains(src, "sumi.Style{") {
+		t.Errorf("styles must not be baked into literals:\n%s", src)
 	}
-	if !(inside < red && red < outside) {
-		t.Errorf("red must style the inside text only (inside=%d red=%d outside=%d):\n%s", inside, red, outside, src)
+	if !strings.Contains(src, "MustParseStylesheet") || !strings.Contains(src, ".panel text") {
+		t.Errorf("expected embedded stylesheet with descendant rule:\n%s", src)
 	}
-	// The outside text node must carry no style.
-	if seg := src[outside:min(outside+120, len(src))]; strings.Contains(seg, "red") {
-		t.Errorf("outside text must not be styled:\n%s", seg)
+	if !strings.Contains(src, "sumi.ResolveStyles(root, stylesheet)") {
+		t.Errorf("static render must resolve styles at runtime:\n%s", src)
 	}
 }
 
@@ -172,10 +171,13 @@ func handleKey(evt sumi.Event) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 	src := string(out)
-	if !strings.Contains(src, "FocusStyle") {
-		t.Errorf("expected FocusStyle in output:\n%s", src)
+	if strings.Contains(src, "FocusStyle") {
+		t.Errorf("FocusStyle comes from runtime resolution now:\n%s", src)
 	}
 	if !strings.Contains(src, "Focused = focusIndex == 0") {
 		t.Errorf("expected focus sync patch in output:\n%s", src)
+	}
+	if !strings.Contains(src, ".field:focus") {
+		t.Errorf("expected :focus rule in embedded stylesheet:\n%s", src)
 	}
 }

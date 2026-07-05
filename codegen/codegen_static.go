@@ -2,6 +2,7 @@ package codegen
 
 import (
 	"bytes"
+	"fmt"
 
 	"github.com/tomyan/sumi/parser/style"
 	"github.com/tomyan/sumi/parser/template"
@@ -36,16 +37,29 @@ func writeStaticCreateAppBody(buf *bytes.Buffer, doc *template.Document, stylesh
 func writeStaticSharedSetup(buf *bytes.Buffer, doc *template.Document, stylesheet *style.Stylesheet) {
 	buf.WriteString("\tvar app *sumi.App\n")
 	writeLayoutTree(buf, doc, stylesheet, false, nil)
-	writeStaticRenderFunc(buf)
+	writeStylesheetDecl(buf, stylesheet)
+	writeStaticRenderFunc(buf, stylesheet != nil && len(stylesheet.Rules) > 0)
 	buf.WriteString("\tapp = &sumi.App{\n")
 	buf.WriteString("\t\tOnRender: doRender,\n")
 	buf.WriteString("\t}\n")
 }
 
+// writeStylesheetDecl emits the parsed stylesheet variable for runtime
+// resolution when the component has CSS rules.
+func writeStylesheetDecl(buf *bytes.Buffer, stylesheet *style.Stylesheet) {
+	if stylesheet == nil || len(stylesheet.Rules) == 0 {
+		return
+	}
+	fmt.Fprintf(buf, "\tstylesheet := sumi.MustParseStylesheet(%q)\n", style.Serialize(stylesheet))
+}
+
 // writeStaticRenderFunc writes the doRender closure for static apps.
-func writeStaticRenderFunc(buf *bytes.Buffer) {
+func writeStaticRenderFunc(buf *bytes.Buffer, hasStyles bool) {
 	buf.WriteString("\tdoRender := func() {\n")
 	writeTermSizeWithTestMode(buf)
+	if hasStyles {
+		buf.WriteString("\t\tsumi.ResolveStyles(root, stylesheet)\n")
+	}
 	buf.WriteString("\t\ttree := sumi.Layout(root, termW, termH)\n")
 	buf.WriteString("\t\tbuf := sumi.NewBuffer(termW, termH)\n")
 	buf.WriteString("\t\tsumi.RenderTree(buf, tree, nil)\n")

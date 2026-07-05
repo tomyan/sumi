@@ -58,10 +58,6 @@ func NewTodo(props TodoProps) *sumi.Component {
 				Classes: []string{"title"},
 				Attrs:   map[string]string{"class": "title"},
 				Content: "Todo List",
-				Style: sumi.Style{
-					FG:   sumi.Color{Name: "green"},
-					Bold: true,
-				},
 			})
 			cs = append(cs, &sumi.Input{
 				Kind:    sumi.KindText,
@@ -69,10 +65,6 @@ func NewTodo(props TodoProps) *sumi.Component {
 				Classes: []string{"hint"},
 				Attrs:   map[string]string{"class": "hint"},
 				Content: "Press any key to cycle, q to quit",
-				Style: sumi.Style{
-					FG:  sumi.Color{Name: "cyan"},
-					Dim: true,
-				},
 			})
 			for i, item := range items.Get() {
 				if i == selected.Get() {
@@ -82,10 +74,6 @@ func NewTodo(props TodoProps) *sumi.Component {
 						Classes: []string{"selected"},
 						Attrs:   map[string]string{"class": "selected"},
 						Content: sumi.Sprintf("> %v", item),
-						Style: sumi.Style{
-							FG:   sumi.Color{Name: "yellow"},
-							Bold: true,
-						},
 					})
 				} else {
 					cs = append(cs, &sumi.Input{

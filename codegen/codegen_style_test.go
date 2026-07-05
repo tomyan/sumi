@@ -69,14 +69,14 @@ func TestGenerateWithStylesheetAndClassOnText(t *testing.T) {
 		t.Fatalf("generated code is not valid Go:\n%s\n\nerror: %v", string(out), parseErr)
 	}
 	src := string(out)
-	if !strings.Contains(src, `sumi.Style{`) {
-		t.Errorf("expected render.Style literal in output:\n%s", src)
+	if strings.Contains(src, `sumi.Style{`) {
+		t.Errorf("styles must not be baked into literals (runtime resolution):\n%s", src)
 	}
-	if !strings.Contains(src, `FG:`) {
-		t.Errorf("expected FG field in Style literal:\n%s", src)
+	if !strings.Contains(src, "MustParseStylesheet") || !strings.Contains(src, "font-weight: bold") {
+		t.Errorf("expected embedded stylesheet with the rule:\n%s", src)
 	}
-	if !strings.Contains(src, `Bold: true`) {
-		t.Errorf("expected Bold: true in Style literal:\n%s", src)
+	if !containsField(src, "Classes", `[]string{"title"}`) {
+		t.Errorf("expected Classes identity for runtime matching:\n%s", src)
 	}
 }
 
@@ -105,11 +105,14 @@ func TestGenerateStylesheetLayoutProperties(t *testing.T) {
 		t.Fatalf("generated code is not valid Go:\n%s\n\nerror: %v", string(out), parseErr)
 	}
 	src := string(out)
-	if !strings.Contains(src, `"single"`) || !strings.Contains(src, "Border:") {
-		t.Errorf("expected Border with single from stylesheet in output:\n%s", src)
+	if containsField(src, "Border", `"single"`) {
+		t.Errorf("CSS layout props must not be baked into literals:\n%s", src)
 	}
-	if !strings.Contains(src, `sumi.ParsePadding("1 2")`) {
-		t.Errorf("expected ParsePadding from stylesheet in output:\n%s", src)
+	if !strings.Contains(src, "MustParseStylesheet") || !strings.Contains(src, "border: single") {
+		t.Errorf("expected embedded stylesheet with layout rules:\n%s", src)
+	}
+	if !strings.Contains(src, "sumi.ResolveStyles(root, stylesheet)") {
+		t.Errorf("static render must resolve styles at runtime:\n%s", src)
 	}
 }
 
@@ -133,17 +136,16 @@ func TestGenerateInlineAttributeOverridesStylesheet(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 	src := string(out)
-	// Inline "double" should override stylesheet "single"
-	if !strings.Contains(src, `"double"`) || !strings.Contains(src, "Border:") {
-		t.Errorf("expected Border with double (inline override) in output:\n%s", src)
+	// Inline "double" is emitted in the literal; runtime resolution must not
+	// override it (covered by layout.ResolveStyles inline-precedence tests).
+	if !containsField(src, "Border", `"double"`) {
+		t.Errorf("expected inline Border double in literal:\n%s", src)
 	}
-	// Should NOT contain "single" since inline overrides it
-	if strings.Contains(src, `"single"`) {
-		t.Errorf("expected inline border to override stylesheet, but found single in output:\n%s", src)
+	if !containsField(src, "Attrs", "map[string]string{") {
+		t.Errorf("expected Attrs identity so the resolver sees the inline override:\n%s", src)
 	}
-	// Stylesheet padding should still apply
-	if !strings.Contains(src, `sumi.ParsePadding("1")`) {
-		t.Errorf("expected ParsePadding from stylesheet in output:\n%s", src)
+	if !strings.Contains(src, "border: single") {
+		t.Errorf("stylesheet rule must still be embedded:\n%s", src)
 	}
 }
 
@@ -172,11 +174,11 @@ func TestGenerateElementSelectorStylesheet(t *testing.T) {
 		t.Fatalf("generated code is not valid Go:\n%s\n\nerror: %v", string(out), parseErr)
 	}
 	src := string(out)
-	if !strings.Contains(src, `sumi.Style{`) {
-		t.Errorf("expected render.Style literal for element selector:\n%s", src)
+	if strings.Contains(src, `sumi.Style{`) {
+		t.Errorf("styles must not be baked into literals:\n%s", src)
 	}
-	if !strings.Contains(src, `"green"`) {
-		t.Errorf("expected green color in Style literal:\n%s", src)
+	if !strings.Contains(src, "color: green") {
+		t.Errorf("expected element-selector rule in embedded stylesheet:\n%s", src)
 	}
 }
 

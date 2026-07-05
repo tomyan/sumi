@@ -30,10 +30,6 @@ func NewCounter(props CounterProps) *sumi.Component {
 		Classes: []string{"count"},
 		Attrs:   map[string]string{"class": "count"},
 		Content: sumi.Sprintf("Count: %v", count.Get()),
-		Style: sumi.Style{
-			FG:   sumi.Color{Name: "yellow"},
-			Bold: true,
-		},
 	}
 	root := &sumi.Input{
 		Kind:      sumi.KindBox,
@@ -47,8 +43,6 @@ func NewCounter(props CounterProps) *sumi.Component {
 				Tag:       "box",
 				Classes:   []string{"container"},
 				Attrs:     map[string]string{"class": "container", "onkey": "handleKey"},
-				Padding:   sumi.ParsePadding("1 2"),
-				Border:    "single",
 				CursorCol: -1,
 				CursorRow: -1,
 				Children: []*sumi.Input{
@@ -58,10 +52,6 @@ func NewCounter(props CounterProps) *sumi.Component {
 						Classes: []string{"title"},
 						Attrs:   map[string]string{"class": "title"},
 						Content: "Signal Counter",
-						Style: sumi.Style{
-							FG:   sumi.Color{Name: "green"},
-							Bold: true,
-						},
 					},
 					{
 						Kind:    sumi.KindText,

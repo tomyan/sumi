@@ -26,9 +26,6 @@ func Run() {
 						Tag:       "box",
 						Classes:   []string{"header"},
 						Attrs:     map[string]string{"class": "header"},
-						Justify:   "center",
-						Padding:   sumi.ParsePadding("0 2"),
-						Border:    "single",
 						CursorCol: -1,
 						CursorRow: -1,
 						Children: []*sumi.Input{
@@ -38,10 +35,6 @@ func Run() {
 								Classes: []string{"title"},
 								Attrs:   map[string]string{"class": "title"},
 								Content: "Sumi Flexbox Dashboard",
-								Style: sumi.Style{
-									FG:   sumi.Color{Name: "green"},
-									Bold: true,
-								},
 							},
 						},
 					},
@@ -51,18 +44,12 @@ func Run() {
 						Classes: []string{"hint"},
 						Attrs:   map[string]string{"class": "hint"},
 						Content: "Press q to quit",
-						Style: sumi.Style{
-							FG:  sumi.Color{Name: "cyan"},
-							Dim: true,
-						},
 					},
 					{
 						Kind:      sumi.KindBox,
 						Tag:       "box",
 						Classes:   []string{"panels"},
 						Attrs:     map[string]string{"class": "panels"},
-						Direction: "row",
-						Gap:       1,
 						CursorCol: -1,
 						CursorRow: -1,
 						Children: []*sumi.Input{
@@ -71,9 +58,6 @@ func Run() {
 								Tag:       "box",
 								Classes:   []string{"panel"},
 								Attrs:     map[string]string{"class": "panel"},
-								FlexGrow:  1,
-								Padding:   sumi.ParsePadding("0 1"),
-								Border:    "single",
 								CursorCol: -1,
 								CursorRow: -1,
 								Children: []*sumi.Input{
@@ -83,10 +67,6 @@ func Run() {
 										Classes: []string{"panel-title"},
 										Attrs:   map[string]string{"class": "panel-title"},
 										Content: "Left Panel",
-										Style: sumi.Style{
-											FG:   sumi.Color{Name: "yellow"},
-											Bold: true,
-										},
 									},
 									{
 										Kind:    sumi.KindText,
@@ -105,9 +85,6 @@ func Run() {
 								Tag:       "box",
 								Classes:   []string{"panel"},
 								Attrs:     map[string]string{"class": "panel"},
-								FlexGrow:  1,
-								Padding:   sumi.ParsePadding("0 1"),
-								Border:    "single",
 								CursorCol: -1,
 								CursorRow: -1,
 								Children: []*sumi.Input{
@@ -117,10 +94,6 @@ func Run() {
 										Classes: []string{"panel-title"},
 										Attrs:   map[string]string{"class": "panel-title"},
 										Content: "Right Panel",
-										Style: sumi.Style{
-											FG:   sumi.Color{Name: "yellow"},
-											Bold: true,
-										},
 									},
 									{
 										Kind:    sumi.KindText,
@@ -141,10 +114,6 @@ func Run() {
 						Tag:       "box",
 						Classes:   []string{"footer"},
 						Attrs:     map[string]string{"class": "footer"},
-						Direction: "row",
-						Justify:   "space-between",
-						Padding:   sumi.ParsePadding("0 2"),
-						Border:    "single",
 						CursorCol: -1,
 						CursorRow: -1,
 						Children: []*sumi.Input{
@@ -154,9 +123,6 @@ func Run() {
 								Classes: []string{"status"},
 								Attrs:   map[string]string{"class": "status"},
 								Content: "Ready",
-								Style: sumi.Style{
-									FG: sumi.Color{Name: "green"},
-								},
 							},
 							{
 								Kind:    sumi.KindText,
@@ -164,10 +130,6 @@ func Run() {
 								Classes: []string{"version"},
 								Attrs:   map[string]string{"class": "version"},
 								Content: "sumi v0.1",
-								Style: sumi.Style{
-									FG:  sumi.Color{Name: "cyan"},
-									Dim: true,
-								},
 							},
 						},
 					},
@@ -175,6 +137,7 @@ func Run() {
 			},
 		},
 	}
+	stylesheet := sumi.MustParseStylesheet(".header {\n\tborder: single;\n\tjustify-content: center;\n\tpadding: 0 2;\n}\n.title {\n\tcolor: green;\n\tfont-weight: bold;\n}\n.hint {\n\tcolor: cyan;\n\topacity: dim;\n}\n.panels {\n\tflex-direction: row;\n\tgap: 1;\n}\n.panel {\n\tborder: single;\n\tflex-grow: 1;\n\tpadding: 0 1;\n}\n.panel-title {\n\tcolor: yellow;\n\tfont-weight: bold;\n}\n.footer {\n\tborder: single;\n\tflex-direction: row;\n\tjustify-content: space-between;\n\tpadding: 0 2;\n}\n.status {\n\tcolor: green;\n}\n.version {\n\tcolor: cyan;\n\topacity: dim;\n}\n")
 	doRender := func() {
 		var termW, termH int
 		if app.TestWidth > 0 {
@@ -182,6 +145,7 @@ func Run() {
 		} else {
 			termW, termH = sumi.GetSize(int(os.Stdin.Fd()))
 		}
+		sumi.ResolveStyles(root, stylesheet)
 		tree := sumi.Layout(root, termW, termH)
 		buf := sumi.NewBuffer(termW, termH)
 		sumi.RenderTree(buf, tree, nil)
@@ -219,9 +183,6 @@ func CreateApp(w, h int) *sumi.App {
 						Tag:       "box",
 						Classes:   []string{"header"},
 						Attrs:     map[string]string{"class": "header"},
-						Justify:   "center",
-						Padding:   sumi.ParsePadding("0 2"),
-						Border:    "single",
 						CursorCol: -1,
 						CursorRow: -1,
 						Children: []*sumi.Input{
@@ -231,10 +192,6 @@ func CreateApp(w, h int) *sumi.App {
 								Classes: []string{"title"},
 								Attrs:   map[string]string{"class": "title"},
 								Content: "Sumi Flexbox Dashboard",
-								Style: sumi.Style{
-									FG:   sumi.Color{Name: "green"},
-									Bold: true,
-								},
 							},
 						},
 					},
@@ -244,18 +201,12 @@ func CreateApp(w, h int) *sumi.App {
 						Classes: []string{"hint"},
 						Attrs:   map[string]string{"class": "hint"},
 						Content: "Press q to quit",
-						Style: sumi.Style{
-							FG:  sumi.Color{Name: "cyan"},
-							Dim: true,
-						},
 					},
 					{
 						Kind:      sumi.KindBox,
 						Tag:       "box",
 						Classes:   []string{"panels"},
 						Attrs:     map[string]string{"class": "panels"},
-						Direction: "row",
-						Gap:       1,
 						CursorCol: -1,
 						CursorRow: -1,
 						Children: []*sumi.Input{
@@ -264,9 +215,6 @@ func CreateApp(w, h int) *sumi.App {
 								Tag:       "box",
 								Classes:   []string{"panel"},
 								Attrs:     map[string]string{"class": "panel"},
-								FlexGrow:  1,
-								Padding:   sumi.ParsePadding("0 1"),
-								Border:    "single",
 								CursorCol: -1,
 								CursorRow: -1,
 								Children: []*sumi.Input{
@@ -276,10 +224,6 @@ func CreateApp(w, h int) *sumi.App {
 										Classes: []string{"panel-title"},
 										Attrs:   map[string]string{"class": "panel-title"},
 										Content: "Left Panel",
-										Style: sumi.Style{
-											FG:   sumi.Color{Name: "yellow"},
-											Bold: true,
-										},
 									},
 									{
 										Kind:    sumi.KindText,
@@ -298,9 +242,6 @@ func CreateApp(w, h int) *sumi.App {
 								Tag:       "box",
 								Classes:   []string{"panel"},
 								Attrs:     map[string]string{"class": "panel"},
-								FlexGrow:  1,
-								Padding:   sumi.ParsePadding("0 1"),
-								Border:    "single",
 								CursorCol: -1,
 								CursorRow: -1,
 								Children: []*sumi.Input{
@@ -310,10 +251,6 @@ func CreateApp(w, h int) *sumi.App {
 										Classes: []string{"panel-title"},
 										Attrs:   map[string]string{"class": "panel-title"},
 										Content: "Right Panel",
-										Style: sumi.Style{
-											FG:   sumi.Color{Name: "yellow"},
-											Bold: true,
-										},
 									},
 									{
 										Kind:    sumi.KindText,
@@ -334,10 +271,6 @@ func CreateApp(w, h int) *sumi.App {
 						Tag:       "box",
 						Classes:   []string{"footer"},
 						Attrs:     map[string]string{"class": "footer"},
-						Direction: "row",
-						Justify:   "space-between",
-						Padding:   sumi.ParsePadding("0 2"),
-						Border:    "single",
 						CursorCol: -1,
 						CursorRow: -1,
 						Children: []*sumi.Input{
@@ -347,9 +280,6 @@ func CreateApp(w, h int) *sumi.App {
 								Classes: []string{"status"},
 								Attrs:   map[string]string{"class": "status"},
 								Content: "Ready",
-								Style: sumi.Style{
-									FG: sumi.Color{Name: "green"},
-								},
 							},
 							{
 								Kind:    sumi.KindText,
@@ -357,10 +287,6 @@ func CreateApp(w, h int) *sumi.App {
 								Classes: []string{"version"},
 								Attrs:   map[string]string{"class": "version"},
 								Content: "sumi v0.1",
-								Style: sumi.Style{
-									FG:  sumi.Color{Name: "cyan"},
-									Dim: true,
-								},
 							},
 						},
 					},
@@ -368,6 +294,7 @@ func CreateApp(w, h int) *sumi.App {
 			},
 		},
 	}
+	stylesheet := sumi.MustParseStylesheet(".header {\n\tborder: single;\n\tjustify-content: center;\n\tpadding: 0 2;\n}\n.title {\n\tcolor: green;\n\tfont-weight: bold;\n}\n.hint {\n\tcolor: cyan;\n\topacity: dim;\n}\n.panels {\n\tflex-direction: row;\n\tgap: 1;\n}\n.panel {\n\tborder: single;\n\tflex-grow: 1;\n\tpadding: 0 1;\n}\n.panel-title {\n\tcolor: yellow;\n\tfont-weight: bold;\n}\n.footer {\n\tborder: single;\n\tflex-direction: row;\n\tjustify-content: space-between;\n\tpadding: 0 2;\n}\n.status {\n\tcolor: green;\n}\n.version {\n\tcolor: cyan;\n\topacity: dim;\n}\n")
 	doRender := func() {
 		var termW, termH int
 		if app.TestWidth > 0 {
@@ -375,6 +302,7 @@ func CreateApp(w, h int) *sumi.App {
 		} else {
 			termW, termH = sumi.GetSize(int(os.Stdin.Fd()))
 		}
+		sumi.ResolveStyles(root, stylesheet)
 		tree := sumi.Layout(root, termW, termH)
 		buf := sumi.NewBuffer(termW, termH)
 		sumi.RenderTree(buf, tree, nil)

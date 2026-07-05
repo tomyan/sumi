@@ -25,10 +25,8 @@ func writeLayoutTree(buf *bytes.Buffer, doc *template.Document, stylesheet *styl
 	fmt.Fprintf(buf, "%s\tKind: sumi.KindBox,\n", tabs)
 	writeIdentityFields(buf, tabs, "root", nil)
 	rootAttrs := map[string]string{"flex-direction": "column"}
-	writeBoxAttributes(buf, tabs, rootAttrs, rootProps)
-	if rootProps != nil {
-		writeStyleLiteral(buf, tabs, rootProps)
-	}
+	writeBoxAttributes(buf, tabs, rootAttrs, nil)
+	_ = rootProps
 	if hasDynamicChildren(doc.Children) {
 		if ext != nil {
 			// Build-once: root.Children rebuilt in sync
@@ -162,9 +160,6 @@ func writeTextInput(buf *bytes.Buffer, n *template.TextElement, stylesheet *styl
 		fmt.Fprintf(buf, "%s\tContentEditable: true,\n", tabs)
 		writeCursorAttr(buf, tabs, attrs, props)
 	}
-	if props != nil {
-		writeStyleLiteral(buf, tabs, props)
-	}
 	fmt.Fprintf(buf, "%s},\n", tabs)
 }
 
@@ -184,9 +179,7 @@ func writeExtractedTextNode(treeBuf, declBuf *bytes.Buffer, n *template.TextElem
 	fmt.Fprintf(declBuf, "\t\tKind:    sumi.KindText,\n")
 	writeIdentityFields(declBuf, "\t", "text", n.Attributes)
 	fmt.Fprintf(declBuf, "\t\tContent: %s,\n", expr)
-	if props != nil {
-		writeStyleLiteral(declBuf, "\t", props)
-	}
+	_ = props
 	fmt.Fprintf(declBuf, "\t}\n")
 
 	// Record sync entry
@@ -234,17 +227,7 @@ func writeBoxInput(buf *bytes.Buffer, n *template.BoxElement, stylesheet *style.
 	fmt.Fprintf(buf, "%s{\n", tabs)
 	fmt.Fprintf(buf, "%s\tKind: sumi.KindBox,\n", tabs)
 	writeIdentityFields(buf, tabs, "box", n.Attributes)
-	writeBoxAttributes(buf, tabs, n.Attributes, props)
-	if props != nil {
-		writeStyleLiteral(buf, tabs, props)
-	}
-	hoverProps := n.ResolvedHover
-	if hoverProps != nil {
-		writeHoverStyleLiteral(buf, tabs, hoverProps)
-	}
-	if n.ResolvedFocus != nil {
-		writeFocusStyleLiteral(buf, tabs, n.ResolvedFocus)
-	}
+	writeBoxAttributes(buf, tabs, n.Attributes, nil)
 	if props != nil {
 		writeTransitions(buf, tabs, props)
 		writeAnimationSpec(buf, tabs, props)
@@ -293,15 +276,10 @@ func writeExtractedCursorBox(treeBuf *bytes.Buffer, n *template.BoxElement, styl
 	fmt.Fprintf(&ext.declBuf, "\t%s := &sumi.Input{\n", name)
 	fmt.Fprintf(&ext.declBuf, "\t\tKind: sumi.KindBox,\n")
 	writeIdentityFields(&ext.declBuf, "\t", "box", n.Attributes)
-	writeBoxAttributes(&ext.declBuf, "\t", n.Attributes, props)
+	writeBoxAttributes(&ext.declBuf, "\t", n.Attributes, nil)
 	if props != nil {
-		writeStyleLiteral(&ext.declBuf, "\t", props)
-	}
-	if n.ResolvedHover != nil {
-		writeHoverStyleLiteral(&ext.declBuf, "\t", n.ResolvedHover)
-	}
-	if n.ResolvedFocus != nil {
-		writeFocusStyleLiteral(&ext.declBuf, "\t", n.ResolvedFocus)
+		writeTransitions(&ext.declBuf, "\t", props)
+		writeAnimationSpec(&ext.declBuf, "\t", props)
 	}
 	ext.declBuf.Write(childBuf.Bytes())
 	fmt.Fprintf(&ext.declBuf, "\t}\n")
