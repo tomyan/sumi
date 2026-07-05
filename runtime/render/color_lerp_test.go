@@ -4,10 +4,10 @@ import "testing"
 
 func TestNamedColorToRGB(t *testing.T) {
 	tests := []struct {
-		name    string
-		wantR   uint8
-		wantG   uint8
-		wantB   uint8
+		name  string
+		wantR uint8
+		wantG uint8
+		wantB uint8
 	}{
 		{"red", 255, 0, 0},
 		{"green", 0, 255, 0},

@@ -9,7 +9,7 @@ import (
 type MouseAction int
 
 const (
-	MousePress   MouseAction = iota
+	MousePress MouseAction = iota
 	MouseRelease
 	MouseMotion
 	MouseScroll

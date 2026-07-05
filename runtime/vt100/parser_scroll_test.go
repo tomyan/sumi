@@ -12,9 +12,9 @@ func TestScrollRegionSetAndReset(t *testing.T) {
 	screen.Write([]byte("AAAAAAAAAA\r\nBBBBBBBBBB\r\nCCCCCCCCCC\r\nDDDDDDDDDD\r\nEEEEEEEEEE\r\nFFFFFFFFFF"))
 
 	// When — set scroll region rows 3-5 and scroll up via LF at bottom of region
-	screen.Write([]byte("\x1b[3;5r"))       // set region
-	screen.Write([]byte("\x1b[5;1H"))       // move to row 5 (bottom of region)
-	screen.Write([]byte("\n"))              // LF at bottom of region → scroll within region
+	screen.Write([]byte("\x1b[3;5r")) // set region
+	screen.Write([]byte("\x1b[5;1H")) // move to row 5 (bottom of region)
+	screen.Write([]byte("\n"))        // LF at bottom of region → scroll within region
 
 	// Then — rows outside region unchanged
 	if cellStr(screen, 0, 3) != "AAA" {
@@ -45,8 +45,8 @@ func TestScrollRegionReverseIndex(t *testing.T) {
 	// Given — set scroll region rows 2-4 (1-based), cursor at top of region
 	screen := vt100.NewScreen(10, 6)
 	screen.Write([]byte("AAA\r\nBBB\r\nCCC\r\nDDD\r\nEEE\r\nFFF"))
-	screen.Write([]byte("\x1b[2;4r"))       // set region rows 2-4
-	screen.Write([]byte("\x1b[2;1H"))       // cursor at top of region (row 2)
+	screen.Write([]byte("\x1b[2;4r")) // set region rows 2-4
+	screen.Write([]byte("\x1b[2;1H")) // cursor at top of region (row 2)
 
 	// When — reverse index at top of region → scroll down within region
 	screen.Write([]byte("\x1bM"))
@@ -77,8 +77,8 @@ func TestScrollRegionResetWithNoParams(t *testing.T) {
 	// Given — set a scroll region, then reset it
 	screen := vt100.NewScreen(10, 5)
 	screen.Write([]byte("AAA\r\nBBB\r\nCCC\r\nDDD\r\nEEE"))
-	screen.Write([]byte("\x1b[2;3r"))       // set region
-	screen.Write([]byte("\x1b[r"))          // reset to full screen
+	screen.Write([]byte("\x1b[2;3r")) // set region
+	screen.Write([]byte("\x1b[r"))    // reset to full screen
 
 	// When — cursor at bottom, LF should scroll the full screen
 	screen.Write([]byte("\x1b[5;1H\n"))

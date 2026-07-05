@@ -14,6 +14,7 @@ blockquote { margin: 1 2; padding: 0 0 0 1; opacity: dim; }
 pre { white-space: pre; margin: 1 0; }
 hr { height: 1; width: 100%; border-top: single; margin: 1 0; }
 table { display: table; margin: 1 0; border-spacing: 2 0; }
+colgroup { display: none; }
 tr { display: table-row; }
 th { font-weight: bold; }
 button { text-align: center; }

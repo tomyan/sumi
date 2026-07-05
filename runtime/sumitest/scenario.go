@@ -22,6 +22,6 @@ type Step struct {
 
 // Frame holds the captured output for a single step.
 type Frame struct {
-	Name      string
+	Name       string
 	StyledText string
 }

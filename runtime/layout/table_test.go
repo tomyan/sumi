@@ -311,3 +311,62 @@ func TestTableBorderCollapseSharesCellBorders(t *testing.T) {
 		}
 	}
 }
+
+// B7c: colgroup col widths seed the column widths.
+func TestTableColgroupWidthHints(t *testing.T) {
+	// Given — first column pinned to 10 by a col hint
+	cell := func(s string) *Input {
+		return &Input{Kind: KindBox, Children: []*Input{{Kind: KindText, Content: s}}}
+	}
+	tree := &Input{Kind: KindBox, Children: []*Input{{
+		Kind: KindBox, Display: "table", Children: []*Input{
+			{Kind: KindBox, Tag: "colgroup", Display: "none", Children: []*Input{
+				{Kind: KindBox, Tag: "col", FixedWidth: 10},
+				{Kind: KindBox, Tag: "col"},
+			}},
+			{Kind: KindBox, Display: "table-row", Children: []*Input{cell("wide content here"), cell("b")}},
+		},
+	}}}
+
+	// When
+	box := Layout(tree, 60, 10)
+
+	// Then — the hint wins over content sizing; unhinted column is
+	// content-sized (index 1: the hidden colgroup leaves a nil placeholder)
+	row := box.Children[0].Children[1]
+	if got := row.Children[0].Width; got != 10 {
+		t.Errorf("col 0 width = %d, want hinted 10", got)
+	}
+	if got := row.Children[1].Width; got != 1 {
+		t.Errorf("col 1 width = %d, want content 1", got)
+	}
+}
+
+// B7c: empty-cells hide suppresses borders on cells with no content.
+func TestTableEmptyCellsHide(t *testing.T) {
+	// Given
+	cell := func(s string) *Input {
+		c := &Input{Kind: KindBox, Border: "single"}
+		if s != "" {
+			c.Children = []*Input{{Kind: KindText, Content: s}}
+		}
+		return c
+	}
+	tree := &Input{Kind: KindBox, Children: []*Input{{
+		Kind: KindBox, Display: "table", EmptyCells: "hide", Children: []*Input{
+			{Kind: KindBox, Display: "table-row", Children: []*Input{cell("a"), cell("")}},
+		},
+	}}}
+
+	// When
+	box := Layout(tree, 30, 6)
+
+	// Then
+	row := box.Children[0].Children[0]
+	if got := row.Children[0].Border; got != "single" {
+		t.Errorf("filled cell border = %q, want single", got)
+	}
+	if got := row.Children[1].Border; got != "" {
+		t.Errorf("empty cell border = %q, want hidden", got)
+	}
+}

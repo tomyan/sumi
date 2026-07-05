@@ -10,7 +10,8 @@ import "github.com/tomyan/sumi/runtime/render"
 // caption child renders above the table at full width.
 // Collapsed cell borders are still to come (B7c).
 func layoutTable(input *Input, children []*Input, offsetX, offsetY, availW, availH int) []*Box {
-	caption, rows := splitCaption(children)
+	caption, rows := splitTableExtras(children)
+	colHints := colgroupHints(input.Children)
 	cells := tableCells(rows)
 	colCount := tableColumnCount(cells)
 	spacingH, spacingV := input.BorderSpacingH, input.BorderSpacingV
@@ -25,6 +26,10 @@ func layoutTable(input *Input, children []*Input, offsetX, offsetY, availW, avai
 		colWidths = fixedColumnWidths(cells, colCount, trackW)
 	} else {
 		colWidths = tableColumnWidths(cells, colCount, trackW, availH)
+	}
+	applyColHints(colWidths, colHints)
+	if input.EmptyCells == "hide" {
+		hideEmptyCellBorders(cells)
 	}
 	tableW := sum(colWidths) + spacingH*max(colCount-1, 0)
 
@@ -199,9 +204,9 @@ func columnOffset(colWidths []int, col, spacingH int) int {
 	return off
 }
 
-// splitCaption separates a caption child from row content, flattening
-// thead/tbody/tfoot row groups.
-func splitCaption(children []*Input) (*Input, []*Input) {
+// splitTableExtras separates a caption child from row content,
+// flattening thead/tbody/tfoot row groups.
+func splitTableExtras(children []*Input) (*Input, []*Input) {
 	var caption *Input
 	var rows []*Input
 	for _, c := range children {
@@ -219,6 +224,64 @@ func splitCaption(children []*Input) (*Input, []*Input) {
 		}
 	}
 	return caption, rows
+}
+
+// colgroupHints reads col width hints from a colgroup child. The UA
+// sheet hides colgroup from layout, so it is read from the raw child
+// list rather than the flow children.
+func colgroupHints(children []*Input) []*Input {
+	for _, c := range children {
+		if c == nil || c.Tag != "colgroup" {
+			continue
+		}
+		var cols []*Input
+		for _, col := range c.Children {
+			if col != nil && col.Tag == "col" {
+				cols = append(cols, col)
+			}
+		}
+		return cols
+	}
+	return nil
+}
+
+// applyColHints overrides column widths with explicit colgroup col widths.
+func applyColHints(colWidths []int, colHints []*Input) {
+	for i, col := range colHints {
+		if i >= len(colWidths) {
+			break
+		}
+		if col.FixedWidth > 0 {
+			colWidths[i] = col.FixedWidth
+		}
+	}
+}
+
+// hideEmptyCellBorders clears the border of cells with no content
+// (empty-cells: hide).
+func hideEmptyCellBorders(cells [][]*Input) {
+	for _, row := range cells {
+		for _, cell := range row {
+			if cellIsEmpty(cell) {
+				cell.Border = ""
+			}
+		}
+	}
+}
+
+func cellIsEmpty(cell *Input) bool {
+	for _, c := range cell.Children {
+		if c == nil {
+			continue
+		}
+		if c.Kind == KindText && c.Content != "" {
+			return false
+		}
+		if c.Kind == KindBox {
+			return false
+		}
+	}
+	return true
 }
 
 func tableColumnCount(cells [][]*Input) int {

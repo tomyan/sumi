@@ -13,9 +13,9 @@ type snapshot struct {
 
 // histEntry stores a history entry with its editing state preserved.
 type histEntry struct {
-	original string     // the originally submitted value
-	value    string     // current value (may be edited)
-	cursor   int        // cursor position
+	original  string     // the originally submitted value
+	value     string     // current value (may be edited)
+	cursor    int        // cursor position
 	undoStack []snapshot // undo state for this entry
 	redoStack []snapshot // redo state for this entry
 }
@@ -40,7 +40,7 @@ type State struct {
 
 	// Command history.
 	history []histEntry
-	histIdx int    // -1 = current input, 0..len-1 = browsing history
+	histIdx int      // -1 = current input, 0..len-1 = browsing history
 	saved   snapshot // current input saved when entering history
 }
 

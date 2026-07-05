@@ -3,7 +3,7 @@ package script
 // Script represents the parsed contents of a <script> block.
 type Script struct {
 	FuncDecls     []FuncDecl
-	SignalDecls   []SignalDecl  // signal.New() declarations (new reactive model)
+	SignalDecls   []SignalDecl   // signal.New() declarations (new reactive model)
 	ComputedDecls []ComputedDecl // signal.From() declarations (new reactive model)
 }
 

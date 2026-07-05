@@ -4,9 +4,9 @@ import "testing"
 
 func TestJunctionChar(t *testing.T) {
 	tests := []struct {
-		name                     string
-		up, right, down, left    bool
-		want                     rune
+		name                  string
+		up, right, down, left bool
+		want                  rune
 	}{
 		{"right+down = ┌", false, true, true, false, '┌'},
 		{"down+left = ┐", false, false, true, true, '┐'},

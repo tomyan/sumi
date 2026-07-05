@@ -68,6 +68,7 @@ type Input struct {
 	BorderSpacingH      int    // gap between table columns (border-spacing)
 	BorderSpacingV      int    // gap between table rows
 	TableLayout         string // "" (auto) or "fixed" — column sizing algorithm
+	EmptyCells          string // "" / "show" or "hide" — border painting for empty table cells
 	TextAlign           string // "left" (default), "center", "right"
 	WhiteSpace          string // "" normal (wrap), "nowrap", "pre"
 	TextOverflow        string // "", "ellipsis", "ellipsis-middle"

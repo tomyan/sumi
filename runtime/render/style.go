@@ -2,10 +2,10 @@ package render
 
 // Color represents a terminal color — either a named ANSI color or 24-bit RGB.
 type Color struct {
-	Name     string // "red", "green", "cyan", "yellow", "blue", "magenta", "white", "black", "" (default)
-	IsRGB    bool
-	R, G, B  uint8
-	A        uint8 // alpha for compositing: 0 = opaque (unset); 1-254 = translucent
+	Name    string // "red", "green", "cyan", "yellow", "blue", "magenta", "white", "black", "" (default)
+	IsRGB   bool
+	R, G, B uint8
+	A       uint8 // alpha for compositing: 0 = opaque (unset); 1-254 = translucent
 
 	Is256    bool  // colour is an xterm-256 palette index (set by depth quantization)
 	Index256 uint8 // palette index when Is256

@@ -415,6 +415,9 @@ func applyBorderProps(n *Input, props map[string]string) {
 	if v, ok := cssValue(n, props, "table-layout"); ok {
 		n.TableLayout = v
 	}
+	if v, ok := cssValue(n, props, "empty-cells"); ok {
+		n.EmptyCells = v
+	}
 	if v, ok := cssValue(n, props, "border-collapse"); ok {
 		n.BorderCollapse = v == "collapse"
 	}
