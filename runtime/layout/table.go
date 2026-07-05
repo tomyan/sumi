@@ -11,7 +11,15 @@ func layoutTable(input *Input, children []*Input, offsetX, offsetY, availW, avai
 	caption, rows := splitCaption(children)
 	cells := tableCells(rows)
 	colCount := tableColumnCount(cells)
-	colWidths := tableColumnWidths(cells, colCount, availW, availH)
+	spacingH, spacingV := input.BorderSpacingH, input.BorderSpacingV
+	trackW := availW - spacingH*max(colCount-1, 0)
+	var colWidths []int
+	if input.TableLayout == "fixed" {
+		colWidths = fixedColumnWidths(cells, colCount, trackW)
+	} else {
+		colWidths = tableColumnWidths(cells, colCount, trackW, availH)
+	}
+	tableW := sum(colWidths) + spacingH*max(colCount-1, 0)
 
 	var out []*Box
 	cursorY := 0
@@ -19,14 +27,49 @@ func layoutTable(input *Input, children []*Input, offsetX, offsetY, availW, avai
 		capBox := layoutNode(caption, availW, availH)
 		capBox.X = offsetX
 		capBox.Y = offsetY
-		capBox.Width = sum(colWidths)
+		capBox.Width = tableW
 		out = append(out, capBox)
 		cursorY += capBox.Height
 	}
 
-	rowBoxes, spans := placeTableRows(rows, cells, colWidths, offsetX, offsetY, &cursorY, availH)
+	rowBoxes, spans := placeTableRows(rows, cells, colWidths, spacingH, spacingV, offsetX, offsetY, &cursorY, availH)
 	extendRowSpans(spans, rowBoxes)
 	return append(out, rowBoxes...)
+}
+
+// fixedColumnWidths sizes columns from the first row only (table-layout:
+// fixed): explicit cell widths are kept, and the remaining space splits
+// evenly across the unsized columns. Later rows never widen a column.
+func fixedColumnWidths(cells [][]*Input, colCount, availW int) []int {
+	widths := make([]int, colCount)
+	flexible := colCount
+	used := 0
+	if len(cells) > 0 {
+		col := 0
+		for _, cell := range cells[0] {
+			if col >= colCount {
+				break
+			}
+			if cell.FixedWidth > 0 {
+				widths[col] = cell.FixedWidth
+				used += cell.FixedWidth
+				flexible--
+			}
+			col += spanOf(cell.ColSpan)
+		}
+	}
+	if flexible > 0 {
+		share := (availW - used) / flexible
+		if share < 1 {
+			share = 1
+		}
+		for i := range widths {
+			if widths[i] == 0 {
+				widths[i] = share
+			}
+		}
+	}
+	return widths
 }
 
 // spanningCell records a rowspanning cell so its height can be extended
@@ -37,30 +80,35 @@ type spanningCell struct {
 	rowEnd   int
 }
 
-// placeTableRows lays out each row at the shared column widths.
-func placeTableRows(rows []*Input, cells [][]*Input, colWidths []int, offsetX, offsetY int, cursorY *int, availH int) ([]*Box, []spanningCell) {
+// placeTableRows lays out each row at the shared column widths, with
+// border-spacing gaps between columns and rows.
+func placeTableRows(rows []*Input, cells [][]*Input, colWidths []int, spacingH, spacingV, offsetX, offsetY int, cursorY *int, availH int) ([]*Box, []spanningCell) {
 	occupied := map[[2]int]bool{} // [row, col] taken by an earlier rowspan
 	var spans []spanningCell
 	rowBoxes := make([]*Box, len(rows))
+	rowWidth := sum(colWidths) + spacingH*max(len(colWidths)-1, 0)
 	for r, row := range rows {
-		cellBoxes, rowHeight := layoutSpannedRow(cells[r], colWidths, r, occupied, &spans, offsetX, offsetY+*cursorY, availH)
+		cellBoxes, rowHeight := layoutSpannedRow(cells[r], colWidths, spacingH, r, occupied, &spans, offsetX, offsetY+*cursorY, availH)
 		rowBoxes[r] = &Box{
 			Kind:     KindBox,
 			X:        offsetX,
 			Y:        offsetY + *cursorY,
-			Width:    sum(colWidths),
+			Width:    rowWidth,
 			Height:   rowHeight,
 			Style:    row.Style,
 			Children: cellBoxes,
 		}
 		*cursorY += rowHeight
+		if r < len(rows)-1 {
+			*cursorY += spacingV
+		}
 	}
 	return rowBoxes, spans
 }
 
 // layoutSpannedRow places one row's cells, skipping columns covered by
 // earlier rowspans and widening colspan cells across their columns.
-func layoutSpannedRow(cellInputs []*Input, colWidths []int, rowIdx int, occupied map[[2]int]bool, spans *[]spanningCell, offsetX, offsetY, availH int) ([]*Box, int) {
+func layoutSpannedRow(cellInputs []*Input, colWidths []int, spacingH, rowIdx int, occupied map[[2]int]bool, spans *[]spanningCell, offsetX, offsetY, availH int) ([]*Box, int) {
 	var cellBoxes []*Box
 	rowHeight := 1
 	col := 0
@@ -74,11 +122,14 @@ func layoutSpannedRow(cellInputs []*Input, colWidths []int, rowIdx int, occupied
 		cspan := spanOf(cell.ColSpan)
 		rspan := spanOf(cell.RowSpan)
 		w := 0
+		covered := 0
 		for i := col; i < col+cspan && i < len(colWidths); i++ {
 			w += colWidths[i]
+			covered++
 		}
+		w += spacingH * max(covered-1, 0)
 		box := layoutNode(cell, w, availH)
-		box.X = offsetX + columnOffset(colWidths, col)
+		box.X = offsetX + columnOffset(colWidths, col, spacingH)
 		box.Y = offsetY
 		box.Width = w
 		if rspan == 1 && box.Height > rowHeight {
@@ -123,10 +174,10 @@ func spanOf(v int) int {
 	return v
 }
 
-func columnOffset(colWidths []int, col int) int {
+func columnOffset(colWidths []int, col, spacingH int) int {
 	off := 0
 	for i := 0; i < col && i < len(colWidths); i++ {
-		off += colWidths[i]
+		off += colWidths[i] + spacingH
 	}
 	return off
 }

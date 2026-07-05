@@ -9,10 +9,10 @@ import (
 func TestBorderTopDrawsHorizontalLine(t *testing.T) {
 	// Given a box with only border-top
 	input := &Input{
-		Kind:      KindBox,
-		BorderTop: "single",
+		Kind:       KindBox,
+		BorderTop:  "single",
 		FixedWidth: 10,
-		Children: []*Input{{Kind: KindText, Content: "hello"}},
+		Children:   []*Input{{Kind: KindText, Content: "hello"}},
 	}
 
 	// When

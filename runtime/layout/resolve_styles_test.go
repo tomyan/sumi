@@ -424,3 +424,22 @@ input:disabled { opacity: dim; }
 		t.Errorf("disabled input matched :enabled")
 	}
 }
+
+// B7c: border-spacing and table-layout resolve onto tables; the UA
+// default gives tables 2-cell column spacing like svelterm.
+func TestResolveStylesTableSpacingProps(t *testing.T) {
+	tree := &Input{Tag: "root", Kind: KindBox, Children: []*Input{
+		{Tag: "table", Kind: KindBox},
+		{Tag: "table", Classes: []string{"tight"}, Kind: KindBox},
+	}}
+	ss := sheet(t, `.tight { border-spacing: 0; table-layout: fixed; }`)
+	ResolveStyles(tree, ss, 80, 24)
+
+	ua, tight := tree.Children[0], tree.Children[1]
+	if ua.BorderSpacingH != 2 || ua.BorderSpacingV != 0 {
+		t.Errorf("UA spacing = (%d,%d), want (2,0)", ua.BorderSpacingH, ua.BorderSpacingV)
+	}
+	if tight.BorderSpacingH != 0 || tight.TableLayout != "fixed" {
+		t.Errorf("author override = (%d, %q), want (0, fixed)", tight.BorderSpacingH, tight.TableLayout)
+	}
+}

@@ -65,6 +65,9 @@ type Input struct {
 	GridArea            string // named area reference
 	ColSpan             int    // table cell colspan (0/1 = single column)
 	RowSpan             int    // table cell rowspan
+	BorderSpacingH      int    // gap between table columns (border-spacing)
+	BorderSpacingV      int    // gap between table rows
+	TableLayout         string // "" (auto) or "fixed" — column sizing algorithm
 	TextAlign           string // "left" (default), "center", "right"
 	WhiteSpace          string // "" normal (wrap), "nowrap", "pre"
 	TextOverflow        string // "", "ellipsis", "ellipsis-middle"
@@ -85,24 +88,24 @@ type Input struct {
 	Focusable           bool   // true if this element can receive focus
 	Padding             Padding
 	Margin              Margin
-	Border              string                // "single", "none", or ""
-	BorderTop           string                // top-only border: "single" or ""
-	BorderBottom        string                // bottom-only border: "single" or ""
-	BorderTitle         string                // text to display in the top border edge
-	BorderCollapse      bool                  // when true, children share borders
-	Scroll              *ScrollState          // if non-nil, layout populates and applies scroll state
-	Edit                *edit.State           // editing state for input elements (runtime-initialized)
-	Cells               *render.Buffer        // per-cell styled content, blitted at the content origin (ansi/region)
-	ContentEditable     bool                  // when true, renders an inverse cursor at CursorCol/CursorRow
-	Style               render.Style          // resolved style for this node
-	HoverStyle          render.Style          // style applied when mouse is over this node
-	Hovered             bool                  // set by the framework before render
-	FocusStyle          render.Style          // style applied when this node has focus
-	Focused             bool                  // set by the tui runtime before render
+	Border              string                     // "single", "none", or ""
+	BorderTop           string                     // top-only border: "single" or ""
+	BorderBottom        string                     // bottom-only border: "single" or ""
+	BorderTitle         string                     // text to display in the top border edge
+	BorderCollapse      bool                       // when true, children share borders
+	Scroll              *ScrollState               // if non-nil, layout populates and applies scroll state
+	Edit                *edit.State                // editing state for input elements (runtime-initialized)
+	Cells               *render.Buffer             // per-cell styled content, blitted at the content origin (ansi/region)
+	ContentEditable     bool                       // when true, renders an inverse cursor at CursorCol/CursorRow
+	Style               render.Style               // resolved style for this node
+	HoverStyle          render.Style               // style applied when mouse is over this node
+	Hovered             bool                       // set by the framework before render
+	FocusStyle          render.Style               // style applied when this node has focus
+	Focused             bool                       // set by the tui runtime before render
 	On                  map[string]func(*DOMEvent) // DOM event handlers by type ("click", "keydown", "focus", ...)
-	Transitions         []anim.TransitionSpec // CSS transition config (set by codegen)
-	LengthAnim          *anim.LengthState     // in-flight width/height transitions (runtime-initialized)
-	AnimationSpec       *anim.AnimationSpec   // CSS animation config (set by codegen)
+	Transitions         []anim.TransitionSpec      // CSS transition config (set by codegen)
+	LengthAnim          *anim.LengthState          // in-flight width/height transitions (runtime-initialized)
+	AnimationSpec       *anim.AnimationSpec        // CSS animation config (set by codegen)
 	Children            []*Input
 }
 

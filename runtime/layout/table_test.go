@@ -175,3 +175,62 @@ func TestTableRowGroupsFlatten(t *testing.T) {
 		t.Errorf("tbody row Y = %d, want 1", table.Children[1].Y)
 	}
 }
+
+// B7c: border-spacing gaps columns and rows.
+func TestTableBorderSpacing(t *testing.T) {
+	// Given
+	tree := tableTree()
+	tree.Children[0].BorderSpacingH = 2
+	tree.Children[0].BorderSpacingV = 1
+
+	// When
+	box := Layout(tree, 60, 10)
+
+	// Then — column 1 sits 2 past column 0; row 1 one below row 0
+	table := box.Children[0]
+	row0 := table.Children[0]
+	if got := row0.Children[1].X; got != 20 {
+		t.Errorf("col 1 X = %d, want 20 (18 + 2 spacing)", got)
+	}
+	if got := table.Children[1].Y; got != 2 {
+		t.Errorf("row 1 Y = %d, want 2 (1 + 1 spacing)", got)
+	}
+	if got := row0.Width; got != 25 {
+		t.Errorf("row width = %d, want 25 (18+2+5)", got)
+	}
+}
+
+// B7c: table-layout fixed sizes columns from the first row only.
+func TestTableLayoutFixed(t *testing.T) {
+	// Given — first-row cells: explicit 10 and unsized; table 30 wide
+	tree := &Input{Kind: KindBox, Children: []*Input{{
+		Kind: KindBox, Display: "table", FixedWidth: 30, TableLayout: "fixed",
+		Children: []*Input{
+			{Kind: KindBox, Display: "table-row", Children: []*Input{
+				{Kind: KindBox, Display: "table-cell", FixedWidth: 10,
+					Children: []*Input{{Kind: KindText, Content: "a"}}},
+				{Kind: KindBox, Display: "table-cell",
+					Children: []*Input{{Kind: KindText, Content: "b"}}},
+			}},
+			{Kind: KindBox, Display: "table-row", Children: []*Input{
+				{Kind: KindBox, Display: "table-cell",
+					Children: []*Input{{Kind: KindText, Content: "a much longer content"}}},
+				{Kind: KindBox, Display: "table-cell",
+					Children: []*Input{{Kind: KindText, Content: "x"}}},
+			}},
+		},
+	}}}
+
+	// When
+	box := Layout(tree, 60, 10)
+
+	// Then — 10 explicit + remainder 20; long content did not widen col 0
+	table := box.Children[0]
+	row0 := table.Children[0]
+	if got := row0.Children[0].Width; got != 10 {
+		t.Errorf("col 0 width = %d, want fixed 10", got)
+	}
+	if got := row0.Children[1].Width; got != 20 {
+		t.Errorf("col 1 width = %d, want remainder 20", got)
+	}
+}

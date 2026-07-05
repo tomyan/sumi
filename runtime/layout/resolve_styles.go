@@ -409,6 +409,12 @@ func applyBorderProps(n *Input, props map[string]string) {
 	if v, ok := cssValue(n, props, "border-title"); ok {
 		n.BorderTitle = v
 	}
+	if v, ok := cssValue(n, props, "border-spacing"); ok {
+		n.BorderSpacingH, n.BorderSpacingV = parseBorderSpacing(v)
+	}
+	if v, ok := cssValue(n, props, "table-layout"); ok {
+		n.TableLayout = v
+	}
 	if v, ok := cssValue(n, props, "border-collapse"); ok {
 		n.BorderCollapse = v == "collapse"
 	}
@@ -463,4 +469,18 @@ func normalizeFlexKeyword(v string) string {
 		return "end"
 	}
 	return v
+}
+
+// parseBorderSpacing parses "h v" or a single value applied to both axes.
+func parseBorderSpacing(v string) (h, vv int) {
+	fields := strings.Fields(v)
+	if len(fields) == 0 {
+		return 0, 0
+	}
+	h, _ = strconv.Atoi(strings.TrimSuffix(fields[0], "cell"))
+	vv = h
+	if len(fields) > 1 {
+		vv, _ = strconv.Atoi(strings.TrimSuffix(fields[1], "cell"))
+	}
+	return h, vv
 }

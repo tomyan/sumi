@@ -56,4 +56,3 @@ func countOverlaps(inputs []*Input) int {
 	}
 	return count
 }
-
