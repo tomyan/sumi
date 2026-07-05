@@ -82,9 +82,13 @@ func windowDisplay(n *layout.Input, state *edit.State, display string) string {
 }
 
 // inputContentWidth returns the width available for the value inside the
-// element's borders and padding, from the previous layout pass.
+// element's borders and padding, from the previous layout pass (falling
+// back to the resolved fixed width before the first layout).
 func inputContentWidth(n *layout.Input) int {
 	w := n.LastW
+	if w <= 0 {
+		w = n.FixedWidth
+	}
 	if w <= 0 {
 		return 0
 	}
@@ -107,23 +111,55 @@ func ensureValueChild(n *layout.Input) *layout.Input {
 	return child
 }
 
-// resyncInputElements re-projects input elements after layout, when the
-// laid-out width (LastW) is fresh — value windowing depends on it.
-// Returns true when any projection changed, requesting another pass.
+// syncProjection projects UA element state (input value, select label,
+// progress/meter bar) into the element's implicit child.
+func syncProjection(n *layout.Input) {
+	switch n.Tag {
+	case "input":
+		syncInputElement(n, n.Focused)
+	case "select":
+		syncSelectElement(n)
+	case "progress", "meter":
+		syncBarElement(n)
+	}
+}
+
+// syncProjections walks the tree projecting all UA elements.
+func syncProjections(root *layout.Input) {
+	if root == nil {
+		return
+	}
+	syncProjection(root)
+	for _, c := range root.Children {
+		syncProjections(c)
+	}
+}
+
+// resyncInputElements re-projects UA elements after layout, when the
+// laid-out width (LastW) is fresh — value windowing and bar widths
+// depend on it. Returns true when any projection changed, requesting
+// another converge pass.
 func resyncInputElements(comp *Component) bool {
-	focusables := layout.CollectFocusables(comp.Tree)
 	changed := false
-	for i, f := range focusables {
-		if f.Tag != "input" {
-			continue
+	var walk func(n *layout.Input)
+	walk = func(n *layout.Input) {
+		if n == nil {
+			return
 		}
-		child := ensureValueChild(f)
-		beforeContent, beforeCursor := child.Content, f.CursorCol
-		syncInputElement(f, i == comp.FocusIndex)
-		if child.Content != beforeContent || f.CursorCol != beforeCursor {
-			changed = true
+		switch n.Tag {
+		case "input", "select", "progress", "meter":
+			child := ensureValueChild(n)
+			beforeContent, beforeCursor := child.Content, n.CursorCol
+			syncProjection(n)
+			if child.Content != beforeContent || n.CursorCol != beforeCursor {
+				changed = true
+			}
+		}
+		for _, c := range n.Children {
+			walk(c)
 		}
 	}
+	walk(comp.Tree)
 	return changed
 }
 

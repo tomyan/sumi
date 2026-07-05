@@ -18,25 +18,18 @@ func initFocus(comp *Component) {
 	dispatchFocusEvent(focusables, 0, "focus")
 }
 
-// syncFocus re-stamps Focused flags from the component's FocusIndex.
-// Called before each render so dynamically rebuilt subtrees stay correct.
+// syncFocus re-stamps Focused flags from the component's FocusIndex and
+// re-projects UA elements. Called before each render so dynamically
+// rebuilt subtrees stay correct.
 func syncFocus(comp *Component) {
 	focusables := layout.CollectFocusables(comp.Tree)
-	if len(focusables) == 0 {
-		return
-	}
-	if comp.FocusIndex >= len(focusables) {
-		comp.FocusIndex = len(focusables) - 1
-	}
-	stampFocus(focusables, comp.FocusIndex)
-	for i, f := range focusables {
-		switch f.Tag {
-		case "input":
-			syncInputElement(f, i == comp.FocusIndex)
-		case "select":
-			syncSelectElement(f)
+	if len(focusables) > 0 {
+		if comp.FocusIndex >= len(focusables) {
+			comp.FocusIndex = len(focusables) - 1
 		}
+		stampFocus(focusables, comp.FocusIndex)
 	}
+	syncProjections(comp.Tree)
 }
 
 // handleFocusCycle consumes Tab/Shift-Tab when the tree has focusable
