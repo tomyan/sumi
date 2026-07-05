@@ -20,13 +20,13 @@ type Rule struct {
 
 // Keyframe represents an @keyframes animation definition.
 type Keyframe struct {
-	Name  string          // animation name
-	Stops []KeyframeStop  // percentage stops with properties
+	Name  string         // animation name
+	Stops []KeyframeStop // percentage stops with properties
 }
 
 // KeyframeStop is a single stop in a keyframe animation.
 type KeyframeStop struct {
-	Percent    float64           // 0.0 to 1.0
+	Percent    float64 // 0.0 to 1.0
 	Properties map[string]string
 }
 
@@ -62,6 +62,14 @@ func (p *parser) parse() (*Stylesheet, error) {
 				return nil, err
 			}
 			s.Keyframes = append(s.Keyframes, kf)
+			continue
+		}
+
+		// Unknown at-rules parse and drop silently (graceful-drop policy).
+		if p.input[p.pos] == '@' {
+			if err := p.skipAtRule(); err != nil {
+				return nil, err
+			}
 			continue
 		}
 
@@ -104,6 +112,40 @@ func (p *parser) skipComment() error {
 		p.pos++
 	}
 	return fmt.Errorf("unterminated comment")
+}
+
+// skipAtRule consumes an unrecognised at-rule: either a statement form
+// terminated by ';' (@import "x";) or a block form with balanced braces
+// (@media ... { ... }). The content is discarded.
+func (p *parser) skipAtRule() error {
+	start := p.pos
+	// Scan the prelude up to '{' or ';'.
+	for p.pos < len(p.input) && p.input[p.pos] != '{' && p.input[p.pos] != ';' {
+		p.pos++
+	}
+	if p.pos >= len(p.input) {
+		return fmt.Errorf("unterminated at-rule at position %d", start)
+	}
+	if p.input[p.pos] == ';' {
+		p.pos++ // statement form consumed
+		return nil
+	}
+	// Block form: skip balanced braces.
+	depth := 0
+	for p.pos < len(p.input) {
+		switch p.input[p.pos] {
+		case '{':
+			depth++
+		case '}':
+			depth--
+			if depth == 0 {
+				p.pos++
+				return nil
+			}
+		}
+		p.pos++
+	}
+	return fmt.Errorf("unterminated at-rule block at position %d", start)
 }
 
 func (p *parser) parseRule() (Rule, error) {

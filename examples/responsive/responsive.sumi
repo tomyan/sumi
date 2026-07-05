@@ -11,9 +11,9 @@ func handleKey(evt sumi.Event) {
 <style>
 root { overflow: auto; min-width: 48; }
 .header { border: single; padding: 1 2; border-color: cyan; }
-.title { color: green; bold: true; }
-.dims { color: yellow; bold: true; }
-.hint { color: cyan; dim: true; }
+.title { color: green; font-weight: bold; }
+.dims { color: yellow; font-weight: bold; }
+.hint { color: cyan; opacity: dim; }
 </style>
 
 <box class="header" onkey="handleKey">

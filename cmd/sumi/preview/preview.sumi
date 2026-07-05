@@ -1,19 +1,19 @@
 <style>
-.panels { direction: row; }
+.panels { flex-direction: row; }
 .actual { flex-grow: 1; border: single; border-color: cyan; padding: 0 1; }
 .expected { flex-grow: 1; border: single; border-color: blue; padding: 0 1; }
-.editors { direction: row; flex-grow: 1; }
+.editors { flex-direction: row; flex-grow: 1; }
 .editor-left { flex-grow: 1; border: single; border-color: magenta; }
 .editor-right { flex-grow: 1; border: single; border-color: magenta; }
 .scenario-editor { flex-grow: 1; border: single; border-color: magenta; }
-.match { color: green; bold: true; }
-.diff { color: red; bold: true; }
-.no-snap { color: yellow; bold: true; }
-.info { bold: true; }
+.match { color: green; font-weight: bold; }
+.diff { color: red; font-weight: bold; }
+.no-snap { color: yellow; font-weight: bold; }
+.info { font-weight: bold; }
 .key { inverse: true; }
-.label { dim: true; }
-.interactive { color: green; bold: true; }
-.focus-indicator { color: cyan; bold: true; }
+.label { opacity: dim; }
+.interactive { color: green; font-weight: bold; }
+.focus-indicator { color: cyan; font-weight: bold; }
 </style>
 
 <script>
@@ -147,11 +147,11 @@ func handleKey(evt sumi.Event) {
         <box class="actual" border-title="Actual" height={pvComponentHeight()}></box>
         <box class="expected" border-title="Expected" height={pvComponentHeight()}></box>
     </box>
-    <box direction="row">
+    <box flex-direction="row">
         {if interactive.Get()}
             <text class="key">esc</text><text class="label"> Exit  </text>
             <text class="interactive"> INTERACTIVE </text>
-            <text class="info">  {pvScenarioName()}  Frame {current.Get()+1}/{pvStepCount()}  {pvStepName(current.Get())}</text>
+            <text class="info">  {pvScenarioName()}  Frame {current+1}/{pvStepCount()}  {pvStepName(current)}</text>
         {else}
             {if pvIsEditorFocused()}
                 <text class="focus-indicator"> {pvFocusName()} </text>
@@ -177,7 +177,7 @@ func handleKey(evt sumi.Event) {
                     <text class="diff"> DIFF </text>
                 {/if}
             {/if}
-            <text class="info">  {pvScenarioName()}  Frame {current.Get()+1}/{pvStepCount()}  {pvStepName(current.Get())}</text>
+            <text class="info">  {pvScenarioName()}  Frame {current+1}/{pvStepCount()}  {pvStepName(current)}</text>
         {/if}
     </box>
     <box class="editors">

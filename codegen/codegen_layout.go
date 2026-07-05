@@ -23,7 +23,7 @@ func writeLayoutTree(buf *bytes.Buffer, doc *template.Document, stylesheet *styl
 
 	fmt.Fprintf(buf, "%sroot := &sumi.Input{\n", tabs)
 	fmt.Fprintf(buf, "%s\tKind: sumi.KindBox,\n", tabs)
-	rootAttrs := map[string]string{"direction": "column"}
+	rootAttrs := map[string]string{"flex-direction": "column"}
 	writeBoxAttributes(buf, tabs, rootAttrs, rootProps)
 	if rootProps != nil {
 		writeStyleLiteral(buf, tabs, rootProps)
@@ -358,18 +358,18 @@ func writeExtractedDynamicBox(treeBuf *bytes.Buffer, n *template.BoxElement, sty
 
 // writeBoxAttributes writes direction, width, height, padding, and border fields.
 func writeBoxAttributes(buf *bytes.Buffer, tabs string, attrs map[string]string, props map[string]string) {
-	if dir, ok := mergedAttr(attrs, props, "direction"); ok {
+	if dir, ok := mergedAttr(attrs, props, "flex-direction"); ok {
 		fmt.Fprintf(buf, "%s\tDirection: %q,\n", tabs, dir)
 	}
 	writeIntAttr(buf, tabs, attrs, props, "width", "FixedWidth")
 	writeIntAttr(buf, tabs, attrs, props, "height", "FixedHeight")
 	writeIntAttr(buf, tabs, attrs, props, "gap", "Gap")
 	writeIntAttr(buf, tabs, attrs, props, "flex-grow", "FlexGrow")
-	if j, ok := mergedAttr(attrs, props, "justify"); ok {
-		fmt.Fprintf(buf, "%s\tJustify: %q,\n", tabs, j)
+	if j, ok := mergedAttr(attrs, props, "justify-content"); ok {
+		fmt.Fprintf(buf, "%s\tJustify: %q,\n", tabs, normalizeAlignValue(j))
 	}
-	if a, ok := mergedAttr(attrs, props, "align"); ok {
-		fmt.Fprintf(buf, "%s\tAlign: %q,\n", tabs, a)
+	if a, ok := mergedAttr(attrs, props, "align-items"); ok {
+		fmt.Fprintf(buf, "%s\tAlign: %q,\n", tabs, normalizeAlignValue(a))
 	}
 	if p, ok := mergedAttr(attrs, props, "padding"); ok {
 		fmt.Fprintf(buf, "%s\tPadding: sumi.ParsePadding(%q),\n", tabs, p)
@@ -462,6 +462,18 @@ func extractExprValue(val string) string {
 
 // writeIntAttr writes an integer attribute field if present.
 // Handles both static integers ("10") and expression values ("{expr}").
+// normalizeAlignValue maps the CSS flex-* alignment keywords onto the layout
+// engine's start/end vocabulary (both spellings are valid CSS Box Alignment).
+func normalizeAlignValue(v string) string {
+	switch v {
+	case "flex-start":
+		return "start"
+	case "flex-end":
+		return "end"
+	}
+	return v
+}
+
 func writeIntAttr(buf *bytes.Buffer, tabs string, attrs, props map[string]string, attrKey, fieldName string) {
 	val, ok := mergedAttr(attrs, props, attrKey)
 	if !ok {

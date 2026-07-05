@@ -1,59 +1,54 @@
 package greeting
 
 import (
-	"fmt"
-
-	"github.com/tomyan/sumi/runtime/input"
-	"github.com/tomyan/sumi/runtime/layout"
-	"github.com/tomyan/sumi/runtime/signal"
-	"github.com/tomyan/sumi/runtime/tui"
+	sumi "github.com/tomyan/sumi/runtime/prelude"
 )
 
 type GreetingProps struct {
 	Name string
 }
 
-func NewGreeting(props GreetingProps) *tui.Component {
+func NewGreeting(props GreetingProps) *sumi.Component {
 	name := props.Name
 	if name == "" {
 		name = "World"
 	}
 
-	count := signal.New(0)
+	count := sumi.New(0)
 
-	handleKey := func(evt input.Event) {
-		if evt.Kind == input.EventSignal {
-			tui.Quit()
+	handleKey := func(evt sumi.Event) {
+		if evt.Kind == sumi.EventSignal {
+			sumi.Quit()
 			return
 		}
 		if evt.Rune == 'q' {
-			tui.Quit()
+			sumi.Quit()
 			return
 		}
-		if evt.Kind == input.EventKey {
+		if evt.Kind == sumi.EventKey {
 			count.Update(func(n int) int { return n + 1 })
 		}
 	}
 
-	node0 := &layout.Input{
-		Kind:    layout.KindText,
-		Content: fmt.Sprintf("Hello, %v!", name),
+	node0 := &sumi.Input{
+		Kind:    sumi.KindText,
+		Content: sumi.Sprintf("Hello, %v!", name),
 	}
-	node1 := &layout.Input{
-		Kind:    layout.KindText,
-		Content: fmt.Sprintf("Keys pressed: %v", count.Get()),
+	node1 := &sumi.Input{
+		Kind:    sumi.KindText,
+		Content: sumi.Sprintf("Keys pressed: %v", count.Get()),
 	}
-	root := &layout.Input{
-		Kind:      layout.KindBox,
+	root := &sumi.Input{
+		Kind:      sumi.KindBox,
 		Direction: "column",
 		CursorCol: -1,
 		CursorRow: -1,
-		Children: []*layout.Input{
+		Children: []*sumi.Input{
 			{
-				Kind:      layout.KindBox,
+				Kind:      sumi.KindBox,
 				CursorCol: -1,
 				CursorRow: -1,
-				Children: []*layout.Input{
+				Children: []*sumi.Input{
 					node0,
 					node1,
 				},
@@ -61,12 +56,12 @@ func NewGreeting(props GreetingProps) *tui.Component {
 		},
 	}
 
-	signal.Effect(func() {
-		node0.Content = fmt.Sprintf("Hello, %v!", name)
-		node1.Content = fmt.Sprintf("Keys pressed: %v", count.Get())
+	sumi.Effect(func() {
+		node0.Content = sumi.Sprintf("Hello, %v!", name)
+		node1.Content = sumi.Sprintf("Keys pressed: %v", count.Get())
 	})
 
-	return &tui.Component{
+	return &sumi.Component{
 		Tree:    root,
 		OnEvent: handleKey,
 	}

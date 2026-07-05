@@ -1,32 +1,26 @@
 package main
 
 import (
-	"fmt"
-
-	"github.com/tomyan/sumi/runtime/input"
-	"github.com/tomyan/sumi/runtime/layout"
-	"github.com/tomyan/sumi/runtime/render"
-	"github.com/tomyan/sumi/runtime/signal"
-	"github.com/tomyan/sumi/runtime/tui"
+	sumi "github.com/tomyan/sumi/runtime/prelude"
 )
 
 type TodoProps struct {
 }
 
-func NewTodo(props TodoProps) *tui.Component {
-	items := signal.New([]string{"Buy groceries", "Write tests", "Review PR"})
-	selected := signal.New(0)
+func NewTodo(props TodoProps) *sumi.Component {
+	items := sumi.New([]string{"Buy groceries", "Write tests", "Review PR"})
+	selected := sumi.New(0)
 
-	handleKey := func(evt input.Event) {
-		if evt.Kind == input.EventSignal {
-			tui.Quit()
+	handleKey := func(evt sumi.Event) {
+		if evt.Kind == sumi.EventSignal {
+			sumi.Quit()
 			return
 		}
 		if evt.Rune == 'q' || (evt.Ctrl && evt.Rune == 'c') {
-			tui.Quit()
+			sumi.Quit()
 			return
 		}
-		if evt.Kind == input.EventKey {
+		if evt.Kind == sumi.EventKey {
 			n := len(items.Get())
 			if n > 0 {
 				selected.Set((selected.Get() + 1) % n)
@@ -34,65 +28,65 @@ func NewTodo(props TodoProps) *tui.Component {
 		}
 	}
 
-	box0 := &layout.Input{
-		Kind:      layout.KindBox,
-		Padding:   layout.ParsePadding("1 2"),
+	box0 := &sumi.Input{
+		Kind:      sumi.KindBox,
+		Padding:   sumi.ParsePadding("1 2"),
 		Border:    "single",
 		CursorCol: -1,
 		CursorRow: -1,
 	}
-	root := &layout.Input{
-		Kind:      layout.KindBox,
+	root := &sumi.Input{
+		Kind:      sumi.KindBox,
 		Direction: "column",
 		CursorCol: -1,
 		CursorRow: -1,
-		Children: []*layout.Input{
+		Children: []*sumi.Input{
 			box0,
 		},
 	}
 
-	signal.Effect(func() {
-		box0.Children = func() []*layout.Input {
-			var cs []*layout.Input
-			cs = append(cs, &layout.Input{
-				Kind:    layout.KindText,
+	sumi.Effect(func() {
+		box0.Children = func() []*sumi.Input {
+			var cs []*sumi.Input
+			cs = append(cs, &sumi.Input{
+				Kind:    sumi.KindText,
 				Content: "Todo List",
-				Style: render.Style{
-					FG:   render.Color{Name: "green"},
+				Style: sumi.Style{
+					FG:   sumi.Color{Name: "green"},
 					Bold: true,
 				},
 			})
-			cs = append(cs, &layout.Input{
-				Kind:    layout.KindText,
+			cs = append(cs, &sumi.Input{
+				Kind:    sumi.KindText,
 				Content: "Press any key to cycle, q to quit",
-				Style: render.Style{
-					FG:  render.Color{Name: "cyan"},
+				Style: sumi.Style{
+					FG:  sumi.Color{Name: "cyan"},
 					Dim: true,
 				},
 			})
 			for i, item := range items.Get() {
 				if i == selected.Get() {
-					cs = append(cs, &layout.Input{
-						Kind:    layout.KindText,
-						Content: fmt.Sprintf("> %v", item),
-						Style: render.Style{
-							FG:   render.Color{Name: "yellow"},
+					cs = append(cs, &sumi.Input{
+						Kind:    sumi.KindText,
+						Content: sumi.Sprintf("> %v", item),
+						Style: sumi.Style{
+							FG:   sumi.Color{Name: "yellow"},
 							Bold: true,
 						},
 					})
 				} else {
-					cs = append(cs, &layout.Input{
-						Kind:    layout.KindText,
-						Content: fmt.Sprintf("  %v", item),
+					cs = append(cs, &sumi.Input{
+						Kind:    sumi.KindText,
+						Content: sumi.Sprintf("  %v", item),
 					})
 				}
-				cs[len(cs)-1].Key = fmt.Sprint(item)
+				cs[len(cs)-1].Key = sumi.Sprint(item)
 			}
 			return cs
 		}()
 	})
 
-	return &tui.Component{
+	return &sumi.Component{
 		Tree:    root,
 		OnEvent: handleKey,
 	}

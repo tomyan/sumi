@@ -786,7 +786,7 @@ func handleEvent(evt sumi.Event) {
 
 <style>
 .placeholder {
-    dim: true;
+    opacity: dim;
 }
 .selection {
     inverse: true;
@@ -794,7 +794,7 @@ func handleEvent(evt sumi.Event) {
 </style>
 
 <box focusable="true" onkey="handleEvent" cursor-x={cursorX()} cursor-y="0">
-    <box direction="row">
+    <box flex-direction="row">
         <text>{visiblePreSel()}</text><text class="selection">{visibleSel()}</text><text>{visiblePostSel()}</text><text class="placeholder">{visiblePlaceholder()}</text>
     </box>
 </box>

@@ -235,11 +235,11 @@ func handleEvent(evt sumi.Event) {
 
 <style>
 .dim {
-    dim: true;
+    opacity: dim;
 }
 </style>
 
-<box direction="row" focusable="true" onkey="handleEvent">
+<box flex-direction="row" focusable="true" onkey="handleEvent">
     <text class="dim">{spacer()}</text>
     <text class="dim">{startArrow()}</text>
     <text class="dim">{trackText()}</text>

@@ -1,6 +1,6 @@
 <style>
 .layout {
-    direction: row;
+    flex-direction: row;
     border-collapse: collapse;
 }
 .left-col {
@@ -15,11 +15,11 @@
 }
 .title {
     color: green;
-    bold: true;
+    font-weight: bold;
 }
 .hint {
     color: cyan;
-    dim: true;
+    opacity: dim;
 }
 </style>
 

@@ -2,18 +2,18 @@
 .header {
     border: single;
     padding: 0 2;
-    justify: center;
+    justify-content: center;
 }
 .title {
     color: green;
-    bold: true;
+    font-weight: bold;
 }
 .hint {
     color: cyan;
-    dim: true;
+    opacity: dim;
 }
 .panels {
-    direction: row;
+    flex-direction: row;
     gap: 1;
 }
 .panel {
@@ -23,20 +23,20 @@
 }
 .panel-title {
     color: yellow;
-    bold: true;
+    font-weight: bold;
 }
 .footer {
     border: single;
     padding: 0 2;
-    direction: row;
-    justify: space-between;
+    flex-direction: row;
+    justify-content: space-between;
 }
 .status {
     color: green;
 }
 .version {
     color: cyan;
-    dim: true;
+    opacity: dim;
 }
 </style>
 

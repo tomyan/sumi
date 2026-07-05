@@ -5,7 +5,7 @@ var onclick func()
 
 <style>
 .btn {
-    direction: row;
+    flex-direction: row;
 }
 </style>
 

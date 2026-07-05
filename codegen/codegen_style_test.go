@@ -47,7 +47,7 @@ func TestGenerateWithStylesheetAndClassOnText(t *testing.T) {
 	}
 	ss := &style.Stylesheet{
 		Rules: []style.Rule{
-			{Selector: ".title", Properties: map[string]string{"color": "red", "bold": "true"}},
+			{Selector: ".title", Properties: map[string]string{"color": "red", "font-weight": "bold"}},
 		},
 	}
 

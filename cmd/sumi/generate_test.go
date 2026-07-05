@@ -214,7 +214,7 @@ func TestGenerateFileWithStyleBlock(t *testing.T) {
 	input := `<style>
 .title {
   color: red;
-  bold: true;
+  font-weight: bold;
 }
 </style>
 <text class="title">Hello</text>`

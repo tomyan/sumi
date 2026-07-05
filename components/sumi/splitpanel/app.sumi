@@ -6,7 +6,7 @@ func handleKey(evt sumi.Event) {
 </script>
 
 <style>
-.root { direction: row; border-collapse: collapse; }
+.root { flex-direction: row; border-collapse: collapse; }
 .panel { flex-grow: 1; border: single; padding: 0 1; }
 </style>
 

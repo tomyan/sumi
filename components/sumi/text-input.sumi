@@ -31,12 +31,12 @@ func scrollbarVisible() bool {
 
 <style>
 .indicator {
-    dim: true;
+    opacity: dim;
 }
 </style>
 
 <box width="24">
-    <box direction="row">
+    <box flex-direction="row">
         <text>[</text>
         <text class="indicator">{leftIndicator()}</text>
         <textedit

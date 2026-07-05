@@ -1,78 +1,74 @@
 package main
 
 import (
-	"github.com/tomyan/sumi/runtime/input"
-	"github.com/tomyan/sumi/runtime/layout"
-	"github.com/tomyan/sumi/runtime/render"
-	"github.com/tomyan/sumi/runtime/signal"
-	"github.com/tomyan/sumi/runtime/tui"
+	sumi "github.com/tomyan/sumi/runtime/prelude"
 )
 
 type ModalProps struct {
 }
 
-func NewModal(props ModalProps) *tui.Component {
-	showModal := signal.New(false)
+func NewModal(props ModalProps) *sumi.Component {
+	showModal := sumi.New(false)
 
-	handleKey := func(evt input.Event) {
-		if evt.Kind == input.EventSignal {
-			tui.Quit()
+	handleKey := func(evt sumi.Event) {
+		if evt.Kind == sumi.EventSignal {
+			sumi.Quit()
 			return
 		}
 		if evt.Rune == 'q' || (evt.Ctrl && evt.Rune == 'c') {
-			tui.Quit()
+			sumi.Quit()
 			return
 		}
-		if evt.Kind == input.EventKey {
+		if evt.Kind == sumi.EventKey {
 			showModal.Set(!showModal.Get())
 		}
 	}
 
-	root := &layout.Input{
-		Kind:      layout.KindBox,
+	root := &sumi.Input{
+		Kind:      sumi.KindBox,
 		Direction: "column",
 		CursorCol: -1,
 		CursorRow: -1,
 	}
 
-	signal.Effect(func() {
-		root.Children = func() []*layout.Input {
-			var cs []*layout.Input
-			cs = append(cs, &layout.Input{
-				Kind:      layout.KindBox,
-				Padding:   layout.ParsePadding("1 2"),
+	sumi.Effect(func() {
+		root.Children = func() []*sumi.Input {
+			var cs []*sumi.Input
+			cs = append(cs, &sumi.Input{
+				Kind:      sumi.KindBox,
+				Padding:   sumi.ParsePadding("1 2"),
 				Border:    "single",
 				CursorCol: -1,
 				CursorRow: -1,
-				Children: []*layout.Input{
+				Children: []*sumi.Input{
 					{
-						Kind:    layout.KindText,
+						Kind:    sumi.KindText,
 						Content: "Modal Demo",
-						Style: render.Style{
-							FG:   render.Color{Name: "green"},
+						Style: sumi.Style{
+							FG:   sumi.Color{Name: "green"},
 							Bold: true,
 						},
 					},
 					{
-						Kind:    layout.KindText,
+						Kind:    sumi.KindText,
 						Content: "Press any key to toggle modal, q to quit",
-						Style: render.Style{
-							FG:  render.Color{Name: "cyan"},
+						Style: sumi.Style{
+							FG:  sumi.Color{Name: "cyan"},
 							Dim: true,
 						},
 					},
 					{
-						Kind:    layout.KindText,
+						Kind:    sumi.KindText,
 						Content: "Background content here",
 					},
 				},
 			})
 			if showModal.Get() {
-				cs = append(cs, &layout.Input{
-					Kind:        layout.KindBox,
+				cs = append(cs, &sumi.Input{
+					Kind:        sumi.KindBox,
 					FixedWidth:  40,
 					FixedHeight: 8,
-					Padding:     layout.ParsePadding("1 2"),
+					Padding:     sumi.ParsePadding("1 2"),
 					Border:      "single",
 					Position:    "fixed",
 					Top:         5,
@@ -80,28 +76,28 @@ func NewModal(props ModalProps) *tui.Component {
 					ZIndex:      2,
 					CursorCol:   -1,
 					CursorRow:   -1,
-					Style: render.Style{
-						FG: render.Color{Name: "yellow"},
-						BG: render.Color{Name: "black"},
+					Style: sumi.Style{
+						FG: sumi.Color{Name: "yellow"},
+						BG: sumi.Color{Name: "black"},
 					},
-					Children: []*layout.Input{
+					Children: []*sumi.Input{
 						{
-							Kind:    layout.KindText,
+							Kind:    sumi.KindText,
 							Content: "Modal Dialog",
-							Style: render.Style{
-								FG:   render.Color{Name: "yellow"},
+							Style: sumi.Style{
+								FG:   sumi.Color{Name: "yellow"},
 								Bold: true,
 							},
 						},
 						{
-							Kind:    layout.KindText,
+							Kind:    sumi.KindText,
 							Content: "This is a fixed-position modal overlay.",
 						},
 						{
-							Kind:    layout.KindText,
+							Kind:    sumi.KindText,
 							Content: "Press any key to close",
-							Style: render.Style{
-								FG:  render.Color{Name: "cyan"},
+							Style: sumi.Style{
+								FG:  sumi.Color{Name: "cyan"},
 								Dim: true,
 							},
 						},
@@ -112,7 +108,7 @@ func NewModal(props ModalProps) *tui.Component {
 		}()
 	})
 
-	return &tui.Component{
+	return &sumi.Component{
 		Tree:    root,
 		OnEvent: handleKey,
 	}

@@ -32,9 +32,9 @@ func handleKey(evt sumi.Event) {
 
 <style>
 .container { border: single; border-color: cyan; padding: 1 2; }
-.title { color: green; bold: true; }
-.hint { dim: true; }
-.selected { color: cyan; bold: true; }
+.title { color: green; font-weight: bold; }
+.hint { opacity: dim; }
+.selected { color: cyan; font-weight: bold; }
 .item { }
 </style>
 

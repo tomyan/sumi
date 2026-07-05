@@ -154,56 +154,6 @@ func TestToRenderStyleBackground(t *testing.T) {
 	}
 }
 
-func TestToRenderStyleBold(t *testing.T) {
-	// When
-	s := ToRenderStyle(map[string]string{"bold": "true"})
-
-	// Then
-	if !s.Bold {
-		t.Error("Bold = false, want true")
-	}
-}
-
-func TestToRenderStyleItalic(t *testing.T) {
-	// When
-	s := ToRenderStyle(map[string]string{"italic": "true"})
-
-	// Then
-	if !s.Italic {
-		t.Error("Italic = false, want true")
-	}
-}
-
-func TestToRenderStyleUnderline(t *testing.T) {
-	// When
-	s := ToRenderStyle(map[string]string{"underline": "true"})
-
-	// Then
-	if !s.Underline {
-		t.Error("Underline = false, want true")
-	}
-}
-
-func TestToRenderStyleDim(t *testing.T) {
-	// When
-	s := ToRenderStyle(map[string]string{"dim": "true"})
-
-	// Then
-	if !s.Dim {
-		t.Error("Dim = false, want true")
-	}
-}
-
-func TestToRenderStyleStrikethrough(t *testing.T) {
-	// When
-	s := ToRenderStyle(map[string]string{"strikethrough": "true"})
-
-	// Then
-	if !s.Strikethrough {
-		t.Error("Strikethrough = false, want true")
-	}
-}
-
 func TestToRenderStyleInverse(t *testing.T) {
 	// When
 	s := ToRenderStyle(map[string]string{"inverse": "true"})
@@ -217,10 +167,10 @@ func TestToRenderStyleInverse(t *testing.T) {
 func TestToRenderStyleMultipleProperties(t *testing.T) {
 	// When
 	s := ToRenderStyle(map[string]string{
-		"color":      "cyan",
-		"background": "black",
-		"bold":       "true",
-		"underline":  "true",
+		"color":           "cyan",
+		"background":      "black",
+		"font-weight":     "bold",
+		"text-decoration": "underline",
 	})
 
 	// Then

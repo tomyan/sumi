@@ -1,70 +1,64 @@
 package main
 
 import (
-	"fmt"
-
-	"github.com/tomyan/sumi/runtime/input"
-	"github.com/tomyan/sumi/runtime/layout"
-	"github.com/tomyan/sumi/runtime/render"
-	"github.com/tomyan/sumi/runtime/signal"
-	"github.com/tomyan/sumi/runtime/tui"
+	sumi "github.com/tomyan/sumi/runtime/prelude"
 )
 
 type AppProps struct {
 }
 
-func NewApp(props AppProps) *tui.Component {
-	name := signal.New("")
+func NewApp(props AppProps) *sumi.Component {
+	name := sumi.New("")
 
-	handleKey := func(evt input.Event) {
-		if evt.Kind == input.EventSignal {
-			tui.Quit()
+	handleKey := func(evt sumi.Event) {
+		if evt.Kind == sumi.EventSignal {
+			sumi.Quit()
 			return
 		}
 		if evt.Ctrl && evt.Rune == 'c' {
-			tui.Quit()
+			sumi.Quit()
 			return
 		}
 	}
 
-	node0 := &layout.Input{
-		Kind:    layout.KindText,
-		Content: fmt.Sprintf("You typed: %v", name.Get()),
+	node0 := &sumi.Input{
+		Kind:    sumi.KindText,
+		Content: sumi.Sprintf("You typed: %v", name.Get()),
 	}
-	root := &layout.Input{
-		Kind:      layout.KindBox,
+	root := &sumi.Input{
+		Kind:      sumi.KindBox,
 		Direction: "column",
 		CursorCol: -1,
 		CursorRow: -1,
-		Children: []*layout.Input{
+		Children: []*sumi.Input{
 			{
-				Kind:      layout.KindBox,
-				Padding:   layout.ParsePadding("1 2"),
+				Kind:      sumi.KindBox,
+				Padding:   sumi.ParsePadding("1 2"),
 				Border:    "single",
 				CursorCol: -1,
 				CursorRow: -1,
-				Children: []*layout.Input{
+				Children: []*sumi.Input{
 					{
-						Kind:    layout.KindText,
+						Kind:    sumi.KindText,
 						Content: "Text Input Demo",
-						Style: render.Style{
-							FG:   render.Color{Name: "green"},
+						Style: sumi.Style{
+							FG:   sumi.Color{Name: "green"},
 							Bold: true,
 						},
 					},
 					{
-						Kind:    layout.KindText,
+						Kind:    sumi.KindText,
 						Content: "Type to enter your name",
-						Style: render.Style{
-							FG:  render.Color{Name: "cyan"},
+						Style: sumi.Style{
+							FG:  sumi.Color{Name: "cyan"},
 							Dim: true,
 						},
 					},
 					{
-						Kind:    layout.KindText,
+						Kind:    sumi.KindText,
 						Content: "Name:",
-						Style: render.Style{
-							FG:   render.Color{Name: "yellow"},
+						Style: sumi.Style{
+							FG:   sumi.Color{Name: "yellow"},
 							Bold: true,
 						},
 					},
@@ -74,11 +68,11 @@ func NewApp(props AppProps) *tui.Component {
 		},
 	}
 
-	signal.Effect(func() {
-		node0.Content = fmt.Sprintf("You typed: %v", name.Get())
+	sumi.Effect(func() {
+		node0.Content = sumi.Sprintf("You typed: %v", name.Get())
 	})
 
-	return &tui.Component{
+	return &sumi.Component{
 		Tree:    root,
 		OnEvent: handleKey,
 	}

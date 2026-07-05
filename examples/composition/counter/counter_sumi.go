@@ -1,60 +1,54 @@
 package counter
 
 import (
-	"fmt"
-
-	"github.com/tomyan/sumi/runtime/input"
-	"github.com/tomyan/sumi/runtime/layout"
-	"github.com/tomyan/sumi/runtime/render"
-	"github.com/tomyan/sumi/runtime/signal"
-	"github.com/tomyan/sumi/runtime/tui"
+	sumi "github.com/tomyan/sumi/runtime/prelude"
 )
 
 type CounterProps struct {
 	Label string
 }
 
-func NewCounter(props CounterProps) *tui.Component {
+func NewCounter(props CounterProps) *sumi.Component {
 	label := props.Label
 	if label == "" {
 		label = "Count"
 	}
 
-	count := signal.New(0)
+	count := sumi.New(0)
 
-	handleKey := func(evt input.Event) {
-		if evt.Kind == input.EventKey {
+	handleKey := func(evt sumi.Event) {
+		if evt.Kind == sumi.EventKey {
 			count.Update(func(n int) int { return n + 1 })
 		}
 	}
 
-	node0 := &layout.Input{
-		Kind:    layout.KindText,
-		Content: fmt.Sprintf("%v:", label),
-		Style: render.Style{
-			FG:   render.Color{Name: "cyan"},
+	node0 := &sumi.Input{
+		Kind:    sumi.KindText,
+		Content: sumi.Sprintf("%v:", label),
+		Style: sumi.Style{
+			FG:   sumi.Color{Name: "cyan"},
 			Bold: true,
 		},
 	}
-	node1 := &layout.Input{
-		Kind:    layout.KindText,
-		Content: fmt.Sprintf("%v", count.Get()),
-		Style: render.Style{
-			FG:   render.Color{Name: "yellow"},
+	node1 := &sumi.Input{
+		Kind:    sumi.KindText,
+		Content: sumi.Sprintf("%v", count.Get()),
+		Style: sumi.Style{
+			FG:   sumi.Color{Name: "yellow"},
 			Bold: true,
 		},
 	}
-	root := &layout.Input{
-		Kind:      layout.KindBox,
+	root := &sumi.Input{
+		Kind:      sumi.KindBox,
 		Direction: "column",
 		CursorCol: -1,
 		CursorRow: -1,
-		Children: []*layout.Input{
+		Children: []*sumi.Input{
 			{
-				Kind:      layout.KindBox,
+				Kind:      sumi.KindBox,
 				CursorCol: -1,
 				CursorRow: -1,
-				Children: []*layout.Input{
+				Children: []*sumi.Input{
 					node0,
 					node1,
 				},
@@ -62,12 +56,12 @@ func NewCounter(props CounterProps) *tui.Component {
 		},
 	}
 
-	signal.Effect(func() {
-		node0.Content = fmt.Sprintf("%v:", label)
-		node1.Content = fmt.Sprintf("%v", count.Get())
+	sumi.Effect(func() {
+		node0.Content = sumi.Sprintf("%v:", label)
+		node1.Content = sumi.Sprintf("%v", count.Get())
 	})
 
-	return &tui.Component{
+	return &sumi.Component{
 		Tree:    root,
 		OnEvent: handleKey,
 	}

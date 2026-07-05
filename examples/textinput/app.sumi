@@ -5,15 +5,15 @@
 }
 .title {
     color: green;
-    bold: true;
+    font-weight: bold;
 }
 .hint {
     color: cyan;
-    dim: true;
+    opacity: dim;
 }
 .label {
     color: yellow;
-    bold: true;
+    font-weight: bold;
 }
 </style>
 
