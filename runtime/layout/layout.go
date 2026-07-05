@@ -59,6 +59,8 @@ type Input struct {
 	Style           render.Style // resolved style for this node
 	HoverStyle      render.Style        // style applied when mouse is over this node
 	Hovered         bool                // set by the framework before render
+	FocusStyle      render.Style        // style applied when this node has focus
+	Focused         bool                // set by generated sync before render
 	OnClick         func()              // called when this node is clicked
 	Transitions     []anim.TransitionSpec  // CSS transition config (set by codegen)
 	AnimationSpec   *anim.AnimationSpec    // CSS animation config (set by codegen)
@@ -81,6 +83,8 @@ type Box struct {
 	ContentEditable     bool         // renders inverse cursor at CursorCol/CursorRow
 	HoverStyle          render.Style // style when hovered
 	Hovered             bool         // mouse is over this node
+	FocusStyle          render.Style // style when focused
+	Focused             bool         // node currently has focus
 	Key                 string       // identity key for diffing (propagated from Input)
 	Position            string       // positioning mode (propagated from Input)
 	ZIndex              int          // paint order (propagated from Input)
@@ -243,6 +247,8 @@ func layoutNode(input *Input, availW, availH int) *Box {
 		ContentEditable: input.ContentEditable,
 		HoverStyle:      input.HoverStyle,
 		Hovered:         input.Hovered,
+		FocusStyle:      input.FocusStyle,
+		Focused:         input.Focused,
 		Transitions:     input.Transitions,
 		AnimationSpec:   input.AnimationSpec,
 		Border:          border,

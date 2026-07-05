@@ -135,3 +135,47 @@ func TestGenerateDescendantSelectorAppliesThroughNesting(t *testing.T) {
 		t.Errorf("outside text must not be styled:\n%s", seg)
 	}
 }
+
+// A6: :focus rules emit FocusStyle and a sync patch on focusable boxes.
+func TestGenerateFocusStyleOnFocusableBox(t *testing.T) {
+	// Given: a reactive component so extraction/sync machinery engages.
+	scriptSrc := `count := sumi.New(0)
+
+func handleKey(evt sumi.Event) {
+    count.Update(func(n int) int { return n + 1 })
+}`
+	doc := &template.Document{
+		Children: []template.Node{
+			&template.BoxElement{
+				Attributes: map[string]string{
+					"class": "field", "focusable": "true",
+					"onkey": "handleKey", "border": "single",
+				},
+				Children: []template.Node{
+					&template.TextElement{
+						Parts: []template.Part{&template.ExprPart{Expr: "count"}},
+					},
+				},
+			},
+		},
+	}
+	ss := mustParseStylesheet(t, `.field:focus { border-color: cyan; }`)
+
+	// When
+	out, err := GenerateComponent(doc, scriptSrc, ss, ComponentOptions{
+		PackageName:   "field",
+		ComponentName: "Field",
+	})
+
+	// Then
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	src := string(out)
+	if !strings.Contains(src, "FocusStyle") {
+		t.Errorf("expected FocusStyle in output:\n%s", src)
+	}
+	if !strings.Contains(src, "Focused = focusIndex == 0") {
+		t.Errorf("expected focus sync patch in output:\n%s", src)
+	}
+}

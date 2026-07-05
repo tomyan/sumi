@@ -15,9 +15,9 @@ import (
 // ComponentOptions configures component code generation.
 type ComponentOptions struct {
 	PackageName   string
-	ComponentName string                       // e.g. "Counter" → generates NewCounter, CounterProps
+	ComponentName string                        // e.g. "Counter" → generates NewCounter, CounterProps
 	Components    map[string]ComponentChildInfo // child components available in templates
-	UserImports   string                       // raw content from <sumi:imports> block
+	UserImports   string                        // raw content from <sumi:imports> block
 }
 
 // ComponentChildInfo describes a child component available for use in templates.
@@ -51,7 +51,11 @@ func GenerateComponent(doc *template.Document, scriptSrc string, stylesheet *sty
 	// Constructor function.
 	writeConstructor(&buf, opts.ComponentName, info, doc, scriptSrc, stylesheet, opts)
 
-	return format.Source(buf.Bytes())
+	out, err := format.Source(buf.Bytes())
+	if err != nil {
+		return nil, fmt.Errorf("formatting generated code: %w\n%s", err, numberedLines(buf.Bytes()))
+	}
+	return out, nil
 }
 
 // writeComponentImports emits import declarations for a component.
@@ -208,8 +212,9 @@ func writeScriptDeclarations(buf *bytes.Buffer, info *script.ScriptInfo, src str
 
 // writeChildComponentInstances generates constructor calls for child components used in templates.
 // Components are identified by uppercase first letter in the template:
-//   <Console />          → local:    NewConsole(ConsoleProps{})
-//   <console.Console />  → imported: console.NewConsole(console.ConsoleProps{})
+//
+//	<Console />          → local:    NewConsole(ConsoleProps{})
+//	<console.Console />  → imported: console.NewConsole(console.ConsoleProps{})
 func writeChildComponentInstances(buf *bytes.Buffer, doc *template.Document, components map[string]ComponentChildInfo) {
 	idx := 0
 	hasAny := false

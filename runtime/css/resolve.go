@@ -38,6 +38,16 @@ func ResolveHover(stylesheet *style.Stylesheet, path []Element) map[string]strin
 	return props
 }
 
+// ResolveFocus computes the cascaded :focus properties for the element at
+// the end of path. Returns nil if no focus rules match.
+func ResolveFocus(stylesheet *style.Stylesheet, path []Element) map[string]string {
+	props := resolveWithPseudo(stylesheet, path, "focus")
+	if len(props) == 0 {
+		return nil
+	}
+	return props
+}
+
 func resolveWithPseudo(stylesheet *style.Stylesheet, path []Element, pseudo string) map[string]string {
 	type match struct {
 		spec  style.Specificity
@@ -78,6 +88,11 @@ func matchComplex(sel style.ComplexSelector, path []Element) bool {
 // walks the combinator chain leftward. For sibling combinators the last path
 // element is replaced by a preceding sibling (siblings share ancestors).
 func matchFrom(sel style.ComplexSelector, pi int, path []Element) bool {
+	// State pseudo-classes are supported on the subject compound only;
+	// a state pseudo on an ancestor/sibling compound makes the rule inert.
+	if pi != len(sel.Parts)-1 && sel.Parts[pi].Pseudo != "" {
+		return false
+	}
 	self := path[len(path)-1]
 	if !matchSimple(sel.Parts[pi], self) {
 		return false

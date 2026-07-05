@@ -221,7 +221,7 @@ func writeBoxInput(buf *bytes.Buffer, n *template.BoxElement, stylesheet *style.
 		writeExtractedDynamicBox(buf, n, stylesheet, indent, ext)
 		return
 	}
-	if ext != nil && !ext.inDynamic && hasDynamicCursor(n.Attributes) {
+	if ext != nil && !ext.inDynamic && (hasDynamicCursor(n.Attributes) || (focusIdx >= 0 && n.ResolvedFocus != nil)) {
 		writeExtractedCursorBox(buf, n, stylesheet, indent, ext, focusIdx)
 		return
 	}
@@ -237,6 +237,9 @@ func writeBoxInput(buf *bytes.Buffer, n *template.BoxElement, stylesheet *style.
 	hoverProps := n.ResolvedHover
 	if hoverProps != nil {
 		writeHoverStyleLiteral(buf, tabs, hoverProps)
+	}
+	if n.ResolvedFocus != nil {
+		writeFocusStyleLiteral(buf, tabs, n.ResolvedFocus)
 	}
 	if props != nil {
 		writeTransitions(buf, tabs, props)
@@ -270,6 +273,18 @@ func writeExtractedCursorBox(treeBuf *bytes.Buffer, n *template.BoxElement, styl
 	name := ext.nextBoxName()
 	props := n.ResolvedStyles
 
+	// Render children first into a temp buffer: nested expression nodes
+	// extract their own declarations into declBuf, which must precede this
+	// box's declaration.
+	var childBuf bytes.Buffer
+	if len(n.Children) > 0 {
+		fmt.Fprintf(&childBuf, "\t\tChildren: []*sumi.Input{\n")
+		for _, child := range n.Children {
+			writeInputNode(&childBuf, child, stylesheet, 3, ext)
+		}
+		fmt.Fprintf(&childBuf, "\t\t},\n")
+	}
+
 	// Write declaration to declBuf (at function scope)
 	fmt.Fprintf(&ext.declBuf, "\t%s := &sumi.Input{\n", name)
 	fmt.Fprintf(&ext.declBuf, "\t\tKind: sumi.KindBox,\n")
@@ -277,19 +292,22 @@ func writeExtractedCursorBox(treeBuf *bytes.Buffer, n *template.BoxElement, styl
 	if props != nil {
 		writeStyleLiteral(&ext.declBuf, "\t", props)
 	}
-
-	// Write children inline in the declaration
-	if len(n.Children) > 0 {
-		fmt.Fprintf(&ext.declBuf, "\t\tChildren: []*sumi.Input{\n")
-		for _, child := range n.Children {
-			writeInputNode(&ext.declBuf, child, stylesheet, 3, ext)
-		}
-		fmt.Fprintf(&ext.declBuf, "\t\t},\n")
+	if n.ResolvedHover != nil {
+		writeHoverStyleLiteral(&ext.declBuf, "\t", n.ResolvedHover)
 	}
+	if n.ResolvedFocus != nil {
+		writeFocusStyleLiteral(&ext.declBuf, "\t", n.ResolvedFocus)
+	}
+	ext.declBuf.Write(childBuf.Bytes())
 	fmt.Fprintf(&ext.declBuf, "\t}\n")
 
-	// Write cursor sync entries
-	writeCursorSync(&ext.syncBuf, name, n.Attributes, focusIdx)
+	// Write sync entries: cursor patching and focus state.
+	if hasDynamicCursor(n.Attributes) {
+		writeCursorSync(&ext.syncBuf, name, n.Attributes, focusIdx)
+	}
+	if focusIdx >= 0 && n.ResolvedFocus != nil {
+		fmt.Fprintf(&ext.syncBuf, "\t\t%s.Focused = focusIndex == %d\n", name, focusIdx)
+	}
 
 	// Write reference in tree
 	fmt.Fprintf(treeBuf, "%s%s,\n", tabs, name)

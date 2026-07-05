@@ -28,6 +28,9 @@ func renderTreeFull(buf *render.Buffer, box *Box, clip *render.Clip, inherited r
 	if box.Hovered && !box.HoverStyle.IsZero() {
 		box.Style = box.HoverStyle
 	}
+	if box.Focused && !box.FocusStyle.IsZero() {
+		box.Style = box.FocusStyle
+	}
 
 	// Apply animation engine.
 	if engine != nil {

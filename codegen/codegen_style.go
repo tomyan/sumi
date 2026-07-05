@@ -32,11 +32,13 @@ func annotateNodes(nodes []template.Node, stylesheet *style.Stylesheet, path []c
 			elemIdx++
 			n.ResolvedStyles = orNil(css.Resolve(stylesheet, p))
 			n.ResolvedHover = css.ResolveHover(stylesheet, p)
+			n.ResolvedFocus = css.ResolveFocus(stylesheet, p)
 		case *template.BoxElement:
 			p := childPath(path, positioned(siblings, elemIdx))
 			elemIdx++
 			n.ResolvedStyles = orNil(css.Resolve(stylesheet, p))
 			n.ResolvedHover = css.ResolveHover(stylesheet, p)
+			n.ResolvedFocus = css.ResolveFocus(stylesheet, p)
 			annotateNodes(n.Children, stylesheet, p)
 		case *template.IfNode:
 			annotateNodes(n.Then, stylesheet, path)
@@ -135,6 +137,17 @@ func writeHoverStyleLiteral(buf *bytes.Buffer, tabs string, props map[string]str
 		return
 	}
 	fmt.Fprintf(buf, "%s\tHoverStyle: sumi.Style{\n", tabs)
+	writeStyleFields(buf, tabs, s)
+	fmt.Fprintf(buf, "%s\t},\n", tabs)
+}
+
+// writeFocusStyleLiteral writes a FocusStyle: sumi.Style{...} literal.
+func writeFocusStyleLiteral(buf *bytes.Buffer, tabs string, props map[string]string) {
+	s := css.ToRenderStyle(props)
+	if s.IsZero() {
+		return
+	}
+	fmt.Fprintf(buf, "%s\tFocusStyle: sumi.Style{\n", tabs)
 	writeStyleFields(buf, tabs, s)
 	fmt.Fprintf(buf, "%s\t},\n", tabs)
 }
