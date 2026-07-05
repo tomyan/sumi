@@ -83,3 +83,52 @@ func TestFlexRowMarginsReduceDistributedSpace(t *testing.T) {
 		t.Errorf("flex X = %d, want 8 (2 + 4 + 2)", got)
 	}
 }
+
+// B2: min/max sizing and box-sizing.
+
+func TestMaxWidthClampsContent(t *testing.T) {
+	tree := &Input{Kind: KindBox, Children: []*Input{
+		{Kind: KindBox, MaxWidth: 10, Children: []*Input{
+			{Kind: KindText, Content: "a very long line of text"},
+		}},
+	}}
+	box := Layout(tree, 60, 10)
+	if got := box.Children[0].Width; got != 10 {
+		t.Errorf("width = %d, want clamped to 10", got)
+	}
+}
+
+func TestMinHeightExpands(t *testing.T) {
+	tree := &Input{Kind: KindBox, Children: []*Input{
+		{Kind: KindBox, MinHeight: 5, Children: []*Input{
+			{Kind: KindText, Content: "one"},
+		}},
+	}}
+	box := Layout(tree, 60, 20)
+	if got := box.Children[0].Height; got != 5 {
+		t.Errorf("height = %d, want 5", got)
+	}
+}
+
+func TestMaxHeightLimitsStretch(t *testing.T) {
+	// Given: row parent with fixed height, stretch default, child capped.
+	tree := &Input{Kind: KindBox, Direction: "row", FixedHeight: 10, Children: []*Input{
+		{Kind: KindBox, MaxHeight: 4},
+	}}
+	box := Layout(tree, 40, 20)
+	if got := box.Children[0].Height; got != 4 {
+		t.Errorf("height = %d, want 4 (stretch clamped)", got)
+	}
+}
+
+func TestContentBoxSizingAddsInsets(t *testing.T) {
+	// Given: content-box with border and padding: outer = 10 + 2 border + 2 padding.
+	tree := &Input{Kind: KindBox, Children: []*Input{
+		{Kind: KindBox, FixedWidth: 10, FixedHeight: 3, ContentBox: true,
+			Border: "single", Padding: Padding{Left: 1, Right: 1}},
+	}}
+	box := Layout(tree, 60, 20)
+	if got := box.Children[0].Width; got != 14 {
+		t.Errorf("width = %d, want 14 (10 content + 2 border + 2 padding)", got)
+	}
+}

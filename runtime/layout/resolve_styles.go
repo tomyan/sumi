@@ -200,6 +200,12 @@ func applyLayoutProps(n *Input, props map[string]string) {
 	applyIntProp(n, props, "gap", &n.Gap)
 	applyIntProp(n, props, "flex-grow", &n.FlexGrow)
 	applyIntProp(n, props, "min-width", &n.MinWidth)
+	applyIntProp(n, props, "min-height", &n.MinHeight)
+	applyIntProp(n, props, "max-width", &n.MaxWidth)
+	applyIntProp(n, props, "max-height", &n.MaxHeight)
+	if v, ok := cssValue(n, props, "box-sizing"); ok {
+		n.ContentBox = v == "content-box"
+	}
 	if v, ok := cssValue(n, props, "justify-content"); ok {
 		n.Justify = normalizeFlexKeyword(v)
 	}

@@ -44,7 +44,11 @@ type Input struct {
 	Justify         string // main-axis alignment: start, end, center, space-between
 	Align           string // cross-axis alignment: start, end, center, stretch
 	Overflow        string // "hidden", "scroll", "auto", or "" (visible)
-	MinWidth        int    // minimum content width (0 = no minimum)
+	MinWidth        int    // minimum width (0 = no minimum)
+	MinHeight       int    // minimum height (0 = no minimum)
+	MaxWidth        int    // maximum width (0 = no maximum)
+	MaxHeight       int    // maximum height (0 = no maximum)
+	ContentBox      bool   // box-sizing: content-box (sizes exclude border+padding)
 	Display         string // "" (default) or "none" (hidden from layout)
 	Position        string // "" (static), "relative", "absolute", "fixed", "sticky"
 	ZIndex          int    // paint order (higher renders on top)
@@ -247,6 +251,35 @@ func absolutePositions(box *Box) {
 	}
 }
 
+// clampSize applies min/max constraints (0 = unconstrained).
+func clampSize(v, min, max int) int {
+	if min > 0 && v < min {
+		v = min
+	}
+	if max > 0 && v > max {
+		v = max
+	}
+	return v
+}
+
+// applyContentBoxSizing converts content-box fixed sizes to the border-box
+// sizes the layout engine works in (sumi's default is border-box).
+func applyContentBoxSizing(input *Input) *Input {
+	if !input.ContentBox || (input.FixedWidth == 0 && input.FixedHeight == 0) {
+		return input
+	}
+	resolved := *input
+	insetW := 2*borderSize(resolved.Border) + resolved.Padding.Left + resolved.Padding.Right
+	insetH := 2*borderSize(resolved.Border) + resolved.Padding.Top + resolved.Padding.Bottom
+	if resolved.FixedWidth > 0 {
+		resolved.FixedWidth += insetW
+	}
+	if resolved.FixedHeight > 0 {
+		resolved.FixedHeight += insetH
+	}
+	return &resolved
+}
+
 // resolvePercentSizes converts WidthPct/HeightPct into fixed sizes against the
 // containing block's available space. Returns a shallow copy so the build-once
 // input tree is never mutated; sizes re-resolve on every layout pass.
@@ -276,6 +309,7 @@ func resolvePercentSizes(input *Input, availW, availH int) *Input {
 
 func layoutNode(input *Input, availW, availH int) *Box {
 	input = resolvePercentSizes(input, availW, availH)
+	input = applyContentBoxSizing(input)
 	border := input.Border
 	if input.BorderCollapse {
 		border = "" // children's borders form the parent frame
@@ -506,6 +540,15 @@ func layoutNode(input *Input, availW, availH int) *Box {
 	if isScrollOverflow(input.Overflow) && input.FixedHeight == 0 {
 		box.Height = availH
 	}
+
+	// Scroll containers keep the legacy MinWidth meaning: minimum CONTENT
+	// width (drives horizontal scrolling), not minimum box width.
+	minW := input.MinWidth
+	if isScrollOverflow(input.Overflow) {
+		minW = 0
+	}
+	box.Width = clampSize(box.Width, minW, input.MaxWidth)
+	box.Height = clampSize(box.Height, input.MinHeight, input.MaxHeight)
 
 	if input.Overflow != "" {
 		box.Clip = computeClip(box, b, pad)
@@ -843,6 +886,9 @@ func applyAlignRow(boxes []*Box, inputs []*Input, offsetY, availH int, align str
 			}
 			b.Y = offsetY
 			b.Height = availH
+			if i < len(inputs) {
+				b.Height = clampSize(b.Height, inputs[i].MinHeight, inputs[i].MaxHeight)
+			}
 		}
 	}
 }
@@ -865,6 +911,9 @@ func applyAlignColumn(boxes []*Box, inputs []*Input, offsetX, availW int, align 
 			}
 			b.X = offsetX
 			b.Width = availW
+			if i < len(inputs) {
+				b.Width = clampSize(b.Width, inputs[i].MinWidth, inputs[i].MaxWidth)
+			}
 		}
 	}
 }
