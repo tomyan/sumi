@@ -51,6 +51,9 @@ type Stylesheet = style.Stylesheet
 
 // MustParseStylesheet parses embedded component CSS. The same text was
 // already parsed successfully at codegen time, so failure is a build bug.
+// ResolveStyles resolves component CSS against an input tree at runtime.
+var ResolveStyles = layout.ResolveStyles
+
 func MustParseStylesheet(src string) *style.Stylesheet {
 	ss, err := style.Parse(src)
 	if err != nil {

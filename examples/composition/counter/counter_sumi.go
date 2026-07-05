@@ -24,6 +24,9 @@ func NewCounter(props CounterProps) *sumi.Component {
 
 	node0 := &sumi.Input{
 		Kind:    sumi.KindText,
+		Tag:     "text",
+		Classes: []string{"label"},
+		Attrs:   map[string]string{"class": "label"},
 		Content: sumi.Sprintf("%v:", label),
 		Style: sumi.Style{
 			FG:   sumi.Color{Name: "cyan"},
@@ -32,6 +35,9 @@ func NewCounter(props CounterProps) *sumi.Component {
 	}
 	node1 := &sumi.Input{
 		Kind:    sumi.KindText,
+		Tag:     "text",
+		Classes: []string{"count"},
+		Attrs:   map[string]string{"class": "count"},
 		Content: sumi.Sprintf("%v", count.Get()),
 		Style: sumi.Style{
 			FG:   sumi.Color{Name: "yellow"},
@@ -40,12 +46,15 @@ func NewCounter(props CounterProps) *sumi.Component {
 	}
 	root := &sumi.Input{
 		Kind:      sumi.KindBox,
+		Tag:       "root",
 		Direction: "column",
 		CursorCol: -1,
 		CursorRow: -1,
 		Children: []*sumi.Input{
 			{
 				Kind:      sumi.KindBox,
+				Tag:       "box",
+				Attrs:     map[string]string{"onkey": "handleKey"},
 				CursorCol: -1,
 				CursorRow: -1,
 				Children: []*sumi.Input{
@@ -62,7 +71,8 @@ func NewCounter(props CounterProps) *sumi.Component {
 	})
 
 	return &sumi.Component{
-		Tree:    root,
-		OnEvent: handleKey,
+		Tree:       root,
+		OnEvent:    handleKey,
+		Stylesheet: sumi.MustParseStylesheet(".label {\n\tcolor: cyan;\n\tfont-weight: bold;\n}\n.count {\n\tcolor: yellow;\n\tfont-weight: bold;\n}\n"),
 	}
 }

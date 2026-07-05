@@ -23,16 +23,20 @@ func NewApp(props AppProps) *sumi.Component {
 
 	node0 := &sumi.Input{
 		Kind:    sumi.KindText,
+		Tag:     "text",
 		Content: sumi.Sprintf("Value: %v", value.Get()),
 	}
 	root := &sumi.Input{
 		Kind:      sumi.KindBox,
+		Tag:       "root",
 		Direction: "column",
 		CursorCol: -1,
 		CursorRow: -1,
 		Children: []*sumi.Input{
 			{
 				Kind:      sumi.KindBox,
+				Tag:       "box",
+				Attrs:     map[string]string{"onkey": "handleKey"},
 				CursorCol: -1,
 				CursorRow: -1,
 				Children: []*sumi.Input{

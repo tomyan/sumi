@@ -10,12 +10,16 @@ func Run() {
 	var app *sumi.App
 	root := &sumi.Input{
 		Kind:      sumi.KindBox,
+		Tag:       "root",
 		Direction: "column",
 		CursorCol: -1,
 		CursorRow: -1,
 		Children: []*sumi.Input{
 			{
 				Kind:           sumi.KindBox,
+				Tag:            "box",
+				Classes:        []string{"root"},
+				Attrs:          map[string]string{"class": "root", "onkey": "handleKey"},
 				Direction:      "row",
 				BorderCollapse: true,
 				CursorCol:      -1,
@@ -23,6 +27,9 @@ func Run() {
 				Children: []*sumi.Input{
 					{
 						Kind:        sumi.KindBox,
+						Tag:         "box",
+						Classes:     []string{"panel"},
+						Attrs:       map[string]string{"border-title": "Actual", "class": "panel", "height": "5"},
 						FixedHeight: 5,
 						FlexGrow:    1,
 						Padding:     sumi.ParsePadding("0 1"),
@@ -33,6 +40,9 @@ func Run() {
 					},
 					{
 						Kind:        sumi.KindBox,
+						Tag:         "box",
+						Classes:     []string{"panel"},
+						Attrs:       map[string]string{"border-title": "Expected", "class": "panel", "height": "5"},
 						FixedHeight: 5,
 						FlexGrow:    1,
 						Padding:     sumi.ParsePadding("0 1"),
@@ -73,12 +83,16 @@ func CreateApp(w, h int) *sumi.App {
 	var app *sumi.App
 	root := &sumi.Input{
 		Kind:      sumi.KindBox,
+		Tag:       "root",
 		Direction: "column",
 		CursorCol: -1,
 		CursorRow: -1,
 		Children: []*sumi.Input{
 			{
 				Kind:           sumi.KindBox,
+				Tag:            "box",
+				Classes:        []string{"root"},
+				Attrs:          map[string]string{"class": "root", "onkey": "handleKey"},
 				Direction:      "row",
 				BorderCollapse: true,
 				CursorCol:      -1,
@@ -86,6 +100,9 @@ func CreateApp(w, h int) *sumi.App {
 				Children: []*sumi.Input{
 					{
 						Kind:        sumi.KindBox,
+						Tag:         "box",
+						Classes:     []string{"panel"},
+						Attrs:       map[string]string{"border-title": "Actual", "class": "panel", "height": "5"},
 						FixedHeight: 5,
 						FlexGrow:    1,
 						Padding:     sumi.ParsePadding("0 1"),
@@ -96,6 +113,9 @@ func CreateApp(w, h int) *sumi.App {
 					},
 					{
 						Kind:        sumi.KindBox,
+						Tag:         "box",
+						Classes:     []string{"panel"},
+						Attrs:       map[string]string{"border-title": "Expected", "class": "panel", "height": "5"},
 						FixedHeight: 5,
 						FlexGrow:    1,
 						Padding:     sumi.ParsePadding("0 1"),

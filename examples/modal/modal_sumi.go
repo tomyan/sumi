@@ -26,6 +26,7 @@ func NewModal(props ModalProps) *sumi.Component {
 
 	root := &sumi.Input{
 		Kind:      sumi.KindBox,
+		Tag:       "root",
 		Direction: "column",
 		CursorCol: -1,
 		CursorRow: -1,
@@ -36,6 +37,9 @@ func NewModal(props ModalProps) *sumi.Component {
 			var cs []*sumi.Input
 			cs = append(cs, &sumi.Input{
 				Kind:      sumi.KindBox,
+				Tag:       "box",
+				Classes:   []string{"container"},
+				Attrs:     map[string]string{"class": "container", "onkey": "handleKey"},
 				Padding:   sumi.ParsePadding("1 2"),
 				Border:    "single",
 				CursorCol: -1,
@@ -43,6 +47,9 @@ func NewModal(props ModalProps) *sumi.Component {
 				Children: []*sumi.Input{
 					{
 						Kind:    sumi.KindText,
+						Tag:     "text",
+						Classes: []string{"title"},
+						Attrs:   map[string]string{"class": "title"},
 						Content: "Modal Demo",
 						Style: sumi.Style{
 							FG:   sumi.Color{Name: "green"},
@@ -51,6 +58,9 @@ func NewModal(props ModalProps) *sumi.Component {
 					},
 					{
 						Kind:    sumi.KindText,
+						Tag:     "text",
+						Classes: []string{"hint"},
+						Attrs:   map[string]string{"class": "hint"},
 						Content: "Press any key to toggle modal, q to quit",
 						Style: sumi.Style{
 							FG:  sumi.Color{Name: "cyan"},
@@ -59,6 +69,7 @@ func NewModal(props ModalProps) *sumi.Component {
 					},
 					{
 						Kind:    sumi.KindText,
+						Tag:     "text",
 						Content: "Background content here",
 					},
 				},
@@ -66,6 +77,9 @@ func NewModal(props ModalProps) *sumi.Component {
 			if showModal.Get() {
 				cs = append(cs, &sumi.Input{
 					Kind:        sumi.KindBox,
+					Tag:         "box",
+					Classes:     []string{"modal"},
+					Attrs:       map[string]string{"class": "modal", "height": "8", "left": "10", "position": "fixed", "top": "5", "width": "40", "z-index": "2"},
 					FixedWidth:  40,
 					FixedHeight: 8,
 					Padding:     sumi.ParsePadding("1 2"),
@@ -83,6 +97,9 @@ func NewModal(props ModalProps) *sumi.Component {
 					Children: []*sumi.Input{
 						{
 							Kind:    sumi.KindText,
+							Tag:     "text",
+							Classes: []string{"modal-title"},
+							Attrs:   map[string]string{"class": "modal-title"},
 							Content: "Modal Dialog",
 							Style: sumi.Style{
 								FG:   sumi.Color{Name: "yellow"},
@@ -91,10 +108,14 @@ func NewModal(props ModalProps) *sumi.Component {
 						},
 						{
 							Kind:    sumi.KindText,
+							Tag:     "text",
 							Content: "This is a fixed-position modal overlay.",
 						},
 						{
 							Kind:    sumi.KindText,
+							Tag:     "text",
+							Classes: []string{"hint"},
+							Attrs:   map[string]string{"class": "hint"},
 							Content: "Press any key to close",
 							Style: sumi.Style{
 								FG:  sumi.Color{Name: "cyan"},
@@ -109,7 +130,8 @@ func NewModal(props ModalProps) *sumi.Component {
 	})
 
 	return &sumi.Component{
-		Tree:    root,
-		OnEvent: handleKey,
+		Tree:       root,
+		OnEvent:    handleKey,
+		Stylesheet: sumi.MustParseStylesheet(".container {\n\tborder: single;\n\tpadding: 1 2;\n}\n.title {\n\tcolor: green;\n\tfont-weight: bold;\n}\n.hint {\n\tcolor: cyan;\n\topacity: dim;\n}\n.modal {\n\tbackground: black;\n\tborder: single;\n\tborder-color: yellow;\n\tpadding: 1 2;\n}\n.modal-title {\n\tcolor: yellow;\n\tfont-weight: bold;\n}\n"),
 	}
 }

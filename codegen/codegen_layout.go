@@ -23,6 +23,7 @@ func writeLayoutTree(buf *bytes.Buffer, doc *template.Document, stylesheet *styl
 
 	fmt.Fprintf(buf, "%sroot := &sumi.Input{\n", tabs)
 	fmt.Fprintf(buf, "%s\tKind: sumi.KindBox,\n", tabs)
+	writeIdentityFields(buf, tabs, "root", nil)
 	rootAttrs := map[string]string{"flex-direction": "column"}
 	writeBoxAttributes(buf, tabs, rootAttrs, rootProps)
 	if rootProps != nil {
@@ -155,6 +156,7 @@ func writeTextInput(buf *bytes.Buffer, n *template.TextElement, stylesheet *styl
 
 	fmt.Fprintf(buf, "%s{\n", tabs)
 	fmt.Fprintf(buf, "%s\tKind:    sumi.KindText,\n", tabs)
+	writeIdentityFields(buf, tabs, "text", n.Attributes)
 	fmt.Fprintf(buf, "%s\tContent: %s,\n", tabs, content)
 	if ce, ok := attrs["contenteditable"]; ok && ce == "true" {
 		fmt.Fprintf(buf, "%s\tContentEditable: true,\n", tabs)
@@ -180,6 +182,7 @@ func writeExtractedTextNode(treeBuf, declBuf *bytes.Buffer, n *template.TextElem
 	// Write declaration to declBuf (at function scope indent)
 	fmt.Fprintf(declBuf, "\t%s := &sumi.Input{\n", name)
 	fmt.Fprintf(declBuf, "\t\tKind:    sumi.KindText,\n")
+	writeIdentityFields(declBuf, "\t", "text", n.Attributes)
 	fmt.Fprintf(declBuf, "\t\tContent: %s,\n", expr)
 	if props != nil {
 		writeStyleLiteral(declBuf, "\t", props)
@@ -230,6 +233,7 @@ func writeBoxInput(buf *bytes.Buffer, n *template.BoxElement, stylesheet *style.
 
 	fmt.Fprintf(buf, "%s{\n", tabs)
 	fmt.Fprintf(buf, "%s\tKind: sumi.KindBox,\n", tabs)
+	writeIdentityFields(buf, tabs, "box", n.Attributes)
 	writeBoxAttributes(buf, tabs, n.Attributes, props)
 	if props != nil {
 		writeStyleLiteral(buf, tabs, props)
@@ -288,6 +292,7 @@ func writeExtractedCursorBox(treeBuf *bytes.Buffer, n *template.BoxElement, styl
 	// Write declaration to declBuf (at function scope)
 	fmt.Fprintf(&ext.declBuf, "\t%s := &sumi.Input{\n", name)
 	fmt.Fprintf(&ext.declBuf, "\t\tKind: sumi.KindBox,\n")
+	writeIdentityFields(&ext.declBuf, "\t", "box", n.Attributes)
 	writeBoxAttributes(&ext.declBuf, "\t", n.Attributes, props)
 	if props != nil {
 		writeStyleLiteral(&ext.declBuf, "\t", props)
@@ -361,6 +366,7 @@ func writeExtractedDynamicBox(treeBuf *bytes.Buffer, n *template.BoxElement, sty
 	// Write declaration to declBuf (at function scope, no Children)
 	fmt.Fprintf(&ext.declBuf, "\t%s := &sumi.Input{\n", name)
 	fmt.Fprintf(&ext.declBuf, "\t\tKind: sumi.KindBox,\n")
+	writeIdentityFields(&ext.declBuf, "\t", "box", n.Attributes)
 	writeBoxAttributes(&ext.declBuf, "\t", n.Attributes, props)
 	if props != nil {
 		writeStyleLiteral(&ext.declBuf, "\t", props)

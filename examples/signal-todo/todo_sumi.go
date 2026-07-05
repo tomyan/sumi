@@ -46,6 +46,9 @@ func NewTodo(props TodoProps) *sumi.Component {
 
 	box0 := &sumi.Input{
 		Kind:      sumi.KindBox,
+		Tag:       "box",
+		Classes:   []string{"container"},
+		Attrs:     map[string]string{"class": "container", "onkey": "handleKey"},
 		Padding:   sumi.ParsePadding("1 2"),
 		Border:    "single",
 		CursorCol: -1,
@@ -56,6 +59,7 @@ func NewTodo(props TodoProps) *sumi.Component {
 	}
 	root := &sumi.Input{
 		Kind:      sumi.KindBox,
+		Tag:       "root",
 		Direction: "column",
 		CursorCol: -1,
 		CursorRow: -1,
@@ -69,6 +73,9 @@ func NewTodo(props TodoProps) *sumi.Component {
 			var cs []*sumi.Input
 			cs = append(cs, &sumi.Input{
 				Kind:    sumi.KindText,
+				Tag:     "text",
+				Classes: []string{"title"},
+				Attrs:   map[string]string{"class": "title"},
 				Content: "Todo List",
 				Style: sumi.Style{
 					FG:   sumi.Color{Name: "green"},
@@ -77,6 +84,9 @@ func NewTodo(props TodoProps) *sumi.Component {
 			})
 			cs = append(cs, &sumi.Input{
 				Kind:    sumi.KindText,
+				Tag:     "text",
+				Classes: []string{"hint"},
+				Attrs:   map[string]string{"class": "hint"},
 				Content: "↑↓ navigate, d delete, q quit",
 				Style: sumi.Style{
 					Dim: true,
@@ -86,6 +96,9 @@ func NewTodo(props TodoProps) *sumi.Component {
 				if i == selected.Get() {
 					cs = append(cs, &sumi.Input{
 						Kind:    sumi.KindText,
+						Tag:     "text",
+						Classes: []string{"selected"},
+						Attrs:   map[string]string{"class": "selected"},
 						Content: sumi.Sprintf("▶ %v", item),
 						Style: sumi.Style{
 							FG:   sumi.Color{Name: "cyan"},
@@ -95,6 +108,9 @@ func NewTodo(props TodoProps) *sumi.Component {
 				} else {
 					cs = append(cs, &sumi.Input{
 						Kind:    sumi.KindText,
+						Tag:     "text",
+						Classes: []string{"item"},
+						Attrs:   map[string]string{"class": "item"},
 						Content: sumi.Sprintf("  %v", item),
 					})
 				}
@@ -104,7 +120,8 @@ func NewTodo(props TodoProps) *sumi.Component {
 	})
 
 	return &sumi.Component{
-		Tree:    root,
-		OnEvent: handleKey,
+		Tree:       root,
+		OnEvent:    handleKey,
+		Stylesheet: sumi.MustParseStylesheet(".container {\n\tborder: single;\n\tborder-color: cyan;\n\tpadding: 1 2;\n}\n.title {\n\tcolor: green;\n\tfont-weight: bold;\n}\n.hint {\n\topacity: dim;\n}\n.selected {\n\tcolor: cyan;\n\tfont-weight: bold;\n}\n.item {\n}\n"),
 	}
 }

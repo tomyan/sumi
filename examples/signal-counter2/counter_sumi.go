@@ -26,6 +26,9 @@ func NewCounter(props CounterProps) *sumi.Component {
 
 	node0 := &sumi.Input{
 		Kind:    sumi.KindText,
+		Tag:     "text",
+		Classes: []string{"count"},
+		Attrs:   map[string]string{"class": "count"},
 		Content: sumi.Sprintf("Count: %v", count.Get()),
 		Style: sumi.Style{
 			FG:   sumi.Color{Name: "yellow"},
@@ -34,12 +37,16 @@ func NewCounter(props CounterProps) *sumi.Component {
 	}
 	root := &sumi.Input{
 		Kind:      sumi.KindBox,
+		Tag:       "root",
 		Direction: "column",
 		CursorCol: -1,
 		CursorRow: -1,
 		Children: []*sumi.Input{
 			{
 				Kind:      sumi.KindBox,
+				Tag:       "box",
+				Classes:   []string{"container"},
+				Attrs:     map[string]string{"class": "container", "onkey": "handleKey"},
 				Padding:   sumi.ParsePadding("1 2"),
 				Border:    "single",
 				CursorCol: -1,
@@ -47,6 +54,9 @@ func NewCounter(props CounterProps) *sumi.Component {
 				Children: []*sumi.Input{
 					{
 						Kind:    sumi.KindText,
+						Tag:     "text",
+						Classes: []string{"title"},
+						Attrs:   map[string]string{"class": "title"},
 						Content: "Signal Counter",
 						Style: sumi.Style{
 							FG:   sumi.Color{Name: "green"},
@@ -55,6 +65,7 @@ func NewCounter(props CounterProps) *sumi.Component {
 					},
 					{
 						Kind:    sumi.KindText,
+						Tag:     "text",
 						Content: "Press any key to increment, q to quit",
 					},
 					node0,
@@ -68,7 +79,8 @@ func NewCounter(props CounterProps) *sumi.Component {
 	})
 
 	return &sumi.Component{
-		Tree:    root,
-		OnEvent: handleKey,
+		Tree:       root,
+		OnEvent:    handleKey,
+		Stylesheet: sumi.MustParseStylesheet(".container {\n\tborder: single;\n\tpadding: 1 2;\n}\n.title {\n\tcolor: green;\n\tfont-weight: bold;\n}\n.count {\n\tcolor: yellow;\n\tfont-weight: bold;\n}\n"),
 	}
 }

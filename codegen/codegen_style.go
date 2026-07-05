@@ -3,6 +3,7 @@ package codegen
 import (
 	"bytes"
 	"fmt"
+	"sort"
 	"strings"
 
 	"github.com/tomyan/sumi/parser/style"
@@ -80,6 +81,37 @@ func positioned(siblings []css.Element, elemIdx int) css.Element {
 	el.Siblings = siblings
 	el.Index = elemIdx
 	return el
+}
+
+// writeIdentityFields emits the element identity used by runtime CSS
+// resolution (Tag/ID/Classes/Attrs on layout.Input).
+func writeIdentityFields(buf *bytes.Buffer, tabs, tag string, attrs map[string]string) {
+	fmt.Fprintf(buf, "%s\tTag: %q,\n", tabs, tag)
+	if id := attrs["id"]; id != "" {
+		fmt.Fprintf(buf, "%s\tID: %q,\n", tabs, id)
+	}
+	if classes := parseClasses(attrs); len(classes) > 0 {
+		quoted := make([]string, len(classes))
+		for i, c := range classes {
+			quoted[i] = fmt.Sprintf("%q", c)
+		}
+		fmt.Fprintf(buf, "%s\tClasses: []string{%s},\n", tabs, strings.Join(quoted, ", "))
+	}
+	if len(attrs) > 0 {
+		names := make([]string, 0, len(attrs))
+		for name := range attrs {
+			names = append(names, name)
+		}
+		sort.Strings(names)
+		fmt.Fprintf(buf, "%s\tAttrs: map[string]string{", tabs)
+		for i, name := range names {
+			if i > 0 {
+				buf.WriteString(", ")
+			}
+			fmt.Fprintf(buf, "%q: %q", name, attrs[name])
+		}
+		buf.WriteString("},\n")
+	}
 }
 
 // resolveRootProps resolves properties for the implicit root element.

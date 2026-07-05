@@ -322,6 +322,9 @@ func writeComponentReturn(buf *bytes.Buffer, info *script.ScriptInfo, stylesheet
 	if handler != "" {
 		fmt.Fprintf(buf, "\t\tOnEvent: %s,\n", handler)
 	}
+	if stylesheet != nil && len(stylesheet.Rules) > 0 {
+		fmt.Fprintf(buf, "\t\tStylesheet: sumi.MustParseStylesheet(%q),\n", style.Serialize(stylesheet))
+	}
 	if stylesheet != nil && len(stylesheet.Keyframes) > 0 {
 		writeKeyframeRegistration(buf, stylesheet)
 	}

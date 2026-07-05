@@ -77,6 +77,7 @@ func writeAppendTextWithSignals(buf *bytes.Buffer, n *template.TextElement, styl
 	props := n.ResolvedStyles
 	buf.WriteString("&sumi.Input{\n")
 	buf.WriteString("\t\tKind: sumi.KindText,\n")
+	writeIdentityFields(buf, "\t", "text", n.Attributes)
 	fmt.Fprintf(buf, "\t\tContent: %s,\n", content)
 	if props != nil {
 		writeStyleLiteral(buf, "\t", props)
