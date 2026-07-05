@@ -24,6 +24,9 @@ func (e *DOMEvent) PreventDefault() { e.defaultPrevented = true }
 // DefaultPrevented reports whether PreventDefault was called.
 func (e *DOMEvent) DefaultPrevented() bool { return e.defaultPrevented }
 
+// Stopped reports whether StopPropagation was called.
+func (e *DOMEvent) Stopped() bool { return e.stopped }
+
 // DispatchDOM bubbles evt from the deepest node in path toward the root,
 // calling each node's handler for evt.Type. path runs root → deepest,
 // as returned by HitTestPath.

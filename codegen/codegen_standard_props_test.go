@@ -177,8 +177,8 @@ func handleKey(evt sumi.Event) {
 	if !strings.Contains(src, "Focusable: true") {
 		t.Errorf("expected Focusable flag in output:\n%s", src)
 	}
-	if !regexp.MustCompile(`OnKey:\s+handleKey,`).MatchString(src) {
-		t.Errorf("expected OnKey handler reference in output:\n%s", src)
+	if strings.Contains(src, "OnKey") {
+		t.Errorf("OnKey is retired; handlers go through the On map:\n%s", src)
 	}
 	if strings.Contains(src, "focusIndex") {
 		t.Errorf("focus state is runtime-owned; no focusIndex in generated code:\n%s", src)

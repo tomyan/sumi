@@ -1,6 +1,9 @@
 <script>
 firstFocused := sumi.New(false)
 secondFocused := sumi.New(false)
+firstText := sumi.New("")
+secondText := sumi.New("")
+rootKeys := sumi.New(0)
 
 func firstStatus() string {
     if firstFocused.Get() {
@@ -16,32 +19,42 @@ func secondStatus() string {
     return "blurred"
 }
 
-func handleFirst(evt sumi.Event) {
-    if evt.Kind == sumi.EventFocus {
-        firstFocused.Set(true)
-        return
-    }
-    if evt.Kind == sumi.EventBlur {
-        firstFocused.Set(false)
-        return
+func firstFocus(evt *sumi.DOMEvent) {
+    firstFocused.Set(true)
+}
+
+func firstBlur(evt *sumi.DOMEvent) {
+    firstFocused.Set(false)
+}
+
+func firstKey(evt *sumi.DOMEvent) {
+    if evt.Key.Kind == sumi.EventKey {
+        firstText.Update(func(s string) string { return s + string(evt.Key.Rune) })
+        evt.StopPropagation()
     }
 }
 
-func handleSecond(evt sumi.Event) {
-    if evt.Kind == sumi.EventFocus {
-        secondFocused.Set(true)
-        return
-    }
-    if evt.Kind == sumi.EventBlur {
-        secondFocused.Set(false)
-        return
+func secondFocus(evt *sumi.DOMEvent) {
+    secondFocused.Set(true)
+}
+
+func secondBlur(evt *sumi.DOMEvent) {
+    secondFocused.Set(false)
+}
+
+func secondKey(evt *sumi.DOMEvent) {
+    if evt.Key.Kind == sumi.EventKey {
+        secondText.Update(func(s string) string { return s + string(evt.Key.Rune) })
+        evt.StopPropagation()
     }
 }
 
 func handleKey(evt sumi.Event) {
     if evt.Kind == sumi.EventSignal { sumi.Quit(); return }
     if evt.Ctrl && evt.Rune == 'c' { sumi.Quit(); return }
-    if evt.Rune == 'q' { sumi.Quit(); return }
+    if evt.Kind == sumi.EventKey {
+        rootKeys.Update(func(n int) int { return n + 1 })
+    }
 }
 </script>
 
@@ -59,11 +72,12 @@ func handleKey(evt sumi.Event) {
 </style>
 
 <div onkey="handleKey">
-    <span class="hint">Tab / Shift+Tab moves focus; q quits</span>
-    <div class="field" focusable="true" onkey="handleFirst">
-        <span>First field: {firstStatus()}</span>
+    <span class="hint">Tab / Shift+Tab moves focus; type into the focused field</span>
+    <div class="field" focusable="true" onfocus={firstFocus} onblur={firstBlur} onkeydown={firstKey}>
+        <span>First ({firstStatus()}): {firstText}</span>
     </div>
-    <div class="field" focusable="true" onkey="handleSecond">
-        <span>Second field: {secondStatus()}</span>
+    <div class="field" focusable="true" onfocus={secondFocus} onblur={secondBlur} onkeydown={secondKey}>
+        <span>Second ({secondStatus()}): {secondText}</span>
     </div>
+    <span>Root saw {rootKeys} unconsumed keys</span>
 </div>

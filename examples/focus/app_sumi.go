@@ -10,6 +10,9 @@ type AppProps struct {
 func NewApp(props AppProps) *sumi.Component {
 	firstFocused := sumi.New(false)
 	secondFocused := sumi.New(false)
+	firstText := sumi.New("")
+	secondText := sumi.New("")
+	rootKeys := sumi.New(0)
 
 	firstStatus := func() string {
 		if firstFocused.Get() {
@@ -25,25 +28,33 @@ func NewApp(props AppProps) *sumi.Component {
 		return "blurred"
 	}
 
-	handleFirst := func(evt sumi.Event) {
-		if evt.Kind == sumi.EventFocus {
-			firstFocused.Set(true)
-			return
-		}
-		if evt.Kind == sumi.EventBlur {
-			firstFocused.Set(false)
-			return
+	firstFocus := func(evt *sumi.DOMEvent) {
+		firstFocused.Set(true)
+	}
+
+	firstBlur := func(evt *sumi.DOMEvent) {
+		firstFocused.Set(false)
+	}
+
+	firstKey := func(evt *sumi.DOMEvent) {
+		if evt.Key.Kind == sumi.EventKey {
+			firstText.Update(func(s string) string { return s + string(evt.Key.Rune) })
+			evt.StopPropagation()
 		}
 	}
 
-	handleSecond := func(evt sumi.Event) {
-		if evt.Kind == sumi.EventFocus {
-			secondFocused.Set(true)
-			return
-		}
-		if evt.Kind == sumi.EventBlur {
-			secondFocused.Set(false)
-			return
+	secondFocus := func(evt *sumi.DOMEvent) {
+		secondFocused.Set(true)
+	}
+
+	secondBlur := func(evt *sumi.DOMEvent) {
+		secondFocused.Set(false)
+	}
+
+	secondKey := func(evt *sumi.DOMEvent) {
+		if evt.Key.Kind == sumi.EventKey {
+			secondText.Update(func(s string) string { return s + string(evt.Key.Rune) })
+			evt.StopPropagation()
 		}
 	}
 
@@ -56,21 +67,25 @@ func NewApp(props AppProps) *sumi.Component {
 			sumi.Quit()
 			return
 		}
-		if evt.Rune == 'q' {
-			sumi.Quit()
-			return
+		if evt.Kind == sumi.EventKey {
+			rootKeys.Update(func(n int) int { return n + 1 })
 		}
 	}
 
 	node0 := &sumi.Input{
 		Kind:    sumi.KindText,
 		Tag:     "span",
-		Content: sumi.Sprintf("First field: %v", firstStatus()),
+		Content: sumi.Sprintf("First (%v): %v", firstStatus(), firstText.Get()),
 	}
 	node1 := &sumi.Input{
 		Kind:    sumi.KindText,
 		Tag:     "span",
-		Content: sumi.Sprintf("Second field: %v", secondStatus()),
+		Content: sumi.Sprintf("Second (%v): %v", secondStatus(), secondText.Get()),
+	}
+	node2 := &sumi.Input{
+		Kind:    sumi.KindText,
+		Tag:     "span",
+		Content: sumi.Sprintf("Root saw %v unconsumed keys", rootKeys.Get()),
 	}
 	root := &sumi.Input{
 		Kind:      sumi.KindBox,
@@ -91,15 +106,19 @@ func NewApp(props AppProps) *sumi.Component {
 						Tag:     "span",
 						Classes: []string{"hint"},
 						Attrs:   map[string]string{"class": "hint"},
-						Content: "Tab / Shift+Tab moves focus; q quits",
+						Content: "Tab / Shift+Tab moves focus; type into the focused field",
 					},
 					{
 						Kind:      sumi.KindBox,
 						Tag:       "div",
 						Classes:   []string{"field"},
-						Attrs:     map[string]string{"class": "field", "focusable": "true", "onkey": "handleFirst"},
+						Attrs:     map[string]string{"class": "field", "focusable": "true", "onblur": "{firstBlur}", "onfocus": "{firstFocus}", "onkeydown": "{firstKey}"},
 						Focusable: true,
-						OnKey:     handleFirst,
+						On: map[string]func(*sumi.DOMEvent){
+							"blur":    firstBlur,
+							"focus":   firstFocus,
+							"keydown": firstKey,
+						},
 						CursorCol: -1,
 						CursorRow: -1,
 						Children: []*sumi.Input{
@@ -110,23 +129,29 @@ func NewApp(props AppProps) *sumi.Component {
 						Kind:      sumi.KindBox,
 						Tag:       "div",
 						Classes:   []string{"field"},
-						Attrs:     map[string]string{"class": "field", "focusable": "true", "onkey": "handleSecond"},
+						Attrs:     map[string]string{"class": "field", "focusable": "true", "onblur": "{secondBlur}", "onfocus": "{secondFocus}", "onkeydown": "{secondKey}"},
 						Focusable: true,
-						OnKey:     handleSecond,
+						On: map[string]func(*sumi.DOMEvent){
+							"blur":    secondBlur,
+							"focus":   secondFocus,
+							"keydown": secondKey,
+						},
 						CursorCol: -1,
 						CursorRow: -1,
 						Children: []*sumi.Input{
 							node1,
 						},
 					},
+					node2,
 				},
 			},
 		},
 	}
 
 	sumi.Effect(func() {
-		node0.Content = sumi.Sprintf("First field: %v", firstStatus())
-		node1.Content = sumi.Sprintf("Second field: %v", secondStatus())
+		node0.Content = sumi.Sprintf("First (%v): %v", firstStatus(), firstText.Get())
+		node1.Content = sumi.Sprintf("Second (%v): %v", secondStatus(), secondText.Get())
+		node2.Content = sumi.Sprintf("Root saw %v unconsumed keys", rootKeys.Get())
 	})
 
 	return &sumi.Component{

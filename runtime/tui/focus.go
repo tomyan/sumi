@@ -15,7 +15,7 @@ func initFocus(comp *Component) {
 	}
 	comp.FocusIndex = 0
 	stampFocus(focusables, 0)
-	dispatchFocusEvent(focusables, 0, input.Event{Kind: input.EventFocus})
+	dispatchFocusEvent(focusables, 0, "focus")
 }
 
 // syncFocus re-stamps Focused flags from the component's FocusIndex.
@@ -53,12 +53,12 @@ func handleFocusCycle(comp *Component, evt input.Event) bool {
 		next = layout.CycleFocus(current, len(focusables))
 	}
 	if next != current {
-		dispatchFocusEvent(focusables, current, input.Event{Kind: input.EventBlur})
+		dispatchFocusEvent(focusables, current, "blur")
 	}
 	comp.FocusIndex = next
 	stampFocus(focusables, next)
 	if next != current {
-		dispatchFocusEvent(focusables, next, input.Event{Kind: input.EventFocus})
+		dispatchFocusEvent(focusables, next, "focus")
 	}
 	return true
 }
@@ -70,15 +70,35 @@ func stampFocus(focusables []*layout.Input, active int) {
 	}
 }
 
-// dispatchFocusEvent delivers an event to the OnKey handler of the
-// focusable at idx, if it has one.
-func dispatchFocusEvent(focusables []*layout.Input, idx int, evt input.Event) {
+// dispatchFocusEvent delivers a focus or blur DOM event to the focusable
+// at idx. Focus and blur target the element directly — they do not bubble.
+func dispatchFocusEvent(focusables []*layout.Input, idx int, eventType string) {
 	if idx < 0 || idx >= len(focusables) {
 		return
 	}
-	if h := focusables[idx].OnKey; h != nil {
-		h(evt)
+	layout.DispatchDOM([]*layout.Input{focusables[idx]}, &layout.DOMEvent{Type: eventType})
+}
+
+// dispatchKeyToFocused bubbles a keydown/paste DOM event along the path to
+// the focused element. Returns true if a handler stopped propagation, in
+// which case the root component handler should not see the event.
+func dispatchKeyToFocused(comp *Component, evt input.Event) bool {
+	var eventType string
+	switch evt.Kind {
+	case input.EventKey, input.EventSpecial:
+		eventType = "keydown"
+	case input.EventPaste:
+		eventType = "paste"
+	default:
+		return false
 	}
+	path := layout.FocusablePath(comp.Tree, comp.FocusIndex)
+	if len(path) == 0 {
+		return false
+	}
+	dom := &layout.DOMEvent{Type: eventType, Key: evt}
+	layout.DispatchDOM(path, dom)
+	return dom.Stopped()
 }
 
 // componentEventHandler builds the app OnEvent callback shared by
@@ -92,6 +112,10 @@ func componentEventHandler(app *App, comp *Component) func(input.Event) {
 			layout.DispatchDOM(path, &layout.DOMEvent{Type: "click", Key: evt})
 		}
 		if handleFocusCycle(comp, evt) {
+			app.Dirty = true
+			return
+		}
+		if dispatchKeyToFocused(comp, evt) {
 			app.Dirty = true
 			return
 		}

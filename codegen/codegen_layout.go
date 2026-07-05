@@ -364,9 +364,6 @@ func writeBoxAttributes(buf *bytes.Buffer, tabs string, attrs map[string]string,
 	writeIntAttr(buf, tabs, attrs, props, "z-index", "ZIndex")
 	if f, ok := mergedAttr(attrs, props, "focusable"); ok && f == "true" {
 		fmt.Fprintf(buf, "%s\tFocusable: true,\n", tabs)
-		if h, ok := mergedAttr(attrs, props, "onkey"); ok && h != "" {
-			fmt.Fprintf(buf, "%s\tOnKey: %s,\n", tabs, h)
-		}
 	}
 	if ce, ok := mergedAttr(attrs, props, "contenteditable"); ok && ce == "true" {
 		fmt.Fprintf(buf, "%s\tContentEditable: true,\n", tabs)

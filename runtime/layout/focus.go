@@ -20,6 +20,38 @@ func CollectFocusables(root *Input) []*Input {
 	return focusables
 }
 
+// FocusablePath returns the chain of Inputs from root to the index-th
+// focusable (in tree order). Returns nil when the index is out of range.
+func FocusablePath(root *Input, index int) []*Input {
+	if index < 0 {
+		return nil
+	}
+	seen := 0
+	var found []*Input
+	var walk func(n *Input, path []*Input) bool
+	walk = func(n *Input, path []*Input) bool {
+		if n == nil {
+			return false
+		}
+		path = append(path, n)
+		if n.Focusable {
+			if seen == index {
+				found = append([]*Input{}, path...)
+				return true
+			}
+			seen++
+		}
+		for _, child := range n.Children {
+			if walk(child, path) {
+				return true
+			}
+		}
+		return false
+	}
+	walk(root, nil)
+	return found
+}
+
 // CycleFocus advances the focus index forward, wrapping around.
 func CycleFocus(current, count int) int {
 	if count <= 0 {

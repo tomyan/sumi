@@ -8,7 +8,6 @@ import (
 
 	"github.com/tomyan/sumi/runtime/anim"
 	"github.com/tomyan/sumi/runtime/css"
-	"github.com/tomyan/sumi/runtime/input"
 	"github.com/tomyan/sumi/runtime/render"
 )
 
@@ -97,8 +96,7 @@ type Input struct {
 	Hovered             bool                  // set by the framework before render
 	FocusStyle          render.Style          // style applied when this node has focus
 	Focused             bool                  // set by the tui runtime before render
-	On                  map[string]func(*DOMEvent) // DOM event handlers by type ("click", "keydown", ...)
-	OnKey               func(input.Event)          // key/focus/blur handler (focusable elements)
+	On                  map[string]func(*DOMEvent) // DOM event handlers by type ("click", "keydown", "focus", ...)
 	Transitions         []anim.TransitionSpec // CSS transition config (set by codegen)
 	AnimationSpec       *anim.AnimationSpec   // CSS animation config (set by codegen)
 	Children            []*Input

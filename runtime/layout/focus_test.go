@@ -28,6 +28,37 @@ func TestCollectFocusablesReturnsTreeOrder(t *testing.T) {
 	}
 }
 
+func TestFocusablePathReturnsAncestryOfIndexedFocusable(t *testing.T) {
+	// Given — two focusables at different depths
+	first := &Input{Kind: KindBox, Focusable: true}
+	second := &Input{Kind: KindBox, Focusable: true}
+	mid := &Input{Kind: KindBox, Children: []*Input{first}}
+	root := &Input{Kind: KindBox, Children: []*Input{mid, second}}
+
+	// When / Then — path runs root → focusable
+	path := FocusablePath(root, 0)
+	if len(path) != 3 || path[0] != root || path[1] != mid || path[2] != first {
+		t.Fatalf("FocusablePath(root, 0) = %v, want [root mid first]", path)
+	}
+	path = FocusablePath(root, 1)
+	if len(path) != 2 || path[0] != root || path[1] != second {
+		t.Fatalf("FocusablePath(root, 1) = %v, want [root second]", path)
+	}
+}
+
+func TestFocusablePathOutOfRangeReturnsNil(t *testing.T) {
+	// Given
+	root := &Input{Kind: KindBox, Children: []*Input{{Kind: KindBox, Focusable: true}}}
+
+	// When / Then
+	if path := FocusablePath(root, 5); path != nil {
+		t.Errorf("FocusablePath out of range = %v, want nil", path)
+	}
+	if path := FocusablePath(root, -1); path != nil {
+		t.Errorf("FocusablePath(-1) = %v, want nil", path)
+	}
+}
+
 func TestCollectFocusablesWithoutFocusables(t *testing.T) {
 	// Given
 	root := &Input{Kind: KindBox, Children: []*Input{{Kind: KindText, Content: "hi"}}}
