@@ -92,6 +92,22 @@ func TestDisabledButtonSkippedByFocusTraversal(t *testing.T) {
 	}
 }
 
+func TestAnchorWithHrefIsFocusable(t *testing.T) {
+	// Given
+	link := &Input{Kind: KindText, Tag: "a", Content: "docs",
+		Attrs: map[string]string{"href": "https://example.com"}}
+	bare := &Input{Kind: KindText, Tag: "a", Content: "placeholder"}
+	root := &Input{Kind: KindBox, Children: []*Input{link, bare}}
+
+	// When
+	got := CollectFocusables(root)
+
+	// Then — only the anchor with an href participates
+	if len(got) != 1 || got[0] != link {
+		t.Errorf("CollectFocusables = %v, want only the href anchor", got)
+	}
+}
+
 func TestCollectFocusablesWithoutFocusables(t *testing.T) {
 	// Given
 	root := &Input{Kind: KindBox, Children: []*Input{{Kind: KindText, Content: "hi"}}}

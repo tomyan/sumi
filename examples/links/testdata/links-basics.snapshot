@@ -1,0 +1,12 @@
+=== Frame: initial ===
+<<dim>>Tab to move, Enter to open; q quits<</>>
+<<inverse>>Documentation<</>>
+<<underline>>Blog<</>>
+Last activated: none
+
+=== Frame: tab-to-blog ===
+<<dim>>Tab to move, Enter to open; q quits<</>>
+<<underline>>Documentation<</>>
+<<inverse>>Blog<</>>
+Last activated: none
+

@@ -1,0 +1,33 @@
+<script>
+lastOpened := sumi.New("none")
+
+func docsClicked() {
+    lastOpened.Set("docs")
+}
+
+func blogClicked() {
+    lastOpened.Set("blog")
+}
+
+func handleKey(evt sumi.Event) {
+    if evt.Kind == sumi.EventSignal { sumi.Quit(); return }
+    if evt.Ctrl && evt.Rune == 'c' { sumi.Quit(); return }
+    if evt.Rune == 'q' { sumi.Quit(); return }
+}
+</script>
+
+<style>
+a:focus {
+    inverse: true;
+}
+.hint {
+    opacity: dim;
+}
+</style>
+
+<div onkey="handleKey">
+    <span class="hint">Tab to move, Enter to open; q quits</span>
+    <a href="https://example.com/docs" onclick={docsClicked}>Documentation</a>
+    <a href="https://example.com/blog" onclick={blogClicked}>Blog</a>
+    <span>Last activated: {lastOpened}</span>
+</div>

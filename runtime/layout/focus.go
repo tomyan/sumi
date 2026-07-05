@@ -8,10 +8,14 @@ var controlTags = map[string]bool{
 }
 
 // IsFocusable reports whether a node participates in focus traversal:
-// standard controls and elements with focusable="true", unless disabled.
+// standard controls, anchors with an href, and elements with
+// focusable="true" — unless disabled.
 func IsFocusable(n *Input) bool {
 	if d, ok := n.Attrs["disabled"]; ok && d != "false" {
 		return false
+	}
+	if n.Tag == "a" {
+		return n.Attrs["href"] != ""
 	}
 	return n.Focusable || controlTags[n.Tag]
 }

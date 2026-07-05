@@ -146,7 +146,8 @@ func applyDefaultActions(comp *Component, evt input.Event, dom *layout.DOMEvent)
 
 // activateFocusedOnEnter synthesizes a bubbling click on the focused
 // element when Enter is pressed. Returns true only when the focused
-// element itself handles click — Enter on a plain focusable passes through.
+// element is activatable (handles click, or is an anchor with an href) —
+// Enter on a plain focusable passes through.
 func activateFocusedOnEnter(comp *Component, evt input.Event) bool {
 	if evt.Kind != input.EventSpecial || evt.Special != input.KeyEnter {
 		return false
@@ -155,11 +156,30 @@ func activateFocusedOnEnter(comp *Component, evt input.Event) bool {
 	if len(path) == 0 {
 		return false
 	}
-	if path[len(path)-1].On["click"] == nil {
+	target := path[len(path)-1]
+	isAnchor := target.Tag == "a" && target.Attrs["href"] != ""
+	if target.On["click"] == nil && !isAnchor {
 		return false
 	}
-	layout.DispatchDOM(path, &layout.DOMEvent{Type: "click", Key: evt})
+	dom := &layout.DOMEvent{Type: "click", Key: evt}
+	layout.DispatchDOM(path, dom)
+	if !dom.DefaultPrevented() {
+		runClickDefault(path)
+	}
 	return true
+}
+
+// runClickDefault performs the default action for a click: opening the
+// nearest anchor's href, walking from the target upward.
+func runClickDefault(path []*layout.Input) {
+	for i := len(path) - 1; i >= 0; i-- {
+		if path[i].Tag == "a" {
+			if href := path[i].Attrs["href"]; href != "" {
+				OpenURL(href)
+				return
+			}
+		}
+	}
 }
 
 // componentEventHandler builds the app OnEvent callback shared by
@@ -171,7 +191,11 @@ func componentEventHandler(app *App, comp *Component) func(input.Event) {
 		if evt.Kind == input.EventMouse && evt.Mouse.Action == input.MousePress && evt.Mouse.Button == input.ButtonLeft {
 			path := layout.HitTestPath(comp.Tree, comp.LayoutResult, evt.Mouse.X, evt.Mouse.Y)
 			focusClickedElement(comp, path)
-			layout.DispatchDOM(path, &layout.DOMEvent{Type: "click", Key: evt})
+			dom := &layout.DOMEvent{Type: "click", Key: evt}
+			layout.DispatchDOM(path, dom)
+			if !dom.DefaultPrevented() {
+				runClickDefault(path)
+			}
 		}
 		dom := dispatchKeyToFocused(comp, evt)
 		if applyDefaultActions(comp, evt, dom) {

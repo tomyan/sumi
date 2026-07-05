@@ -144,6 +144,74 @@ func TestClickFocusesTheClickedFocusable(t *testing.T) {
 	}
 }
 
+func anchorApp(t *testing.T) (*tui.Component, *[]string) {
+	t.Helper()
+	var opened []string
+	prev := tui.OpenURL
+	tui.OpenURL = func(href string) error { opened = append(opened, href); return nil }
+	t.Cleanup(func() { tui.OpenURL = prev })
+
+	comp := &tui.Component{
+		Tree: &layout.Input{
+			Kind: layout.KindBox, CursorCol: -1, CursorRow: -1,
+			Children: []*layout.Input{
+				{Kind: layout.KindText, Tag: "a", Content: "docs",
+					Attrs: map[string]string{"href": "https://example.com/docs"}},
+			},
+		},
+	}
+	return comp, &opened
+}
+
+func TestEnterOpensFocusedAnchorHref(t *testing.T) {
+	// Given — the anchor is the only focusable, so it starts focused
+	comp, opened := anchorApp(t)
+	app := tui.TestApp(comp, 30, 3)
+
+	// When
+	app.Step(input.Event{Kind: input.EventSpecial, Special: input.KeyEnter})
+
+	// Then
+	if len(*opened) != 1 || (*opened)[0] != "https://example.com/docs" {
+		t.Errorf("opened = %v, want the anchor href", *opened)
+	}
+}
+
+func TestClickOpensAnchorHref(t *testing.T) {
+	// Given
+	comp, opened := anchorApp(t)
+	app := tui.TestApp(comp, 30, 3)
+
+	// When — click on the link text (row 0)
+	app.Step(input.Event{Kind: input.EventMouse, Mouse: input.MouseEvent{
+		Action: input.MousePress, Button: input.ButtonLeft, X: 1, Y: 0,
+	}})
+
+	// Then
+	if len(*opened) != 1 || (*opened)[0] != "https://example.com/docs" {
+		t.Errorf("opened = %v, want the anchor href", *opened)
+	}
+}
+
+func TestPreventDefaultSuppressesAnchorOpen(t *testing.T) {
+	// Given — a click handler on the anchor prevents the default
+	comp, opened := anchorApp(t)
+	comp.Tree.Children[0].On = map[string]func(*layout.DOMEvent){
+		"click": func(evt *layout.DOMEvent) { evt.PreventDefault() },
+	}
+	app := tui.TestApp(comp, 30, 3)
+
+	// When
+	app.Step(input.Event{Kind: input.EventMouse, Mouse: input.MouseEvent{
+		Action: input.MousePress, Button: input.ButtonLeft, X: 1, Y: 0,
+	}})
+
+	// Then
+	if len(*opened) != 0 {
+		t.Errorf("opened = %v, want none (preventDefault)", *opened)
+	}
+}
+
 func TestPreventDefaultSuppressesEnterActivation(t *testing.T) {
 	// Given — keydown prevents the default, click would record
 	clicks := 0
