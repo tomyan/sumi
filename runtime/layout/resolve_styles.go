@@ -147,8 +147,8 @@ func applyLayoutProps(n *Input, props map[string]string) {
 	if v, ok := cssValue(n, props, "flex-direction"); ok {
 		n.Direction = v
 	}
-	applySizeProp(n, props, "width", &n.FixedWidth, &n.WidthPct)
-	applySizeProp(n, props, "height", &n.FixedHeight, &n.HeightPct)
+	applySizeProp(n, props, "width", &n.FixedWidth, &n.WidthPct, &n.WidthCalc)
+	applySizeProp(n, props, "height", &n.FixedHeight, &n.HeightPct, &n.HeightCalc)
 	applyIntProp(n, props, "gap", &n.Gap)
 	applyIntProp(n, props, "flex-grow", &n.FlexGrow)
 	applyIntProp(n, props, "min-width", &n.MinWidth)
@@ -205,15 +205,31 @@ func applyIntProp(n *Input, props map[string]string, key string, dst *int) {
 	if !ok {
 		return
 	}
+	if css.IsCalcValue(v) {
+		if r, calcOK := css.EvalCalc(v, -1); calcOK {
+			*dst = r
+		}
+		return
+	}
 	if strings.HasSuffix(v, "%") {
 		return // no percentage meaning for this property
 	}
 	*dst = ParseCellLength(v)
 }
 
-func applySizeProp(n *Input, props map[string]string, key string, fixed, pct *int) {
+func applySizeProp(n *Input, props map[string]string, key string, fixed, pct *int, calc *string) {
 	v, ok := cssValue(n, props, key)
 	if !ok {
+		return
+	}
+	if css.IsCalcValue(v) {
+		if strings.Contains(v, "%") {
+			*calc = v // containing-block size arrives at layout time
+			return
+		}
+		if r, calcOK := css.EvalCalc(v, -1); calcOK {
+			*fixed = r
+		}
 		return
 	}
 	if p, isPct := strings.CutSuffix(v, "%"); isPct {

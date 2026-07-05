@@ -171,3 +171,41 @@ func TestResolveStylesUnresolvedVarDropsProperty(t *testing.T) {
 		t.Errorf("FG = %q, want unset", got)
 	}
 }
+
+// A12: CSS math functions in layout properties.
+
+func TestResolveStylesCalcWithoutPercent(t *testing.T) {
+	tree := &Input{Tag: "root", Kind: KindBox, Children: []*Input{
+		{Tag: "box", Classes: []string{"x"}, Kind: KindBox},
+	}}
+	ss := sheet(t, `.x { width: calc(10 + 5); gap: min(3, 2); }`)
+	ResolveStyles(tree, ss, 80, 24)
+	if got := tree.Children[0].FixedWidth; got != 15 {
+		t.Errorf("FixedWidth = %d, want 15", got)
+	}
+	if got := tree.Children[0].Gap; got != 2 {
+		t.Errorf("Gap = %d, want 2", got)
+	}
+}
+
+func TestResolveStylesCalcWithPercentDefersToLayout(t *testing.T) {
+	// Given: calc against the containing block.
+	tree := &Input{Tag: "root", Kind: KindBox, Children: []*Input{
+		{Tag: "box", Classes: []string{"x"}, Kind: KindBox, Children: []*Input{
+			{Tag: "text", Kind: KindText, Content: "hi"},
+		}},
+	}}
+	ss := sheet(t, `.x { width: calc(100% - 10); height: 1; }`)
+
+	// When: resolve then layout at 80 cols.
+	ResolveStyles(tree, ss, 80, 24)
+	box := Layout(tree, 80, 24)
+
+	// Then
+	if got := tree.Children[0].WidthCalc; got != "calc(100% - 10)" {
+		t.Errorf("WidthCalc = %q", got)
+	}
+	if got := box.Children[0].Width; got != 70 {
+		t.Errorf("laid-out width = %d, want 70", got)
+	}
+}

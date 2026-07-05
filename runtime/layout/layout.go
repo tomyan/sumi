@@ -6,6 +6,7 @@ import (
 	"unicode/utf8"
 
 	"github.com/tomyan/sumi/runtime/anim"
+	"github.com/tomyan/sumi/runtime/css"
 	"github.com/tomyan/sumi/runtime/render"
 )
 
@@ -34,6 +35,8 @@ type Input struct {
 	FixedHeight     int    // 0 = auto
 	WidthPct        int    // percentage of containing block width (0 = unset)
 	HeightPct       int    // percentage of containing block height (0 = unset)
+	WidthCalc       string // CSS math expression with %, resolved at layout time
+	HeightCalc      string // CSS math expression with %, resolved at layout time
 	Gap             int    // space between children (cells)
 	FlexGrow        int    // flex-grow factor (0 = no grow)
 	Justify         string // main-axis alignment: start, end, center, space-between
@@ -230,7 +233,7 @@ func absolutePositions(box *Box) {
 // containing block's available space. Returns a shallow copy so the build-once
 // input tree is never mutated; sizes re-resolve on every layout pass.
 func resolvePercentSizes(input *Input, availW, availH int) *Input {
-	if input.WidthPct == 0 && input.HeightPct == 0 {
+	if input.WidthPct == 0 && input.HeightPct == 0 && input.WidthCalc == "" && input.HeightCalc == "" {
 		return input
 	}
 	resolved := *input
@@ -239,6 +242,16 @@ func resolvePercentSizes(input *Input, availW, availH int) *Input {
 	}
 	if input.HeightPct > 0 {
 		resolved.FixedHeight = availH * input.HeightPct / 100
+	}
+	if input.WidthCalc != "" {
+		if v, ok := css.EvalCalc(input.WidthCalc, availW); ok && v > 0 {
+			resolved.FixedWidth = v
+		}
+	}
+	if input.HeightCalc != "" {
+		if v, ok := css.EvalCalc(input.HeightCalc, availH); ok && v > 0 {
+			resolved.FixedHeight = v
+		}
 	}
 	return &resolved
 }
@@ -837,10 +850,10 @@ func canStretch(input *Input, isWidth bool) bool {
 	if input.Kind == KindText {
 		return false
 	}
-	if isWidth && (input.FixedWidth > 0 || input.WidthPct > 0) {
+	if isWidth && (input.FixedWidth > 0 || input.WidthPct > 0 || input.WidthCalc != "") {
 		return false
 	}
-	if !isWidth && (input.FixedHeight > 0 || input.HeightPct > 0) {
+	if !isWidth && (input.FixedHeight > 0 || input.HeightPct > 0 || input.HeightCalc != "") {
 		return false
 	}
 	return true
