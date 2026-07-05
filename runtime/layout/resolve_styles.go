@@ -212,6 +212,10 @@ func applyLayoutProps(n *Input, props map[string]string) {
 	if v, ok := cssValue(n, props, "align-items"); ok {
 		n.Align = normalizeFlexKeyword(v)
 	}
+	if v, ok := cssValue(n, props, "align-self"); ok {
+		n.AlignSelf = normalizeFlexKeyword(v)
+	}
+	applyIntProp(n, props, "order", &n.Order)
 	if v, ok := cssValue(n, props, "padding"); ok {
 		n.Padding = ParsePadding(v)
 	}

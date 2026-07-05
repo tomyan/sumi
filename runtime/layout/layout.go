@@ -1,6 +1,7 @@
 package layout
 
 import (
+	"sort"
 	"strconv"
 	"strings"
 	"unicode/utf8"
@@ -41,8 +42,10 @@ type Input struct {
 	LastH           int    // laid-out height from the previous pass
 	Gap             int    // space between children (cells)
 	FlexGrow        int    // flex-grow factor (0 = no grow)
-	Justify         string // main-axis alignment: start, end, center, space-between
+	Justify         string // main-axis alignment: start, end, center, space-*
 	Align           string // cross-axis alignment: start, end, center, stretch
+	AlignSelf       string // per-child cross-axis override ("" = use parent Align)
+	Order           int    // flex order (lower first; ties keep source order)
 	Overflow        string // "hidden", "scroll", "auto", or "" (visible)
 	MinWidth        int    // minimum width (0 = no minimum)
 	MinHeight       int    // minimum height (0 = no minimum)
@@ -251,6 +254,77 @@ func absolutePositions(box *Box) {
 	}
 }
 
+// normalizeDirection strips -reverse from the flex direction, reporting
+// whether the container is reversed.
+func normalizeDirection(input *Input) (*Input, bool) {
+	dir := input.Direction
+	if dir != "row-reverse" && dir != "column-reverse" {
+		return input, false
+	}
+	resolved := *input
+	resolved.Direction = strings.TrimSuffix(dir, "-reverse")
+	return &resolved, true
+}
+
+// orderFlow applies the CSS order property (stable sort, lower first) and
+// reverses placement for *-reverse containers. Indices travel with their
+// children so box slots still map to the original tree positions.
+func orderFlow(children []*Input, indices []int, reversed bool) ([]*Input, []int) {
+	needsSort := false
+	for _, c := range children {
+		if c.Order != 0 {
+			needsSort = true
+			break
+		}
+	}
+	if !needsSort && !reversed {
+		return children, indices
+	}
+	outC := append([]*Input(nil), children...)
+	outI := append([]int(nil), indices...)
+	if needsSort {
+		sort.SliceStable(outC, func(a, b int) bool { return outC[a].Order < outC[b].Order })
+		// Re-derive indices by matching pointers (children are unique).
+		pos := make(map[*Input]int, len(children))
+		for i, c := range children {
+			pos[c] = indices[i]
+		}
+		for i, c := range outC {
+			outI[i] = pos[c]
+		}
+	}
+	if reversed {
+		for i, j := 0, len(outC)-1; i < j; i, j = i+1, j-1 {
+			outC[i], outC[j] = outC[j], outC[i]
+			outI[i], outI[j] = outI[j], outI[i]
+		}
+	}
+	return outC, outI
+}
+
+// hasSelfAlignment reports whether any child overrides the container's
+// cross-axis alignment (align-self or centring auto margins).
+func hasSelfAlignment(children []*Input) bool {
+	for _, c := range children {
+		if c.AlignSelf != "" || c.Margin.autoCentreX() || c.Margin.autoCentreY() {
+			return true
+		}
+	}
+	return false
+}
+
+// flipJustify mirrors main-axis alignment for reversed containers so that
+// default packing hugs the reversed start edge.
+func flipJustify(justify string) string {
+	switch justify {
+	case "", "start":
+		return "end"
+	case "end":
+		return "start"
+	}
+	return justify
+}
+
 // clampSize applies min/max constraints (0 = unconstrained).
 func clampSize(v, min, max int) int {
 	if min > 0 && v < min {
@@ -310,6 +384,7 @@ func resolvePercentSizes(input *Input, availW, availH int) *Input {
 func layoutNode(input *Input, availW, availH int) *Box {
 	input = resolvePercentSizes(input, availW, availH)
 	input = applyContentBoxSizing(input)
+	input, reversed := normalizeDirection(input)
 	border := input.Border
 	if input.BorderCollapse {
 		border = "" // children's borders form the parent frame
@@ -425,6 +500,7 @@ func layoutNode(input *Input, availW, availH int) *Box {
 
 	// Partition visible children into flow and positioned (absolute/fixed)
 	flowChildren, flowIndices, posChildren, posIndices := partitionPositioned(visibleChildren)
+	flowChildren, flowIndices = orderFlow(flowChildren, flowIndices, reversed)
 
 	hasFlexChildren := hasFlexGrow(flowChildren)
 
@@ -476,11 +552,15 @@ func layoutNode(input *Input, availW, availH int) *Box {
 
 	// Apply justify (shift children along main axis).
 	// Skip when the container auto-sizes on the main axis — no free space to distribute.
-	if input.Justify != "" && input.Justify != "start" {
+	justify := input.Justify
+	if reversed {
+		justify = flipJustify(justify)
+	}
+	if justify != "" && justify != "start" {
 		if input.Direction == "row" {
-			applyJustifyRow(flowBoxes, offsetX, contentAvailW, input.Justify)
+			applyJustifyRow(flowBoxes, offsetX, contentAvailW, justify)
 		} else if input.FixedHeight > 0 {
-			applyJustifyColumn(flowBoxes, offsetY, contentAvailH, input.Justify)
+			applyJustifyColumn(flowBoxes, offsetY, contentAvailH, justify)
 		}
 	}
 
@@ -490,7 +570,7 @@ func layoutNode(input *Input, availW, availH int) *Box {
 	if align == "" {
 		align = "stretch"
 	}
-	if align != "start" {
+	if align != "start" || hasSelfAlignment(flowChildren) {
 		if input.Direction == "row" {
 			crossSize := rowCrossSize(contentAvailH, input.FixedHeight, flowBoxes)
 			applyAlignRow(flowBoxes, flowChildren, offsetY, crossSize, align)
@@ -865,6 +945,26 @@ func applyJustify(boxes []*Box, remaining int, justify string, isRow bool, offse
 				b.Y += shift
 			}
 		}
+	case "space-around":
+		// Half-gap at the edges: item i shifts by (2i+1)/(2n) of remaining.
+		for i, b := range boxes {
+			shift := remaining * (2*i + 1) / (2 * n)
+			if isRow {
+				b.X += shift
+			} else {
+				b.Y += shift
+			}
+		}
+	case "space-evenly":
+		// Equal gaps including edges: item i shifts by (i+1)/(n+1).
+		for i, b := range boxes {
+			shift := remaining * (i + 1) / (n + 1)
+			if isRow {
+				b.X += shift
+			} else {
+				b.Y += shift
+			}
+		}
 	}
 }
 
@@ -875,7 +975,13 @@ func applyAlignRow(boxes []*Box, inputs []*Input, offsetY, availH int, align str
 			b.Y = offsetY + (availH-b.Height)/2
 			continue
 		}
-		switch align {
+		childAlign := align
+		if i < len(inputs) && inputs[i].AlignSelf != "" {
+			childAlign = inputs[i].AlignSelf
+		}
+		switch childAlign {
+		case "start":
+			b.Y = offsetY
 		case "end":
 			b.Y = offsetY + availH - b.Height
 		case "center":
@@ -900,7 +1006,13 @@ func applyAlignColumn(boxes []*Box, inputs []*Input, offsetX, availW int, align 
 			b.X = offsetX + (availW-b.Width)/2
 			continue
 		}
-		switch align {
+		childAlign := align
+		if i < len(inputs) && inputs[i].AlignSelf != "" {
+			childAlign = inputs[i].AlignSelf
+		}
+		switch childAlign {
+		case "start":
+			b.X = offsetX
 		case "end":
 			b.X = offsetX + availW - b.Width
 		case "center":
