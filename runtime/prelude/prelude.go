@@ -33,25 +33,26 @@ const (
 )
 
 var (
-	ParsePadding  = layout.ParsePadding
-	Layout        = layout.Layout
-	RenderTree    = layout.RenderTree
-	ApplyChanges  = layout.ApplyChanges
-	FindCursor    = layout.FindCursor
+	ParsePadding    = layout.ParsePadding
+	Layout          = layout.Layout
+	RenderTree      = layout.RenderTree
+	ApplyChanges    = layout.ApplyChanges
+	FindCursor      = layout.FindCursor
 	DirectWriteText = layout.DirectWriteText
-	DiffTrees     = layout.DiffTrees
+	DiffTrees       = layout.DiffTrees
 )
 
 // --- render ---
 
 type Style = render.Style
 type Color = render.Color
+type ColorPair = render.ColorPair
 
 var (
-	NewBuffer   = render.NewBuffer
-	ClearScreen = render.ClearScreen
-	ShowCursor  = render.ShowCursor
-	HideCursor  = render.HideCursor
+	NewBuffer            = render.NewBuffer
+	ClearScreen          = render.ClearScreen
+	ShowCursor           = render.ShowCursor
+	HideCursor           = render.HideCursor
 	EnterAlternateScreen = render.EnterAlternateScreen
 	ExitAlternateScreen  = render.ExitAlternateScreen
 )

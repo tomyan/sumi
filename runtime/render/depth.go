@@ -29,6 +29,7 @@ func GetColorDepth() ColorDepth { return colorDepth }
 // quantize degrades a colour to the active depth. The result is either the
 // zero Color (emit nothing), a Name (16-colour code), an Index256, or RGB.
 func quantize(c Color) Color {
+	c = resolveScheme(c)
 	switch colorDepth {
 	case DepthMono:
 		return Color{}

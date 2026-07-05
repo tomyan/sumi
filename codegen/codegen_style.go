@@ -165,11 +165,31 @@ func writeColorFields(buf *bytes.Buffer, tabs string, s render.Style) {
 }
 
 func writeColorField(buf *bytes.Buffer, tabs, field string, c render.Color) {
-	if c.IsRGB {
-		fmt.Fprintf(buf, "%s\t\t%s: sumi.Color{IsRGB: true, R: %d, G: %d, B: %d},\n", tabs, field, c.R, c.G, c.B)
-	} else if c.Name != "" {
-		fmt.Fprintf(buf, "%s\t\t%s: sumi.Color{Name: %q},\n", tabs, field, c.Name)
+	if lit := colorLiteral(c); lit != "" {
+		fmt.Fprintf(buf, "%s\t\t%s: %s,\n", tabs, field, lit)
 	}
+}
+
+// colorLiteral renders a render.Color as a sumi.Color literal; "" for the
+// zero colour.
+func colorLiteral(c render.Color) string {
+	switch {
+	case c.Pair != nil:
+		return fmt.Sprintf("sumi.Color{Pair: &sumi.ColorPair{Light: %s, Dark: %s}}",
+			colorLiteralOrZero(c.Pair.Light), colorLiteralOrZero(c.Pair.Dark))
+	case c.IsRGB:
+		return fmt.Sprintf("sumi.Color{IsRGB: true, R: %d, G: %d, B: %d}", c.R, c.G, c.B)
+	case c.Name != "":
+		return fmt.Sprintf("sumi.Color{Name: %q}", c.Name)
+	}
+	return ""
+}
+
+func colorLiteralOrZero(c render.Color) string {
+	if lit := colorLiteral(c); lit != "" {
+		return lit
+	}
+	return "sumi.Color{}"
 }
 
 // writeBoolStyleFields writes boolean style fields (Bold, Dim, Italic, etc.).
@@ -224,15 +244,11 @@ func writeAnimationSpec(buf *bytes.Buffer, tabs string, props map[string]string)
 
 // writeInlineStyleFields writes style fields inline (for compact keyframe emission).
 func writeInlineStyleFields(buf *bytes.Buffer, s render.Style) {
-	if s.FG.IsRGB {
-		fmt.Fprintf(buf, "FG: sumi.Color{IsRGB: true, R: %d, G: %d, B: %d}, ", s.FG.R, s.FG.G, s.FG.B)
-	} else if s.FG.Name != "" {
-		fmt.Fprintf(buf, "FG: sumi.Color{Name: %q}, ", s.FG.Name)
+	if lit := colorLiteral(s.FG); lit != "" {
+		fmt.Fprintf(buf, "FG: %s, ", lit)
 	}
-	if s.BG.IsRGB {
-		fmt.Fprintf(buf, "BG: sumi.Color{IsRGB: true, R: %d, G: %d, B: %d}, ", s.BG.R, s.BG.G, s.BG.B)
-	} else if s.BG.Name != "" {
-		fmt.Fprintf(buf, "BG: sumi.Color{Name: %q}, ", s.BG.Name)
+	if lit := colorLiteral(s.BG); lit != "" {
+		fmt.Fprintf(buf, "BG: %s, ", lit)
 	}
 	if s.Bold {
 		buf.WriteString("Bold: true, ")

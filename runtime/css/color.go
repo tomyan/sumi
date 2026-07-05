@@ -38,9 +38,47 @@ func ParseColorValue(v string) (render.Color, bool) {
 		return hexColor(v)
 	}
 	if open := strings.IndexByte(v, '('); open > 0 && strings.HasSuffix(v, ")") {
-		return functionColor(v[:open], v[open+1:len(v)-1])
+		name, args := v[:open], v[open+1:len(v)-1]
+		if name == "light-dark" {
+			return lightDarkColor(args)
+		}
+		return functionColor(name, args)
 	}
 	return render.Color{}, false
+}
+
+// lightDarkColor parses light-dark(<light>, <dark>) into a scheme pair.
+// The split is depth-aware so nested functions (rgb(...)) survive.
+func lightDarkColor(args string) (render.Color, bool) {
+	parts := splitTopLevelCommas(args)
+	if len(parts) != 2 {
+		return render.Color{}, false
+	}
+	light, ok1 := ParseColorValue(parts[0])
+	dark, ok2 := ParseColorValue(parts[1])
+	if !ok1 || !ok2 {
+		return render.Color{}, false
+	}
+	return render.Color{Pair: &render.ColorPair{Light: light, Dark: dark}}, true
+}
+
+func splitTopLevelCommas(s string) []string {
+	var parts []string
+	depth, start := 0, 0
+	for i := 0; i < len(s); i++ {
+		switch s[i] {
+		case '(':
+			depth++
+		case ')':
+			depth--
+		case ',':
+			if depth == 0 {
+				parts = append(parts, strings.TrimSpace(s[start:i]))
+				start = i + 1
+			}
+		}
+	}
+	return append(parts, strings.TrimSpace(s[start:]))
 }
 
 func hexColor(v string) (render.Color, bool) {

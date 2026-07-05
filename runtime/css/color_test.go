@@ -133,3 +133,18 @@ func TestToRenderStyleInvalidColorDropped(t *testing.T) {
 		t.Errorf("invalid colour must drop, got %+v", s)
 	}
 }
+
+func TestParseLightDark(t *testing.T) {
+	c := mustColor(t, "light-dark(#fff, rgb(0 0 0))")
+	if c.Pair == nil {
+		t.Fatalf("light-dark should produce a Pair, got %+v", c)
+	}
+	rgbNear(t, c.Pair.Light, 255, 255, 255, "light arm")
+	rgbNear(t, c.Pair.Dark, 0, 0, 0, "dark arm")
+}
+
+func TestParseLightDarkInvalidArm(t *testing.T) {
+	if _, ok := ParseColorValue("light-dark(bogus, #000)"); ok {
+		t.Error("invalid arm should fail the whole value")
+	}
+}

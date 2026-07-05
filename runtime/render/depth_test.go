@@ -79,3 +79,24 @@ func TestSetColorDepthIgnoresAuto(t *testing.T) {
 		}
 	})
 }
+
+// A9: light-dark pairs resolve against the active scheme at emission time.
+func TestLightDarkPairResolvesPerScheme(t *testing.T) {
+	pair := Color{Pair: &ColorPair{
+		Light: Color{IsRGB: true, R: 255, G: 255, B: 255},
+		Dark:  Color{IsRGB: true, R: 0, G: 0, B: 0},
+	}}
+	withDepth(t, DepthTrueColor, func() {
+		prev := GetColorScheme()
+		defer SetColorScheme(prev)
+
+		SetColorScheme(SchemeDark)
+		if got := sgrFor(Style{FG: pair}); !strings.Contains(got, "38;2;0;0;0") {
+			t.Errorf("dark scheme sgr = %q, want black", got)
+		}
+		SetColorScheme(SchemeLight)
+		if got := sgrFor(Style{FG: pair}); !strings.Contains(got, "38;2;255;255;255") {
+			t.Errorf("light scheme sgr = %q, want white", got)
+		}
+	})
+}

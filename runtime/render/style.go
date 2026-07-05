@@ -7,6 +7,8 @@ type Color struct {
 	R, G, B  uint8
 	Is256    bool  // colour is an xterm-256 palette index (set by depth quantization)
 	Index256 uint8 // palette index when Is256
+
+	Pair *ColorPair // CSS light-dark() pair; resolved against the active scheme
 }
 
 // Style represents visual attributes for a terminal cell.
