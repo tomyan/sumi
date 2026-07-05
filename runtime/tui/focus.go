@@ -63,6 +63,36 @@ func handleFocusCycle(comp *Component, evt input.Event) bool {
 	return true
 }
 
+// focusClickedElement moves focus to the deepest focusable element on a
+// clicked path (click-to-focus), dispatching blur and focus events.
+func focusClickedElement(comp *Component, path []*layout.Input) {
+	var target *layout.Input
+	for i := len(path) - 1; i >= 0; i-- {
+		if layout.IsFocusable(path[i]) {
+			target = path[i]
+			break
+		}
+	}
+	if target == nil {
+		return
+	}
+	focusables := layout.CollectFocusables(comp.Tree)
+	idx := -1
+	for i, f := range focusables {
+		if f == target {
+			idx = i
+			break
+		}
+	}
+	if idx < 0 || idx == comp.FocusIndex {
+		return
+	}
+	dispatchFocusEvent(focusables, comp.FocusIndex, "blur")
+	comp.FocusIndex = idx
+	stampFocus(focusables, idx)
+	dispatchFocusEvent(focusables, idx, "focus")
+}
+
 // stampFocus sets Focused on each focusable according to the active index.
 func stampFocus(focusables []*layout.Input, active int) {
 	for i, f := range focusables {
@@ -140,6 +170,7 @@ func componentEventHandler(app *App, comp *Component) func(input.Event) {
 		dispatchMouseScroll(evt, comp)
 		if evt.Kind == input.EventMouse && evt.Mouse.Action == input.MousePress && evt.Mouse.Button == input.ButtonLeft {
 			path := layout.HitTestPath(comp.Tree, comp.LayoutResult, evt.Mouse.X, evt.Mouse.Y)
+			focusClickedElement(comp, path)
 			layout.DispatchDOM(path, &layout.DOMEvent{Type: "click", Key: evt})
 		}
 		dom := dispatchKeyToFocused(comp, evt)

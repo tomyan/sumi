@@ -16,6 +16,7 @@ hr { height: 1; width: 100%; border-top: single; margin: 1 0; }
 table { display: table; margin: 1 0; }
 tr { display: table-row; }
 th { font-weight: bold; }
+button { text-align: center; }
 strong, b { font-weight: bold; }
 em, i, var { font-style: italic; }
 u, a { text-decoration: underline; }

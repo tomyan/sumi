@@ -99,3 +99,29 @@ func TestLegacyBoxTextRejected(t *testing.T) {
 		t.Error("<text> must be rejected with a helpful error")
 	}
 }
+
+// C4: button keeps box form so borders and padding work; the label
+// becomes an implicit untagged text child.
+func TestParseButtonIsContainerWithImplicitLabel(t *testing.T) {
+	// Given / When
+	doc, err := Parse(`<button onclick={save}>Save {n}</button>`)
+
+	// Then
+	if err != nil {
+		t.Fatalf("parse error: %v", err)
+	}
+	btn, ok := doc.Children[0].(*BoxElement)
+	if !ok {
+		t.Fatalf("expected BoxElement, got %T", doc.Children[0])
+	}
+	if btn.Tag != "button" || btn.Attributes["onclick"] != "{save}" {
+		t.Errorf("button = %+v", btn)
+	}
+	label, ok := btn.Children[0].(*TextElement)
+	if !ok || label.Tag != "" {
+		t.Fatalf("expected untagged implicit text child, got %+v", btn.Children[0])
+	}
+	if len(label.Parts) != 2 {
+		t.Errorf("label parts = %+v", label.Parts)
+	}
+}

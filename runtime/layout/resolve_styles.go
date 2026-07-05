@@ -38,8 +38,18 @@ func resolveChildren(parent *Input, ss *style.Stylesheet, path []css.Element, va
 	siblings := elementSiblings(parent.Children)
 	elemIdx := 0
 	for _, child := range parent.Children {
-		if child == nil || child.Tag == "" || child.Tag == "root" || child.Tag[0] == ':' {
-			continue // placeholder, unidentified, component subtree, or synthetic
+		if child == nil {
+			continue
+		}
+		if child.Tag == "root" || (child.Tag != "" && child.Tag[0] == ':') {
+			continue // component subtree or synthetic pseudo-element
+		}
+		// text-align inherits (CSS): stamp the parent's value first so a
+		// child's own declaration, resolved below, overrides it. Re-stamped
+		// every pass, so a changed parent value propagates.
+		child.TextAlign = parent.TextAlign
+		if child.Tag == "" {
+			continue // implicit text child — not selectable by CSS
 		}
 		el := siblings[elemIdx]
 		el.Siblings = siblings

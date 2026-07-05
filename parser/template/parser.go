@@ -107,12 +107,14 @@ func isHTMLTagName(tag string) bool {
 }
 
 // containerTags are HTML elements that default to container (box) form
-// even when empty.
+// even when empty. Text bodies become implicit untagged children so the
+// element itself keeps borders, padding, and pseudo-element markers.
 var containerTags = map[string]bool{
 	"div": true, "section": true, "main": true, "header": true,
 	"footer": true, "nav": true, "article": true, "aside": true,
 	"ul": true, "ol": true, "li": true, "blockquote": true, "table": true,
 	"thead": true, "tbody": true, "tfoot": true, "tr": true,
+	"button": true,
 }
 
 // parseHTMLElement parses any HTML element. Bodies containing child

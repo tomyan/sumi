@@ -59,6 +59,39 @@ func TestFocusablePathOutOfRangeReturnsNil(t *testing.T) {
 	}
 }
 
+func TestButtonElementIsFocusableByDefault(t *testing.T) {
+	// Given — a button element with no focusable attribute
+	button := &Input{Kind: KindText, Tag: "button", Content: "Save"}
+	root := &Input{Kind: KindBox, Children: []*Input{button}}
+
+	// When
+	got := CollectFocusables(root)
+
+	// Then
+	if len(got) != 1 || got[0] != button {
+		t.Errorf("CollectFocusables = %v, want the button element", got)
+	}
+	if path := FocusablePath(root, 0); len(path) != 2 || path[1] != button {
+		t.Errorf("FocusablePath = %v, want [root button]", path)
+	}
+}
+
+func TestDisabledButtonSkippedByFocusTraversal(t *testing.T) {
+	// Given
+	disabled := &Input{Kind: KindText, Tag: "button", Content: "Off",
+		Attrs: map[string]string{"disabled": "true"}}
+	enabled := &Input{Kind: KindText, Tag: "button", Content: "On"}
+	root := &Input{Kind: KindBox, Children: []*Input{disabled, enabled}}
+
+	// When
+	got := CollectFocusables(root)
+
+	// Then
+	if len(got) != 1 || got[0] != enabled {
+		t.Errorf("CollectFocusables = %v, want only the enabled button", got)
+	}
+}
+
 func TestCollectFocusablesWithoutFocusables(t *testing.T) {
 	// Given
 	root := &Input{Kind: KindBox, Children: []*Input{{Kind: KindText, Content: "hi"}}}

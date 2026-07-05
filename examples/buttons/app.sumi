@@ -1,0 +1,38 @@
+<script>
+saves := sumi.New(0)
+cancels := sumi.New(0)
+
+func save() {
+    saves.Update(func(n int) int { return n + 1 })
+}
+
+func cancel() {
+    cancels.Update(func(n int) int { return n + 1 })
+}
+
+func handleKey(evt sumi.Event) {
+    if evt.Kind == sumi.EventSignal { sumi.Quit(); return }
+    if evt.Ctrl && evt.Rune == 'c' { sumi.Quit(); return }
+    if evt.Rune == 'q' { sumi.Quit(); return }
+}
+</script>
+
+<style>
+button {
+    border: single;
+    width: 14;
+}
+button:focus {
+    border-color: cyan;
+}
+.hint {
+    opacity: dim;
+}
+</style>
+
+<div onkey="handleKey">
+    <span class="hint">Tab to move, Enter or click to press; q quits</span>
+    <button onclick={save}>Save</button>
+    <button onclick={cancel}>Cancel</button>
+    <span>Saved {saves} times, cancelled {cancels} times</span>
+</div>

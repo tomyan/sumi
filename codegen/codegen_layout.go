@@ -158,6 +158,7 @@ func writeTextInput(buf *bytes.Buffer, n *template.TextElement, stylesheet *styl
 		fmt.Fprintf(buf, "%s\tContentEditable: true,\n", tabs)
 		writeCursorAttr(buf, tabs, attrs, nil)
 	}
+	writeOnHandlers(buf, tabs, attrs, nil, ext)
 	fmt.Fprintf(buf, "%s},\n", tabs)
 }
 
@@ -177,6 +178,7 @@ func writeExtractedTextNode(treeBuf, declBuf *bytes.Buffer, n *template.TextElem
 	fmt.Fprintf(declBuf, "\t\tKind:    sumi.KindText,\n")
 	writeIdentityFields(declBuf, "\t", textTagOf(n), n.Attributes)
 	fmt.Fprintf(declBuf, "\t\tContent: %s,\n", expr)
+	writeOnHandlers(declBuf, "\t", n.Attributes, nil, ext)
 	fmt.Fprintf(declBuf, "\t}\n")
 
 	// Record sync entry

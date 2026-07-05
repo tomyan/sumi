@@ -1,5 +1,21 @@
 package layout
 
+// controlTags are elements that receive focus without a focusable
+// attribute. Grows as controls are implemented (input, textarea, a,
+// select, summary).
+var controlTags = map[string]bool{
+	"button": true,
+}
+
+// IsFocusable reports whether a node participates in focus traversal:
+// standard controls and elements with focusable="true", unless disabled.
+func IsFocusable(n *Input) bool {
+	if d, ok := n.Attrs["disabled"]; ok && d != "false" {
+		return false
+	}
+	return n.Focusable || controlTags[n.Tag]
+}
+
 // CollectFocusables returns all focusable inputs in tree order.
 // Nil children (display:none placeholders) are skipped.
 func CollectFocusables(root *Input) []*Input {
@@ -9,7 +25,7 @@ func CollectFocusables(root *Input) []*Input {
 		if n == nil {
 			return
 		}
-		if n.Focusable {
+		if IsFocusable(n) {
 			focusables = append(focusables, n)
 		}
 		for _, child := range n.Children {
@@ -34,7 +50,7 @@ func FocusablePath(root *Input, index int) []*Input {
 			return false
 		}
 		path = append(path, n)
-		if n.Focusable {
+		if IsFocusable(n) {
 			if seen == index {
 				found = append([]*Input{}, path...)
 				return true

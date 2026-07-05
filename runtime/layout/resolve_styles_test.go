@@ -369,3 +369,29 @@ func TestResolveStylesHTMLTagSelectors(t *testing.T) {
 		t.Errorf("div > p should be dim: %+v", div.Children[1].Style)
 	}
 }
+
+// C4: text-align inherits — a button's UA centring reaches its implicit
+// "text"-tagged label, and a child's own declaration overrides.
+func TestResolveStylesTextAlignInherits(t *testing.T) {
+	tree := &Input{Tag: "root", Kind: KindBox, Children: []*Input{
+		{Tag: "button", Kind: KindBox, Children: []*Input{
+			{Tag: "text", Kind: KindText, Content: "Save"},
+		}},
+		{Tag: "div", Classes: []string{"left"}, Kind: KindBox, Children: []*Input{
+			{Tag: "span", Kind: KindText, Content: "own"},
+		}},
+	}}
+	ss := sheet(t, `.left { text-align: center; } .left span { text-align: right; }`)
+	ResolveStyles(tree, ss, 80, 24)
+
+	button := tree.Children[0]
+	if button.TextAlign != "center" {
+		t.Fatalf("button TextAlign = %q, want center from UA sheet", button.TextAlign)
+	}
+	if button.Children[0].TextAlign != "center" {
+		t.Errorf("implicit label TextAlign = %q, want inherited center", button.Children[0].TextAlign)
+	}
+	if got := tree.Children[1].Children[0].TextAlign; got != "right" {
+		t.Errorf("span TextAlign = %q, want own declaration to beat inherited", got)
+	}
+}

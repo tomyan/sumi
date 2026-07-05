@@ -1,0 +1,44 @@
+=== Frame: initial ===
+<<dim>>Tab to move, Enter or click to press; q <</>>
+<<dim>>quits<</>>
+<<cyan>>┌────────────┐<</>>
+<<cyan>>│<</>>    <<cyan>>Save<</>>    <<cyan>>│<</>>
+<<cyan>>└────────────┘<</>>
+┌────────────┐
+│   Cancel   │
+└────────────┘
+Saved 0 times, cancelled 0 times
+
+=== Frame: enter-presses-save ===
+<<dim>>Tab to move, Enter or click to press; q <</>>
+<<dim>>quits<</>>
+<<cyan>>┌────────────┐<</>>
+<<cyan>>│<</>>    <<cyan>>Save<</>>    <<cyan>>│<</>>
+<<cyan>>└────────────┘<</>>
+┌────────────┐
+│   Cancel   │
+└────────────┘
+Saved 1 times, cancelled 0 times
+
+=== Frame: tab-then-enter-presses-cancel ===
+<<dim>>Tab to move, Enter or click to press; q <</>>
+<<dim>>quits<</>>
+┌────────────┐
+│    Save    │
+└────────────┘
+<<cyan>>┌────────────┐<</>>
+<<cyan>>│<</>>   <<cyan>>Cancel<</>>   <<cyan>>│<</>>
+<<cyan>>└────────────┘<</>>
+Saved 1 times, cancelled 1 times
+
+=== Frame: click-presses-save-again ===
+<<dim>>Tab to move, Enter or click to press; q <</>>
+<<dim>>quits<</>>
+<<cyan>>┌────────────┐<</>>
+<<cyan>>│<</>>    <<cyan>>Save<</>>    <<cyan>>│<</>>
+<<cyan>>└────────────┘<</>>
+┌────────────┐
+│   Cancel   │
+└────────────┘
+Saved 2 times, cancelled 1 times
+

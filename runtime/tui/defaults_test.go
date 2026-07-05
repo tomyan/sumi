@@ -113,6 +113,37 @@ func TestEnterPassesThroughWithoutClickHandler(t *testing.T) {
 	}
 }
 
+func TestClickFocusesTheClickedFocusable(t *testing.T) {
+	// Given — two focusable text rows; the first starts focused
+	var secondEvents []*layout.DOMEvent
+	first := &layout.Input{Kind: layout.KindText, Content: "one", Focusable: true}
+	second := &layout.Input{Kind: layout.KindText, Content: "two", Focusable: true,
+		On: map[string]func(*layout.DOMEvent){
+			"focus": func(evt *layout.DOMEvent) { secondEvents = append(secondEvents, evt) },
+		}}
+	comp := &tui.Component{
+		Tree: &layout.Input{
+			Kind: layout.KindBox, CursorCol: -1, CursorRow: -1,
+			Children: []*layout.Input{first, second},
+		},
+	}
+	app := tui.TestApp(comp, 20, 4)
+
+	// When — click lands on the second row
+	app.Step(input.Event{Kind: input.EventMouse, Mouse: input.MouseEvent{
+		Action: input.MousePress, Button: input.ButtonLeft, X: 1, Y: 1,
+	}})
+
+	// Then — focus moved to the clicked element
+	if comp.FocusIndex != 1 || first.Focused || !second.Focused {
+		t.Errorf("FocusIndex=%d first.Focused=%v second.Focused=%v; want click-to-focus on second",
+			comp.FocusIndex, first.Focused, second.Focused)
+	}
+	if len(secondEvents) != 1 || secondEvents[0].Type != "focus" {
+		t.Errorf("second events = %v, want one focus event", secondEvents)
+	}
+}
+
 func TestPreventDefaultSuppressesEnterActivation(t *testing.T) {
 	// Given — keydown prevents the default, click would record
 	clicks := 0
