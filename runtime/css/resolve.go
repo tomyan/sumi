@@ -8,12 +8,17 @@ import (
 )
 
 // Element identifies one node on the path from the root to the element being
-// styled: its tag name, id, class list, and attributes.
+// styled: its tag name, id, class list, and attributes, plus the sibling
+// context needed by structural pseudo-classes and sibling combinators.
 type Element struct {
 	Tag     string
 	ID      string
 	Classes []string
 	Attrs   map[string]string
+
+	Siblings []Element // all element siblings including self, in order (nil = unknown)
+	Index    int       // position of self within Siblings
+	Empty    bool      // element has no children/content
 }
 
 // Resolve computes the cascaded properties for the element at the end of path.
@@ -61,36 +66,66 @@ func resolveWithPseudo(stylesheet *style.Stylesheet, path []Element, pseudo stri
 }
 
 // matchComplex reports whether the selector's subject matches the last path
-// element with its combinator chain satisfied by the ancestors.
+// element with its combinator chain satisfied.
 func matchComplex(sel style.ComplexSelector, path []Element) bool {
-	n := len(sel.Parts)
-	if n == 0 || len(path) == 0 {
+	if len(sel.Parts) == 0 || len(path) == 0 {
 		return false
 	}
-	if !matchSimple(sel.Parts[n-1], path[len(path)-1]) {
-		return false
-	}
-	return matchAncestors(sel, n-2, path, len(path)-2)
+	return matchFrom(sel, len(sel.Parts)-1, path)
 }
 
-// matchAncestors matches sel.Parts[0..pi] against path[0..ei] right to left.
-func matchAncestors(sel style.ComplexSelector, pi int, path []Element, ei int) bool {
-	if pi < 0 {
+// matchFrom matches sel.Parts[pi] against the last element of path, then
+// walks the combinator chain leftward. For sibling combinators the last path
+// element is replaced by a preceding sibling (siblings share ancestors).
+func matchFrom(sel style.ComplexSelector, pi int, path []Element) bool {
+	self := path[len(path)-1]
+	if !matchSimple(sel.Parts[pi], self) {
+		return false
+	}
+	if pi == 0 {
 		return true
 	}
-	if sel.Combinators[pi] == '>' {
-		if ei < 0 || !matchSimple(sel.Parts[pi], path[ei]) {
+	switch sel.Combinators[pi-1] {
+	case '>':
+		if len(path) < 2 {
 			return false
 		}
-		return matchAncestors(sel, pi-1, path, ei-1)
-	}
-	// Descendant: any ancestor position may match.
-	for e := ei; e >= 0; e-- {
-		if matchSimple(sel.Parts[pi], path[e]) && matchAncestors(sel, pi-1, path, e-1) {
-			return true
+		return matchFrom(sel, pi-1, path[:len(path)-1])
+	case '+':
+		if self.Siblings == nil || self.Index == 0 {
+			return false
 		}
+		return matchFrom(sel, pi-1, siblingPath(path, self, self.Index-1))
+	case '~':
+		for k := self.Index - 1; k >= 0; k-- {
+			if self.Siblings == nil {
+				break
+			}
+			if matchFrom(sel, pi-1, siblingPath(path, self, k)) {
+				return true
+			}
+		}
+		return false
+	default: // descendant
+		for e := len(path) - 2; e >= 0; e-- {
+			if matchFrom(sel, pi-1, path[:e+1]) {
+				return true
+			}
+		}
+		return false
 	}
-	return false
+}
+
+// siblingPath swaps the last path element for the sibling at index k,
+// giving it the shared sibling context.
+func siblingPath(path []Element, self Element, k int) []Element {
+	sib := self.Siblings[k]
+	sib.Siblings = self.Siblings
+	sib.Index = k
+	out := make([]Element, len(path))
+	copy(out, path)
+	out[len(out)-1] = sib
+	return out
 }
 
 func matchSimple(s style.SimpleSelector, e Element) bool {
@@ -107,6 +142,11 @@ func matchSimple(s style.SimpleSelector, e Element) bool {
 	}
 	for _, a := range s.Attrs {
 		if !matchAttr(a, e.Attrs) {
+			return false
+		}
+	}
+	for _, ps := range s.Structural {
+		if !matchStructural(ps, e) {
 			return false
 		}
 	}

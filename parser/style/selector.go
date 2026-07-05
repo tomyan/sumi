@@ -10,11 +10,19 @@ import (
 // (e.g. `box.panel#main[focusable=true]:hover`).
 // The universal selector `*` parses to an empty SimpleSelector.
 type SimpleSelector struct {
-	Tag     string        // "" matches any tag
-	ID      string        // "" matches any id
-	Classes []string      // all must be present
-	Attrs   []AttrMatcher // all must match
-	Pseudo  string        // pseudo-class name ("hover", ...); "" for none
+	Tag        string        // "" matches any tag
+	ID         string        // "" matches any id
+	Classes    []string      // all must be present
+	Attrs      []AttrMatcher // all must match
+	Pseudo     string        // state pseudo-class ("hover", "focus", ...); "" for none
+	Structural []string      // structural pseudo-classes, raw ("first-child", "nth-child(2n+1)")
+}
+
+// statePseudos are pseudo-classes driven by runtime state; they bucket the
+// rule (Rule.Pseudo) rather than participating in structural matching.
+var statePseudos = map[string]bool{
+	"hover": true, "focus": true, "active": true,
+	"checked": true, "disabled": true, "enabled": true,
 }
 
 // AttrMatcher is one attribute selector: [name], [name=v], [name^=v], etc.
@@ -56,7 +64,7 @@ func (c ComplexSelector) Specificity() Specificity {
 		if p.ID != "" {
 			sp.IDs++
 		}
-		sp.Classes += len(p.Classes) + len(p.Attrs)
+		sp.Classes += len(p.Classes) + len(p.Attrs) + len(p.Structural)
 		if p.Pseudo != "" {
 			sp.Classes++
 		}
@@ -89,8 +97,8 @@ func parseComplexSelector(text string) (ComplexSelector, error) {
 	var sel ComplexSelector
 	pending := byte(' ')
 	for _, tok := range tokenizeSelector(text) {
-		if tok == ">" {
-			pending = '>'
+		if tok == ">" || tok == "+" || tok == "~" {
+			pending = tok[0]
 			continue
 		}
 		part, err := parseSimpleSelector(tok)
@@ -109,11 +117,39 @@ func parseComplexSelector(text string) (ComplexSelector, error) {
 	return sel, nil
 }
 
-// tokenizeSelector splits on whitespace, surfacing `>` as its own token even
-// when written without surrounding spaces (`.a>.b`).
+// tokenizeSelector splits a selector into compound and combinator tokens.
+// Combinators (>, +, ~) become their own tokens even without surrounding
+// spaces; characters inside () or [] never split (`:nth-child(2n+1)`).
 func tokenizeSelector(text string) []string {
-	text = strings.ReplaceAll(text, ">", " > ")
-	return strings.Fields(text)
+	var tokens []string
+	var cur strings.Builder
+	depth := 0
+	flush := func() {
+		if cur.Len() > 0 {
+			tokens = append(tokens, cur.String())
+			cur.Reset()
+		}
+	}
+	for i := 0; i < len(text); i++ {
+		ch := text[i]
+		switch {
+		case ch == '(' || ch == '[':
+			depth++
+			cur.WriteByte(ch)
+		case ch == ')' || ch == ']':
+			depth--
+			cur.WriteByte(ch)
+		case depth == 0 && (ch == ' ' || ch == '\t'):
+			flush()
+		case depth == 0 && (ch == '>' || ch == '+' || ch == '~'):
+			flush()
+			tokens = append(tokens, string(ch))
+		default:
+			cur.WriteByte(ch)
+		}
+	}
+	flush()
+	return tokens
 }
 
 // parseSimpleSelector parses one compound like `box.panel#main[a=v]:hover`
@@ -149,10 +185,7 @@ func parseSimpleSelector(tok string) (SimpleSelector, error) {
 			continue
 		}
 		rest = rest[1:]
-		end := strings.IndexAny(rest, ".#:[")
-		if end < 0 {
-			end = len(rest)
-		}
+		end := qualifierEnd(rest)
 		name := rest[:end]
 		rest = rest[end:]
 		if name == "" {
@@ -164,10 +197,33 @@ func parseSimpleSelector(tok string) (SimpleSelector, error) {
 		case '#':
 			s.ID = name
 		case ':':
-			s.Pseudo = name
+			if statePseudos[name] {
+				s.Pseudo = name
+			} else {
+				s.Structural = append(s.Structural, name)
+			}
 		}
 	}
 	return s, nil
+}
+
+// qualifierEnd finds where the current qualifier name ends: the next
+// qualifier marker at paren depth zero, so `nth-child(2n+1)` stays intact.
+func qualifierEnd(rest string) int {
+	depth := 0
+	for i := 0; i < len(rest); i++ {
+		switch rest[i] {
+		case '(':
+			depth++
+		case ')':
+			depth--
+		case '.', '#', ':', '[':
+			if depth == 0 {
+				return i
+			}
+		}
+	}
+	return len(rest)
 }
 
 // parseAttrMatcher parses the inside of an attribute selector: `name`,

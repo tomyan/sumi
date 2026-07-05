@@ -23,14 +23,18 @@ func annotateStyles(doc *template.Document, stylesheet *style.Stylesheet) {
 }
 
 func annotateNodes(nodes []template.Node, stylesheet *style.Stylesheet, path []css.Element) {
+	siblings := elementSiblings(nodes)
+	elemIdx := 0
 	for _, node := range nodes {
 		switch n := node.(type) {
 		case *template.TextElement:
-			p := childPath(path, elementFor("text", n.Attributes))
+			p := childPath(path, positioned(siblings, elemIdx))
+			elemIdx++
 			n.ResolvedStyles = orNil(css.Resolve(stylesheet, p))
 			n.ResolvedHover = css.ResolveHover(stylesheet, p)
 		case *template.BoxElement:
-			p := childPath(path, elementFor("box", n.Attributes))
+			p := childPath(path, positioned(siblings, elemIdx))
+			elemIdx++
 			n.ResolvedStyles = orNil(css.Resolve(stylesheet, p))
 			n.ResolvedHover = css.ResolveHover(stylesheet, p)
 			annotateNodes(n.Children, stylesheet, p)
@@ -45,6 +49,35 @@ func annotateNodes(nodes []template.Node, stylesheet *style.Stylesheet, path []c
 			annotateNodes(n.Children, stylesheet, path)
 		}
 	}
+}
+
+// elementSiblings builds the css.Element sibling list for a node list.
+// Only statically-known element siblings participate: nodes inside {if}/{for}
+// bodies form their own sibling scope (their runtime multiplicity is unknown
+// at compile time).
+func elementSiblings(nodes []template.Node) []css.Element {
+	var sibs []css.Element
+	for _, node := range nodes {
+		switch n := node.(type) {
+		case *template.TextElement:
+			el := elementFor("text", n.Attributes)
+			el.Empty = len(n.Parts) == 0
+			sibs = append(sibs, el)
+		case *template.BoxElement:
+			el := elementFor("box", n.Attributes)
+			el.Empty = len(n.Children) == 0
+			sibs = append(sibs, el)
+		}
+	}
+	return sibs
+}
+
+// positioned returns the sibling at elemIdx with its context attached.
+func positioned(siblings []css.Element, elemIdx int) css.Element {
+	el := siblings[elemIdx]
+	el.Siblings = siblings
+	el.Index = elemIdx
+	return el
 }
 
 // resolveRootProps resolves properties for the implicit root element.
