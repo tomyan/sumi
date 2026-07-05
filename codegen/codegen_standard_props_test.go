@@ -174,8 +174,14 @@ func handleKey(evt sumi.Event) {
 	if strings.Contains(src, "FocusStyle") {
 		t.Errorf("FocusStyle comes from runtime resolution now:\n%s", src)
 	}
-	if !strings.Contains(src, "Focused = focusIndex == 0") {
-		t.Errorf("expected focus sync patch in output:\n%s", src)
+	if !strings.Contains(src, "Focusable: true") {
+		t.Errorf("expected Focusable flag in output:\n%s", src)
+	}
+	if !regexp.MustCompile(`OnKey:\s+handleKey,`).MatchString(src) {
+		t.Errorf("expected OnKey handler reference in output:\n%s", src)
+	}
+	if strings.Contains(src, "focusIndex") {
+		t.Errorf("focus state is runtime-owned; no focusIndex in generated code:\n%s", src)
 	}
 	if !strings.Contains(src, ".field:focus") {
 		t.Errorf("expected :focus rule in embedded stylesheet:\n%s", src)

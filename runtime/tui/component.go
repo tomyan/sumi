@@ -71,6 +71,7 @@ type Component struct {
 	Dispose      func()
 	Dirty        bool                               // set by AfterLayout to request a re-render pass
 	LayoutResult *layout.Box                        // set before AfterLayout with the latest layout result
+	FocusIndex   int                                // index into CollectFocusables(Tree) of the focused element
 	Keyframes    map[string]*anim.KeyframeAnimation // named keyframe animations from CSS
 	Stylesheet   *style.Stylesheet                  // component CSS for runtime resolution
 }
@@ -90,6 +91,7 @@ func TestApp(comp *Component, w, h int) *App {
 		} else {
 			termW, termH = term.GetSize(int(os.Stdin.Fd()))
 		}
+		syncFocus(comp)
 		layout.ResolveStyles(comp.Tree, comp.Stylesheet, termW, termH)
 		tree := layout.Layout(comp.Tree, termW, termH)
 		if comp.Stylesheet != nil && comp.Stylesheet.HasContainerRules() {
@@ -113,22 +115,12 @@ func TestApp(comp *Component, w, h int) *App {
 		}
 	}
 
-	app.OnEvent = func(evt input.Event) {
-		dispatchMouseScroll(evt, comp)
-		if evt.Kind == input.EventMouse && evt.Mouse.Action == input.MousePress && evt.Mouse.Button == input.ButtonLeft {
-			if h := layout.FindClickHandler(comp.Tree, comp.LayoutResult, evt.Mouse.X, evt.Mouse.Y); h != nil {
-				h()
-			}
-		}
-		if comp.OnEvent != nil {
-			comp.OnEvent(evt)
-		}
-		app.Dirty = true
-	}
+	app.OnEvent = componentEventHandler(app, comp)
 
 	app.componentDispose = comp.Dispose
 
 	// Initial render.
+	initFocus(comp)
 	app.Render()
 	return app
 }
@@ -180,6 +172,7 @@ func RunWithOptions(comp *Component, opts RunOptions) {
 		if comp.LayoutResult != nil {
 			layout.UpdateHover(comp.Tree, comp.LayoutResult, app.mouseX, app.mouseY)
 		}
+		syncFocus(comp)
 		layout.ResolveStyles(comp.Tree, comp.Stylesheet, termW, termH)
 		tree := layout.Layout(comp.Tree, termW, termH)
 		if comp.Stylesheet != nil && comp.Stylesheet.HasContainerRules() {
@@ -212,18 +205,7 @@ func RunWithOptions(comp *Component, opts RunOptions) {
 		}
 	}
 
-	app.OnEvent = func(evt input.Event) {
-		dispatchMouseScroll(evt, comp)
-		if evt.Kind == input.EventMouse && evt.Mouse.Action == input.MousePress && evt.Mouse.Button == input.ButtonLeft {
-			if h := layout.FindClickHandler(comp.Tree, comp.LayoutResult, evt.Mouse.X, evt.Mouse.Y); h != nil {
-				h()
-			}
-		}
-		if comp.OnEvent != nil {
-			comp.OnEvent(evt)
-		}
-		app.Dirty = true
-	}
+	app.OnEvent = componentEventHandler(app, comp)
 
 	if opts.OnPostRender != nil {
 		app.OnPostRender = opts.OnPostRender
@@ -239,6 +221,7 @@ func RunWithOptions(comp *Component, opts RunOptions) {
 
 	app.componentDispose = comp.Dispose
 	activeApp = app
+	initFocus(comp)
 	app.Run()
 	activeApp = nil
 
@@ -267,6 +250,7 @@ func Run(comp *Component) {
 		if comp.LayoutResult != nil {
 			layout.UpdateHover(comp.Tree, comp.LayoutResult, app.mouseX, app.mouseY)
 		}
+		syncFocus(comp)
 		layout.ResolveStyles(comp.Tree, comp.Stylesheet, termW, termH)
 		tree := layout.Layout(comp.Tree, termW, termH)
 		if comp.Stylesheet != nil && comp.Stylesheet.HasContainerRules() {
@@ -299,18 +283,7 @@ func Run(comp *Component) {
 		}
 	}
 
-	app.OnEvent = func(evt input.Event) {
-		dispatchMouseScroll(evt, comp)
-		if evt.Kind == input.EventMouse && evt.Mouse.Action == input.MousePress && evt.Mouse.Button == input.ButtonLeft {
-			if h := layout.FindClickHandler(comp.Tree, comp.LayoutResult, evt.Mouse.X, evt.Mouse.Y); h != nil {
-				h()
-			}
-		}
-		if comp.OnEvent != nil {
-			comp.OnEvent(evt)
-		}
-		app.Dirty = true
-	}
+	app.OnEvent = componentEventHandler(app, comp)
 
 	if layout.HasHoverStyles(comp.Tree) || layout.HasClickHandlers(comp.Tree) {
 		app.HasMouse = true
@@ -318,6 +291,7 @@ func Run(comp *Component) {
 
 	app.componentDispose = comp.Dispose
 	activeApp = app
+	initFocus(comp)
 	app.Run()
 	activeApp = nil
 

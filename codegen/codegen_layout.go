@@ -202,19 +202,12 @@ func hasExprParts(parts []template.Part) bool {
 // When ext is non-nil and the box has dynamic children or cursor, the box is extracted
 // as a named variable for sync patching.
 func writeBoxInput(buf *bytes.Buffer, n *template.BoxElement, stylesheet *style.Stylesheet, indent int, ext *extractionCtx) {
-	// Track focusable index for cursor-focus correlation
-	focusIdx := -1
-	if ext != nil && isFocusableBox(n.Attributes) {
-		focusIdx = ext.focusablesSeen
-		ext.focusablesSeen++
-	}
-
 	if ext != nil && !ext.inDynamic && hasDynamicChildren(n.Children) {
 		writeExtractedDynamicBox(buf, n, stylesheet, indent, ext)
 		return
 	}
-	if ext != nil && !ext.inDynamic && (hasDynamicCursor(n.Attributes) || focusIdx >= 0) {
-		writeExtractedCursorBox(buf, n, stylesheet, indent, ext, focusIdx)
+	if ext != nil && !ext.inDynamic && hasDynamicCursor(n.Attributes) {
+		writeExtractedCursorBox(buf, n, stylesheet, indent, ext)
 		return
 	}
 	tabs := indentStr(indent)
@@ -238,15 +231,9 @@ func hasDynamicCursor(attrs map[string]string) bool {
 	return false
 }
 
-// isFocusableBox returns true if the box has both focusable="true" and an onkey handler,
-// matching the criteria used by collectFocusableHandlers.
-func isFocusableBox(attrs map[string]string) bool {
-	return attrs["focusable"] == "true" && attrs["onkey"] != ""
-}
-
 // writeExtractedCursorBox extracts a box with dynamic cursor as a named variable.
-// Cursor fields are patched in sync. focusIdx >= 0 means cursor is conditional on focus.
-func writeExtractedCursorBox(treeBuf *bytes.Buffer, n *template.BoxElement, stylesheet *style.Stylesheet, indent int, ext *extractionCtx, focusIdx int) {
+// Cursor fields are patched in sync.
+func writeExtractedCursorBox(treeBuf *bytes.Buffer, n *template.BoxElement, stylesheet *style.Stylesheet, indent int, ext *extractionCtx) {
 	tabs := indentStr(indent)
 	name := ext.nextBoxName()
 
@@ -270,12 +257,9 @@ func writeExtractedCursorBox(treeBuf *bytes.Buffer, n *template.BoxElement, styl
 	ext.declBuf.Write(childBuf.Bytes())
 	fmt.Fprintf(&ext.declBuf, "\t}\n")
 
-	// Write sync entries: cursor patching and focus state.
+	// Write sync entries: cursor patching.
 	if hasDynamicCursor(n.Attributes) {
-		writeCursorSync(&ext.syncBuf, name, n.Attributes, focusIdx)
-	}
-	if focusIdx >= 0 {
-		fmt.Fprintf(&ext.syncBuf, "\t\t%s.Focused = focusIndex == %d\n", name, focusIdx)
+		writeCursorSync(&ext.syncBuf, name, n.Attributes)
 	}
 
 	// Write reference in tree
@@ -283,41 +267,15 @@ func writeExtractedCursorBox(treeBuf *bytes.Buffer, n *template.BoxElement, styl
 }
 
 // writeCursorSync writes CursorCol/CursorRow assignments to the sync buffer.
-// When focusIdx >= 0, cursor is conditional on focus (only visible when focused).
-func writeCursorSync(buf *bytes.Buffer, name string, attrs map[string]string, focusIdx int) {
-	if focusIdx >= 0 {
-		writeFocusConditionalCursor(buf, name, attrs, focusIdx)
-		return
-	}
+// Cursor visibility while unfocused is the component's concern (e.g. textedit
+// returns -1 from its cursor expression when its focused signal is false).
+func writeCursorSync(buf *bytes.Buffer, name string, attrs map[string]string) {
 	if v, ok := attrs["cursor-x"]; ok && isExprValue(v) {
 		fmt.Fprintf(buf, "\t\t%s.CursorCol = %s\n", name, extractExprValue(v))
 	}
 	if v, ok := attrs["cursor-y"]; ok && isExprValue(v) {
 		fmt.Fprintf(buf, "\t\t%s.CursorRow = %s\n", name, extractExprValue(v))
 	}
-}
-
-// writeFocusedStateSync emits a focused state variable assignment if the component has one.
-// focusedVar is the namespaced name of the focused state variable (e.g., "textinput0_focused").
-func writeFocusedStateSync(buf *bytes.Buffer, focusedVar string, focusIdx int) {
-	if focusedVar == "" || focusIdx < 0 {
-		return
-	}
-	fmt.Fprintf(buf, "\t\t%s = focusIndex == %d\n", focusedVar, focusIdx)
-}
-
-// writeFocusConditionalCursor emits cursor assignment conditional on focusIndex.
-func writeFocusConditionalCursor(buf *bytes.Buffer, name string, attrs map[string]string, focusIdx int) {
-	fmt.Fprintf(buf, "\t\tif focusIndex == %d {\n", focusIdx)
-	if v, ok := attrs["cursor-x"]; ok && isExprValue(v) {
-		fmt.Fprintf(buf, "\t\t\t%s.CursorCol = %s\n", name, extractExprValue(v))
-	}
-	if v, ok := attrs["cursor-y"]; ok && isExprValue(v) {
-		fmt.Fprintf(buf, "\t\t\t%s.CursorRow = %s\n", name, extractExprValue(v))
-	}
-	fmt.Fprintf(buf, "\t\t} else {\n")
-	fmt.Fprintf(buf, "\t\t\t%s.CursorCol = -1\n", name)
-	fmt.Fprintf(buf, "\t\t}\n")
 }
 
 // writeExtractedDynamicBox extracts a box with dynamic children as a named variable.
@@ -405,6 +363,9 @@ func writeBoxAttributes(buf *bytes.Buffer, tabs string, attrs map[string]string,
 	writeIntAttr(buf, tabs, attrs, props, "z-index", "ZIndex")
 	if f, ok := mergedAttr(attrs, props, "focusable"); ok && f == "true" {
 		fmt.Fprintf(buf, "%s\tFocusable: true,\n", tabs)
+		if h, ok := mergedAttr(attrs, props, "onkey"); ok && h != "" {
+			fmt.Fprintf(buf, "%s\tOnKey: %s,\n", tabs, h)
+		}
 	}
 	if ce, ok := mergedAttr(attrs, props, "contenteditable"); ok && ce == "true" {
 		fmt.Fprintf(buf, "%s\tContentEditable: true,\n", tabs)

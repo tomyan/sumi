@@ -1,0 +1,69 @@
+<script>
+firstFocused := sumi.New(false)
+secondFocused := sumi.New(false)
+
+func firstStatus() string {
+    if firstFocused.Get() {
+        return "focused"
+    }
+    return "blurred"
+}
+
+func secondStatus() string {
+    if secondFocused.Get() {
+        return "focused"
+    }
+    return "blurred"
+}
+
+func handleFirst(evt sumi.Event) {
+    if evt.Kind == sumi.EventFocus {
+        firstFocused.Set(true)
+        return
+    }
+    if evt.Kind == sumi.EventBlur {
+        firstFocused.Set(false)
+        return
+    }
+}
+
+func handleSecond(evt sumi.Event) {
+    if evt.Kind == sumi.EventFocus {
+        secondFocused.Set(true)
+        return
+    }
+    if evt.Kind == sumi.EventBlur {
+        secondFocused.Set(false)
+        return
+    }
+}
+
+func handleKey(evt sumi.Event) {
+    if evt.Kind == sumi.EventSignal { sumi.Quit(); return }
+    if evt.Ctrl && evt.Rune == 'c' { sumi.Quit(); return }
+    if evt.Rune == 'q' { sumi.Quit(); return }
+}
+</script>
+
+<style>
+.field {
+    border: single;
+    padding: 0 1;
+}
+.field:focus {
+    border-color: cyan;
+}
+.hint {
+    opacity: dim;
+}
+</style>
+
+<div onkey="handleKey">
+    <span class="hint">Tab / Shift+Tab moves focus; q quits</span>
+    <div class="field" focusable="true" onkey="handleFirst">
+        <span>First field: {firstStatus()}</span>
+    </div>
+    <div class="field" focusable="true" onkey="handleSecond">
+        <span>Second field: {secondStatus()}</span>
+    </div>
+</div>

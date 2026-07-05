@@ -20,7 +20,6 @@ type extractionCtx struct {
 	nodes             []extractedNode              // text nodes needing Content sync
 	count             int
 	boxCount          int
-	focusablesSeen    int                          // counts focusable boxes seen during tree walk
 	signals           map[string]bool              // signal variable names (for auto-unwrapping in expressions)
 	componentChildren map[string]ComponentChildInfo // child components for template
 	declBuf           bytes.Buffer

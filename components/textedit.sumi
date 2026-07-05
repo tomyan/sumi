@@ -204,6 +204,9 @@ func visiblePlaceholder() string {
 }
 
 func cursorX() int {
+    if !focused.Get() {
+        return -1
+    }
     if selAnchor.Get() >= 0 {
         return -1
     }

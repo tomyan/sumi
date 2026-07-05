@@ -2,6 +2,45 @@ package layout
 
 import "testing"
 
+func TestCollectFocusablesReturnsTreeOrder(t *testing.T) {
+	// Given — focusables at different depths, with a nil child (display:none)
+	first := &Input{Kind: KindBox, Focusable: true}
+	second := &Input{Kind: KindBox, Focusable: true}
+	root := &Input{
+		Kind: KindBox,
+		Children: []*Input{
+			{Kind: KindBox, Children: []*Input{first}},
+			nil,
+			{Kind: KindBox},
+			second,
+		},
+	}
+
+	// When
+	got := CollectFocusables(root)
+
+	// Then
+	if len(got) != 2 {
+		t.Fatalf("CollectFocusables returned %d inputs, want 2", len(got))
+	}
+	if got[0] != first || got[1] != second {
+		t.Errorf("CollectFocusables order wrong: got [%p %p], want [%p %p]", got[0], got[1], first, second)
+	}
+}
+
+func TestCollectFocusablesWithoutFocusables(t *testing.T) {
+	// Given
+	root := &Input{Kind: KindBox, Children: []*Input{{Kind: KindText, Content: "hi"}}}
+
+	// When / Then
+	if got := CollectFocusables(root); len(got) != 0 {
+		t.Errorf("expected no focusables, got %d", len(got))
+	}
+	if got := CollectFocusables(nil); len(got) != 0 {
+		t.Errorf("expected no focusables for nil root, got %d", len(got))
+	}
+}
+
 func TestFocusCycleForward(t *testing.T) {
 	// Given
 	tests := []struct {

@@ -42,6 +42,11 @@ func TabEvent() input.Event {
 	return input.Event{Kind: input.EventSpecial, Special: input.KeyTab}
 }
 
+// ShiftTabEvent creates a Shift+Tab key event.
+func ShiftTabEvent() input.Event {
+	return input.Event{Kind: input.EventSpecial, Special: input.KeyShiftTab}
+}
+
 // ClickEvent creates a left mouse button press at (row, col).
 func ClickEvent(row, col int) input.Event {
 	return input.Event{
