@@ -150,7 +150,36 @@ func matchSimple(s style.SimpleSelector, e Element) bool {
 			return false
 		}
 	}
+	for _, lp := range s.Logical {
+		if !matchLogical(lp, e) {
+			return false
+		}
+	}
 	return true
+}
+
+// matchLogical evaluates :not()/:is()/:where() against an element.
+func matchLogical(lp style.LogicalPseudo, e Element) bool {
+	anyMatch := false
+	for _, arg := range lp.Args {
+		if matchCompoundArg(arg, e) {
+			anyMatch = true
+			break
+		}
+	}
+	if lp.Name == "not" {
+		return !anyMatch
+	}
+	return anyMatch // is, where
+}
+
+// matchCompoundArg matches one logical-pseudo argument. Arguments with
+// combinators are unsupported and never match.
+func matchCompoundArg(arg style.ComplexSelector, e Element) bool {
+	if len(arg.Parts) != 1 {
+		return false
+	}
+	return matchSimple(arg.Parts[0], e)
 }
 
 func matchAttr(m style.AttrMatcher, attrs map[string]string) bool {

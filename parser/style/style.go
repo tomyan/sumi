@@ -173,7 +173,7 @@ func (p *parser) parseRules() ([]Rule, error) {
 		return nil, err
 	}
 
-	items := strings.Split(selectorText, ",")
+	items := SplitSelectorList(selectorText)
 	rules := make([]Rule, len(selectors))
 	for i, sel := range selectors {
 		pseudo := sel.Parts[len(sel.Parts)-1].Pseudo

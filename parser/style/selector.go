@@ -10,12 +10,21 @@ import (
 // (e.g. `box.panel#main[focusable=true]:hover`).
 // The universal selector `*` parses to an empty SimpleSelector.
 type SimpleSelector struct {
-	Tag        string        // "" matches any tag
-	ID         string        // "" matches any id
-	Classes    []string      // all must be present
-	Attrs      []AttrMatcher // all must match
-	Pseudo     string        // state pseudo-class ("hover", "focus", ...); "" for none
-	Structural []string      // structural pseudo-classes, raw ("first-child", "nth-child(2n+1)")
+	Tag        string          // "" matches any tag
+	ID         string          // "" matches any id
+	Classes    []string        // all must be present
+	Attrs      []AttrMatcher   // all must match
+	Pseudo     string          // state pseudo-class ("hover", "focus", ...); "" for none
+	Structural []string        // structural pseudo-classes, raw ("first-child", "nth-child(2n+1)")
+	Logical    []LogicalPseudo // :not(), :is(), :where()
+}
+
+// LogicalPseudo is a :not()/:is()/:where() pseudo-class with its selector
+// arguments. Arguments are compound selectors; combinators inside the
+// arguments are not supported (such an argument never matches).
+type LogicalPseudo struct {
+	Name string // "not", "is", "where"
+	Args []ComplexSelector
 }
 
 // statePseudos are pseudo-classes driven by runtime state; they bucket the
@@ -68,6 +77,9 @@ func (c ComplexSelector) Specificity() Specificity {
 		if p.Pseudo != "" {
 			sp.Classes++
 		}
+		for _, lp := range p.Logical {
+			sp = sp.add(lp.specificity())
+		}
 		if p.Tag != "" {
 			sp.Types++
 		}
@@ -75,10 +87,30 @@ func (c ComplexSelector) Specificity() Specificity {
 	return sp
 }
 
-// ParseSelectorList parses a comma-separated selector list.
+func (s Specificity) add(o Specificity) Specificity {
+	return Specificity{s.IDs + o.IDs, s.Classes + o.Classes, s.Types + o.Types}
+}
+
+// specificity of a logical pseudo: :where() contributes nothing; :not() and
+// :is() contribute their most specific argument, per spec.
+func (l LogicalPseudo) specificity() Specificity {
+	if l.Name == "where" {
+		return Specificity{}
+	}
+	var max Specificity
+	for _, arg := range l.Args {
+		if sp := arg.Specificity(); max.Less(sp) {
+			max = sp
+		}
+	}
+	return max
+}
+
+// ParseSelectorList parses a comma-separated selector list. Commas inside
+// parentheses or brackets (`:is(.a, .b)`) do not split.
 func ParseSelectorList(text string) ([]ComplexSelector, error) {
 	var out []ComplexSelector
-	for _, item := range strings.Split(text, ",") {
+	for _, item := range SplitSelectorList(text) {
 		item = strings.TrimSpace(item)
 		if item == "" {
 			return nil, fmt.Errorf("empty selector in list %q", text)
@@ -90,6 +122,26 @@ func ParseSelectorList(text string) ([]ComplexSelector, error) {
 		out = append(out, sel)
 	}
 	return out, nil
+}
+
+// SplitSelectorList splits selector-list text on top-level commas only.
+func SplitSelectorList(text string) []string {
+	var items []string
+	depth, start := 0, 0
+	for i := 0; i < len(text); i++ {
+		switch text[i] {
+		case '(', '[':
+			depth++
+		case ')', ']':
+			depth--
+		case ',':
+			if depth == 0 {
+				items = append(items, text[start:i])
+				start = i + 1
+			}
+		}
+	}
+	return append(items, text[start:])
 }
 
 // parseComplexSelector parses one combinator chain like `.panel > text`.
@@ -197,14 +249,31 @@ func parseSimpleSelector(tok string) (SimpleSelector, error) {
 		case '#':
 			s.ID = name
 		case ':':
-			if statePseudos[name] {
+			base, arg, hasArg := splitFunctionalPseudo(name)
+			switch {
+			case hasArg && (base == "not" || base == "is" || base == "where"):
+				args, err := ParseSelectorList(arg)
+				if err != nil {
+					return SimpleSelector{}, fmt.Errorf("in :%s(): %w", base, err)
+				}
+				s.Logical = append(s.Logical, LogicalPseudo{Name: base, Args: args})
+			case statePseudos[name]:
 				s.Pseudo = name
-			} else {
+			default:
 				s.Structural = append(s.Structural, name)
 			}
 		}
 	}
 	return s, nil
+}
+
+// splitFunctionalPseudo splits "not(.a)" into ("not", ".a", true).
+func splitFunctionalPseudo(name string) (string, string, bool) {
+	open := strings.IndexByte(name, '(')
+	if open < 0 || !strings.HasSuffix(name, ")") {
+		return name, "", false
+	}
+	return name[:open], name[open+1 : len(name)-1], true
 }
 
 // qualifierEnd finds where the current qualifier name ends: the next
