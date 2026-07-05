@@ -140,6 +140,7 @@ type Box struct {
 	Cells                    *render.Buffer        // per-cell styled content (ansi/region), blitted at the content origin
 	Padding                  Padding               // insets (propagated from Input; content origin for Cells)
 	Lines                    []string              // wrapped lines (nil = single line, use Content)
+	Fragments                []Fragment            // inline-flow line rectangles, box-relative (nil = not in an IFC)
 	TextAlign                string                // per-line alignment within the box width
 	TextOverflow             string                // truncation mode for overflowing lines
 	Visibility               string                // "hidden" skips painting
@@ -609,11 +610,15 @@ func layoutNode(input *Input, availW, availH int) *Box {
 		}
 	}
 
+	isIFC := input.Display == "block" && isInlineContext(flowChildren)
+
 	var flowBoxes []*Box
 	if input.Display == "grid" {
 		flowBoxes = layoutGrid(input, flowChildren, offsetX, offsetY, flexAvailW, flexAvailH)
 	} else if input.Display == "table" {
 		flowBoxes = layoutTable(input, flowChildren, offsetX, offsetY, flexAvailW, flexAvailH)
+	} else if isIFC {
+		flowBoxes = layoutInlineChildren(flowChildren, offsetX, offsetY, contentAvailW)
 	} else if input.Direction == "row" && input.FlexWrap {
 		flowBoxes = layoutRowWrap(flowChildren, offsetX, offsetY, gap, flexAvailW, flexAvailH)
 	} else if input.Direction == "row" {
@@ -653,7 +658,7 @@ func layoutNode(input *Input, availW, availH int) *Box {
 	if reversed {
 		justify = flipJustify(justify)
 	}
-	skipFlexAlignment := input.FlexWrap || input.Display == "grid" || input.Display == "table"
+	skipFlexAlignment := input.FlexWrap || input.Display == "grid" || input.Display == "table" || isIFC
 	if justify != "" && justify != "start" && !skipFlexAlignment {
 		if input.Direction == "row" {
 			applyJustifyRow(flowBoxes, offsetX, contentAvailW, justify)

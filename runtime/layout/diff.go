@@ -95,6 +95,9 @@ func nodeChanged(old, new *Box) bool {
 	if !linesEqual(old.Lines, new.Lines) {
 		return true
 	}
+	if !fragmentsEqual(old.Fragments, new.Fragments) {
+		return true
+	}
 	if old.ScrollY != new.ScrollY || old.ScrollX != new.ScrollX {
 		return true
 	}
@@ -180,6 +183,19 @@ func diffKeyedChildren(oldChildren, newChildren []*Box, changes *[]Change, needs
 	for i := unkeyedIdx; i < len(oldUnkeyed); i++ {
 		diffNode(oldUnkeyed[i], nil, changes, needsFullRedraw)
 	}
+}
+
+// fragmentsEqual compares two inline fragment slices for equality.
+func fragmentsEqual(a, b []Fragment) bool {
+	if len(a) != len(b) {
+		return false
+	}
+	for i := range a {
+		if a[i] != b[i] {
+			return false
+		}
+	}
+	return true
 }
 
 // linesEqual compares two string slices for equality.

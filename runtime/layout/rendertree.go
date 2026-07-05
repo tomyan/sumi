@@ -116,7 +116,11 @@ func renderBorder(buf *render.Buffer, box *Box) {
 }
 
 func renderContent(buf *render.Buffer, box *Box, clip *render.Clip) {
-	if box.Lines != nil {
+	if box.Fragments != nil {
+		for _, f := range box.Fragments {
+			buf.WriteStyledTextClipped(box.Y+f.Y, box.X+f.X, f.Text, box.Style, clip)
+		}
+	} else if box.Lines != nil {
 		for i, line := range box.Lines {
 			line = fitLine(line, box.Width, box.TextOverflow)
 			buf.WriteStyledTextClipped(box.Y+i, box.X+alignShift(line, box.Width, box.TextAlign), line, box.Style, clip)
