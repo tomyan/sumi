@@ -171,7 +171,8 @@ func activateFocused(comp *Component, evt input.Event) bool {
 		return false
 	}
 	isAnchor := target.Tag == "a" && target.Attrs["href"] != ""
-	if isEnter && target.On["click"] == nil && !isAnchor && !checkable {
+	isSummary := target.Tag == "summary"
+	if isEnter && target.On["click"] == nil && !isAnchor && !checkable && !isSummary {
 		return false
 	}
 	dom := &layout.DOMEvent{Type: "click", Key: evt}
@@ -199,6 +200,15 @@ func clickDefault(comp *Component, path []*layout.Input, evt input.Event, follow
 		if n.Tag == "select" {
 			moveSelect(comp, path[:i+1], n, 1, evt)
 			return
+		}
+		if n.Tag == "summary" {
+			// Toggle the summary's enclosing details.
+			for j := i - 1; j >= 0; j-- {
+				if path[j].Tag == "details" {
+					toggleDetails(comp, path[:j+1], path[j], evt)
+					return
+				}
+			}
 		}
 		if n.Tag == "a" {
 			if href := n.Attrs["href"]; href != "" {

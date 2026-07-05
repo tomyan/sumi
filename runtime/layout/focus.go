@@ -4,9 +4,10 @@ package layout
 // attribute. Grows as controls are implemented (input, textarea, a,
 // select, summary).
 var controlTags = map[string]bool{
-	"button": true,
-	"input":  true,
-	"select": true,
+	"button":  true,
+	"input":   true,
+	"select":  true,
+	"summary": true,
 }
 
 // IsFocusable reports whether a node participates in focus traversal:
@@ -28,7 +29,7 @@ func CollectFocusables(root *Input) []*Input {
 	var focusables []*Input
 	var walk func(n *Input)
 	walk = func(n *Input) {
-		if n == nil {
+		if n == nil || n.Display == "none" {
 			return
 		}
 		if IsFocusable(n) {
@@ -52,7 +53,7 @@ func FocusablePath(root *Input, index int) []*Input {
 	var found []*Input
 	var walk func(n *Input, path []*Input) bool
 	walk = func(n *Input, path []*Input) bool {
-		if n == nil {
+		if n == nil || n.Display == "none" {
 			return false
 		}
 		path = append(path, n)

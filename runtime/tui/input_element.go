@@ -121,6 +121,8 @@ func syncProjection(n *layout.Input) {
 		syncSelectElement(n)
 	case "progress", "meter":
 		syncBarElement(n)
+	case "details":
+		syncDetailsElement(n)
 	}
 }
 
