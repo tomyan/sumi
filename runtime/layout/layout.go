@@ -56,6 +56,11 @@ type Input struct {
 	MaxHeight       int    // maximum height (0 = no maximum)
 	ContentBox      bool   // box-sizing: content-box (sizes exclude border+padding)
 	Display         string // "" (default) or "none" (hidden from layout)
+	TextAlign       string // "left" (default), "center", "right"
+	WhiteSpace      string // "" normal (wrap), "nowrap", "pre"
+	TextOverflow    string // "", "ellipsis", "ellipsis-middle"
+	TextTransform   string // "", "uppercase", "lowercase", "capitalize"
+	Visibility      string // "" visible, "hidden" (occupies space, not painted)
 	Position        string // "" (static), "relative", "absolute", "fixed", "sticky"
 	ZIndex          int    // paint order (higher renders on top)
 	Top             int    // offset from top (for positioned elements)
@@ -118,6 +123,9 @@ type Box struct {
 	Children                 []*Box
 	Content                  string                // text content if text node
 	Lines                    []string              // wrapped lines (nil = single line, use Content)
+	TextAlign                string                // per-line alignment within the box width
+	TextOverflow             string                // truncation mode for overflowing lines
+	Visibility               string                // "hidden" skips painting
 	Border                   string                // border style
 	BorderTop                string                // top-only border
 	BorderBottom             string                // bottom-only border
@@ -328,6 +336,38 @@ func flipJustify(justify string) string {
 	return justify
 }
 
+// transformText applies CSS text-transform to content.
+func transformText(content, transform string) string {
+	switch transform {
+	case "uppercase":
+		return strings.ToUpper(content)
+	case "lowercase":
+		return strings.ToLower(content)
+	case "capitalize":
+		return capitalizeWords(content)
+	}
+	return content
+}
+
+func capitalizeWords(s string) string {
+	var b strings.Builder
+	atWordStart := true
+	for _, r := range s {
+		if r == ' ' || r == '\t' || r == '\n' {
+			atWordStart = true
+			b.WriteRune(r)
+			continue
+		}
+		if atWordStart {
+			b.WriteString(strings.ToUpper(string(r)))
+			atWordStart = false
+		} else {
+			b.WriteRune(r)
+		}
+	}
+	return b.String()
+}
+
 // clampSize applies min/max constraints (0 = unconstrained).
 func clampSize(v, min, max int) int {
 	if min > 0 && v < min {
@@ -415,6 +455,9 @@ func layoutNode(input *Input, availW, availH int) *Box {
 		CursorCol:       input.CursorCol,
 		CursorRow:       input.CursorRow,
 		Style:           input.Style,
+		TextAlign:       input.TextAlign,
+		TextOverflow:    input.TextOverflow,
+		Visibility:      input.Visibility,
 	}
 
 	if input.Kind == KindText {
@@ -422,21 +465,47 @@ func layoutNode(input *Input, availW, availH int) *Box {
 			box.CursorCol = -1
 			box.CursorRow = -1
 		}
-		box.Content = input.Content
-		runeLen := utf8.RuneCountInString(input.Content)
+		content := transformText(input.Content, input.TextTransform)
+		box.Content = content
+		runeLen := utf8.RuneCountInString(content)
 		// Contenteditable wraps one column early to reserve space for the cursor.
 		wrapW := availW
 		if input.ContentEditable && availW > 1 {
 			wrapW = availW - 1
 		}
-		if wrapW > 0 && runeLen > wrapW {
-			lines := wrapText(input.Content, wrapW)
-			box.Lines = lines
-			box.Width = availW
-			box.Height = len(lines)
-		} else {
+		switch input.WhiteSpace {
+		case "nowrap":
 			box.Width = runeLen
 			box.Height = 1
+		case "pre":
+			lines := strings.Split(content, "\n")
+			maxW := 0
+			for _, l := range lines {
+				if w := utf8.RuneCountInString(l); w > maxW {
+					maxW = w
+				}
+			}
+			if len(lines) > 1 {
+				box.Lines = lines
+			}
+			box.Width = maxW
+			box.Height = len(lines)
+		default:
+			if wrapW > 0 && runeLen > wrapW {
+				lines := wrapText(content, wrapW)
+				box.Lines = lines
+				box.Width = availW
+				box.Height = len(lines)
+			} else {
+				box.Width = runeLen
+				box.Height = 1
+			}
+		}
+		// Aligned text needs the full line box to align within.
+		if input.TextAlign == "center" || input.TextAlign == "right" {
+			if availW > box.Width {
+				box.Width = availW
+			}
 		}
 		// Convert flat cursor offset to visual (row, col) within wrapped lines.
 		if input.ContentEditable && box.CursorCol >= 0 {

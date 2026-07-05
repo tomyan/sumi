@@ -24,6 +24,10 @@ func renderTreeFull(buf *render.Buffer, box *Box, clip *render.Clip, inherited r
 	nodeID := fmt.Sprintf("n%d", *counter)
 	*counter++
 
+	if box.Visibility == "hidden" {
+		return // occupies layout space but paints nothing (children included)
+	}
+
 	// Apply hover: when hovered and a hover style exists, use it instead.
 	if box.Hovered && !box.HoverStyle.IsZero() {
 		box.Style = box.HoverStyle
@@ -94,10 +98,12 @@ func renderBorder(buf *render.Buffer, box *Box) {
 func renderContent(buf *render.Buffer, box *Box, clip *render.Clip) {
 	if box.Lines != nil {
 		for i, line := range box.Lines {
-			buf.WriteStyledTextClipped(box.Y+i, box.X, line, box.Style, clip)
+			line = fitLine(line, box.Width, box.TextOverflow)
+			buf.WriteStyledTextClipped(box.Y+i, box.X+alignShift(line, box.Width, box.TextAlign), line, box.Style, clip)
 		}
 	} else if box.Content != "" {
-		buf.WriteStyledTextClipped(box.Y, box.X, box.Content, box.Style, clip)
+		line := fitLine(box.Content, box.Width, box.TextOverflow)
+		buf.WriteStyledTextClipped(box.Y, box.X+alignShift(line, box.Width, box.TextAlign), line, box.Style, clip)
 	}
 	// Render inverse cursor for contenteditable elements.
 	if box.ContentEditable && box.CursorCol >= 0 && box.CursorRow >= 0 {
@@ -112,6 +118,55 @@ func renderContent(buf *render.Buffer, box *Box, clip *render.Clip) {
 		cursorStyle.Inverse = true
 		buf.SetStyledCell(cursorY, cursorX, ch, cursorStyle)
 	}
+}
+
+// alignShift computes the X offset that aligns a line within the box width.
+func alignShift(line string, width int, align string) int {
+	if align != "center" && align != "right" {
+		return 0
+	}
+	pad := width - runeLen(line)
+	if pad <= 0 {
+		return 0
+	}
+	if align == "center" {
+		return pad / 2
+	}
+	return pad
+}
+
+// fitLine truncates an overflowing line per text-overflow.
+func fitLine(line string, width int, overflow string) string {
+	if overflow == "" || width <= 0 {
+		return line
+	}
+	runes := []rune(line)
+	if len(runes) <= width {
+		return line
+	}
+	switch overflow {
+	case "ellipsis":
+		if width == 1 {
+			return "…"
+		}
+		return string(runes[:width-1]) + "…"
+	case "ellipsis-middle":
+		if width <= 2 {
+			return string(runes[:width])
+		}
+		head := (width - 1) / 2
+		tail := width - 1 - head
+		return string(runes[:head]) + "…" + string(runes[len(runes)-tail:])
+	}
+	return string(runes[:width])
+}
+
+func runeLen(s string) int {
+	n := 0
+	for range s {
+		n++
+	}
+	return n
 }
 
 // renderScrollbarsAndChildren draws scrollbars (if needed) then renders children

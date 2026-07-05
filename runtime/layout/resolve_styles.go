@@ -224,11 +224,31 @@ func applyLayoutProps(n *Input, props map[string]string) {
 	if v, ok := cssValue(n, props, "display"); ok {
 		n.Display = v
 	}
+	applyTextLayoutProps(n, props)
 	if v, ok := cssValue(n, props, "overflow"); ok {
 		n.Overflow = v
 	}
 	applyPositionProps(n, props)
 	applyBorderProps(n, props)
+}
+
+// applyTextLayoutProps handles text flow and visibility properties.
+func applyTextLayoutProps(n *Input, props map[string]string) {
+	if v, ok := cssValue(n, props, "text-align"); ok {
+		n.TextAlign = v
+	}
+	if v, ok := cssValue(n, props, "white-space"); ok {
+		n.WhiteSpace = v
+	}
+	if v, ok := cssValue(n, props, "text-overflow"); ok {
+		n.TextOverflow = v
+	}
+	if v, ok := cssValue(n, props, "text-transform"); ok {
+		n.TextTransform = v
+	}
+	if v, ok := cssValue(n, props, "visibility"); ok {
+		n.Visibility = v
+	}
 }
 
 // applyFlexProps handles flex-shrink, flex-basis, and the flex shorthand.
