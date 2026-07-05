@@ -358,6 +358,9 @@ func writeBoxAttributes(buf *bytes.Buffer, tabs string, attrs map[string]string,
 	if p, ok := mergedAttr(attrs, props, "padding"); ok {
 		fmt.Fprintf(buf, "%s\tPadding: sumi.ParsePadding(%q),\n", tabs, p)
 	}
+	if m, ok := mergedAttr(attrs, props, "margin"); ok {
+		fmt.Fprintf(buf, "%s\tMargin: sumi.ParseMargin(%q),\n", tabs, m)
+	}
 	if b, ok := mergedAttr(attrs, props, "border"); ok {
 		fmt.Fprintf(buf, "%s\tBorder: %q,\n", tabs, b)
 	}

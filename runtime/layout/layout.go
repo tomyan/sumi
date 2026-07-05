@@ -61,6 +61,7 @@ type Input struct {
 	Focusable       bool   // true if this element can receive focus
 	FocusIndex      int    // assigned focus index (0-based) for Tab cycling
 	Padding         Padding
+	Margin          Margin
 	Border          string                // "single", "none", or ""
 	BorderTop       string                // top-only border: "single" or ""
 	BorderBottom    string                // bottom-only border: "single" or ""
@@ -595,13 +596,22 @@ func layoutColumn(children []*Input, offsetX, offsetY, gap, availW, availH int) 
 		if i > 0 && gap > 0 {
 			cursorY += gap
 		}
-		childBox := layoutNode(child, availW, availH)
-		childBox.X = offsetX
+		m := child.Margin
+		cursorY += m.Top
+		childBox := layoutNode(child, maxInt(availW-m.horizontal(), 0), availH)
+		childBox.X = offsetX + m.Left
 		childBox.Y = offsetY + cursorY
-		cursorY += childBox.Height
+		cursorY += childBox.Height + m.Bottom
 		boxes = append(boxes, childBox)
 	}
 	return boxes
+}
+
+func maxInt(a, b int) int {
+	if a > b {
+		return a
+	}
+	return b
 }
 
 // layoutRow places children horizontally, advancing X after each child.
@@ -612,10 +622,12 @@ func layoutRow(children []*Input, offsetX, offsetY, gap, availW, availH int) []*
 		if i > 0 && gap > 0 {
 			cursorX += gap
 		}
-		childBox := layoutNode(child, availW, availH)
+		m := child.Margin
+		cursorX += m.Left
+		childBox := layoutNode(child, availW, maxInt(availH-m.vertical(), 0))
 		childBox.X = offsetX + cursorX
-		childBox.Y = offsetY
-		cursorX += childBox.Width
+		childBox.Y = offsetY + m.Top
+		cursorX += childBox.Width + m.Right
 		boxes = append(boxes, childBox)
 	}
 	return boxes
@@ -632,6 +644,7 @@ func layoutRowFlex(children []*Input, offsetX, offsetY, gap, availW, availH int)
 		if i > 0 {
 			totalGaps += gap
 		}
+		totalFixed += child.Margin.horizontal()
 		if child.FlexGrow > 0 {
 			totalFlex += child.FlexGrow
 		} else {
@@ -657,6 +670,8 @@ func layoutRowFlex(children []*Input, offsetX, offsetY, gap, availW, availH int)
 		if i > 0 {
 			cursorX += gap
 		}
+		m := child.Margin
+		cursorX += m.Left
 		var childBox *Box
 		if child.FlexGrow > 0 {
 			flexWidth := flexSizes[flexIdx]
@@ -671,8 +686,8 @@ func layoutRowFlex(children []*Input, offsetX, offsetY, gap, availW, availH int)
 			childBox = layoutNode(child, naturalWidths[i], availH)
 		}
 		childBox.X = offsetX + cursorX
-		childBox.Y = offsetY
-		cursorX += childBox.Width
+		childBox.Y = offsetY + m.Top
+		cursorX += childBox.Width + m.Right
 		boxes[i] = childBox
 	}
 	return boxes
@@ -689,6 +704,7 @@ func layoutColumnFlex(children []*Input, offsetX, offsetY, gap, availW, availH i
 		if i > 0 {
 			totalGaps += gap
 		}
+		totalFixed += child.Margin.vertical()
 		if child.FlexGrow > 0 {
 			totalFlex += child.FlexGrow
 		} else {
@@ -714,6 +730,8 @@ func layoutColumnFlex(children []*Input, offsetX, offsetY, gap, availW, availH i
 		if i > 0 {
 			cursorY += gap
 		}
+		m := child.Margin
+		cursorY += m.Top
 		var childBox *Box
 		if child.FlexGrow > 0 {
 			flexHeight := flexSizes[flexIdx]
@@ -728,9 +746,9 @@ func layoutColumnFlex(children []*Input, offsetX, offsetY, gap, availW, availH i
 		} else {
 			childBox = layoutNode(child, availW, availH)
 		}
-		childBox.X = offsetX
+		childBox.X = offsetX + m.Left
 		childBox.Y = offsetY + cursorY
-		cursorY += childBox.Height
+		cursorY += childBox.Height + m.Bottom
 		boxes[i] = childBox
 	}
 	return boxes
@@ -810,6 +828,10 @@ func applyJustify(boxes []*Box, remaining int, justify string, isRow bool, offse
 // applyAlignRow aligns children along the Y axis (cross axis for row layout).
 func applyAlignRow(boxes []*Box, inputs []*Input, offsetY, availH int, align string) {
 	for i, b := range boxes {
+		if i < len(inputs) && inputs[i].Margin.autoCentreY() {
+			b.Y = offsetY + (availH-b.Height)/2
+			continue
+		}
 		switch align {
 		case "end":
 			b.Y = offsetY + availH - b.Height
@@ -828,6 +850,10 @@ func applyAlignRow(boxes []*Box, inputs []*Input, offsetY, availH int, align str
 // applyAlignColumn aligns children along the X axis (cross axis for column layout).
 func applyAlignColumn(boxes []*Box, inputs []*Input, offsetX, availW int, align string) {
 	for i, b := range boxes {
+		if i < len(inputs) && inputs[i].Margin.autoCentreX() {
+			b.X = offsetX + (availW-b.Width)/2
+			continue
+		}
 		switch align {
 		case "end":
 			b.X = offsetX + availW - b.Width

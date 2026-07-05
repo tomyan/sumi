@@ -209,6 +209,7 @@ func applyLayoutProps(n *Input, props map[string]string) {
 	if v, ok := cssValue(n, props, "padding"); ok {
 		n.Padding = ParsePadding(v)
 	}
+	applyMarginProps(n, props)
 	if v, ok := cssValue(n, props, "display"); ok {
 		n.Display = v
 	}
@@ -217,6 +218,27 @@ func applyLayoutProps(n *Input, props map[string]string) {
 	}
 	applyPositionProps(n, props)
 	applyBorderProps(n, props)
+}
+
+func applyMarginProps(n *Input, props map[string]string) {
+	if v, ok := cssValue(n, props, "margin"); ok {
+		n.Margin = ParseMargin(v)
+	}
+	side := func(key string, val *int, auto *bool) {
+		v, ok := cssValue(n, props, key)
+		if !ok {
+			return
+		}
+		if v == "auto" {
+			*auto = true
+			return
+		}
+		*val = ParseCellLength(v)
+	}
+	side("margin-top", &n.Margin.Top, &n.Margin.AutoTop)
+	side("margin-right", &n.Margin.Right, &n.Margin.AutoRight)
+	side("margin-bottom", &n.Margin.Bottom, &n.Margin.AutoBottom)
+	side("margin-left", &n.Margin.Left, &n.Margin.AutoLeft)
 }
 
 func applyPositionProps(n *Input, props map[string]string) {

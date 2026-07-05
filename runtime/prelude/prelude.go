@@ -54,6 +54,9 @@ type Stylesheet = style.Stylesheet
 // ResolveStyles resolves component CSS against an input tree at runtime.
 var ResolveStyles = layout.ResolveStyles
 
+// ParseMargin parses a CSS margin shorthand.
+var ParseMargin = layout.ParseMargin
+
 func MustParseStylesheet(src string) *style.Stylesheet {
 	ss, err := style.Parse(src)
 	if err != nil {
