@@ -350,3 +350,22 @@ func TestResolveStylesPseudoInvisibleToSiblingMatching(t *testing.T) {
 		t.Errorf("real first child FG = %q, want red (pseudo invisible)", got)
 	}
 }
+
+// C1a: HTML tags match CSS type selectors at runtime.
+func TestResolveStylesHTMLTagSelectors(t *testing.T) {
+	tree := &Input{Tag: "root", Kind: KindBox, Children: []*Input{
+		{Tag: "div", Kind: KindBox, Children: []*Input{
+			{Tag: "h1", Kind: KindText, Content: "Title"},
+			{Tag: "p", Kind: KindText, Content: "Body"},
+		}},
+	}}
+	ss := sheet(t, `h1 { font-weight: bold; } div > p { opacity: dim; }`)
+	ResolveStyles(tree, ss, 80, 24)
+	div := tree.Children[0]
+	if !div.Children[0].Style.Bold {
+		t.Errorf("h1 should be bold: %+v", div.Children[0].Style)
+	}
+	if !div.Children[1].Style.Dim {
+		t.Errorf("div > p should be dim: %+v", div.Children[1].Style)
+	}
+}

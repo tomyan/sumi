@@ -75,9 +75,104 @@ func (p *parser) parseElement() (Node, error) {
 		return p.parseTitleElement()
 	case strings.HasPrefix(tagName, "slot:"):
 		return p.parseSlotElement(tagName)
+	case isHTMLTagName(tagName):
+		return p.parseHTMLElement(tagName)
 	default:
 		return p.parseComponentElement(tagName)
 	}
+}
+
+// htmlTags is the recognised HTML element vocabulary. Anything else
+// lowercase remains a component reference (legacy components like
+// <textedit> keep working until the C1c migration).
+var htmlTags = map[string]bool{
+	"div": true, "span": true, "p": true, "h1": true, "h2": true,
+	"h3": true, "h4": true, "h5": true, "h6": true, "ul": true,
+	"ol": true, "li": true, "blockquote": true, "pre": true,
+	"code": true, "hr": true, "section": true, "main": true,
+	"header": true, "footer": true, "nav": true, "article": true,
+	"aside": true, "strong": true, "b": true, "em": true, "i": true,
+	"u": true, "s": true, "del": true, "mark": true, "kbd": true,
+	"abbr": true, "samp": true, "var": true, "a": true, "label": true,
+	"table": true, "thead": true, "tbody": true, "tfoot": true,
+	"tr": true, "td": true, "th": true, "caption": true,
+	"button": true, "input": true, "textarea": true, "select": true,
+	"option": true, "progress": true, "meter": true, "details": true,
+	"summary": true, "dialog": true, "img": true,
+}
+
+// isHTMLTagName reports whether a tag is a recognised HTML element name.
+func isHTMLTagName(tag string) bool {
+	return htmlTags[tag]
+}
+
+// containerTags are HTML elements that default to container (box) form
+// even when empty.
+var containerTags = map[string]bool{
+	"div": true, "section": true, "main": true, "header": true,
+	"footer": true, "nav": true, "article": true, "aside": true,
+	"ul": true, "ol": true, "blockquote": true, "table": true,
+	"thead": true, "tbody": true, "tfoot": true, "tr": true,
+}
+
+// parseHTMLElement parses any HTML element. Bodies containing child
+// elements or control flow become containers (BoxElement); plain
+// text/expression bodies become text elements. Self-closing is allowed.
+func (p *parser) parseHTMLElement(tag string) (Node, error) {
+	attrs, err := p.parseAttributes()
+	if err != nil {
+		return nil, err
+	}
+	if attrs == nil {
+		attrs = make(map[string]string)
+	}
+	if p.isSelfClosing() {
+		return &BoxElement{Tag: tag, Attributes: attrs}, nil
+	}
+	if err := p.expectClose(tag); err != nil {
+		return nil, err
+	}
+	if p.htmlBodyIsText(tag) {
+		node, err := p.parseTextBody(tag, attrs)
+		if err != nil {
+			return nil, err
+		}
+		return retagText(node, tag), nil
+	}
+	children, err := p.parseChildren(tag)
+	if err != nil {
+		return nil, err
+	}
+	return &BoxElement{Tag: tag, Attributes: attrs, Children: children}, nil
+}
+
+// htmlBodyIsText reports whether the element body up to the closing tag is
+// plain text/expressions (no child elements or control-flow blocks).
+func (p *parser) htmlBodyIsText(tag string) bool {
+	rest := p.input[p.pos:]
+	lt := strings.Index(rest, "<")
+	if lt < 0 {
+		return false
+	}
+	if !strings.HasPrefix(rest[lt:], "</"+tag+">") {
+		return false
+	}
+	body := rest[:lt]
+	if strings.Contains(body, "{if ") || strings.Contains(body, "{for ") {
+		return false
+	}
+	if strings.TrimSpace(body) == "" && containerTags[tag] {
+		return false
+	}
+	return true
+}
+
+// retagText stamps the HTML tag onto a parsed text element.
+func retagText(node Node, tag string) Node {
+	if t, ok := node.(*TextElement); ok {
+		t.Tag = tag
+	}
+	return node
 }
 
 // readTagName reads a tag name (until whitespace, '>', or '/').
@@ -326,10 +421,15 @@ func (p *parser) expectByte(ch byte, context string, args ...any) error {
 }
 
 func (p *parser) parseTextElement(attrs map[string]string) (Node, error) {
-	closingTag := "</text>"
+	return p.parseTextBody("text", attrs)
+}
+
+// parseTextBody reads text/expression content up to the closing tag.
+func (p *parser) parseTextBody(tag string, attrs map[string]string) (Node, error) {
+	closingTag := "</" + tag + ">"
 	closeIdx := strings.Index(p.input[p.pos:], closingTag)
 	if closeIdx == -1 {
-		return nil, fmt.Errorf("missing closing </text> tag")
+		return nil, fmt.Errorf("missing closing %s tag", closingTag)
 	}
 	content := p.input[p.pos : p.pos+closeIdx]
 	p.pos += closeIdx + len(closingTag)

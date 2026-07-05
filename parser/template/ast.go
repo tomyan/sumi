@@ -31,16 +31,20 @@ type ExprPart struct {
 
 func (e *ExprPart) partType() string { return "expr" }
 
-// TextElement represents a <text>content</text> element.
+// TextElement represents a text-bearing element: <text>, or any HTML
+// element whose body is plain text/expressions (<h1>Hi {name}</h1>).
 type TextElement struct {
+	Tag        string // HTML tag name; "" means legacy <text>
 	Attributes map[string]string
 	Parts      []Part
 }
 
 func (t *TextElement) nodeType() string { return "text" }
 
-// BoxElement represents a <box>...</box> container element with attributes.
+// BoxElement represents a container element: <box>, or any HTML element
+// with element children (<div>, <ul>, ...).
 type BoxElement struct {
+	Tag        string // HTML tag name; "" means legacy <box>
 	Attributes map[string]string
 	Children   []Node
 }

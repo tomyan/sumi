@@ -76,7 +76,7 @@ func writeAppendTextWithSignals(buf *bytes.Buffer, n *template.TextElement, styl
 	content := contentExprSignals(n.Parts, signals)
 	buf.WriteString("&sumi.Input{\n")
 	buf.WriteString("\t\tKind: sumi.KindText,\n")
-	writeIdentityFields(buf, "\t", "text", n.Attributes)
+	writeIdentityFields(buf, "\t", textTagOf(n), n.Attributes)
 	fmt.Fprintf(buf, "\t\tContent: %s,\n", content)
 	buf.WriteString("\t}")
 }

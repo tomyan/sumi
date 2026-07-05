@@ -181,3 +181,24 @@ func handleKey(evt sumi.Event) {
 		t.Errorf("expected :focus rule in embedded stylesheet:\n%s", src)
 	}
 }
+
+// C1a: HTML elements flow through codegen with their tag identity, and the
+// runtime resolver styles them by tag.
+func TestGenerateHTMLElementIdentity(t *testing.T) {
+	doc := &template.Document{
+		Children: []template.Node{
+			&template.BoxElement{Tag: "div", Attributes: map[string]string{"class": "panel"},
+				Children: []template.Node{
+					&template.TextElement{Tag: "h1", Parts: []template.Part{&template.StringPart{Value: "Title"}}},
+				}},
+		},
+	}
+	out, err := Generate(doc, nil, nil, "main")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	src := string(out)
+	if !containsField(src, "Tag", `"div"`) || !containsField(src, "Tag", `"h1"`) {
+		t.Errorf("expected div/h1 tags in output:\n%s", src)
+	}
+}

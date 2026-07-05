@@ -3,11 +3,28 @@ package codegen
 import (
 	"bytes"
 	"fmt"
+	"github.com/tomyan/sumi/parser/template"
 	"sort"
 	"strings"
 
 	"github.com/tomyan/sumi/runtime/render"
 )
+
+// textTagOf returns the CSS tag for a text-bearing element.
+func textTagOf(n *template.TextElement) string {
+	if n.Tag != "" {
+		return n.Tag
+	}
+	return "text"
+}
+
+// boxTagOf returns the CSS tag for a container element.
+func boxTagOf(n *template.BoxElement) string {
+	if n.Tag != "" {
+		return n.Tag
+	}
+	return "box"
+}
 
 // writeIdentityFields emits the element identity used by runtime CSS
 // resolution (Tag/ID/Classes/Attrs on layout.Input).

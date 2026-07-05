@@ -151,7 +151,7 @@ func writeTextInput(buf *bytes.Buffer, n *template.TextElement, stylesheet *styl
 
 	fmt.Fprintf(buf, "%s{\n", tabs)
 	fmt.Fprintf(buf, "%s\tKind:    sumi.KindText,\n", tabs)
-	writeIdentityFields(buf, tabs, "text", n.Attributes)
+	writeIdentityFields(buf, tabs, textTagOf(n), n.Attributes)
 	fmt.Fprintf(buf, "%s\tContent: %s,\n", tabs, content)
 	if ce, ok := attrs["contenteditable"]; ok && ce == "true" {
 		fmt.Fprintf(buf, "%s\tContentEditable: true,\n", tabs)
@@ -174,7 +174,7 @@ func writeExtractedTextNode(treeBuf, declBuf *bytes.Buffer, n *template.TextElem
 	// Write declaration to declBuf (at function scope indent)
 	fmt.Fprintf(declBuf, "\t%s := &sumi.Input{\n", name)
 	fmt.Fprintf(declBuf, "\t\tKind:    sumi.KindText,\n")
-	writeIdentityFields(declBuf, "\t", "text", n.Attributes)
+	writeIdentityFields(declBuf, "\t", textTagOf(n), n.Attributes)
 	fmt.Fprintf(declBuf, "\t\tContent: %s,\n", expr)
 	fmt.Fprintf(declBuf, "\t}\n")
 
@@ -221,7 +221,7 @@ func writeBoxInput(buf *bytes.Buffer, n *template.BoxElement, stylesheet *style.
 
 	fmt.Fprintf(buf, "%s{\n", tabs)
 	fmt.Fprintf(buf, "%s\tKind: sumi.KindBox,\n", tabs)
-	writeIdentityFields(buf, tabs, "box", n.Attributes)
+	writeIdentityFields(buf, tabs, boxTagOf(n), n.Attributes)
 	writeBoxAttributes(buf, tabs, n.Attributes, nil)
 	writeBoxChildren(buf, n.Children, stylesheet, indent, tabs, ext)
 	fmt.Fprintf(buf, "%s},\n", tabs)
@@ -265,7 +265,7 @@ func writeExtractedCursorBox(treeBuf *bytes.Buffer, n *template.BoxElement, styl
 	// Write declaration to declBuf (at function scope)
 	fmt.Fprintf(&ext.declBuf, "\t%s := &sumi.Input{\n", name)
 	fmt.Fprintf(&ext.declBuf, "\t\tKind: sumi.KindBox,\n")
-	writeIdentityFields(&ext.declBuf, "\t", "box", n.Attributes)
+	writeIdentityFields(&ext.declBuf, "\t", boxTagOf(n), n.Attributes)
 	writeBoxAttributes(&ext.declBuf, "\t", n.Attributes, nil)
 	ext.declBuf.Write(childBuf.Bytes())
 	fmt.Fprintf(&ext.declBuf, "\t}\n")
@@ -329,7 +329,7 @@ func writeExtractedDynamicBox(treeBuf *bytes.Buffer, n *template.BoxElement, sty
 	// Write declaration to declBuf (at function scope, no Children)
 	fmt.Fprintf(&ext.declBuf, "\t%s := &sumi.Input{\n", name)
 	fmt.Fprintf(&ext.declBuf, "\t\tKind: sumi.KindBox,\n")
-	writeIdentityFields(&ext.declBuf, "\t", "box", n.Attributes)
+	writeIdentityFields(&ext.declBuf, "\t", boxTagOf(n), n.Attributes)
 	writeBoxAttributes(&ext.declBuf, "\t", n.Attributes, nil)
 	fmt.Fprintf(&ext.declBuf, "\t}\n")
 
