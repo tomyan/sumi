@@ -22,6 +22,7 @@ type App struct {
 	Title        string            // static terminal title (saved/set/restored around Run)
 	SaveTitle    bool              // save/restore terminal title only (for dynamic titles set in doRender)
 	Dirty        bool              // set by handlers to trigger re-render
+	ExitOn       []string          // quit chords ("ctrl+c", "q", "escape"); nil = ctrl+c
 	OnPostRender func()            // called after each converge() cycle (if non-nil)
 	quitCh       chan struct{}     // closed by Quit() to exit the event loop
 	wakeCh       chan struct{}     // receives from RequestFrame() to wake the event loop
@@ -43,6 +44,11 @@ func (a *App) Quit() {
 	case a.quitCh <- struct{}{}:
 	default:
 	}
+}
+
+// QuitRequested reports whether a quit is pending (for tests).
+func (a *App) QuitRequested() bool {
+	return len(a.quitCh) > 0
 }
 
 // Wake immediately wakes the event loop to trigger a re-render.

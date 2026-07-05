@@ -74,7 +74,7 @@ func TestImgWidthAttrScales(t *testing.T) {
 	// Given — the 2x4 image scaled up to 4 cells wide
 	src := writeTestPNG(t)
 	img := &layout.Input{Kind: layout.KindBox, Tag: "img",
-		Attrs: map[string]string{"src": src, "width": "4", "height": "2"},
+		Attrs:      map[string]string{"src": src, "width": "4", "height": "2"},
 		FixedWidth: 4, FixedHeight: 2, CursorCol: -1, CursorRow: -1}
 	comp := &tui.Component{Tree: &layout.Input{
 		Kind: layout.KindBox, CursorCol: -1, CursorRow: -1,

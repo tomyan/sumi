@@ -147,6 +147,7 @@ type RunOptions struct {
 	OnResize     func()            // called on terminal resize
 	SetApp       func(a *App)      // called with the app reference before Run
 	ColorDepth   render.ColorDepth // emission depth; DepthAuto detects from env
+	ExitOn       []string          // quit chords ("ctrl+c", "q", "escape"); nil = ctrl+c
 }
 
 // RunWithOptions runs a component with additional configuration.
@@ -157,6 +158,7 @@ func RunWithOptions(comp *Component, opts RunOptions) {
 		render.SetColorDepth(opts.ColorDepth)
 	}
 	app := &App{}
+	app.ExitOn = opts.ExitOn
 	if opts.SetApp != nil {
 		opts.SetApp(app)
 	}

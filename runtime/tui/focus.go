@@ -265,6 +265,9 @@ func componentEventHandler(app *App, comp *Component) func(input.Event) {
 		if comp.OnEvent != nil {
 			comp.OnEvent(evt)
 		}
+		if matchesExitChord(evt, app.ExitOn) {
+			app.Quit()
+		}
 		app.Dirty = true
 	}
 }
