@@ -1,0 +1,58 @@
+<script>
+notify := sumi.New(false)
+size := sumi.New("small")
+
+func notifyChanged(evt *sumi.DOMEvent) {
+    notify.Set(evt.Data["checked"].(bool))
+}
+
+func sizeChanged(evt *sumi.DOMEvent) {
+    size.Set(evt.Data["value"].(string))
+}
+
+func notifyLabel() string {
+    if notify.Get() {
+        return "on"
+    }
+    return "off"
+}
+
+func handleKey(evt sumi.Event) {
+    if evt.Kind == sumi.EventSignal { sumi.Quit(); return }
+    if evt.Ctrl && evt.Rune == 'c' { sumi.Quit(); return }
+    if evt.Rune == 'q' { sumi.Quit(); return }
+}
+</script>
+
+<style>
+.row {
+    flex-direction: row;
+    gap: 1;
+}
+input:focus {
+    color: yellow;
+}
+input:checked {
+    color: green;
+}
+.hint {
+    opacity: dim;
+}
+</style>
+
+<div onkey="handleKey">
+    <span class="hint">Tab to move, Space to toggle; q quits</span>
+    <div class="row">
+        <input type="checkbox" onchange={notifyChanged} />
+        <span>Notifications ({notifyLabel()})</span>
+    </div>
+    <div class="row">
+        <input type="radio" name="size" value="small" checked="true" onchange={sizeChanged} />
+        <span>Small</span>
+    </div>
+    <div class="row">
+        <input type="radio" name="size" value="large" onchange={sizeChanged} />
+        <span>Large</span>
+    </div>
+    <span>Size: {size}</span>
+</div>

@@ -1,0 +1,21 @@
+=== Frame: initial ===
+<<dim>>Tab to move, Space to toggle; q quits<</>>
+<<yellow>>[ ]<</>> Notifications (off)
+<<green>>(•)<</>> Small
+( ) Large
+Size: small
+
+=== Frame: toggle-notifications ===
+<<dim>>Tab to move, Space to toggle; q quits<</>>
+<<yellow>>[x]<</>> Notifications (on)
+<<green>>(•)<</>> Small
+( ) Large
+Size: small
+
+=== Frame: select-large ===
+<<dim>>Tab to move, Space to toggle; q quits<</>>
+<<green>>[x]<</>> Notifications (on)
+( ) Small
+<<yellow>>(•)<</>> Large
+Size: large
+

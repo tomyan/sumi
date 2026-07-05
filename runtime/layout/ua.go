@@ -18,6 +18,7 @@ tr { display: table-row; }
 th { font-weight: bold; }
 button { text-align: center; }
 input { width: 20; }
+input[type="checkbox"], input[type="radio"] { width: 3; }
 strong, b { font-weight: bold; }
 em, i, var { font-style: italic; }
 u, a { text-decoration: underline; }

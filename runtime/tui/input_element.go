@@ -24,10 +24,16 @@ func ensureEditState(n *layout.Input) *edit.State {
 	return n.Edit
 }
 
-// syncInputElement projects editing state onto the element: the value —
-// masked for password inputs, windowed to the laid-out width — renders
-// in an implicit text child; the cursor shows only while focused.
+// syncInputElement projects element state onto the tree. Checkables
+// render their glyph with no caret; text inputs render the value —
+// masked for password inputs, windowed to the laid-out width — in an
+// implicit text child, with the cursor shown only while focused.
 func syncInputElement(n *layout.Input, focused bool) {
+	if isCheckable(n) {
+		ensureValueChild(n).Content = checkableGlyph(n)
+		n.CursorCol = -1
+		return
+	}
 	state := ensureEditState(n)
 	display := state.Value
 	if n.Attrs["type"] == "password" {
@@ -143,7 +149,7 @@ func editFocusedInput(comp *Component, evt input.Event) bool {
 		return false
 	}
 	target := path[len(path)-1]
-	if target.Tag != "input" {
+	if target.Tag != "input" || isCheckable(target) {
 		return false
 	}
 	state := ensureEditState(target)

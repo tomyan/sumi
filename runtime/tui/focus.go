@@ -149,15 +149,17 @@ func applyDefaultActions(comp *Component, evt input.Event, dom *layout.DOMEvent)
 	if editFocusedInput(comp, evt) {
 		return true
 	}
-	return activateFocusedOnEnter(comp, evt)
+	return activateFocused(comp, evt)
 }
 
-// activateFocusedOnEnter synthesizes a bubbling click on the focused
-// element when Enter is pressed. Returns true only when the focused
-// element is activatable (handles click, or is an anchor with an href) —
-// Enter on a plain focusable passes through.
-func activateFocusedOnEnter(comp *Component, evt input.Event) bool {
-	if evt.Kind != input.EventSpecial || evt.Special != input.KeyEnter {
+// activateFocused synthesizes a bubbling click on the focused element.
+// Enter activates anything activatable (click handler, anchor with href,
+// or checkable); Space activates checkables only — it types into text
+// inputs and passes through everything else.
+func activateFocused(comp *Component, evt input.Event) bool {
+	isEnter := evt.Kind == input.EventSpecial && evt.Special == input.KeyEnter
+	isSpace := evt.Kind == input.EventKey && !evt.Ctrl && evt.Rune == ' '
+	if !isEnter && !isSpace {
 		return false
 	}
 	path := layout.FocusablePath(comp.Tree, comp.FocusIndex)
@@ -165,24 +167,34 @@ func activateFocusedOnEnter(comp *Component, evt input.Event) bool {
 		return false
 	}
 	target := path[len(path)-1]
+	checkable := isCheckable(target)
+	if isSpace && !checkable {
+		return false
+	}
 	isAnchor := target.Tag == "a" && target.Attrs["href"] != ""
-	if target.On["click"] == nil && !isAnchor {
+	if isEnter && target.On["click"] == nil && !isAnchor && !checkable {
 		return false
 	}
 	dom := &layout.DOMEvent{Type: "click", Key: evt}
 	layout.DispatchDOM(path, dom)
 	if !dom.DefaultPrevented() {
-		runClickDefault(path)
+		runClickDefault(comp, path, evt)
 	}
 	return true
 }
 
-// runClickDefault performs the default action for a click: opening the
-// nearest anchor's href, walking from the target upward.
-func runClickDefault(path []*layout.Input) {
+// runClickDefault performs the default action for a click, walking from
+// the target upward: toggle the first checkable, or open the first
+// anchor's href.
+func runClickDefault(comp *Component, path []*layout.Input, evt input.Event) {
 	for i := len(path) - 1; i >= 0; i-- {
-		if path[i].Tag == "a" {
-			if href := path[i].Attrs["href"]; href != "" {
+		n := path[i]
+		if isCheckable(n) {
+			toggleCheckable(comp, path[:i+1], n, evt)
+			return
+		}
+		if n.Tag == "a" {
+			if href := n.Attrs["href"]; href != "" {
 				OpenURL(href)
 				return
 			}
@@ -202,7 +214,7 @@ func componentEventHandler(app *App, comp *Component) func(input.Event) {
 			dom := &layout.DOMEvent{Type: "click", Key: evt}
 			layout.DispatchDOM(path, dom)
 			if !dom.DefaultPrevented() {
-				runClickDefault(path)
+				runClickDefault(comp, path, evt)
 			}
 		}
 		dom := dispatchKeyToFocused(comp, evt)

@@ -61,7 +61,7 @@ func resolveChildren(parent *Input, ss *style.Stylesheet, path []css.Element, va
 		copy(p, path)
 		p = append(p, el)
 
-		props := css.Resolve(ss, p)
+		props := css.ResolveWithStates(ss, p, activeStatePseudos(child))
 		childVars := customPropsFrom(vars, props)
 		applyResolvedProps(child,
 			expandProps(props, childVars),
@@ -69,6 +69,32 @@ func resolveChildren(parent *Input, ss *style.Stylesheet, path []css.Element, va
 			expandProps(css.ResolveFocus(ss, p), childVars))
 		resolveChildren(child, ss, p, childVars)
 	}
+}
+
+// activeStatePseudos lists the state pseudo-classes the node currently
+// matches (attribute-backed; resolution runs every converge, so toggles
+// restyle on the next pass). :disabled/:enabled apply only to form controls.
+func activeStatePseudos(n *Input) []string {
+	var states []string
+	if v, ok := n.Attrs["checked"]; ok && v != "false" {
+		states = append(states, "checked")
+	}
+	if isFormControl(n.Tag) {
+		if v, ok := n.Attrs["disabled"]; ok && v != "false" {
+			states = append(states, "disabled")
+		} else {
+			states = append(states, "enabled")
+		}
+	}
+	return states
+}
+
+func isFormControl(tag string) bool {
+	switch tag {
+	case "input", "button", "textarea", "select", "option":
+		return true
+	}
+	return false
 }
 
 // customPropsFrom merges --custom-property declarations into the inherited

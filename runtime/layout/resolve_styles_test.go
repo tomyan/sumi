@@ -395,3 +395,32 @@ func TestResolveStylesTextAlignInherits(t *testing.T) {
 		t.Errorf("span TextAlign = %q, want own declaration to beat inherited", got)
 	}
 }
+
+// C7a: attribute-backed state pseudo-classes resolve from current attrs.
+func TestResolveStylesCheckedAndDisabledPseudos(t *testing.T) {
+	tree := &Input{Tag: "root", Kind: KindBox, Children: []*Input{
+		{Tag: "input", Kind: KindBox, Attrs: map[string]string{"type": "checkbox", "checked": "true"}},
+		{Tag: "input", Kind: KindBox, Attrs: map[string]string{"type": "checkbox"}},
+		{Tag: "input", Kind: KindBox, Attrs: map[string]string{"type": "checkbox", "disabled": "true"}},
+	}}
+	ss := sheet(t, `
+input:enabled { color: white; }
+input:checked { color: green; }
+input:disabled { opacity: dim; }
+`)
+	ResolveStyles(tree, ss, 80, 24)
+
+	checked, unchecked, disabled := tree.Children[0], tree.Children[1], tree.Children[2]
+	if checked.Style.FG.Name != "green" {
+		t.Errorf("checked input FG = %q, want green", checked.Style.FG.Name)
+	}
+	if unchecked.Style.FG.Name != "white" {
+		t.Errorf("unchecked input FG = %q, want white (:enabled)", unchecked.Style.FG.Name)
+	}
+	if !disabled.Style.Dim {
+		t.Errorf("disabled input should be dim: %+v", disabled.Style)
+	}
+	if disabled.Style.FG.Name == "white" {
+		t.Errorf("disabled input matched :enabled")
+	}
+}

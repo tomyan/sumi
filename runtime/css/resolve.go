@@ -51,6 +51,23 @@ func ResolveFocus(stylesheet *style.Stylesheet, path []Element) map[string]strin
 	return props
 }
 
+// ResolveWithStates computes the cascaded properties for the element at
+// the end of path, including rules gated on the given active state
+// pseudo-classes (:checked, :disabled, :enabled). Base and state rules
+// cascade together in specificity + source order.
+func ResolveWithStates(stylesheet *style.Stylesheet, path []Element, states []string) map[string]string {
+	if len(states) == 0 {
+		return Resolve(stylesheet, path)
+	}
+	active := make(map[string]bool, len(states))
+	for _, s := range states {
+		active[s] = true
+	}
+	return resolveMatching(stylesheet, path, func(r style.Rule) bool {
+		return (r.Pseudo == "" || active[r.Pseudo]) && r.PseudoElement == ""
+	})
+}
+
 // ResolvePseudoElement computes the cascaded properties for a ::before or
 // ::after pseudo-element of the element at the end of path. Returns nil when
 // no rules match.
@@ -96,6 +113,14 @@ func resolvePseudoElement(stylesheet *style.Stylesheet, path []Element, name str
 }
 
 func resolveWithPseudo(stylesheet *style.Stylesheet, path []Element, pseudo string) map[string]string {
+	return resolveMatching(stylesheet, path, func(r style.Rule) bool {
+		return r.Pseudo == pseudo && r.PseudoElement == ""
+	})
+}
+
+// resolveMatching merges the properties of every rule accepted by keep
+// that matches the path, in cascade order.
+func resolveMatching(stylesheet *style.Stylesheet, path []Element, keep func(style.Rule) bool) map[string]string {
 	type match struct {
 		spec  style.Specificity
 		order int
@@ -103,7 +128,7 @@ func resolveWithPseudo(stylesheet *style.Stylesheet, path []Element, pseudo stri
 	}
 	var matches []match
 	for i, rule := range stylesheet.Rules {
-		if rule.Pseudo != pseudo || rule.PseudoElement != "" {
+		if !keep(rule) {
 			continue
 		}
 		if rule.Media != "" && !mediaMatches(rule.Media) {
