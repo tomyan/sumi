@@ -96,7 +96,22 @@ func (b *Buffer) RenderWithClear(w io.Writer) {
 	if styled {
 		buf = append(buf, "\x1b[0m"...)
 	}
-	w.Write(buf)
+	writeSynchronized(w, buf)
+}
+
+// Synchronized output (DEC private mode 2026) brackets each frame write so
+// capable terminals repaint atomically; others ignore the unknown mode.
+const (
+	syncBegin = "\x1b[?2026h"
+	syncEnd   = "\x1b[?2026l"
+)
+
+func writeSynchronized(w io.Writer, frame []byte) {
+	out := make([]byte, 0, len(frame)+len(syncBegin)+len(syncEnd))
+	out = append(out, syncBegin...)
+	out = append(out, frame...)
+	out = append(out, syncEnd...)
+	w.Write(out)
 }
 
 // appendCUP appends a CUrsor Position escape sequence: ESC[row;colH

@@ -138,7 +138,7 @@ func (b *Buffer) RenderDiff(w io.Writer, prev *Buffer, prevTermW, prevTermH int)
 	}
 
 	if len(buf) > 0 {
-		w.Write(buf)
+		writeSynchronized(w, buf)
 	}
 
 	// Update prev to match desired.
