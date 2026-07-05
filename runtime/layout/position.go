@@ -1,12 +1,18 @@
 package layout
 
+// HiddenFromLayout reports whether a node is excluded from layout:
+// display:none from the cascade, or the runtime Hidden override.
+func (in *Input) HiddenFromLayout() bool {
+	return in.Display == "none" || in.Hidden
+}
+
 // filterVisible partitions children into visible and returns a mapping.
 // Returns the visible children and a slice of original indices for each visible child.
 func filterVisible(children []*Input) ([]*Input, []int) {
 	var visible []*Input
 	var indices []int
 	for i, c := range children {
-		if c.Display != "none" {
+		if !c.HiddenFromLayout() {
 			visible = append(visible, c)
 			indices = append(indices, i)
 		}

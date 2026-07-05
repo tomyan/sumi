@@ -31,6 +31,7 @@ func handleKey(evt sumi.Event) {
 
 <style>
 .row {
+    display: flex;
     flex-direction: row;
     gap: 1;
 }

@@ -144,8 +144,9 @@ func NewPreview(props PreviewProps) *sumi.Component {
 	box0 := &sumi.Input{
 		Kind:      sumi.KindBox,
 		Tag:       "div",
-		Attrs:     map[string]string{"flex-direction": "row"},
+		Attrs:     map[string]string{"display": "flex", "flex-direction": "row"},
 		Direction: "row",
+		Display:   "flex",
 		CursorCol: -1,
 		CursorRow: -1,
 	}
@@ -475,6 +476,6 @@ func NewPreview(props PreviewProps) *sumi.Component {
 	return &sumi.Component{
 		Tree:       root,
 		OnEvent:    handleKey,
-		Stylesheet: sumi.MustParseStylesheet(".panels {\n\tflex-direction: row;\n}\n.actual {\n\tborder: single;\n\tborder-color: cyan;\n\tflex-grow: 1;\n\tpadding: 0 1;\n}\n.expected {\n\tborder: single;\n\tborder-color: blue;\n\tflex-grow: 1;\n\tpadding: 0 1;\n}\n.editors {\n\tflex-direction: row;\n\tflex-grow: 1;\n}\n.editor-left {\n\tborder: single;\n\tborder-color: magenta;\n\tflex-grow: 1;\n}\n.editor-right {\n\tborder: single;\n\tborder-color: magenta;\n\tflex-grow: 1;\n}\n.scenario-editor {\n\tborder: single;\n\tborder-color: magenta;\n\tflex-grow: 1;\n}\n.match {\n\tcolor: green;\n\tfont-weight: bold;\n}\n.diff {\n\tcolor: red;\n\tfont-weight: bold;\n}\n.no-snap {\n\tcolor: yellow;\n\tfont-weight: bold;\n}\n.info {\n\tfont-weight: bold;\n}\n.key {\n\tinverse: true;\n}\n.label {\n\topacity: dim;\n}\n.interactive {\n\tcolor: green;\n\tfont-weight: bold;\n}\n.focus-indicator {\n\tcolor: cyan;\n\tfont-weight: bold;\n}\n"),
+		Stylesheet: sumi.MustParseStylesheet(".panels {\n\tdisplay: flex;\n\tflex-direction: row;\n}\n.actual {\n\tborder: single;\n\tborder-color: cyan;\n\tflex-grow: 1;\n\tpadding: 0 1;\n}\n.expected {\n\tborder: single;\n\tborder-color: blue;\n\tflex-grow: 1;\n\tpadding: 0 1;\n}\n.editors {\n\tdisplay: flex;\n\tflex-direction: row;\n\tflex-grow: 1;\n}\n.editor-left {\n\tborder: single;\n\tborder-color: magenta;\n\tflex-grow: 1;\n}\n.editor-right {\n\tborder: single;\n\tborder-color: magenta;\n\tflex-grow: 1;\n}\n.scenario-editor {\n\tborder: single;\n\tborder-color: magenta;\n\tflex-grow: 1;\n}\n.match {\n\tcolor: green;\n\tfont-weight: bold;\n}\n.diff {\n\tcolor: red;\n\tfont-weight: bold;\n}\n.no-snap {\n\tcolor: yellow;\n\tfont-weight: bold;\n}\n.info {\n\tfont-weight: bold;\n}\n.key {\n\tinverse: true;\n}\n.label {\n\topacity: dim;\n}\n.interactive {\n\tcolor: green;\n\tfont-weight: bold;\n}\n.focus-indicator {\n\tcolor: cyan;\n\tfont-weight: bold;\n}\n"),
 	}
 }

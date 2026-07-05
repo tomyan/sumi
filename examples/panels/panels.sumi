@@ -1,5 +1,6 @@
 <style>
 .layout {
+    display: flex;
     flex-direction: row;
     border-collapse: collapse;
 }

@@ -98,6 +98,6 @@ func NewApp(props AppProps) *sumi.Component {
 	return &sumi.Component{
 		Tree:       root,
 		OnEvent:    handleKey,
-		Stylesheet: sumi.MustParseStylesheet("a:focus {\n\tinverse: true;\n}\n.hint {\n\topacity: dim;\n}\n"),
+		Stylesheet: sumi.MustParseStylesheet("a {\n\tdisplay: block;\n}\na:focus {\n\tinverse: true;\n}\n.hint {\n\topacity: dim;\n}\n"),
 	}
 }

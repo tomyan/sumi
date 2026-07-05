@@ -113,7 +113,7 @@ func Run() {
 			},
 		},
 	}
-	stylesheet := sumi.MustParseStylesheet(".layout {\n\tborder-collapse: collapse;\n\tflex-direction: row;\n}\n.left-col {\n\tborder: single;\n\tborder-collapse: collapse;\n\tflex-grow: 1;\n}\n.panel {\n\tborder: single;\n\tflex-grow: 1;\n\tpadding: 0 1;\n}\n.title {\n\tcolor: green;\n\tfont-weight: bold;\n}\n.hint {\n\tcolor: cyan;\n\topacity: dim;\n}\n")
+	stylesheet := sumi.MustParseStylesheet(".layout {\n\tborder-collapse: collapse;\n\tdisplay: flex;\n\tflex-direction: row;\n}\n.left-col {\n\tborder: single;\n\tborder-collapse: collapse;\n\tflex-grow: 1;\n}\n.panel {\n\tborder: single;\n\tflex-grow: 1;\n\tpadding: 0 1;\n}\n.title {\n\tcolor: green;\n\tfont-weight: bold;\n}\n.hint {\n\tcolor: cyan;\n\topacity: dim;\n}\n")
 	doRender := func() {
 		var termW, termH int
 		if app.TestWidth > 0 {
@@ -246,7 +246,7 @@ func CreateApp(w, h int) *sumi.App {
 			},
 		},
 	}
-	stylesheet := sumi.MustParseStylesheet(".layout {\n\tborder-collapse: collapse;\n\tflex-direction: row;\n}\n.left-col {\n\tborder: single;\n\tborder-collapse: collapse;\n\tflex-grow: 1;\n}\n.panel {\n\tborder: single;\n\tflex-grow: 1;\n\tpadding: 0 1;\n}\n.title {\n\tcolor: green;\n\tfont-weight: bold;\n}\n.hint {\n\tcolor: cyan;\n\topacity: dim;\n}\n")
+	stylesheet := sumi.MustParseStylesheet(".layout {\n\tborder-collapse: collapse;\n\tdisplay: flex;\n\tflex-direction: row;\n}\n.left-col {\n\tborder: single;\n\tborder-collapse: collapse;\n\tflex-grow: 1;\n}\n.panel {\n\tborder: single;\n\tflex-grow: 1;\n\tpadding: 0 1;\n}\n.title {\n\tcolor: green;\n\tfont-weight: bold;\n}\n.hint {\n\tcolor: cyan;\n\topacity: dim;\n}\n")
 	doRender := func() {
 		var termW, termH int
 		if app.TestWidth > 0 {

@@ -6,6 +6,7 @@ var panelHeight int
 
 <style>
 .root {
+    display: flex;
     flex-direction: row;
     border-collapse: collapse;
 }

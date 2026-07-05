@@ -27,8 +27,8 @@ input:focus {
 </style>
 
 <div class="form" onkey="handleKey">
-    <span class="hint">Type your name; Ctrl+C quits</span>
-    <span>Name:</span>
+    <div class="hint">Type your name; Ctrl+C quits</div>
+    <div>Name:</div>
     <input value="" oninput={nameChanged} />
-    <span>Hello, {name}!</span>
+    <div>Hello, {name}!</div>
 </div>

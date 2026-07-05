@@ -17,6 +17,9 @@ func handleKey(evt sumi.Event) {
 </script>
 
 <style>
+a {
+    display: block;
+}
 a:focus {
     inverse: true;
 }

@@ -69,7 +69,7 @@ func syncSelectElement(n *layout.Input) {
 	opts := selectOptions(n)
 	maxWidth := 0
 	for _, o := range opts {
-		o.Display = "none"
+		o.Hidden = true
 		if w := utf8.RuneCountInString(o.Content); w > maxWidth {
 			maxWidth = w
 		}

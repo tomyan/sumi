@@ -1,5 +1,5 @@
 === Frame: initial ===
-<<dim>>Tab to move, Enter or click to press; q <</>>
+<<dim>>Tab to move, Enter or click to press; q<</>>
 <<dim>>quits<</>>
 <<cyan>>┌────────────┐<</>>
 <<cyan>>│<</>>    <<cyan>>Save<</>>    <<cyan>>│<</>>
@@ -10,7 +10,7 @@
 Saved 0 times, cancelled 0 times
 
 === Frame: enter-presses-save ===
-<<dim>>Tab to move, Enter or click to press; q <</>>
+<<dim>>Tab to move, Enter or click to press; q<</>>
 <<dim>>quits<</>>
 <<cyan>>┌────────────┐<</>>
 <<cyan>>│<</>>    <<cyan>>Save<</>>    <<cyan>>│<</>>
@@ -21,7 +21,7 @@ Saved 0 times, cancelled 0 times
 Saved 1 times, cancelled 0 times
 
 === Frame: tab-then-enter-presses-cancel ===
-<<dim>>Tab to move, Enter or click to press; q <</>>
+<<dim>>Tab to move, Enter or click to press; q<</>>
 <<dim>>quits<</>>
 ┌────────────┐
 │    Save    │
@@ -32,7 +32,7 @@ Saved 1 times, cancelled 0 times
 Saved 1 times, cancelled 1 times
 
 === Frame: click-presses-save-again ===
-<<dim>>Tab to move, Enter or click to press; q <</>>
+<<dim>>Tab to move, Enter or click to press; q<</>>
 <<dim>>quits<</>>
 <<cyan>>┌────────────┐<</>>
 <<cyan>>│<</>>    <<cyan>>Save<</>>    <<cyan>>│<</>>

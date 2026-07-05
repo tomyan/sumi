@@ -57,6 +57,7 @@ type Input struct {
 	MaxHeight           int    // maximum height (0 = no maximum)
 	ContentBox          bool   // box-sizing: content-box (sizes exclude border+padding)
 	Display             string // "" (default) or "none" (hidden from layout)
+	Hidden              bool   // runtime visibility override (UA element projections); orthogonal to CSS display so the cascade never overwrites it
 	GridTemplateColumns string // grid track spec (display: grid)
 	GridTemplateRows    string
 	GridTemplateAreas   string // quoted area rows

@@ -32,8 +32,8 @@ func TestDialogHiddenWithoutOpen(t *testing.T) {
 	tui.TestApp(comp, 30, 6)
 
 	// Then
-	if dialog.Display != "none" {
-		t.Errorf("closed dialog Display = %q, want none", dialog.Display)
+	if !dialog.Hidden {
+		t.Error("closed dialog should be hidden")
 	}
 }
 
@@ -75,8 +75,8 @@ func TestEscapeClosesDialogAndFiresCloseEvent(t *testing.T) {
 	if _, open := dialog.Attrs["open"]; open {
 		t.Error("Escape should remove the open attribute")
 	}
-	if dialog.Display != "none" {
-		t.Errorf("closed dialog Display = %q, want none", dialog.Display)
+	if !dialog.Hidden {
+		t.Error("closed dialog should be hidden")
 	}
 	if len(closes) != 1 {
 		t.Errorf("close events = %d, want 1", len(closes))

@@ -30,7 +30,7 @@ func layoutInlineChildren(children []*Input, offsetX, offsetY, availW int) []*Bo
 // recursing through inline elements. Order matches buildInlineBoxes.
 func gatherInlineRuns(children []*Input, runs *[]*Input) {
 	for _, c := range children {
-		if c == nil || c.Display == "none" {
+		if c == nil || c.HiddenFromLayout() {
 			continue
 		}
 		if c.Kind == KindText {
@@ -47,7 +47,7 @@ func gatherInlineRuns(children []*Input, runs *[]*Input) {
 func buildInlineBoxes(children []*Input, perRun [][]Fragment, runIdx *int, offsetX, offsetY int) []*Box {
 	boxes := make([]*Box, len(children))
 	for i, c := range children {
-		if c == nil || c.Display == "none" {
+		if c == nil || c.HiddenFromLayout() {
 			continue
 		}
 		if c.Kind == KindText {

@@ -16,7 +16,7 @@ func syncAnsiElement(n *layout.Input) {
 	if source == nil {
 		return
 	}
-	source.Display = "none"
+	source.Hidden = true
 	width, height := ansiSize(source.Content)
 	if width == 0 || height == 0 {
 		n.Cells = nil

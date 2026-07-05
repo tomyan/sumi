@@ -1,8 +1,8 @@
 <style>
-.panels { flex-direction: row; }
+.panels { display: flex; flex-direction: row; }
 .actual { flex-grow: 1; border: single; border-color: cyan; padding: 0 1; }
 .expected { flex-grow: 1; border: single; border-color: blue; padding: 0 1; }
-.editors { flex-direction: row; flex-grow: 1; }
+.editors { display: flex; flex-direction: row; flex-grow: 1; }
 .editor-left { flex-grow: 1; border: single; border-color: magenta; }
 .editor-right { flex-grow: 1; border: single; border-color: magenta; }
 .scenario-editor { flex-grow: 1; border: single; border-color: magenta; }
@@ -147,7 +147,7 @@ func handleKey(evt sumi.Event) {
         <div class="actual" border-title="Actual" height={pvComponentHeight()}></div>
         <div class="expected" border-title="Expected" height={pvComponentHeight()}></div>
     </div>
-    <div flex-direction="row">
+    <div display="flex" flex-direction="row">
         {if interactive.Get()}
             <span class="key">esc</span><span class="label"> Exit  </span>
             <span class="interactive"> INTERACTIVE </span>

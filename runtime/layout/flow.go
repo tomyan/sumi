@@ -11,7 +11,7 @@ package layout
 // explicit sizing stacks as block-level instead.
 func isInlineLevel(c *Input) bool {
 	if c.Kind == KindText {
-		return c.WhiteSpace == "" && !c.ContentEditable &&
+		return c.Display != "block" && c.WhiteSpace == "" && !c.ContentEditable &&
 			c.FixedWidth == 0 && c.FixedHeight == 0
 	}
 	if c.Display != "inline" {

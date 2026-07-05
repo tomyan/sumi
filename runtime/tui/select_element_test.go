@@ -49,7 +49,7 @@ func TestSelectShowsSelectedOptionWithMarker(t *testing.T) {
 	}
 	// Options are hidden from layout.
 	for _, c := range sel.Children {
-		if c.Tag == "option" && c.Display != "none" {
+		if c.Tag == "option" && !c.Hidden {
 			t.Errorf("option %q visible in layout", c.Content)
 		}
 	}

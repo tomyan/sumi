@@ -33,8 +33,8 @@ func TestClosedDetailsHidesContentAndShowsMarker(t *testing.T) {
 	if summary.Content != "▶ More info" {
 		t.Errorf("summary = %q, want \"▶ More info\"", summary.Content)
 	}
-	if content.Display != "none" {
-		t.Errorf("content Display = %q, want none", content.Display)
+	if !content.Hidden {
+		t.Error("closed details should hide its content")
 	}
 }
 
@@ -47,7 +47,7 @@ func TestOpenDetailsShowsContent(t *testing.T) {
 	if summary.Content != "▼ More info" {
 		t.Errorf("summary = %q, want \"▼ More info\"", summary.Content)
 	}
-	if content.Display == "none" {
+	if content.Hidden {
 		t.Error("open details must show its content")
 	}
 }
@@ -64,8 +64,8 @@ func TestEnterOnSummaryTogglesAndFiresToggleEvent(t *testing.T) {
 	app.Step(input.Event{Kind: input.EventSpecial, Special: input.KeyEnter})
 
 	// Then
-	if summary.Content != "▼ More info" || content.Display == "none" {
-		t.Errorf("details did not open: summary %q, content display %q", summary.Content, content.Display)
+	if summary.Content != "▼ More info" || content.Hidden {
+		t.Errorf("details did not open: summary %q, content hidden %v", summary.Content, content.Hidden)
 	}
 	if len(toggles) != 1 {
 		t.Fatalf("toggle events = %d, want 1", len(toggles))
@@ -78,7 +78,7 @@ func TestEnterOnSummaryTogglesAndFiresToggleEvent(t *testing.T) {
 	app.Step(input.Event{Kind: input.EventSpecial, Special: input.KeyEnter})
 
 	// Then
-	if content.Display != "none" {
+	if !content.Hidden {
 		t.Error("details did not close again")
 	}
 }
@@ -94,7 +94,7 @@ func TestClickOnSummaryToggles(t *testing.T) {
 	}})
 
 	// Then
-	if content.Display == "none" {
+	if content.Hidden {
 		t.Error("click on summary should open the details")
 	}
 }

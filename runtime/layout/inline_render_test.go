@@ -55,17 +55,17 @@ func TestRenderInlineFlowWrapped(t *testing.T) {
 }
 
 func TestInlineFlowFromStylesheetDisplayBlock(t *testing.T) {
-	// Given: display:block arrives via the cascade, strong via UA bold.
+	// Given: p is display:block via the UA default (B4c-3), strong via
+	// UA bold — no author CSS at all.
 	tree := &Input{Tag: "root", Kind: KindBox, Children: []*Input{
 		{Tag: "p", Kind: KindBox, Children: []*Input{
 			{Kind: KindText, Content: "hello "},
 			{Tag: "strong", Kind: KindText, Content: "bold"},
 		}},
 	}}
-	ss := sheet(t, `p { display: block; }`)
 
 	// When
-	ResolveStyles(tree, ss, 40, 3)
+	ResolveStyles(tree, nil, 40, 3)
 	lines := renderToString(tree, 40, 3)
 
 	// Then: UA p{margin:1 0} puts the text on row 1.

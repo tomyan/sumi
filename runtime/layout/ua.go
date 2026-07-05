@@ -6,6 +6,8 @@ import "github.com/tomyan/sumi/parser/style"
 // element vocabulary, in cells. Author rules layer on top (they come later
 // in the merged rule list, so equal-specificity author declarations win).
 const uaCSS = `
+div, p, h1, h2, h3, h4, h5, h6, ul, ol, li, blockquote, pre, hr { display: block; }
+span, strong, b, em, i, u, s, del, mark, kbd, abbr, samp, var, a, code { display: inline; }
 h1, h2, h3, h4, h5, h6 { font-weight: bold; margin: 1 0; }
 p { margin: 1 0; }
 ul, ol { margin: 1 0; padding: 0 0 0 2; }

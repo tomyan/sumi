@@ -398,7 +398,7 @@ func writeBoxAttributes(buf *bytes.Buffer, tabs string, attrs map[string]string,
 		fmt.Fprintf(buf, "%s\tScroll: %s,\n", tabs, extractExprValue(sc))
 	}
 	writeIntAttr(buf, tabs, attrs, props, "min-width", "MinWidth")
-	if d, ok := mergedAttr(attrs, props, "display"); ok && d == "none" {
+	if d, ok := mergedAttr(attrs, props, "display"); ok {
 		fmt.Fprintf(buf, "%s\tDisplay: %q,\n", tabs, d)
 	}
 	if p, ok := mergedAttr(attrs, props, "position"); ok {

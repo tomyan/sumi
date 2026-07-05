@@ -6,14 +6,10 @@ import (
 )
 
 // syncDialogElement hides a dialog that lacks the open attribute.
+// Uses the runtime Hidden flag: display belongs to the cascade, which
+// would overwrite a projection-written value on the next resolve pass.
 func syncDialogElement(n *layout.Input) {
-	if boolAttr(n, "open") {
-		if n.Display == "none" {
-			n.Display = ""
-		}
-	} else {
-		n.Display = "none"
-	}
+	n.Hidden = !boolAttr(n, "open")
 }
 
 // findOpenDialog returns the first open dialog in tree order, or nil.

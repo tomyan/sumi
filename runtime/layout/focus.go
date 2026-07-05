@@ -30,7 +30,7 @@ func CollectFocusables(root *Input) []*Input {
 	var focusables []*Input
 	var walk func(n *Input)
 	walk = func(n *Input) {
-		if n == nil || n.Display == "none" {
+		if n == nil || n.HiddenFromLayout() {
 			return
 		}
 		if IsFocusable(n) {
@@ -54,7 +54,7 @@ func FocusablePath(root *Input, index int) []*Input {
 	var found []*Input
 	var walk func(n *Input, path []*Input) bool
 	walk = func(n *Input, path []*Input) bool {
-		if n == nil || n.Display == "none" {
+		if n == nil || n.HiddenFromLayout() {
 			return false
 		}
 		path = append(path, n)

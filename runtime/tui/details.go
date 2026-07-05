@@ -37,13 +37,7 @@ func syncDetailsElement(n *layout.Input) {
 			c.Content = marker + label
 			continue
 		}
-		if open {
-			if c.Display == "none" {
-				c.Display = ""
-			}
-		} else {
-			c.Display = "none"
-		}
+		c.Hidden = !open
 	}
 }
 

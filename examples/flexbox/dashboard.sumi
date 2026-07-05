@@ -1,5 +1,6 @@
 <style>
 .header {
+    display: flex;
     border: single;
     padding: 0 2;
     justify-content: center;
@@ -13,6 +14,7 @@
     opacity: dim;
 }
 .panels {
+    display: flex;
     flex-direction: row;
     gap: 1;
 }
@@ -26,6 +28,7 @@
     font-weight: bold;
 }
 .footer {
+    display: flex;
     border: single;
     padding: 0 2;
     flex-direction: row;

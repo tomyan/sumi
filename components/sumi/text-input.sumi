@@ -36,7 +36,7 @@ func scrollbarVisible() bool {
 </style>
 
 <div width="24">
-    <div flex-direction="row">
+    <div display="flex" flex-direction="row">
         <span>[</span>
         <span class="indicator">{leftIndicator()}</span>
         <textedit

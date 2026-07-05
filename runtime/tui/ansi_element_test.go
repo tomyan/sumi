@@ -25,7 +25,7 @@ func TestAnsiElementParsesSGRIntoCells(t *testing.T) {
 	if ansi.FixedWidth != 6 || ansi.FixedHeight != 2 {
 		t.Errorf("size = %dx%d, want 6x2", ansi.FixedWidth, ansi.FixedHeight)
 	}
-	if source.Display != "none" {
+	if !source.Hidden {
 		t.Error("raw source child should be hidden")
 	}
 	if ansi.Cells == nil {

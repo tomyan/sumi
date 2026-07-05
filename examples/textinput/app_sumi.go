@@ -27,7 +27,7 @@ func NewApp(props AppProps) *sumi.Component {
 
 	node0 := &sumi.Input{
 		Kind:    sumi.KindText,
-		Tag:     "span",
+		Tag:     "text",
 		Content: sumi.Sprintf("Hello, %v!", name.Get()),
 	}
 	root := &sumi.Input{
@@ -46,16 +46,32 @@ func NewApp(props AppProps) *sumi.Component {
 				CursorRow: -1,
 				Children: []*sumi.Input{
 					{
-						Kind:    sumi.KindText,
-						Tag:     "span",
-						Classes: []string{"hint"},
-						Attrs:   map[string]string{"class": "hint"},
-						Content: "Type your name; Ctrl+C quits",
+						Kind:      sumi.KindBox,
+						Tag:       "div",
+						Classes:   []string{"hint"},
+						Attrs:     map[string]string{"class": "hint"},
+						CursorCol: -1,
+						CursorRow: -1,
+						Children: []*sumi.Input{
+							{
+								Kind:    sumi.KindText,
+								Tag:     "text",
+								Content: "Type your name; Ctrl+C quits",
+							},
+						},
 					},
 					{
-						Kind:    sumi.KindText,
-						Tag:     "span",
-						Content: "Name:",
+						Kind:      sumi.KindBox,
+						Tag:       "div",
+						CursorCol: -1,
+						CursorRow: -1,
+						Children: []*sumi.Input{
+							{
+								Kind:    sumi.KindText,
+								Tag:     "text",
+								Content: "Name:",
+							},
+						},
 					},
 					{
 						Kind:  sumi.KindBox,
@@ -67,7 +83,15 @@ func NewApp(props AppProps) *sumi.Component {
 						CursorCol: -1,
 						CursorRow: -1,
 					},
-					node0,
+					{
+						Kind:      sumi.KindBox,
+						Tag:       "div",
+						CursorCol: -1,
+						CursorRow: -1,
+						Children: []*sumi.Input{
+							node0,
+						},
+					},
 				},
 			},
 		},

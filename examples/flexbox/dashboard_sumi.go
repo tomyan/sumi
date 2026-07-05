@@ -137,7 +137,7 @@ func Run() {
 			},
 		},
 	}
-	stylesheet := sumi.MustParseStylesheet(".header {\n\tborder: single;\n\tjustify-content: center;\n\tpadding: 0 2;\n}\n.title {\n\tcolor: green;\n\tfont-weight: bold;\n}\n.hint {\n\tcolor: cyan;\n\topacity: dim;\n}\n.panels {\n\tflex-direction: row;\n\tgap: 1;\n}\n.panel {\n\tborder: single;\n\tflex-grow: 1;\n\tpadding: 0 1;\n}\n.panel-title {\n\tcolor: yellow;\n\tfont-weight: bold;\n}\n.footer {\n\tborder: single;\n\tflex-direction: row;\n\tjustify-content: space-between;\n\tpadding: 0 2;\n}\n.status {\n\tcolor: green;\n}\n.version {\n\tcolor: cyan;\n\topacity: dim;\n}\n")
+	stylesheet := sumi.MustParseStylesheet(".header {\n\tborder: single;\n\tdisplay: flex;\n\tjustify-content: center;\n\tpadding: 0 2;\n}\n.title {\n\tcolor: green;\n\tfont-weight: bold;\n}\n.hint {\n\tcolor: cyan;\n\topacity: dim;\n}\n.panels {\n\tdisplay: flex;\n\tflex-direction: row;\n\tgap: 1;\n}\n.panel {\n\tborder: single;\n\tflex-grow: 1;\n\tpadding: 0 1;\n}\n.panel-title {\n\tcolor: yellow;\n\tfont-weight: bold;\n}\n.footer {\n\tborder: single;\n\tdisplay: flex;\n\tflex-direction: row;\n\tjustify-content: space-between;\n\tpadding: 0 2;\n}\n.status {\n\tcolor: green;\n}\n.version {\n\tcolor: cyan;\n\topacity: dim;\n}\n")
 	doRender := func() {
 		var termW, termH int
 		if app.TestWidth > 0 {
@@ -294,7 +294,7 @@ func CreateApp(w, h int) *sumi.App {
 			},
 		},
 	}
-	stylesheet := sumi.MustParseStylesheet(".header {\n\tborder: single;\n\tjustify-content: center;\n\tpadding: 0 2;\n}\n.title {\n\tcolor: green;\n\tfont-weight: bold;\n}\n.hint {\n\tcolor: cyan;\n\topacity: dim;\n}\n.panels {\n\tflex-direction: row;\n\tgap: 1;\n}\n.panel {\n\tborder: single;\n\tflex-grow: 1;\n\tpadding: 0 1;\n}\n.panel-title {\n\tcolor: yellow;\n\tfont-weight: bold;\n}\n.footer {\n\tborder: single;\n\tflex-direction: row;\n\tjustify-content: space-between;\n\tpadding: 0 2;\n}\n.status {\n\tcolor: green;\n}\n.version {\n\tcolor: cyan;\n\topacity: dim;\n}\n")
+	stylesheet := sumi.MustParseStylesheet(".header {\n\tborder: single;\n\tdisplay: flex;\n\tjustify-content: center;\n\tpadding: 0 2;\n}\n.title {\n\tcolor: green;\n\tfont-weight: bold;\n}\n.hint {\n\tcolor: cyan;\n\topacity: dim;\n}\n.panels {\n\tdisplay: flex;\n\tflex-direction: row;\n\tgap: 1;\n}\n.panel {\n\tborder: single;\n\tflex-grow: 1;\n\tpadding: 0 1;\n}\n.panel-title {\n\tcolor: yellow;\n\tfont-weight: bold;\n}\n.footer {\n\tborder: single;\n\tdisplay: flex;\n\tflex-direction: row;\n\tjustify-content: space-between;\n\tpadding: 0 2;\n}\n.status {\n\tcolor: green;\n}\n.version {\n\tcolor: cyan;\n\topacity: dim;\n}\n")
 	doRender := func() {
 		var termW, termH int
 		if app.TestWidth > 0 {

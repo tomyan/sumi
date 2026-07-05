@@ -47,7 +47,7 @@ func Run() {
 			},
 		},
 	}
-	stylesheet := sumi.MustParseStylesheet(".root {\n\tborder-collapse: collapse;\n\tflex-direction: row;\n}\n.panel {\n\tborder: single;\n\tflex-grow: 1;\n\tpadding: 0 1;\n}\n")
+	stylesheet := sumi.MustParseStylesheet(".root {\n\tborder-collapse: collapse;\n\tdisplay: flex;\n\tflex-direction: row;\n}\n.panel {\n\tborder: single;\n\tflex-grow: 1;\n\tpadding: 0 1;\n}\n")
 	doRender := func() {
 		var termW, termH int
 		if app.TestWidth > 0 {
@@ -114,7 +114,7 @@ func CreateApp(w, h int) *sumi.App {
 			},
 		},
 	}
-	stylesheet := sumi.MustParseStylesheet(".root {\n\tborder-collapse: collapse;\n\tflex-direction: row;\n}\n.panel {\n\tborder: single;\n\tflex-grow: 1;\n\tpadding: 0 1;\n}\n")
+	stylesheet := sumi.MustParseStylesheet(".root {\n\tborder-collapse: collapse;\n\tdisplay: flex;\n\tflex-direction: row;\n}\n.panel {\n\tborder: single;\n\tflex-grow: 1;\n\tpadding: 0 1;\n}\n")
 	doRender := func() {
 		var termW, termH int
 		if app.TestWidth > 0 {

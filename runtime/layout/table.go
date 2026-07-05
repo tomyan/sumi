@@ -303,7 +303,7 @@ func tableCells(rows []*Input) [][]*Input {
 	cells := make([][]*Input, len(rows))
 	for r, row := range rows {
 		for _, c := range row.Children {
-			if c == nil || c.Display == "none" {
+			if c == nil || c.HiddenFromLayout() {
 				continue
 			}
 			cells[r] = append(cells[r], c)

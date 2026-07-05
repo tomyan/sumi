@@ -214,6 +214,6 @@ func NewApp(props AppProps) *sumi.Component {
 	return &sumi.Component{
 		Tree:       root,
 		OnEvent:    handleKey,
-		Stylesheet: sumi.MustParseStylesheet(".row {\n\tflex-direction: row;\n\tgap: 1;\n}\ninput:focus {\n\tcolor: yellow;\n}\ninput:checked {\n\tcolor: green;\n}\n.hint {\n\topacity: dim;\n}\n"),
+		Stylesheet: sumi.MustParseStylesheet(".row {\n\tdisplay: flex;\n\tflex-direction: row;\n\tgap: 1;\n}\ninput:focus {\n\tcolor: yellow;\n}\ninput:checked {\n\tcolor: green;\n}\n.hint {\n\topacity: dim;\n}\n"),
 	}
 }

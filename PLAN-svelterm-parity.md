@@ -369,8 +369,20 @@ vt100 assertions for end-to-end slices; unit tests for parser/css/layout.
     inline-run IFC with Box.Fragments — note svelterm itself has NO
     text-run model, we exceed parity here; UA block default with clean
     migration to explicit display:flex, no compat shim; CSS whitespace
-    collapse at layout time; margin collapse = adjacent block siblings,
-    positive-only, block flow only). Slices B4a..B4g in the design doc.
+    collapse at layout time; parser whitespace gaps use the JSX newline
+    rule; margin collapse = adjacent block siblings, positive-only,
+    block flow only). Slices B4a..B4g in the design doc.
+    IN PROGRESS 2026-07-05: B4a mixed-content parser (6bcf73d),
+    B4b IFC line breaker + Box.Fragments (9e02e01), B4c-1 block flow
+    layoutBlockFlow + fill width + flex-attr gating (d007b1a),
+    B4c-2 nested inline elements + per-property Style.Inherit
+    (ce0f724). NEXT: B4c-3 UA display defaults flip + display:flex
+    migration sweep (~10 .sumi files use direction/gap/justify);
+    then B4d inline-block atoms, B4e margin collapse, B4f
+    display:contents, B4g fragment hit-testing. Display semantics:
+    "" = legacy flex-column (raw Input trees unaffected), "block" =
+    block flow, "flex" = explicit flex; UA flip only affects
+    tag-resolved trees through the cascade.
   - D5 global selection + clipboard (drag/word/line inverse painting,
     OSC 52 + pbcopy fallback; svelterm src/input/selection.ts is the
     reference).

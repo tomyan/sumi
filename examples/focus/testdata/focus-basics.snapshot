@@ -1,8 +1,8 @@
 === Frame: initial ===
-<<dim>>Tab / Shift+Tab moves focus; type into the <</>>
+<<dim>>Tab / Shift+Tab moves focus; type into the<</>>
 <<dim>>focused field<</>>
 <<cyan>>┌────────────────────────────────────────────┐<</>>
-<<cyan>>│<</>> <<cyan>>First (focused): <</>>                          <<cyan>>│<</>>
+<<cyan>>│<</>> <<cyan>>First (focused):<</>>                           <<cyan>>│<</>>
 <<cyan>>└────────────────────────────────────────────┘<</>>
 ┌────────────────────────────────────────────┐
 │ Second (blurred):                          │
@@ -10,7 +10,7 @@
 Root saw 0 unconsumed keys
 
 === Frame: typed-into-first ===
-<<dim>>Tab / Shift+Tab moves focus; type into the <</>>
+<<dim>>Tab / Shift+Tab moves focus; type into the<</>>
 <<dim>>focused field<</>>
 <<cyan>>┌────────────────────────────────────────────┐<</>>
 <<cyan>>│<</>> <<cyan>>First (focused): a<</>>                         <<cyan>>│<</>>
@@ -21,18 +21,18 @@ Root saw 0 unconsumed keys
 Root saw 0 unconsumed keys
 
 === Frame: after-tab ===
-<<dim>>Tab / Shift+Tab moves focus; type into the <</>>
+<<dim>>Tab / Shift+Tab moves focus; type into the<</>>
 <<dim>>focused field<</>>
 ┌────────────────────────────────────────────┐
 │ First (blurred): a                         │
 └────────────────────────────────────────────┘
 <<cyan>>┌────────────────────────────────────────────┐<</>>
-<<cyan>>│<</>> <<cyan>>Second (focused): <</>>                         <<cyan>>│<</>>
+<<cyan>>│<</>> <<cyan>>Second (focused):<</>>                          <<cyan>>│<</>>
 <<cyan>>└────────────────────────────────────────────┘<</>>
 Root saw 0 unconsumed keys
 
 === Frame: typed-into-second ===
-<<dim>>Tab / Shift+Tab moves focus; type into the <</>>
+<<dim>>Tab / Shift+Tab moves focus; type into the<</>>
 <<dim>>focused field<</>>
 ┌────────────────────────────────────────────┐
 │ First (blurred): a                         │
@@ -43,7 +43,7 @@ Root saw 0 unconsumed keys
 Root saw 0 unconsumed keys
 
 === Frame: after-shift-tab ===
-<<dim>>Tab / Shift+Tab moves focus; type into the <</>>
+<<dim>>Tab / Shift+Tab moves focus; type into the<</>>
 <<dim>>focused field<</>>
 <<cyan>>┌────────────────────────────────────────────┐<</>>
 <<cyan>>│<</>> <<cyan>>First (focused): a<</>>                         <<cyan>>│<</>>
