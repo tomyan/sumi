@@ -1,5 +1,7 @@
 package layout
 
+import "github.com/tomyan/sumi/runtime/render"
+
 // layoutTable lays out a display:table container: children with
 // display:table-row hold cells (rows inside thead/tbody/tfoot groups are
 // flattened); column widths derive from the widest cell content per column
@@ -12,6 +14,11 @@ func layoutTable(input *Input, children []*Input, offsetX, offsetY, availW, avai
 	cells := tableCells(rows)
 	colCount := tableColumnCount(cells)
 	spacingH, spacingV := input.BorderSpacingH, input.BorderSpacingV
+	if input.BorderCollapse {
+		// Collapsing tables overlap adjacent cell borders by one cell;
+		// border-spacing is ignored per CSS.
+		spacingH, spacingV = -1, -1
+	}
 	trackW := availW - spacingH*max(colCount-1, 0)
 	var colWidths []int
 	if input.TableLayout == "fixed" {
@@ -32,8 +39,8 @@ func layoutTable(input *Input, children []*Input, offsetX, offsetY, availW, avai
 		cursorY += capBox.Height
 	}
 
-	rowBoxes, spans := placeTableRows(rows, cells, colWidths, spacingH, spacingV, offsetX, offsetY, &cursorY, availH)
-	extendRowSpans(spans, rowBoxes)
+	rowBoxes, spans := placeTableRows(rows, cells, colWidths, spacingH, spacingV, offsetX, offsetY, &cursorY, availH, input.BorderCollapse)
+	extendRowSpans(spans, rowBoxes, input.BorderCollapse)
 	return append(out, rowBoxes...)
 }
 
@@ -82,13 +89,13 @@ type spanningCell struct {
 
 // placeTableRows lays out each row at the shared column widths, with
 // border-spacing gaps between columns and rows.
-func placeTableRows(rows []*Input, cells [][]*Input, colWidths []int, spacingH, spacingV, offsetX, offsetY int, cursorY *int, availH int) ([]*Box, []spanningCell) {
+func placeTableRows(rows []*Input, cells [][]*Input, colWidths []int, spacingH, spacingV, offsetX, offsetY int, cursorY *int, availH int, collapse bool) ([]*Box, []spanningCell) {
 	occupied := map[[2]int]bool{} // [row, col] taken by an earlier rowspan
 	var spans []spanningCell
 	rowBoxes := make([]*Box, len(rows))
 	rowWidth := sum(colWidths) + spacingH*max(len(colWidths)-1, 0)
 	for r, row := range rows {
-		cellBoxes, rowHeight := layoutSpannedRow(cells[r], colWidths, spacingH, r, occupied, &spans, offsetX, offsetY+*cursorY, availH)
+		cellBoxes, rowHeight := layoutSpannedRow(cells[r], colWidths, spacingH, r, occupied, &spans, availH, collapse)
 		rowBoxes[r] = &Box{
 			Kind:     KindBox,
 			X:        offsetX,
@@ -108,7 +115,7 @@ func placeTableRows(rows []*Input, cells [][]*Input, colWidths []int, spacingH, 
 
 // layoutSpannedRow places one row's cells, skipping columns covered by
 // earlier rowspans and widening colspan cells across their columns.
-func layoutSpannedRow(cellInputs []*Input, colWidths []int, spacingH, rowIdx int, occupied map[[2]int]bool, spans *[]spanningCell, offsetX, offsetY, availH int) ([]*Box, int) {
+func layoutSpannedRow(cellInputs []*Input, colWidths []int, spacingH, rowIdx int, occupied map[[2]int]bool, spans *[]spanningCell, availH int, collapse bool) ([]*Box, int) {
 	var cellBoxes []*Box
 	rowHeight := 1
 	col := 0
@@ -129,8 +136,12 @@ func layoutSpannedRow(cellInputs []*Input, colWidths []int, spacingH, rowIdx int
 		}
 		w += spacingH * max(covered-1, 0)
 		box := layoutNode(cell, w, availH)
-		box.X = offsetX + columnOffset(colWidths, col, spacingH)
-		box.Y = offsetY
+		box.X = columnOffset(colWidths, col, spacingH)
+		box.Y = 0
+		if collapse && box.Border != "" && box.Border != "none" {
+			// Shared edges corner with junction characters.
+			box.Collapsed = render.CollapsedEdges{Top: rowIdx > 0, Left: col > 0}
+		}
 		box.Width = w
 		if rspan == 1 && box.Height > rowHeight {
 			rowHeight = box.Height
@@ -155,11 +166,17 @@ func layoutSpannedRow(cellInputs []*Input, colWidths []int, spacingH, rowIdx int
 }
 
 // extendRowSpans stretches rowspanning cells over their covered rows.
-func extendRowSpans(spans []spanningCell, rowBoxes []*Box) {
+// Collapsing tables overlap adjacent rows by one line, shortening the span.
+func extendRowSpans(spans []spanningCell, rowBoxes []*Box, collapse bool) {
 	for _, s := range spans {
 		total := 0
+		covered := 0
 		for r := s.rowStart; r < s.rowEnd && r < len(rowBoxes); r++ {
 			total += rowBoxes[r].Height
+			covered++
+		}
+		if collapse {
+			total -= max(covered-1, 0)
 		}
 		if total > s.box.Height {
 			s.box.Height = total

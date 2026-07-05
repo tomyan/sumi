@@ -1,6 +1,10 @@
 package layout
 
-import "testing"
+import (
+	"testing"
+
+	"github.com/tomyan/sumi/runtime/render"
+)
 
 // B7a: core table layout.
 
@@ -232,5 +236,78 @@ func TestTableLayoutFixed(t *testing.T) {
 	}
 	if got := row0.Children[1].Width; got != 20 {
 		t.Errorf("col 1 width = %d, want remainder 20", got)
+	}
+}
+
+// B7a fix: cells are positioned relative to their row — with the final
+// absolute pass, second-row cells must land inside their row, and a
+// padded table must not double-shift columns.
+func TestTableCellsPositionWithinTheirRows(t *testing.T) {
+	// Given — a two-row table inside a padded table box
+	cell := func(s string) *Input {
+		return &Input{Kind: KindBox, Children: []*Input{{Kind: KindText, Content: s}}}
+	}
+	tree := &Input{Kind: KindBox, Children: []*Input{{
+		Kind: KindBox, Display: "table", Padding: Padding{Top: 1, Left: 2},
+		Children: []*Input{
+			{Kind: KindBox, Display: "table-row", Children: []*Input{cell("aa"), cell("b")}},
+			{Kind: KindBox, Display: "table-row", Children: []*Input{cell("c"), cell("d")}},
+		},
+	}}}
+
+	// When
+	box := Layout(tree, 30, 10)
+
+	// Then — absolute positions line up with the rows
+	table := box.Children[0]
+	row1 := table.Children[1]
+	if got := row1.Children[0].Y; got != row1.Y {
+		t.Errorf("row 1 cell Y = %d, want row Y %d", got, row1.Y)
+	}
+	row0 := table.Children[0]
+	if got := row0.Children[0].X; got != 2 {
+		t.Errorf("first cell X = %d, want 2 (table padding, applied once)", got)
+	}
+	if got := row0.Children[1].X; got != 4 {
+		t.Errorf("second cell X = %d, want 4 (2 padding + col width 2)", got)
+	}
+}
+
+// B7c-2: border-collapse tables share cell borders with junctions.
+func TestTableBorderCollapseSharesCellBorders(t *testing.T) {
+	// Given — 2x2 bordered cells in a collapsing table
+	cell := func(s string) *Input {
+		return &Input{Kind: KindBox, Border: "single", Children: []*Input{
+			{Kind: KindText, Content: s},
+		}}
+	}
+	tree := &Input{Kind: KindBox, Children: []*Input{{
+		Kind: KindBox, Display: "table", BorderCollapse: true, Children: []*Input{
+			{Kind: KindBox, Display: "table-row", Children: []*Input{cell("a"), cell("b")}},
+			{Kind: KindBox, Display: "table-row", Children: []*Input{cell("c"), cell("d")}},
+		},
+	}}}
+
+	// When
+	box := Layout(tree, 30, 10)
+	buf := render.NewBuffer(30, 10)
+	RenderTree(buf, box, nil)
+
+	// Then — shared edges with junction characters:
+	// ┌─┬─┐
+	// │a│b│
+	// ├─┼─┤
+	// │c│d│
+	// └─┴─┘
+	wants := map[[2]int]rune{
+		{0, 0}: '┌', {0, 2}: '┬', {0, 4}: '┐',
+		{2, 0}: '├', {2, 2}: '┼', {2, 4}: '┤',
+		{4, 0}: '└', {4, 2}: '┴', {4, 4}: '┘',
+		{1, 1}: 'a', {1, 3}: 'b', {3, 1}: 'c', {3, 3}: 'd',
+	}
+	for pos, want := range wants {
+		if got := buf.Cell(pos[0], pos[1]).Ch; got != want {
+			t.Errorf("cell(%d,%d) = %q, want %q", pos[0], pos[1], got, want)
+		}
 	}
 }
