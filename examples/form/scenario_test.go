@@ -29,6 +29,10 @@ func formScenario() sumitest.Scenario {
 				h.Step(sumitest.TabEvent())
 				h.Step(sumitest.KeyEvent(' '))
 			}},
+			{Name: "cycle-theme", Action: func(h *sumitest.Harness) {
+				h.Step(sumitest.TabEvent())
+				h.Step(sumitest.SpecialEvent("down"))
+			}},
 		},
 	}
 }
@@ -55,5 +59,13 @@ func TestCheckboxAndRadioDriveSignals(t *testing.T) {
 	// The radio group moved: small unchecked, large checked.
 	if !strings.Contains(frames[2].StyledText, "( )") || !strings.Contains(frames[2].StyledText, "(•)") {
 		t.Errorf("radio glyphs after selection:\n%s", frames[2].StyledText)
+	}
+	// The select starts on Dark and cycles to Light.
+	if !strings.Contains(frames[2].StyledText, "Dark ▾") {
+		t.Errorf("select display before cycling:\n%s", frames[2].StyledText)
+	}
+	if !strings.Contains(frames[3].StyledText, "Light ▾") ||
+		!strings.Contains(frames[3].StyledText, "Theme: light") {
+		t.Errorf("after cycling theme:\n%s", frames[3].StyledText)
 	}
 }

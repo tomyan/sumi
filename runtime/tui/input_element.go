@@ -94,10 +94,11 @@ func inputContentWidth(n *layout.Input) int {
 	return w - n.Padding.Left - n.Padding.Right
 }
 
-// ensureValueChild returns the implicit text child that displays the value.
+// ensureValueChild returns the implicit untagged text child that displays
+// the element's projected value (input text, select label).
 func ensureValueChild(n *layout.Input) *layout.Input {
 	for _, c := range n.Children {
-		if c != nil && c.Kind == layout.KindText {
+		if c != nil && c.Kind == layout.KindText && c.Tag == "" {
 			return c
 		}
 	}

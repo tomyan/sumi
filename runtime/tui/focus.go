@@ -30,8 +30,11 @@ func syncFocus(comp *Component) {
 	}
 	stampFocus(focusables, comp.FocusIndex)
 	for i, f := range focusables {
-		if f.Tag == "input" {
+		switch f.Tag {
+		case "input":
 			syncInputElement(f, i == comp.FocusIndex)
+		case "select":
+			syncSelectElement(f)
 		}
 	}
 }
@@ -149,6 +152,9 @@ func applyDefaultActions(comp *Component, evt input.Event, dom *layout.DOMEvent)
 	if editFocusedInput(comp, evt) {
 		return true
 	}
+	if selectKeydown(comp, evt) {
+		return true
+	}
 	return activateFocused(comp, evt)
 }
 
@@ -195,6 +201,10 @@ func clickDefault(comp *Component, path []*layout.Input, evt input.Event, follow
 		n := path[i]
 		if isCheckable(n) {
 			toggleCheckable(comp, path[:i+1], n, evt)
+			return
+		}
+		if n.Tag == "select" {
+			moveSelect(comp, path[:i+1], n, 1, evt)
 			return
 		}
 		if n.Tag == "a" {

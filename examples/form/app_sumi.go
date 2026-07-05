@@ -10,6 +10,7 @@ type AppProps struct {
 func NewApp(props AppProps) *sumi.Component {
 	notify := sumi.New(false)
 	size := sumi.New("small")
+	theme := sumi.New("dark")
 
 	notifyChanged := func(evt *sumi.DOMEvent) {
 		notify.Set(evt.Data["checked"].(bool))
@@ -17,6 +18,10 @@ func NewApp(props AppProps) *sumi.Component {
 
 	sizeChanged := func(evt *sumi.DOMEvent) {
 		size.Set(evt.Data["value"].(string))
+	}
+
+	themeChanged := func(evt *sumi.DOMEvent) {
+		theme.Set(evt.Data["value"].(string))
 	}
 
 	notifyLabel := func() string {
@@ -50,6 +55,11 @@ func NewApp(props AppProps) *sumi.Component {
 		Kind:    sumi.KindText,
 		Tag:     "span",
 		Content: sumi.Sprintf("Size: %v", size.Get()),
+	}
+	node2 := &sumi.Input{
+		Kind:    sumi.KindText,
+		Tag:     "span",
+		Content: sumi.Sprintf("Theme: %v", theme.Get()),
 	}
 	root := &sumi.Input{
 		Kind:      sumi.KindBox,
@@ -144,6 +154,52 @@ func NewApp(props AppProps) *sumi.Component {
 						},
 					},
 					node1,
+					{
+						Kind:      sumi.KindBox,
+						Tag:       "div",
+						Classes:   []string{"row"},
+						Attrs:     map[string]string{"class": "row"},
+						CursorCol: -1,
+						CursorRow: -1,
+						Children: []*sumi.Input{
+							{
+								Kind:    sumi.KindText,
+								Tag:     "span",
+								Content: "Theme:",
+							},
+							{
+								Kind:  sumi.KindBox,
+								Tag:   "select",
+								Attrs: map[string]string{"onchange": "{themeChanged}"},
+								On: map[string]func(*sumi.DOMEvent){
+									"change": themeChanged,
+								},
+								CursorCol: -1,
+								CursorRow: -1,
+								Children: []*sumi.Input{
+									{
+										Kind:    sumi.KindText,
+										Tag:     "option",
+										Attrs:   map[string]string{"selected": "true", "value": "dark"},
+										Content: "Dark",
+									},
+									{
+										Kind:    sumi.KindText,
+										Tag:     "option",
+										Attrs:   map[string]string{"value": "light"},
+										Content: "Light",
+									},
+									{
+										Kind:    sumi.KindText,
+										Tag:     "option",
+										Attrs:   map[string]string{"value": "high-contrast"},
+										Content: "High contrast",
+									},
+								},
+							},
+						},
+					},
+					node2,
 				},
 			},
 		},
@@ -152,6 +208,7 @@ func NewApp(props AppProps) *sumi.Component {
 	sumi.Effect(func() {
 		node0.Content = sumi.Sprintf("Notifications (%v)", notifyLabel())
 		node1.Content = sumi.Sprintf("Size: %v", size.Get())
+		node2.Content = sumi.Sprintf("Theme: %v", theme.Get())
 	})
 
 	return &sumi.Component{

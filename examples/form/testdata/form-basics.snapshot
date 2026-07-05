@@ -4,6 +4,8 @@
 <<green>>(•)<</>> Small
 ( ) Large
 Size: small
+Theme: Dark ▾
+Theme: dark
 
 === Frame: toggle-notifications ===
 <<dim>>Tab to move, Space to toggle; q quits<</>>
@@ -11,6 +13,8 @@ Size: small
 <<green>>(•)<</>> Small
 ( ) Large
 Size: small
+Theme: Dark ▾
+Theme: dark
 
 === Frame: select-large ===
 <<dim>>Tab to move, Space to toggle; q quits<</>>
@@ -18,4 +22,15 @@ Size: small
 ( ) Small
 <<yellow>>(•)<</>> Large
 Size: large
+Theme: Dark ▾
+Theme: dark
+
+=== Frame: cycle-theme ===
+<<dim>>Tab to move, Space to toggle; q quits<</>>
+<<green>>[x]<</>> Notifications (on)
+( ) Small
+<<green>>(•)<</>> Large
+Size: large
+Theme: Light ▾
+Theme: light
 

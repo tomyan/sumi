@@ -1,6 +1,7 @@
 <script>
 notify := sumi.New(false)
 size := sumi.New("small")
+theme := sumi.New("dark")
 
 func notifyChanged(evt *sumi.DOMEvent) {
     notify.Set(evt.Data["checked"].(bool))
@@ -8,6 +9,10 @@ func notifyChanged(evt *sumi.DOMEvent) {
 
 func sizeChanged(evt *sumi.DOMEvent) {
     size.Set(evt.Data["value"].(string))
+}
+
+func themeChanged(evt *sumi.DOMEvent) {
+    theme.Set(evt.Data["value"].(string))
 }
 
 func notifyLabel() string {
@@ -55,4 +60,13 @@ input:checked {
         <span>Large</span>
     </div>
     <span>Size: {size}</span>
+    <div class="row">
+        <span>Theme:</span>
+        <select onchange={themeChanged}>
+            <option value="dark" selected="true">Dark</option>
+            <option value="light">Light</option>
+            <option value="high-contrast">High contrast</option>
+        </select>
+    </div>
+    <span>Theme: {theme}</span>
 </div>
