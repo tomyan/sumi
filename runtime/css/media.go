@@ -15,6 +15,17 @@ var viewportW, viewportH int
 // SetViewport sets the viewport for media evaluation (cells).
 func SetViewport(w, h int) { viewportW, viewportH = w, h }
 
+// reducedMotion holds the prefers-reduced-motion preference. Terminals
+// have no standard probe; RunOptions and the SUMI_REDUCED_MOTION env var
+// drive it.
+var reducedMotion bool
+
+// SetReducedMotion sets the prefers-reduced-motion media preference.
+func SetReducedMotion(reduced bool) { reducedMotion = reduced }
+
+// ReducedMotion reports the current prefers-reduced-motion preference.
+func ReducedMotion() bool { return reducedMotion }
+
 // mediaMatches evaluates a media query against the current context:
 // display-mode is terminal, prefers-color-scheme follows the active render
 // scheme, and min/max-width/height compare against the viewport in cells.
@@ -45,6 +56,11 @@ func conditionMatches(cond string) bool {
 			return value == "light"
 		}
 		return value == "dark"
+	case "prefers-reduced-motion":
+		if reducedMotion {
+			return value == "reduce"
+		}
+		return value == "no-preference"
 	case "min-width":
 		return viewportW > 0 && viewportW >= cellLength(value)
 	case "max-width":

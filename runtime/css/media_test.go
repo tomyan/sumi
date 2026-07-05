@@ -89,3 +89,26 @@ func TestCombinedMediaConditions(t *testing.T) {
 		t.Errorf("combined conditions should match, got %q", got)
 	}
 }
+
+// E4: prefers-reduced-motion follows the package setting.
+func TestMediaPrefersReducedMotion(t *testing.T) {
+	// Given — default: no preference
+	if mediaMatches("(prefers-reduced-motion: reduce)") {
+		t.Error("reduce should not match by default")
+	}
+	if !mediaMatches("(prefers-reduced-motion: no-preference)") {
+		t.Error("no-preference should match by default")
+	}
+
+	// When
+	SetReducedMotion(true)
+	defer SetReducedMotion(false)
+
+	// Then
+	if !mediaMatches("(prefers-reduced-motion: reduce)") {
+		t.Error("reduce should match when set")
+	}
+	if mediaMatches("(prefers-reduced-motion: no-preference)") {
+		t.Error("no-preference should not match when reduced")
+	}
+}

@@ -5,6 +5,7 @@ import (
 	"os"
 
 	"github.com/tomyan/sumi/runtime/anim"
+	"github.com/tomyan/sumi/runtime/css"
 	"github.com/tomyan/sumi/runtime/input"
 	"github.com/tomyan/sumi/runtime/layout"
 	"github.com/tomyan/sumi/runtime/render"
@@ -143,11 +144,12 @@ func Quit() {
 
 // RunOptions configures optional behaviors for Run.
 type RunOptions struct {
-	OnPostRender func()            // called after each render
-	OnResize     func()            // called on terminal resize
-	SetApp       func(a *App)      // called with the app reference before Run
-	ColorDepth   render.ColorDepth // emission depth; DepthAuto detects from env
-	ExitOn       []string          // quit chords ("ctrl+c", "q", "escape"); nil = ctrl+c
+	OnPostRender  func()            // called after each render
+	OnResize      func()            // called on terminal resize
+	SetApp        func(a *App)      // called with the app reference before Run
+	ColorDepth    render.ColorDepth // emission depth; DepthAuto detects from env
+	ExitOn        []string          // quit chords ("ctrl+c", "q", "escape"); nil = ctrl+c
+	ReducedMotion bool              // prefers-reduced-motion: reduce (also via SUMI_REDUCED_MOTION env)
 }
 
 // RunWithOptions runs a component with additional configuration.
@@ -157,6 +159,7 @@ func RunWithOptions(comp *Component, opts RunOptions) {
 	} else {
 		render.SetColorDepth(opts.ColorDepth)
 	}
+	css.SetReducedMotion(opts.ReducedMotion || os.Getenv("SUMI_REDUCED_MOTION") != "")
 	app := &App{}
 	app.ExitOn = opts.ExitOn
 	if opts.SetApp != nil {
@@ -242,6 +245,7 @@ func RunWithOptions(comp *Component, opts RunOptions) {
 
 // Run runs a component as a full-screen terminal application.
 func Run(comp *Component) {
+	css.SetReducedMotion(os.Getenv("SUMI_REDUCED_MOTION") != "")
 	app := &App{}
 
 	engine := anim.NewEngine(anim.WallClock{}, func() { app.RequestFrame() })
