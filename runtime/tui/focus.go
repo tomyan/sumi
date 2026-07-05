@@ -80,9 +80,9 @@ func dispatchFocusEvent(focusables []*layout.Input, idx int, eventType string) {
 }
 
 // dispatchKeyToFocused bubbles a keydown/paste DOM event along the path to
-// the focused element. Returns true if a handler stopped propagation, in
-// which case the root component handler should not see the event.
-func dispatchKeyToFocused(comp *Component, evt input.Event) bool {
+// the focused element. Returns the dispatched event so callers can inspect
+// Stopped/DefaultPrevented, or nil when nothing was dispatched.
+func dispatchKeyToFocused(comp *Component, evt input.Event) *layout.DOMEvent {
 	var eventType string
 	switch evt.Kind {
 	case input.EventKey, input.EventSpecial:
@@ -90,15 +90,46 @@ func dispatchKeyToFocused(comp *Component, evt input.Event) bool {
 	case input.EventPaste:
 		eventType = "paste"
 	default:
+		return nil
+	}
+	path := layout.FocusablePath(comp.Tree, comp.FocusIndex)
+	if len(path) == 0 {
+		return nil
+	}
+	dom := &layout.DOMEvent{Type: eventType, Key: evt}
+	layout.DispatchDOM(path, dom)
+	return dom
+}
+
+// applyDefaultActions runs the built-in behavior for an event after DOM
+// dispatch, unless a handler called PreventDefault. Returns true when the
+// event is consumed by a default action.
+func applyDefaultActions(comp *Component, evt input.Event, dom *layout.DOMEvent) bool {
+	if dom != nil && dom.DefaultPrevented() {
+		return false
+	}
+	if handleFocusCycle(comp, evt) {
+		return true
+	}
+	return activateFocusedOnEnter(comp, evt)
+}
+
+// activateFocusedOnEnter synthesizes a bubbling click on the focused
+// element when Enter is pressed. Returns true only when the focused
+// element itself handles click — Enter on a plain focusable passes through.
+func activateFocusedOnEnter(comp *Component, evt input.Event) bool {
+	if evt.Kind != input.EventSpecial || evt.Special != input.KeyEnter {
 		return false
 	}
 	path := layout.FocusablePath(comp.Tree, comp.FocusIndex)
 	if len(path) == 0 {
 		return false
 	}
-	dom := &layout.DOMEvent{Type: eventType, Key: evt}
-	layout.DispatchDOM(path, dom)
-	return dom.Stopped()
+	if path[len(path)-1].On["click"] == nil {
+		return false
+	}
+	layout.DispatchDOM(path, &layout.DOMEvent{Type: "click", Key: evt})
+	return true
 }
 
 // componentEventHandler builds the app OnEvent callback shared by
@@ -111,11 +142,12 @@ func componentEventHandler(app *App, comp *Component) func(input.Event) {
 			path := layout.HitTestPath(comp.Tree, comp.LayoutResult, evt.Mouse.X, evt.Mouse.Y)
 			layout.DispatchDOM(path, &layout.DOMEvent{Type: "click", Key: evt})
 		}
-		if handleFocusCycle(comp, evt) {
+		dom := dispatchKeyToFocused(comp, evt)
+		if applyDefaultActions(comp, evt, dom) {
 			app.Dirty = true
 			return
 		}
-		if dispatchKeyToFocused(comp, evt) {
+		if dom != nil && dom.Stopped() {
 			app.Dirty = true
 			return
 		}
