@@ -13,58 +13,65 @@ import (
 type NodeKind int
 
 const (
-	KindBox  NodeKind = iota
+	KindBox NodeKind = iota
 	KindText
 )
 
 // Input describes a node in the layout tree before layout is computed.
 type Input struct {
-	Kind        NodeKind
-	Content     string       // text content (KindText only)
-	Key         string       // identity key for diffing (set by keyed {for} loops)
-	Direction   string       // "column" (default) or "row"
-	FixedWidth  int          // 0 = auto
-	FixedHeight int          // 0 = auto
-	WidthPct    int          // percentage of containing block width (0 = unset)
-	HeightPct   int          // percentage of containing block height (0 = unset)
-	Gap         int          // space between children (cells)
-	FlexGrow    int          // flex-grow factor (0 = no grow)
-	Justify     string       // main-axis alignment: start, end, center, space-between
-	Align       string       // cross-axis alignment: start, end, center, stretch
-	Overflow    string       // "hidden", "scroll", "auto", or "" (visible)
-	MinWidth    int          // minimum content width (0 = no minimum)
-	Display     string       // "" (default) or "none" (hidden from layout)
-	Position    string       // "" (static), "relative", "absolute", "fixed", "sticky"
-	ZIndex      int          // paint order (higher renders on top)
-	Top         int          // offset from top (for positioned elements)
-	Left        int          // offset from left (for positioned elements)
-	Right       int          // offset from right (for positioned elements)
-	Bottom      int          // offset from bottom (for positioned elements)
-	SelfW       *int    // if non-nil, receives computed width after layout
-	SelfH       *int    // if non-nil, receives computed height after layout
-	SelfX       *int    // if non-nil, receives absolute X position after layout
-	SelfY       *int    // if non-nil, receives absolute Y position after layout
-	CursorCol   int     // cursor column within content (-1 = no cursor)
-	CursorRow   int     // cursor row within content (-1 = no cursor)
-	Focusable   bool    // true if this element can receive focus
-	FocusIndex  int     // assigned focus index (0-based) for Tab cycling
-	Padding     Padding
-	Border         string       // "single", "none", or ""
-	BorderTop      string       // top-only border: "single" or ""
-	BorderBottom   string       // bottom-only border: "single" or ""
-	BorderTitle    string       // text to display in the top border edge
-	BorderCollapse bool        // when true, children share borders
-	Scroll          *ScrollState // if non-nil, layout populates and applies scroll state
-	ContentEditable bool         // when true, renders an inverse cursor at CursorCol/CursorRow
-	Style           render.Style // resolved style for this node
-	HoverStyle      render.Style        // style applied when mouse is over this node
-	Hovered         bool                // set by the framework before render
-	FocusStyle      render.Style        // style applied when this node has focus
-	Focused         bool                // set by generated sync before render
-	OnClick         func()              // called when this node is clicked
-	Transitions     []anim.TransitionSpec  // CSS transition config (set by codegen)
-	AnimationSpec   *anim.AnimationSpec    // CSS animation config (set by codegen)
-	Children       []*Input
+	Kind    NodeKind
+	Content string // text content (KindText only)
+	Key     string // identity key for diffing (set by keyed {for} loops)
+
+	// Element identity for runtime CSS resolution.
+	Tag     string            // element tag ("box", "text")
+	ID      string            // id attribute
+	Classes []string          // class attribute, split
+	Attrs   map[string]string // template attributes (attribute selectors)
+
+	Direction       string // "column" (default) or "row"
+	FixedWidth      int    // 0 = auto
+	FixedHeight     int    // 0 = auto
+	WidthPct        int    // percentage of containing block width (0 = unset)
+	HeightPct       int    // percentage of containing block height (0 = unset)
+	Gap             int    // space between children (cells)
+	FlexGrow        int    // flex-grow factor (0 = no grow)
+	Justify         string // main-axis alignment: start, end, center, space-between
+	Align           string // cross-axis alignment: start, end, center, stretch
+	Overflow        string // "hidden", "scroll", "auto", or "" (visible)
+	MinWidth        int    // minimum content width (0 = no minimum)
+	Display         string // "" (default) or "none" (hidden from layout)
+	Position        string // "" (static), "relative", "absolute", "fixed", "sticky"
+	ZIndex          int    // paint order (higher renders on top)
+	Top             int    // offset from top (for positioned elements)
+	Left            int    // offset from left (for positioned elements)
+	Right           int    // offset from right (for positioned elements)
+	Bottom          int    // offset from bottom (for positioned elements)
+	SelfW           *int   // if non-nil, receives computed width after layout
+	SelfH           *int   // if non-nil, receives computed height after layout
+	SelfX           *int   // if non-nil, receives absolute X position after layout
+	SelfY           *int   // if non-nil, receives absolute Y position after layout
+	CursorCol       int    // cursor column within content (-1 = no cursor)
+	CursorRow       int    // cursor row within content (-1 = no cursor)
+	Focusable       bool   // true if this element can receive focus
+	FocusIndex      int    // assigned focus index (0-based) for Tab cycling
+	Padding         Padding
+	Border          string                // "single", "none", or ""
+	BorderTop       string                // top-only border: "single" or ""
+	BorderBottom    string                // bottom-only border: "single" or ""
+	BorderTitle     string                // text to display in the top border edge
+	BorderCollapse  bool                  // when true, children share borders
+	Scroll          *ScrollState          // if non-nil, layout populates and applies scroll state
+	ContentEditable bool                  // when true, renders an inverse cursor at CursorCol/CursorRow
+	Style           render.Style          // resolved style for this node
+	HoverStyle      render.Style          // style applied when mouse is over this node
+	Hovered         bool                  // set by the framework before render
+	FocusStyle      render.Style          // style applied when this node has focus
+	Focused         bool                  // set by generated sync before render
+	OnClick         func()                // called when this node is clicked
+	Transitions     []anim.TransitionSpec // CSS transition config (set by codegen)
+	AnimationSpec   *anim.AnimationSpec   // CSS animation config (set by codegen)
+	Children        []*Input
 }
 
 // Padding holds inset values for each side.
@@ -74,41 +81,41 @@ type Padding struct {
 
 // Box is a laid-out node with computed position and size.
 type Box struct {
-	X, Y, Width, Height int
-	ContentWidth        int          // full content width (set when overflow != "")
-	ContentHeight       int          // full content height (set when overflow != "")
-	ScrollY             int          // vertical scroll offset (applied during render)
-	ScrollX             int          // horizontal scroll offset (applied during render)
-	Kind                NodeKind     // node type (propagated from Input)
-	ContentEditable     bool         // renders inverse cursor at CursorCol/CursorRow
-	HoverStyle          render.Style // style when hovered
-	Hovered             bool         // mouse is over this node
-	FocusStyle          render.Style // style when focused
-	Focused             bool         // node currently has focus
-	Key                 string       // identity key for diffing (propagated from Input)
-	Position            string       // positioning mode (propagated from Input)
-	ZIndex              int          // paint order (propagated from Input)
-	Top                 int          // offset from top (propagated from Input)
-	Left                int          // offset from left (propagated from Input)
-	Right               int          // offset from right (propagated from Input)
-	Bottom              int          // offset from bottom (propagated from Input)
-	Children            []*Box
-	Content             string       // text content if text node
-	Lines               []string     // wrapped lines (nil = single line, use Content)
-	Border              string              // border style
-	BorderTop           string              // top-only border
-	BorderBottom        string              // bottom-only border
-	BorderTitle         string              // text to display in the top border edge
-	Collapsed           render.CollapsedEdges // edges shared with adjacent borders
-	Style               render.Style        // visual style
-	CursorCol                int          // cursor column within content (-1 = no cursor)
-	CursorRow                int          // cursor row within content (-1 = no cursor)
-	NeedsScrollbar           bool         // true when a vertical scrollbar should be drawn
-	NeedsHorizontalScrollbar bool         // true when a horizontal scrollbar should be drawn
-	Clip                     *render.Clip // clipping region (set when overflow is non-empty)
+	X, Y, Width, Height      int
+	ContentWidth             int          // full content width (set when overflow != "")
+	ContentHeight            int          // full content height (set when overflow != "")
+	ScrollY                  int          // vertical scroll offset (applied during render)
+	ScrollX                  int          // horizontal scroll offset (applied during render)
+	Kind                     NodeKind     // node type (propagated from Input)
+	ContentEditable          bool         // renders inverse cursor at CursorCol/CursorRow
+	HoverStyle               render.Style // style when hovered
+	Hovered                  bool         // mouse is over this node
+	FocusStyle               render.Style // style when focused
+	Focused                  bool         // node currently has focus
+	Key                      string       // identity key for diffing (propagated from Input)
+	Position                 string       // positioning mode (propagated from Input)
+	ZIndex                   int          // paint order (propagated from Input)
+	Top                      int          // offset from top (propagated from Input)
+	Left                     int          // offset from left (propagated from Input)
+	Right                    int          // offset from right (propagated from Input)
+	Bottom                   int          // offset from bottom (propagated from Input)
+	Children                 []*Box
+	Content                  string                // text content if text node
+	Lines                    []string              // wrapped lines (nil = single line, use Content)
+	Border                   string                // border style
+	BorderTop                string                // top-only border
+	BorderBottom             string                // bottom-only border
+	BorderTitle              string                // text to display in the top border edge
+	Collapsed                render.CollapsedEdges // edges shared with adjacent borders
+	Style                    render.Style          // visual style
+	CursorCol                int                   // cursor column within content (-1 = no cursor)
+	CursorRow                int                   // cursor row within content (-1 = no cursor)
+	NeedsScrollbar           bool                  // true when a vertical scrollbar should be drawn
+	NeedsHorizontalScrollbar bool                  // true when a horizontal scrollbar should be drawn
+	Clip                     *render.Clip          // clipping region (set when overflow is non-empty)
 	HasOverlap               bool                  // true when any descendant has absolute/fixed or non-zero z-index
-	Transitions              []anim.TransitionSpec  // CSS transition config (propagated from Input)
-	AnimationSpec            *anim.AnimationSpec    // CSS animation config (propagated from Input)
+	Transitions              []anim.TransitionSpec // CSS transition config (propagated from Input)
+	AnimationSpec            *anim.AnimationSpec   // CSS animation config (propagated from Input)
 }
 
 // ParsePadding parses a CSS-like padding shorthand string.
@@ -252,19 +259,19 @@ func layoutNode(input *Input, availW, availH int) *Box {
 		Transitions:     input.Transitions,
 		AnimationSpec:   input.AnimationSpec,
 		Border:          border,
-		BorderTop:    input.BorderTop,
-		BorderBottom: input.BorderBottom,
-		BorderTitle:  input.BorderTitle,
-		Key:         input.Key,
-		Position:    input.Position,
-		ZIndex:      input.ZIndex,
-		Top:         input.Top,
-		Left:        input.Left,
-		Right:       input.Right,
-		Bottom:      input.Bottom,
-		CursorCol:   input.CursorCol,
-		CursorRow:   input.CursorRow,
-		Style:       input.Style,
+		BorderTop:       input.BorderTop,
+		BorderBottom:    input.BorderBottom,
+		BorderTitle:     input.BorderTitle,
+		Key:             input.Key,
+		Position:        input.Position,
+		ZIndex:          input.ZIndex,
+		Top:             input.Top,
+		Left:            input.Left,
+		Right:           input.Right,
+		Bottom:          input.Bottom,
+		CursorCol:       input.CursorCol,
+		CursorRow:       input.CursorRow,
+		Style:           input.Style,
 	}
 
 	if input.Kind == KindText {

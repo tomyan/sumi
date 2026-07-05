@@ -1,6 +1,7 @@
 package tui
 
 import (
+	"github.com/tomyan/sumi/parser/style"
 	"os"
 
 	"github.com/tomyan/sumi/runtime/anim"
@@ -68,9 +69,10 @@ type Component struct {
 	OnEvent      func(input.Event)
 	AfterLayout  func() // called after layout to sync self-measurement signals
 	Dispose      func()
-	Dirty        bool                          // set by AfterLayout to request a re-render pass
-	LayoutResult *layout.Box                  // set before AfterLayout with the latest layout result
+	Dirty        bool                               // set by AfterLayout to request a re-render pass
+	LayoutResult *layout.Box                        // set before AfterLayout with the latest layout result
 	Keyframes    map[string]*anim.KeyframeAnimation // named keyframe animations from CSS
+	Stylesheet   *style.Stylesheet                  // component CSS for runtime resolution
 }
 
 // TestApp creates a test-mode App from a Component with the given viewport dimensions.
@@ -88,6 +90,7 @@ func TestApp(comp *Component, w, h int) *App {
 		} else {
 			termW, termH = term.GetSize(int(os.Stdin.Fd()))
 		}
+		layout.ResolveStyles(comp.Tree, comp.Stylesheet)
 		tree := layout.Layout(comp.Tree, termW, termH)
 		comp.LayoutResult = tree
 		if comp.AfterLayout != nil {
@@ -171,6 +174,7 @@ func RunWithOptions(comp *Component, opts RunOptions) {
 		if comp.LayoutResult != nil {
 			layout.UpdateHover(comp.Tree, comp.LayoutResult, app.mouseX, app.mouseY)
 		}
+		layout.ResolveStyles(comp.Tree, comp.Stylesheet)
 		tree := layout.Layout(comp.Tree, termW, termH)
 		comp.LayoutResult = tree
 		if comp.AfterLayout != nil {
@@ -251,6 +255,7 @@ func Run(comp *Component) {
 		if comp.LayoutResult != nil {
 			layout.UpdateHover(comp.Tree, comp.LayoutResult, app.mouseX, app.mouseY)
 		}
+		layout.ResolveStyles(comp.Tree, comp.Stylesheet)
 		tree := layout.Layout(comp.Tree, termW, termH)
 		comp.LayoutResult = tree
 		if comp.AfterLayout != nil {

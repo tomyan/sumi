@@ -1,0 +1,178 @@
+package layout
+
+import (
+	"strconv"
+	"strings"
+
+	"github.com/tomyan/sumi/parser/style"
+	"github.com/tomyan/sumi/runtime/css"
+)
+
+// ResolveStyles resolves CSS for every node in the input tree against the
+// component stylesheet, using the true runtime path and sibling context
+// (so structural pseudo-classes work inside {if}/{for} content).
+// Inline template attributes always win over CSS; CSS only sets a field
+// when a matching declaration provides a value.
+// Spliced child-component subtrees (identified by Tag "root") are skipped:
+// they resolve against their own component's stylesheet.
+func ResolveStyles(root *Input, ss *style.Stylesheet) {
+	if root == nil || ss == nil {
+		return
+	}
+	rootEl := css.Element{Tag: "root"}
+	props := css.Resolve(ss, []css.Element{rootEl})
+	applyResolvedProps(root, props, nil, nil)
+	resolveChildren(root, ss, []css.Element{rootEl})
+}
+
+func resolveChildren(parent *Input, ss *style.Stylesheet, path []css.Element) {
+	siblings := elementSiblings(parent.Children)
+	elemIdx := 0
+	for _, child := range parent.Children {
+		if child == nil || child.Tag == "" || child.Tag == "root" {
+			continue // display:none placeholder, unidentified node, or component subtree
+		}
+		el := siblings[elemIdx]
+		el.Siblings = siblings
+		el.Index = elemIdx
+		elemIdx++
+
+		p := make([]css.Element, len(path), len(path)+1)
+		copy(p, path)
+		p = append(p, el)
+
+		applyResolvedProps(child, css.Resolve(ss, p), css.ResolveHover(ss, p), css.ResolveFocus(ss, p))
+		resolveChildren(child, ss, p)
+	}
+}
+
+// elementSiblings builds the sibling identity list for structural matching.
+func elementSiblings(children []*Input) []css.Element {
+	var sibs []css.Element
+	for _, c := range children {
+		if c == nil || c.Tag == "" || c.Tag == "root" {
+			continue
+		}
+		sibs = append(sibs, css.Element{
+			Tag: c.Tag, ID: c.ID, Classes: c.Classes, Attrs: c.Attrs,
+			Empty: len(c.Children) == 0 && c.Content == "",
+		})
+	}
+	return sibs
+}
+
+// applyResolvedProps writes resolved CSS onto a node. Visual styles are
+// replaced wholesale (CSS is their only source); layout properties are set
+// only when CSS declares them and no inline attribute overrides.
+func applyResolvedProps(n *Input, props, hover, focus map[string]string) {
+	n.Style = css.ToRenderStyle(props)
+	if hover != nil {
+		n.HoverStyle = css.ToRenderStyle(hover)
+	}
+	if focus != nil {
+		n.FocusStyle = css.ToRenderStyle(focus)
+	}
+	applyLayoutProps(n, props)
+}
+
+// cssValue returns the CSS value for a layout property, unless an inline
+// attribute overrides it (inline attrs are emitted by codegen and win).
+func cssValue(n *Input, props map[string]string, key string) (string, bool) {
+	if _, inline := n.Attrs[key]; inline {
+		return "", false
+	}
+	v, ok := props[key]
+	return v, ok
+}
+
+func applyLayoutProps(n *Input, props map[string]string) {
+	if v, ok := cssValue(n, props, "flex-direction"); ok {
+		n.Direction = v
+	}
+	applySizeProp(n, props, "width", &n.FixedWidth, &n.WidthPct)
+	applySizeProp(n, props, "height", &n.FixedHeight, &n.HeightPct)
+	applyIntProp(n, props, "gap", &n.Gap)
+	applyIntProp(n, props, "flex-grow", &n.FlexGrow)
+	applyIntProp(n, props, "min-width", &n.MinWidth)
+	if v, ok := cssValue(n, props, "justify-content"); ok {
+		n.Justify = normalizeFlexKeyword(v)
+	}
+	if v, ok := cssValue(n, props, "align-items"); ok {
+		n.Align = normalizeFlexKeyword(v)
+	}
+	if v, ok := cssValue(n, props, "padding"); ok {
+		n.Padding = ParsePadding(v)
+	}
+	if v, ok := cssValue(n, props, "display"); ok {
+		n.Display = v
+	}
+	if v, ok := cssValue(n, props, "overflow"); ok {
+		n.Overflow = v
+	}
+	applyPositionProps(n, props)
+	applyBorderProps(n, props)
+}
+
+func applyPositionProps(n *Input, props map[string]string) {
+	if v, ok := cssValue(n, props, "position"); ok {
+		n.Position = v
+	}
+	applyIntProp(n, props, "top", &n.Top)
+	applyIntProp(n, props, "left", &n.Left)
+	applyIntProp(n, props, "right", &n.Right)
+	applyIntProp(n, props, "bottom", &n.Bottom)
+	applyIntProp(n, props, "z-index", &n.ZIndex)
+}
+
+func applyBorderProps(n *Input, props map[string]string) {
+	if v, ok := cssValue(n, props, "border"); ok {
+		n.Border = v
+	}
+	if v, ok := cssValue(n, props, "border-top"); ok {
+		n.BorderTop = v
+	}
+	if v, ok := cssValue(n, props, "border-bottom"); ok {
+		n.BorderBottom = v
+	}
+	if v, ok := cssValue(n, props, "border-title"); ok {
+		n.BorderTitle = v
+	}
+	if v, ok := cssValue(n, props, "border-collapse"); ok {
+		n.BorderCollapse = v == "collapse"
+	}
+}
+
+func applyIntProp(n *Input, props map[string]string, key string, dst *int) {
+	v, ok := cssValue(n, props, key)
+	if !ok {
+		return
+	}
+	if strings.HasSuffix(v, "%") {
+		return // no percentage meaning for this property
+	}
+	*dst = ParseCellLength(v)
+}
+
+func applySizeProp(n *Input, props map[string]string, key string, fixed, pct *int) {
+	v, ok := cssValue(n, props, key)
+	if !ok {
+		return
+	}
+	if p, isPct := strings.CutSuffix(v, "%"); isPct {
+		if val, err := strconv.Atoi(p); err == nil {
+			*pct = val
+		}
+		return
+	}
+	*fixed = ParseCellLength(v)
+}
+
+func normalizeFlexKeyword(v string) string {
+	switch v {
+	case "flex-start":
+		return "start"
+	case "flex-end":
+		return "end"
+	}
+	return v
+}

@@ -6,6 +6,7 @@ package prelude
 import (
 	"fmt"
 
+	"github.com/tomyan/sumi/parser/style"
 	"github.com/tomyan/sumi/runtime/anim"
 	"github.com/tomyan/sumi/runtime/input"
 	"github.com/tomyan/sumi/runtime/layout"
@@ -46,6 +47,18 @@ var (
 
 type Style = render.Style
 type Color = render.Color
+type Stylesheet = style.Stylesheet
+
+// MustParseStylesheet parses embedded component CSS. The same text was
+// already parsed successfully at codegen time, so failure is a build bug.
+func MustParseStylesheet(src string) *style.Stylesheet {
+	ss, err := style.Parse(src)
+	if err != nil {
+		panic("sumi: embedded stylesheet failed to parse: " + err.Error())
+	}
+	return ss
+}
+
 type ColorPair = render.ColorPair
 
 var (
