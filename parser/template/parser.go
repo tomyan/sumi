@@ -114,7 +114,8 @@ var containerTags = map[string]bool{
 	"footer": true, "nav": true, "article": true, "aside": true,
 	"ul": true, "ol": true, "li": true, "blockquote": true, "table": true,
 	"thead": true, "tbody": true, "tfoot": true, "tr": true,
-	"button": true,
+	"button": true, "textarea": true, "dialog": true, "details": true,
+	"select": true,
 }
 
 // parseHTMLElement parses any HTML element. Bodies containing child

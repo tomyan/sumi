@@ -4,10 +4,11 @@ package layout
 // attribute. Grows as controls are implemented (input, textarea, a,
 // select, summary).
 var controlTags = map[string]bool{
-	"button":  true,
-	"input":   true,
-	"select":  true,
-	"summary": true,
+	"button":   true,
+	"input":    true,
+	"select":   true,
+	"summary":  true,
+	"textarea": true,
 }
 
 // IsFocusable reports whether a node participates in focus traversal:

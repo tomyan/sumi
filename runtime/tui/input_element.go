@@ -34,6 +34,10 @@ func syncInputElement(n *layout.Input, focused bool) {
 		n.CursorCol = -1
 		return
 	}
+	if n.Tag == "textarea" {
+		syncTextareaElement(n, focused)
+		return
+	}
 	state := ensureEditState(n)
 	display := state.Value
 	if n.Attrs["type"] == "password" {
@@ -44,6 +48,22 @@ func syncInputElement(n *layout.Input, focused bool) {
 	if focused {
 		n.CursorCol = state.Cursor - state.ViewOffset
 		n.CursorRow = 0
+	} else {
+		n.CursorCol = -1
+	}
+}
+
+// syncTextareaElement projects a multi-line value: the child keeps line
+// structure via white-space: pre, and the cursor is (row, col).
+func syncTextareaElement(n *layout.Input, focused bool) {
+	state := ensureEditState(n)
+	child := ensureValueChild(n)
+	child.Content = state.Value
+	child.WhiteSpace = "pre"
+	if focused {
+		row, col := state.LineCol()
+		n.CursorRow = row
+		n.CursorCol = col
 	} else {
 		n.CursorCol = -1
 	}
@@ -115,7 +135,7 @@ func ensureValueChild(n *layout.Input) *layout.Input {
 // progress/meter bar) into the element's implicit child.
 func syncProjection(n *layout.Input) {
 	switch n.Tag {
-	case "input":
+	case "input", "textarea":
 		syncInputElement(n, n.Focused)
 	case "select":
 		syncSelectElement(n)
@@ -151,7 +171,7 @@ func resyncInputElements(comp *Component) bool {
 			return
 		}
 		switch n.Tag {
-		case "input", "select", "progress", "meter":
+		case "input", "textarea", "select", "progress", "meter":
 			child := ensureValueChild(n)
 			beforeContent, beforeCursor := child.Content, n.CursorCol
 			syncProjection(n)
@@ -190,12 +210,14 @@ func editFocusedInput(comp *Component, evt input.Event) bool {
 		return false
 	}
 	target := path[len(path)-1]
-	if target.Tag != "input" || isCheckable(target) {
+	if (target.Tag != "input" && target.Tag != "textarea") || isCheckable(target) {
 		return false
 	}
 	state := ensureEditState(target)
 	before := state.Value
-	if !edit.HandleKeyWith(state, evt, inputConstraints(target)) {
+	constraints := inputConstraints(target)
+	constraints.Multiline = target.Tag == "textarea"
+	if !edit.HandleKeyWith(state, evt, constraints) {
 		return false
 	}
 	syncInputElement(target, true)

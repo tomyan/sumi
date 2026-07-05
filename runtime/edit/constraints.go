@@ -10,12 +10,32 @@ import (
 type Constraints struct {
 	MaxLength int  // > 0 caps the value's rune length (typing and paste)
 	ReadOnly  bool // block edits; caret movement stays allowed
+	Multiline bool // Enter inserts a newline; Up/Down move between lines
 }
 
 // HandleKeyWith applies an event under constraints. Edits blocked by a
 // constraint are still consumed (returns true) so they don't leak to
 // other handlers; events the editor doesn't own return false.
 func HandleKeyWith(s *State, evt input.Event, c Constraints) bool {
+	if c.Multiline && evt.Kind == input.EventSpecial {
+		switch evt.Special {
+		case input.KeyUp:
+			s.CursorUp()
+			return true
+		case input.KeyDown:
+			s.CursorDown()
+			return true
+		case input.KeyEnter:
+			if c.ReadOnly {
+				return true
+			}
+			if c.MaxLength > 0 && len([]rune(s.Value)) >= c.MaxLength {
+				return true
+			}
+			s.InsertNewline()
+			return true
+		}
+	}
 	if c.ReadOnly && !isNavigation(evt) {
 		// Consume the event iff it would have edited; probe on a scratch
 		// copy so the real state is untouched.
