@@ -271,3 +271,82 @@ func TestResolveStylesSupports(t *testing.T) {
 		t.Errorf("FG = %q, want red", got)
 	}
 }
+
+// A14: ::before/::after pseudo-elements with content.
+
+func TestResolveStylesBeforeAfterContent(t *testing.T) {
+	// Given
+	tree := &Input{Tag: "root", Kind: KindBox, Children: []*Input{
+		{Tag: "box", Classes: []string{"item"}, Kind: KindBox, Children: []*Input{
+			{Tag: "text", Kind: KindText, Content: "body"},
+		}},
+	}}
+	ss := sheet(t, `.item::before { content: "> "; color: cyan; } .item::after { content: " <"; }`)
+
+	// When
+	ResolveStyles(tree, ss, 80, 24)
+
+	// Then
+	item := tree.Children[0]
+	if len(item.Children) != 3 {
+		t.Fatalf("children = %d, want 3 (before + body + after)", len(item.Children))
+	}
+	before, after := item.Children[0], item.Children[2]
+	if before.Content != "> " || before.Style.FG.Name != "cyan" {
+		t.Errorf("before = %+v", before)
+	}
+	if after.Content != " <" {
+		t.Errorf("after = %+v", after)
+	}
+}
+
+func TestResolveStylesPseudoElementsIdempotent(t *testing.T) {
+	tree := &Input{Tag: "root", Kind: KindBox, Children: []*Input{
+		{Tag: "box", Classes: []string{"item"}, Kind: KindBox},
+	}}
+	ss := sheet(t, `.item::before { content: "*"; }`)
+	ResolveStyles(tree, ss, 80, 24)
+	ResolveStyles(tree, ss, 80, 24)
+	ResolveStyles(tree, ss, 80, 24)
+	if got := len(tree.Children[0].Children); got != 1 {
+		t.Errorf("children = %d after repeated resolution, want 1", got)
+	}
+}
+
+func TestResolveStylesContentAttrAndConcat(t *testing.T) {
+	tree := &Input{Tag: "root", Kind: KindBox, Children: []*Input{
+		{Tag: "box", Classes: []string{"tab"}, Kind: KindBox,
+			Attrs: map[string]string{"label": "Console"}},
+	}}
+	ss := sheet(t, `.tab::before { content: "[" attr(label) "]"; }`)
+	ResolveStyles(tree, ss, 80, 24)
+	if got := tree.Children[0].Children[0].Content; got != "[Console]" {
+		t.Errorf("content = %q, want [Console]", got)
+	}
+}
+
+func TestResolveStylesContentNoneSuppressed(t *testing.T) {
+	tree := &Input{Tag: "root", Kind: KindBox, Children: []*Input{
+		{Tag: "box", Classes: []string{"x"}, Kind: KindBox},
+	}}
+	ss := sheet(t, `.x::before { content: none; }`)
+	ResolveStyles(tree, ss, 80, 24)
+	if got := len(tree.Children[0].Children); got != 0 {
+		t.Errorf("children = %d, want 0 for content: none", got)
+	}
+}
+
+func TestResolveStylesPseudoInvisibleToSiblingMatching(t *testing.T) {
+	// Given: ::before must not shift :first-child.
+	tree := &Input{Tag: "root", Kind: KindBox, Children: []*Input{
+		{Tag: "box", Classes: []string{"list"}, Kind: KindBox, Children: []*Input{
+			{Tag: "text", Kind: KindText, Content: "a"},
+		}},
+	}}
+	ss := sheet(t, `.list::before { content: "*"; } .list text:first-child { color: red; }`)
+	ResolveStyles(tree, ss, 80, 24)
+	texts := tree.Children[0].Children
+	if got := texts[len(texts)-1].Style.FG.Name; got != "red" {
+		t.Errorf("real first child FG = %q, want red (pseudo invisible)", got)
+	}
+}

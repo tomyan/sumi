@@ -27,12 +27,18 @@ func ResolveStyles(root *Input, ss *style.Stylesheet, viewportW, viewportH int) 
 	resolveChildren(root, ss, []css.Element{rootEl}, vars)
 }
 
+const (
+	pseudoBeforeTag = "::before"
+	pseudoAfterTag  = "::after"
+)
+
 func resolveChildren(parent *Input, ss *style.Stylesheet, path []css.Element, vars map[string]string) {
+	synthesizePseudoElements(parent, ss, path, vars)
 	siblings := elementSiblings(parent.Children)
 	elemIdx := 0
 	for _, child := range parent.Children {
-		if child == nil || child.Tag == "" || child.Tag == "root" {
-			continue // display:none placeholder, unidentified node, or component subtree
+		if child == nil || child.Tag == "" || child.Tag == "root" || child.Tag[0] == ':' {
+			continue // placeholder, unidentified, component subtree, or synthetic
 		}
 		el := siblings[elemIdx]
 		el.Siblings = siblings
@@ -103,11 +109,52 @@ func expandProps(props, vars map[string]string) map[string]string {
 	return out
 }
 
+// synthesizePseudoElements rebuilds ::before/::after marker children on a
+// box from the current rules. Synthetic nodes (Tag "::before"/"::after")
+// are stripped first so repeated resolution stays idempotent; pseudo boxes
+// are invisible to sibling matching per spec.
+func synthesizePseudoElements(parent *Input, ss *style.Stylesheet, path []css.Element, vars map[string]string) {
+	if parent.Kind != KindBox {
+		return
+	}
+	children := parent.Children[:0:0]
+	for _, c := range parent.Children {
+		if c != nil && (c.Tag == pseudoBeforeTag || c.Tag == pseudoAfterTag) {
+			continue
+		}
+		children = append(children, c)
+	}
+	if before := pseudoNode(parent, ss, path, vars, "before", pseudoBeforeTag); before != nil {
+		children = append([]*Input{before}, children...)
+	}
+	if after := pseudoNode(parent, ss, path, vars, "after", pseudoAfterTag); after != nil {
+		children = append(children, after)
+	}
+	parent.Children = children
+}
+
+func pseudoNode(parent *Input, ss *style.Stylesheet, path []css.Element, vars map[string]string, name, tag string) *Input {
+	props := expandProps(css.ResolvePseudoElement(ss, path, name), vars)
+	if props == nil {
+		return nil
+	}
+	content, ok := css.ParseContent(props["content"], parent.Attrs)
+	if !ok {
+		return nil
+	}
+	return &Input{
+		Kind:    KindText,
+		Tag:     tag,
+		Content: content,
+		Style:   css.ToRenderStyle(props),
+	}
+}
+
 // elementSiblings builds the sibling identity list for structural matching.
 func elementSiblings(children []*Input) []css.Element {
 	var sibs []css.Element
 	for _, c := range children {
-		if c == nil || c.Tag == "" || c.Tag == "root" {
+		if c == nil || c.Tag == "" || c.Tag == "root" || c.Tag[0] == ':' {
 			continue
 		}
 		sibs = append(sibs, css.Element{

@@ -51,6 +51,50 @@ func ResolveFocus(stylesheet *style.Stylesheet, path []Element) map[string]strin
 	return props
 }
 
+// ResolvePseudoElement computes the cascaded properties for a ::before or
+// ::after pseudo-element of the element at the end of path. Returns nil when
+// no rules match.
+func ResolvePseudoElement(stylesheet *style.Stylesheet, path []Element, name string) map[string]string {
+	props := resolvePseudoElement(stylesheet, path, name)
+	if len(props) == 0 {
+		return nil
+	}
+	return props
+}
+
+func resolvePseudoElement(stylesheet *style.Stylesheet, path []Element, name string) map[string]string {
+	type match struct {
+		spec  style.Specificity
+		order int
+		props map[string]string
+	}
+	var matches []match
+	for i, rule := range stylesheet.Rules {
+		if rule.PseudoElement != name || rule.Pseudo != "" {
+			continue
+		}
+		if rule.Media != "" && !mediaMatches(rule.Media) {
+			continue
+		}
+		if rule.Supports != "" && !supportsMatches(rule.Supports) {
+			continue
+		}
+		if matchComplex(rule.Parsed, path) {
+			matches = append(matches, match{rule.Parsed.Specificity(), i, rule.Properties})
+		}
+	}
+	sort.SliceStable(matches, func(a, b int) bool {
+		return matches[a].spec.Less(matches[b].spec)
+	})
+	merged := make(map[string]string)
+	for _, m := range matches {
+		for k, v := range m.props {
+			merged[k] = v
+		}
+	}
+	return merged
+}
+
 func resolveWithPseudo(stylesheet *style.Stylesheet, path []Element, pseudo string) map[string]string {
 	type match struct {
 		spec  style.Specificity
@@ -59,7 +103,7 @@ func resolveWithPseudo(stylesheet *style.Stylesheet, path []Element, pseudo stri
 	}
 	var matches []match
 	for i, rule := range stylesheet.Rules {
-		if rule.Pseudo != pseudo {
+		if rule.Pseudo != pseudo || rule.PseudoElement != "" {
 			continue
 		}
 		if rule.Media != "" && !mediaMatches(rule.Media) {

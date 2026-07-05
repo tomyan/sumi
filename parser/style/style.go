@@ -14,13 +14,14 @@ type Stylesheet struct {
 // Rule represents a single CSS-like rule with one selector and properties.
 // Selector lists (`a, b { }`) are exploded into one Rule per selector.
 type Rule struct {
-	Selector   string            // raw selector text without the subject pseudo
-	Pseudo     string            // subject pseudo-class ("hover", ...); "" for none
-	Parsed     ComplexSelector   // structured form used for matching
-	Media      string            // enclosing @media query text; "" for none
-	Container  string            // enclosing @container condition; "" for none
-	Supports   string            // enclosing @supports condition; "" for none
-	Properties map[string]string // e.g. {"color": "green", "font-weight": "bold"}
+	Selector      string            // raw selector text without the subject pseudo
+	Pseudo        string            // subject pseudo-class ("hover", ...); "" for none
+	Parsed        ComplexSelector   // structured form used for matching
+	Media         string            // enclosing @media query text; "" for none
+	Container     string            // enclosing @container condition; "" for none
+	Supports      string            // enclosing @supports condition; "" for none
+	PseudoElement string            // "before"/"after" from the subject; "" for none
+	Properties    map[string]string // e.g. {"color": "green", "font-weight": "bold"}
 }
 
 // Keyframe represents an @keyframes animation definition.
@@ -243,12 +244,19 @@ func (p *parser) parseRules() ([]Rule, error) {
 	items := SplitSelectorList(selectorText)
 	rules := make([]Rule, len(selectors))
 	for i, sel := range selectors {
-		pseudo := sel.Parts[len(sel.Parts)-1].Pseudo
+		subject := sel.Parts[len(sel.Parts)-1]
 		raw := strings.TrimSpace(items[i])
-		if pseudo != "" {
-			raw = strings.TrimSuffix(raw, ":"+pseudo)
+		if subject.PseudoElement != "" {
+			raw = strings.TrimSuffix(raw, "::"+subject.PseudoElement)
+			raw = strings.TrimSuffix(raw, ":"+subject.PseudoElement)
 		}
-		rules[i] = Rule{Selector: raw, Pseudo: pseudo, Parsed: sel, Properties: props}
+		if subject.Pseudo != "" {
+			raw = strings.TrimSuffix(raw, ":"+subject.Pseudo)
+		}
+		rules[i] = Rule{
+			Selector: raw, Pseudo: subject.Pseudo, Parsed: sel,
+			PseudoElement: subject.PseudoElement, Properties: props,
+		}
 	}
 	return rules, nil
 }

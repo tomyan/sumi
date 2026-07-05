@@ -59,6 +59,9 @@ func serializeRule(b *strings.Builder, indent string, rule Rule) {
 	if rule.Pseudo != "" {
 		selector += ":" + rule.Pseudo
 	}
+	if rule.PseudoElement != "" {
+		selector += "::" + rule.PseudoElement
+	}
 	fmt.Fprintf(b, "%s%s {\n", indent, selector)
 	serializeProperties(b, indent+"\t", rule.Properties)
 	fmt.Fprintf(b, "%s}\n", indent)

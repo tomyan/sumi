@@ -10,13 +10,14 @@ import (
 // (e.g. `box.panel#main[focusable=true]:hover`).
 // The universal selector `*` parses to an empty SimpleSelector.
 type SimpleSelector struct {
-	Tag        string          // "" matches any tag
-	ID         string          // "" matches any id
-	Classes    []string        // all must be present
-	Attrs      []AttrMatcher   // all must match
-	Pseudo     string          // state pseudo-class ("hover", "focus", ...); "" for none
-	Structural []string        // structural pseudo-classes, raw ("first-child", "nth-child(2n+1)")
-	Logical    []LogicalPseudo // :not(), :is(), :where()
+	Tag           string          // "" matches any tag
+	ID            string          // "" matches any id
+	Classes       []string        // all must be present
+	Attrs         []AttrMatcher   // all must match
+	Pseudo        string          // state pseudo-class ("hover", "focus", ...); "" for none
+	Structural    []string        // structural pseudo-classes, raw ("first-child", "nth-child(2n+1)")
+	Logical       []LogicalPseudo // :not(), :is(), :where()
+	PseudoElement string          // "before" or "after"; "" for none
 }
 
 // LogicalPseudo is a :not()/:is()/:where() pseudo-class with its selector
@@ -81,6 +82,9 @@ func (c ComplexSelector) Specificity() Specificity {
 			sp = sp.add(lp.specificity())
 		}
 		if p.Tag != "" {
+			sp.Types++
+		}
+		if p.PseudoElement != "" {
 			sp.Types++
 		}
 	}
@@ -237,6 +241,14 @@ func parseSimpleSelector(tok string) (SimpleSelector, error) {
 			continue
 		}
 		rest = rest[1:]
+		if kind == ':' && rest != "" && rest[0] == ':' {
+			// Pseudo-element: ::before / ::after
+			rest = rest[1:]
+			end := qualifierEnd(rest)
+			s.PseudoElement = rest[:end]
+			rest = rest[end:]
+			continue
+		}
 		end := qualifierEnd(rest)
 		name := rest[:end]
 		rest = rest[end:]
@@ -257,6 +269,8 @@ func parseSimpleSelector(tok string) (SimpleSelector, error) {
 					return SimpleSelector{}, fmt.Errorf("in :%s(): %w", base, err)
 				}
 				s.Logical = append(s.Logical, LogicalPseudo{Name: base, Args: args})
+			case name == "before" || name == "after":
+				s.PseudoElement = name // single-colon legacy form
 			case statePseudos[name]:
 				s.Pseudo = name
 			default:
