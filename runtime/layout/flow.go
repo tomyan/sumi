@@ -26,16 +26,25 @@ func isInlineLevel(c *Input) bool {
 }
 
 // layoutBlockFlow lays out a block container's flow children, returning
-// boxes index-aligned with the children.
+// boxes index-aligned with the children. Adjacent block siblings'
+// vertical margins collapse to their maximum (positive margins only);
+// inline content between blocks resets the collapse context.
 func layoutBlockFlow(children []*Input, offsetX, offsetY, availW, availH int) []*Box {
 	boxes := make([]*Box, len(children))
 	cursorY := 0
+	prevMarginBottom := 0
 	for i := 0; i < len(children); {
 		if isInlineLevel(children[i]) {
 			i = layoutInlineSegment(children, i, boxes, offsetX, offsetY, &cursorY, availW)
+			prevMarginBottom = 0
 			continue
 		}
-		layoutBlockChild(children[i], boxes, i, offsetX, offsetY, &cursorY, availW, availH)
+		child := children[i]
+		if top := child.Margin.Top; prevMarginBottom > 0 && top > 0 {
+			cursorY -= prevMarginBottom + top - maxInt(prevMarginBottom, top)
+		}
+		layoutBlockChild(child, boxes, i, offsetX, offsetY, &cursorY, availW, availH)
+		prevMarginBottom = child.Margin.Bottom
 		i++
 	}
 	return boxes

@@ -376,13 +376,14 @@ vt100 assertions for end-to-end slices; unit tests for parser/css/layout.
     B4b IFC line breaker + Box.Fragments (9e02e01), B4c-1 block flow
     layoutBlockFlow + fill width + flex-attr gating (d007b1a),
     B4c-2 nested inline elements + per-property Style.Inherit
-    (ce0f724). NEXT: B4c-3 UA display defaults flip + display:flex
-    migration sweep (~10 .sumi files use direction/gap/justify);
-    then B4d inline-block atoms, B4e margin collapse, B4f
-    display:contents, B4g fragment hit-testing. Display semantics:
-    "" = legacy flex-column (raw Input trees unaffected), "block" =
-    block flow, "flex" = explicit flex; UA flip only affects
-    tag-resolved trees through the cascade.
+    (ce0f724), B4c-3 UA display flip + Hidden runtime flag +
+    display:flex migration + golden churn (ec3d8bd). NEXT: B4d
+    inline-block atoms, B4e margin collapse, B4f display:contents,
+    B4g fragment hit-testing. Display semantics: "" = legacy
+    flex-column (raw Input trees unaffected), "block" = block flow,
+    "flex" = explicit flex; UA flip only affects tag-resolved trees.
+    NOTE: projections must NEVER write CSS-owned Input fields (the
+    cascade re-stamps them) — use runtime flags like Hidden instead.
   - D5 global selection + clipboard (drag/word/line inverse painting,
     OSC 52 + pbcopy fallback; svelterm src/input/selection.ts is the
     reference).

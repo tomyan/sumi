@@ -85,7 +85,7 @@ func TestBlockFlowExplicitFlexStillFlexes(t *testing.T) {
 }
 
 func TestBlockFlowMarginsAndAutoCentring(t *testing.T) {
-	// Given: plain margins stack (no collapse until B4e); auto margins centre.
+	// Given: adjacent vertical margins collapse (B4e); auto margins centre.
 	p := &Input{Kind: KindBox, Display: "block", FixedWidth: 20, Children: []*Input{
 		{Kind: KindBox, FixedWidth: 4, FixedHeight: 1, Margin: Margin{Bottom: 2}},
 		{Kind: KindBox, FixedWidth: 4, FixedHeight: 1, Margin: Margin{Top: 1, AutoLeft: true, AutoRight: true}},
@@ -96,8 +96,8 @@ func TestBlockFlowMarginsAndAutoCentring(t *testing.T) {
 
 	// Then
 	second := box.Children[1]
-	if second.Y != 4 {
-		t.Errorf("second Y = %d, want 4 (1 + 2 + 1)", second.Y)
+	if second.Y != 3 {
+		t.Errorf("second Y = %d, want 3 (1 + max(2,1))", second.Y)
 	}
 	if second.X != 8 {
 		t.Errorf("second X = %d, want 8 (centred in 20)", second.X)
@@ -116,5 +116,60 @@ func TestBlockFlowFillsAvailableWidth(t *testing.T) {
 	// Then
 	if box.Width != 30 {
 		t.Errorf("block width = %d, want 30 (fills available)", box.Width)
+	}
+}
+
+// B4e: vertical margin collapse — adjacent block siblings only,
+// positive margins only, block flow only (flex never collapses).
+
+func TestBlockFlowCollapsesAdjacentSiblingMargins(t *testing.T) {
+	// Given: bottom 2 meets top 3 — gap should be max(2,3)=3, not 5.
+	p := &Input{Kind: KindBox, Display: "block", Children: []*Input{
+		{Kind: KindBox, FixedWidth: 4, FixedHeight: 1, Margin: Margin{Bottom: 2}},
+		{Kind: KindBox, FixedWidth: 4, FixedHeight: 1, Margin: Margin{Top: 3}},
+	}}
+
+	// When
+	box := Layout(p, 20, 24)
+
+	// Then
+	if got := box.Children[1].Y; got != 4 {
+		t.Errorf("second Y = %d, want 4 (1 + max(2,3))", got)
+	}
+	if box.Height != 5 {
+		t.Errorf("height = %d, want 5", box.Height)
+	}
+}
+
+func TestBlockFlowNoCollapseAcrossInlineContent(t *testing.T) {
+	// Given: text between the blocks resets the collapse context.
+	p := &Input{Kind: KindBox, Display: "block", Children: []*Input{
+		{Kind: KindBox, FixedWidth: 4, FixedHeight: 1, Margin: Margin{Bottom: 2}},
+		{Kind: KindText, Content: "mid"},
+		{Kind: KindBox, FixedWidth: 4, FixedHeight: 1, Margin: Margin{Top: 3}},
+	}}
+
+	// When
+	box := Layout(p, 20, 24)
+
+	// Then: 1 + 2 (bottom) + 1 (text) + 3 (top) = 7.
+	if got := box.Children[2].Y; got != 7 {
+		t.Errorf("third Y = %d, want 7 (no collapse across text)", got)
+	}
+}
+
+func TestFlexColumnNeverCollapsesMargins(t *testing.T) {
+	// Given: same margins under explicit flex — margins stack.
+	p := &Input{Kind: KindBox, Display: "flex", Children: []*Input{
+		{Kind: KindBox, FixedWidth: 4, FixedHeight: 1, Margin: Margin{Bottom: 2}},
+		{Kind: KindBox, FixedWidth: 4, FixedHeight: 1, Margin: Margin{Top: 3}},
+	}}
+
+	// When
+	box := Layout(p, 20, 24)
+
+	// Then
+	if got := box.Children[1].Y; got != 6 {
+		t.Errorf("second Y = %d, want 6 (1 + 2 + 3, no collapse)", got)
 	}
 }
