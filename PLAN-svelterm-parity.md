@@ -344,19 +344,39 @@ vt100 assertions for end-to-end slices; unit tests for parser/css/layout.
   table-layout: fixed sizes from first row (explicit widths hold,
   remainder splits evenly).
 
-  NEXT (bigger slices, in rough value order):
-  - B7c-2 collapsed cell borders (cells with border + table
-    border-collapse share edges via the existing junction machinery)
-    + colgroup width hints + empty-cells.
-  - B4 block/inline flow + margin collapse (gates C1/C2 fidelity).
-  - D5 global selection + clipboard (drag/word/line, OSC 52 exists).
-  - D3 kitty keyboard protocol; D4b Ctrl+Z suspend; D7 matrix CI.
-  - E3b keyframe var()/light-dark() at start (check ColorPair first).
-  - F1b block-edge border styles; F3 inline mode + FrameLog;
-    F4b io injection + onLog.
-  - G1 sumi init (needs published module path or replace), G2 dev,
-    G3 inspect.
-  - H component library (needs cross-dir component consumption).
+  B7c COMPLETE: B7c-2 collapsed cell borders (BorderCollapse table →
+  cells overlap by 1 via spacing -1 through the shared offset math;
+  Collapsed edges marked → junctions ┬├┼ emerge from the existing
+  merge machinery; rowspans shorten by overlapped lines). ALSO FIXED
+  a latent B7a bug: cells were placed table-relative inside row
+  boxes and double-shifted by the final absolutePositions pass
+  (second-row cells at 2× Y; padded tables double-shifted columns) —
+  cells are now row-relative. KEY INSIGHT for future layout work:
+  Box children coordinates are PARENT-RELATIVE until the
+  absolutePositions pass at the end of Layout. B7c-3: colgroup/col
+  (+optgroup) parse; UA hides colgroup; col width hints override
+  computed columns; empty-cells: hide clears borders on contentless
+  cells. F1b: block-edge borders (eighth/half/full-cell; inner =
+  blank corners, outer/full extend horizontal through corners;
+  svelterm's quadrant half-cell corners + border-corner attr still
+  open).
+
+  NEXT (bigger slices, in rough value order — each wants a fresh
+  session):
+  - B4 block/inline flow + margin collapse (LAST remaining B item;
+    inline runs through wrapped text are the hard part — needs a
+    text-run model; gates C1/C2 full fidelity).
+  - D5 global selection + clipboard (drag/word/line inverse painting,
+    OSC 52 + pbcopy fallback; svelterm src/input/selection.ts is the
+    reference).
+  - D3 kitty keyboard protocol; D4b Ctrl+Z suspend (subprocess/PTY
+    test); D7 terminal matrix CI.
+  - E3b keyframe var()/light-dark() at start (check ColorPair first —
+    light-dark may already work).
+  - F3 inline mode + FrameLog; F4b io injection + onLog.
+  - G1 sumi init, G2 sumi dev, G3 sumi inspect.
+  - H component library (needs cross-dir component consumption in
+    the generate CLI).
   - I docs/site, J blog (gated on A–H complete).
   (original C3a sketch follows for reference)
   - C3a-sketch: layout.DOMEvent {Type, Key input.Event, Data map, Target
