@@ -23,10 +23,37 @@ func HitTestPath(input *Input, box *Box, x, y int) []*Input {
 		}
 	}
 
-	if x >= box.X && x < box.X+box.Width && y >= box.Y && y < box.Y+box.Height {
+	if boxOccupies(box, x, y) {
 		return []*Input{input}
 	}
 	return nil
+}
+
+// boxOccupies reports whether the box's own content covers the cell.
+// Fragment boxes occupy only their line rectangles; union boxes (inline
+// elements, display:contents placeholders) occupy nothing themselves —
+// only their children do.
+func boxOccupies(box *Box, x, y int) bool {
+	if !containsPoint(box, x, y) {
+		return false
+	}
+	if box.UnionBox {
+		for _, child := range box.Children {
+			if child != nil && boxOccupies(child, x, y) {
+				return true
+			}
+		}
+		return false
+	}
+	if box.Fragments == nil {
+		return true
+	}
+	for _, f := range box.Fragments {
+		if y == box.Y+f.Y && x >= box.X+f.X && x < box.X+f.X+runeLen(f.Text) {
+			return true
+		}
+	}
+	return false
 }
 
 // PathTo returns the chain of Inputs from root to target, or nil when

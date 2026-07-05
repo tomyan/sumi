@@ -142,6 +142,7 @@ type Box struct {
 	Padding                  Padding               // insets (propagated from Input; content origin for Cells)
 	Lines                    []string              // wrapped lines (nil = single line, use Content)
 	Fragments                []Fragment            // inline-flow line rectangles, box-relative (nil = not in an IFC)
+	UnionBox                 bool                  // rect is the union of children (inline element / contents placeholder); occupies no cells itself
 	TextAlign                string                // per-line alignment within the box width
 	TextOverflow             string                // truncation mode for overflowing lines
 	Visibility               string                // "hidden" skips painting

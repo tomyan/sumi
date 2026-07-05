@@ -103,6 +103,7 @@ func reassembleContents(children []*Input, flatBoxes []*Box, idx *int) []*Box {
 			Kind:      KindBox,
 			Key:       c.Key,
 			Style:     style,
+			UnionBox:  true,
 			CursorCol: -1,
 			CursorRow: -1,
 			Children:  sub,

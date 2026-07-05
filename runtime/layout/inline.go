@@ -101,6 +101,7 @@ func buildInlineElementBox(c *Input, items []inlineItem, perItem [][]Fragment, i
 		FocusStyle: c.FocusStyle,
 		Focused:    c.Focused,
 		Visibility: c.Visibility,
+		UnionBox:   true,
 		CursorCol:  -1,
 		CursorRow:  -1,
 		X:          offsetX,

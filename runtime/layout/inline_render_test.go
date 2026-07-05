@@ -77,6 +77,54 @@ func TestInlineFlowFromStylesheetDisplayBlock(t *testing.T) {
 	}
 }
 
+// B4g / C2 fidelity: the full text-level vocabulary flows and wraps
+// through a UA-styled paragraph.
+func TestMixedVocabularyWrapsWithStyles(t *testing.T) {
+	// Given: <p>see <em>the</em> <mark>marked</mark> word</p> at width 12.
+	tree := &Input{Tag: "root", Kind: KindBox, Children: []*Input{
+		{Tag: "p", Kind: KindBox, Children: []*Input{
+			{Kind: KindText, Content: "see "},
+			{Tag: "em", Kind: KindText, Content: "the"},
+			{Kind: KindText, Content: " "},
+			{Tag: "mark", Kind: KindText, Content: "marked"},
+			{Kind: KindText, Content: " word"},
+		}},
+	}}
+
+	// When
+	ResolveStyles(tree, nil, 12, 6)
+	box := Layout(tree, 12, 6)
+	buf := render.NewBuffer(12, 6)
+	RenderTree(buf, box, nil)
+
+	// Then: "see the" / "marked word" (rows 1-2 after p's UA margin).
+	rows := []string{"", ""}
+	for r := 0; r < 2; r++ {
+		for c := 0; c < 12; c++ {
+			ch := buf.Cell(1+r, c).Ch
+			if ch == 0 {
+				ch = ' '
+			}
+			rows[r] += string(ch)
+		}
+	}
+	if got := rows[0][:7]; got != "see the" {
+		t.Errorf("row 1 = %q, want %q", got, "see the")
+	}
+	if got := rows[1][:11]; got != "marked word" {
+		t.Errorf("row 2 = %q, want %q", got, "marked word")
+	}
+	if !buf.Cell(1, 4).Style.Italic {
+		t.Errorf("em should render italic: %+v", buf.Cell(1, 4).Style)
+	}
+	if buf.Cell(2, 0).Style.BG.Name != "yellow" {
+		t.Errorf("mark should be on yellow: %+v", buf.Cell(2, 0).Style)
+	}
+	if buf.Cell(2, 7).Style.BG.Name == "yellow" {
+		t.Errorf("plain word must not carry mark background")
+	}
+}
+
 func TestDiffDetectsFragmentChange(t *testing.T) {
 	// Given: same box except one fragment's text differs.
 	old := &Box{Kind: KindText, Fragments: []Fragment{{X: 0, Y: 0, Text: "a"}}}
