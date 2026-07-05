@@ -19,6 +19,7 @@ type nodeState struct {
 	animStart    int64          // keyframe animation start time
 	animSpec     *AnimationSpec // active keyframe animation spec
 	animDone     bool           // keyframe animation finished
+	animPausedAt int64          // clock time when play-state became paused (0 = running)
 }
 
 type activeTransition struct {

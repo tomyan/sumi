@@ -44,7 +44,22 @@ func (e *Engine) evaluateKeyframe(spec *AnimationSpec, nodeID string, baseStyle 
 		ns.animSpec = spec
 	}
 
-	elapsed := e.clock.Now() - ns.animStart - int64(spec.DelayMs)
+	// play-state: pausing freezes elapsed time; resuming shifts the start
+	// so the animation continues from where it paused.
+	if spec.PlayState == "paused" {
+		if ns.animPausedAt == 0 {
+			ns.animPausedAt = e.clock.Now()
+		}
+	} else if ns.animPausedAt != 0 {
+		ns.animStart += e.clock.Now() - ns.animPausedAt
+		ns.animPausedAt = 0
+	}
+	now := e.clock.Now()
+	if ns.animPausedAt != 0 {
+		now = ns.animPausedAt
+	}
+
+	elapsed := now - ns.animStart - int64(spec.DelayMs)
 	if elapsed < 0 {
 		// In delay period.
 		if spec.FillMode == "backwards" || spec.FillMode == "both" {

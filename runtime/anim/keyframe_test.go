@@ -206,3 +206,49 @@ func TestKeyframeDelay(t *testing.T) {
 		t.Errorf("after delay midpoint: R=%d, want ~128", got.FG.R)
 	}
 }
+
+// E3: animation-play-state — paused freezes progress, running resumes.
+func TestKeyframePlayStatePauseAndResume(t *testing.T) {
+	clock := NewTestClock()
+	engine := NewEngine(clock, func() {})
+
+	red := render.Style{FG: render.Color{IsRGB: true, R: 255, G: 0, B: 0}}
+	blue := render.Style{FG: render.Color{IsRGB: true, R: 0, G: 0, B: 255}}
+	engine.RegisterKeyframes("fade", &KeyframeAnimation{
+		Name:  "fade",
+		Stops: []KeyframeStop{{Percent: 0, Style: red}, {Percent: 1, Style: blue}},
+	})
+	spec := &AnimationSpec{
+		Name: "fade", DurationMs: 200, TimingFunction: Linear,
+		IterationCount: 1, Direction: "normal", FillMode: "forwards",
+		PlayState: "running",
+	}
+
+	// Given — run to the midpoint.
+	engine.BeforeRenderAnim("node0", render.Style{}, spec)
+	clock.Advance(100)
+	mid := engine.BeforeRenderAnim("node0", render.Style{}, spec)
+
+	// When — pause (a render happens at the moment of pausing), then let
+	// time pass.
+	paused := *spec
+	paused.PlayState = "paused"
+	engine.BeforeRenderAnim("node0", render.Style{}, &paused)
+	clock.Advance(500)
+	frozen := engine.BeforeRenderAnim("node0", render.Style{}, &paused)
+
+	// Then — the style holds the midpoint value.
+	if frozen.FG.R != mid.FG.R || frozen.FG.B != mid.FG.B {
+		t.Errorf("paused style = %+v, want frozen midpoint %+v", frozen.FG, mid.FG)
+	}
+
+	// When — resume and advance the remaining half.
+	engine.BeforeRenderAnim("node0", render.Style{}, spec)
+	clock.Advance(100)
+	done := engine.BeforeRenderAnim("node0", render.Style{}, spec)
+
+	// Then — completes to blue (fill forwards).
+	if done.FG.B != 255 || done.FG.R != 0 {
+		t.Errorf("resumed final style = %+v, want blue", done.FG)
+	}
+}
