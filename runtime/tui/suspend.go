@@ -2,7 +2,6 @@ package tui
 
 import (
 	"fmt"
-	"syscall"
 
 	"github.com/tomyan/sumi/runtime/input"
 	"github.com/tomyan/sumi/runtime/render"
@@ -27,7 +26,7 @@ func (a *App) Suspend() {
 		h = &SuspendHooks{}
 	}
 	runHook(h.ExitTerminal, a.exitTerminal)
-	runHook(h.Stop, func() { _ = syscall.Kill(syscall.Getpid(), syscall.SIGTSTP) })
+	runHook(h.Stop, stopSelf)
 	runHook(h.EnterTerminal, a.enterTerminal)
 	a.NeedsFullRedraw = true
 	a.Dirty = true

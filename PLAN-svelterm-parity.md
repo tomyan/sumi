@@ -441,7 +441,12 @@ vt100 assertions for end-to-end slices; unit tests for parser/css/layout.
     inspect over SUMI_CONTROL_SOCKET w/ short hashed socket path —
     sun_path 104-byte cap (dae0235). Design: design-g-tooling.md
     (untracked). H PARKED per Tom 2026-07-06 (leave the UI package).
-    NEXT: Phase I site (new sumi-site repo; WASM spike first). NOTE:
+    I3 WASM SPIKE DONE 2026-07-06 (5fa8341): whole runtime + example
+    apps build GOOS=js GOARCH=wasm (pty tagged unix, term resize js
+    stub, suspend stopSelf seam); F4b RunOptions.In/Out is the
+    xterm.js IO bridge; CI guards the wasm target. Live demos are GO
+    for the site. NEXT: Phase I proper — sumi-site repo (SvelteKit,
+    visual identity design conversation), docs skeleton I1. NOTE:
     J blog gate says phases A–H — needs revisiting with Tom since H
     is parked.
   - H component library (needs cross-dir component consumption in

@@ -20,6 +20,9 @@ jobs:
         run: go build ./...
       - name: Vet
         run: go vet ./...
+      - name: WASM buildability (site demos)
+        if: matrix.os == 'ubuntu-latest'
+        run: GOOS=js GOARCH=wasm go build ./runtime/... ./examples/counter/
       - name: Test
         run: go test ./...
       - name: Formatting
