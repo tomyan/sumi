@@ -1,0 +1,38 @@
+<script>
+status := sumi.New("sumi dev — starting")
+barClass := sumi.New("bar ok")
+devBind(status, barClass)
+
+func handleKey(evt sumi.Event) {
+	devForward(evt)
+}
+
+func regionResize(evt *sumi.DOMEvent) {
+	devRegionResize(evt)
+}
+</script>
+
+<style>
+.dev {
+	display: flex;
+	flex-direction: column;
+	height: 100%;
+}
+region {
+	flex-grow: 1;
+}
+.bar {
+	color: white;
+}
+.bar.ok {
+	background: #1c3a2a;
+}
+.bar.err {
+	background: #6b1a1a;
+}
+</style>
+
+<div class="dev" onkey="handleKey">
+	<region onresize={regionResize}></region>
+	<div class={barClass.Get()}>{status}</div>
+</div>
