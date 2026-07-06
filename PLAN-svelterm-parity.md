@@ -468,7 +468,12 @@ vt100 assertions for end-to-end slices; unit tests for parser/css/layout.
     demos, docs review pass (docs pages ship no <title>), sitemap
     line in robots.txt. NOTE:
     J blog gate says phases A–H — needs revisiting with Tom since H
-    is parked.
+    is parked. GATE UPDATE 2026-07-07: repo is now PUBLIC + tagged —
+    tomyan/sumi pushed (full history per Tom), v0.1.0, MIT license, CI
+    green; brew formula tomyan/tap/sumi (source build, framework tree
+    in libexec via SUMI_PATH wrapper; verified install→init→build);
+    docs install section updated + live. Only the H-wording question
+    remains on the J gate.
   - H component library (needs cross-dir component consumption in
     the generate CLI).
   - I docs/site, J blog (gated on A–H complete).
