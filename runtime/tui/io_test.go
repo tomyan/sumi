@@ -67,3 +67,25 @@ func TestOnLogRestoreReturnsLogToStderr(t *testing.T) {
 	// Then: logging after restore must not panic or call the callback.
 	log.SetOutput(log.Writer()) // no-op sanity; the default writer is back
 }
+
+func TestEnterExitTerminalPushPopKittyKeyboard(t *testing.T) {
+	// Given
+	var out bytes.Buffer
+	app := &App{Out: &out}
+
+	// When
+	app.enterTerminal()
+	entered := out.String()
+	app.exitTerminal()
+
+	// Then: pushed after the alt screen, popped on exit.
+	if !strings.Contains(entered, "\x1b[>1u") {
+		t.Errorf("enter = %q, want kitty push", entered)
+	}
+	if strings.Index(entered, "\x1b[?1049h") > strings.Index(entered, "\x1b[>1u") {
+		t.Error("kitty push must come after alt-screen enter")
+	}
+	if !strings.Contains(out.String()[len(entered):], "\x1b[<u") {
+		t.Errorf("exit = %q, want kitty pop", out.String()[len(entered):])
+	}
+}

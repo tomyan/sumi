@@ -404,8 +404,14 @@ vt100 assertions for end-to-end slices; unit tests for parser/css/layout.
     (SIGSTOP under env var — PTY session leader's orphaned pgrp
     discards default SIGTSTP; raw 0x7f wait check — Go darwin
     Stopped() misreads SIGSTOP stops as continued).
-  - D3 kitty keyboard protocol (scout report pending); D7 terminal
-    matrix CI.
+  - D3 kitty keyboard — DONE 2026-07-06 (2205c74): flag-1
+    disambiguate-only per svelterm (optimistic push \x1b[>1u after
+    altscreen in enterTerminal, pop in exitTerminal — suspend/panic
+    covered by the shared lifecycle); CSI-u decode with shared
+    modifier mask; PUA functional map; Shift+Tab convention kept.
+    Also DONE: F4b io injection + onLog + Run/RunWithOptions dedupe
+    (bc34d60).
+  - D7 terminal matrix CI.
   - E3b keyframe var()/light-dark() — DONE 2026-07-06 (94792d5):
     resolver stamps AnimationSpec.Stops per node (var() from node
     scope, ColorPair kept); engine prefers spec stops over registry;

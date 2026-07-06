@@ -54,6 +54,7 @@ func (a *App) enterTerminal() {
 	}
 	render.EnterAlternateScreen(a.out())
 	fmt.Fprint(a.out(), input.PasteEnableSeq)
+	fmt.Fprint(a.out(), input.KittyEnableSeq)
 	if a.HasMouse {
 		fmt.Fprint(a.out(), input.MouseEnableSeq)
 	}
@@ -65,6 +66,7 @@ func (a *App) exitTerminal() {
 	if a.HasMouse {
 		fmt.Fprint(a.out(), input.MouseDisableSeq)
 	}
+	fmt.Fprint(a.out(), input.KittyDisableSeq)
 	fmt.Fprint(a.out(), input.PasteDisableSeq)
 	render.ExitAlternateScreen(a.out())
 	if a.termRestore != nil {

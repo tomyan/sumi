@@ -202,6 +202,9 @@ func parseNumericCSI(r io.Reader, firstDigit byte) (Event, error) {
 			}
 			return Event{Kind: EventKey, Rune: 0x1b}, nil
 		}
+		if b == 'u' {
+			return kittyKeyEvent(num, 1), nil
+		}
 		if b == ';' {
 			return parseModifiedCSI(r, num)
 		}
@@ -227,6 +230,13 @@ func parseModifiedCSI(r io.Reader, num int) (Event, error) {
 			modifier = modifier*10 + int(b-'0')
 			continue
 		}
+		// Kitty key report: 'u' final, optional ':event-type' sub-param.
+		if b == 'u' {
+			return kittyKeyEvent(num, modifier), nil
+		}
+		if b == ':' {
+			return parseKittyEventType(r, num, modifier)
+		}
 		// b is the final byte (or ~)
 		shift, alt, ctrl := decodeModifier(modifier)
 		if b == '~' {
@@ -237,6 +247,24 @@ func parseModifiedCSI(r io.Reader, num int) (Event, error) {
 		}
 		if special, ok := singleByteCSI(b); ok {
 			return Event{Kind: EventSpecial, Special: special, Shift: shift, Alt: alt, Ctrl: ctrl}, nil
+		}
+		return Event{Kind: EventKey, Rune: 0x1b}, nil
+	}
+}
+
+// parseKittyEventType discards the ':event-type' sub-parameter of a
+// kitty key report and expects the 'u' final byte.
+func parseKittyEventType(r io.Reader, num, modifier int) (Event, error) {
+	for {
+		b, err := readByte(r)
+		if err != nil {
+			return Event{Kind: EventKey, Rune: 0x1b}, nil
+		}
+		if b >= '0' && b <= '9' {
+			continue
+		}
+		if b == 'u' {
+			return kittyKeyEvent(num, modifier), nil
 		}
 		return Event{Kind: EventKey, Rune: 0x1b}, nil
 	}
