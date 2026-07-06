@@ -37,21 +37,21 @@ func isInlineLevel(c *Input) bool {
 // siblings' vertical margins collapse to their maximum (positive
 // margins only); inline content between blocks resets the collapse
 // context.
-func layoutBlockFlow(children []*Input, offsetX, offsetY, availW, availH int) []*Box {
+func layoutBlockFlow(children []*Input, offsetX, offsetY, availW, availH int, align string) []*Box {
 	var flat []*Input
 	flattenContents(children, &flat)
-	flatBoxes := layoutFlatBlockFlow(flat, offsetX, offsetY, availW, availH)
+	flatBoxes := layoutFlatBlockFlow(flat, offsetX, offsetY, availW, availH, align)
 	idx := 0
 	return reassembleContents(children, flatBoxes, &idx)
 }
 
-func layoutFlatBlockFlow(children []*Input, offsetX, offsetY, availW, availH int) []*Box {
+func layoutFlatBlockFlow(children []*Input, offsetX, offsetY, availW, availH int, align string) []*Box {
 	boxes := make([]*Box, len(children))
 	cursorY := 0
 	prevMarginBottom := 0
 	for i := 0; i < len(children); {
 		if isInlineLevel(children[i]) {
-			i = layoutInlineSegment(children, i, boxes, offsetX, offsetY, &cursorY, availW, availH)
+			i = layoutInlineSegment(children, i, boxes, offsetX, offsetY, &cursorY, availW, availH, align)
 			prevMarginBottom = 0
 			continue
 		}
@@ -117,13 +117,13 @@ func reassembleContents(children []*Input, flatBoxes []*Box, idx *int) []*Box {
 // layoutInlineSegment lays out the run of inline-level children starting
 // at index start as one IFC, advancing the flow cursor by the segment's
 // line count. Returns the index after the segment.
-func layoutInlineSegment(children []*Input, start int, boxes []*Box, offsetX, offsetY int, cursorY *int, availW, availH int) int {
+func layoutInlineSegment(children []*Input, start int, boxes []*Box, offsetX, offsetY int, cursorY *int, availW, availH int, align string) int {
 	end := start
 	for end < len(children) && isInlineLevel(children[end]) {
 		end++
 	}
 	segTop := offsetY + *cursorY
-	segBoxes := layoutInlineChildren(children[start:end], offsetX, segTop, availW, availH)
+	segBoxes := layoutInlineChildren(children[start:end], offsetX, segTop, availW, availH, align)
 	height := 0
 	for j, segBox := range segBoxes {
 		boxes[start+j] = segBox

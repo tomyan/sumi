@@ -115,22 +115,25 @@ func (w *inlineWord) appendRune(item int, r rune) {
 // empty-text fragment marking their slot). Soft breaks happen at
 // collapsed spaces (the breaking space is consumed); words wider than a
 // line hard-break at the width; atoms are unbreakable. Line heights
-// follow the tallest item on each line.
-func breakInline(items []inlineItem, availW int) [][]Fragment {
-	lf := &lineFlow{availW: max(availW, 1), perItem: make([][]Fragment, len(items)), lineHeights: []int{0}}
+// follow the tallest item on each line; text-align shifts whole lines
+// within availW.
+func breakInline(items []inlineItem, availW int, align string) [][]Fragment {
+	lf := &lineFlow{availW: max(availW, 1), align: align, perItem: make([][]Fragment, len(items)), lineHeights: []int{0}}
 	for _, w := range tokenizeInline(items) {
 		lf.placeWord(w)
 	}
-	lf.resolveLineOffsets()
+	lf.resolveLines()
 	return lf.perItem
 }
 
 // lineFlow tracks the fill cursor while words are placed onto lines.
-// Fragment Y values hold line indices until resolveLineOffsets rewrites
-// them to row offsets using the accumulated line heights.
+// Fragment Y values hold line indices until resolveLines rewrites them
+// to row offsets using the accumulated line heights.
 type lineFlow struct {
 	availW, cursorX, line int
+	align                 string
 	lineHeights           []int
+	lineWidths            []int
 	perItem               [][]Fragment
 }
 
@@ -188,6 +191,7 @@ func (lf *lineFlow) emit(item int, text string) {
 }
 
 func (lf *lineFlow) newLine() {
+	lf.lineWidths = append(lf.lineWidths, lf.cursorX)
 	lf.line++
 	lf.cursorX = 0
 	lf.lineHeights = append(lf.lineHeights, 0)
@@ -200,9 +204,11 @@ func (lf *lineFlow) growLine(h int) {
 	}
 }
 
-// resolveLineOffsets rewrites fragment Y values from line indices to
-// row offsets (prefix sums of line heights).
-func (lf *lineFlow) resolveLineOffsets() {
+// resolveLines rewrites fragment Y values from line indices to row
+// offsets (prefix sums of line heights) and applies per-line text-align
+// shifts within availW.
+func (lf *lineFlow) resolveLines() {
+	lf.lineWidths = append(lf.lineWidths, lf.cursorX) // close the last line
 	offsets := make([]int, len(lf.lineHeights))
 	y := 0
 	for i, h := range lf.lineHeights {
@@ -211,7 +217,25 @@ func (lf *lineFlow) resolveLineOffsets() {
 	}
 	for i := range lf.perItem {
 		for j := range lf.perItem[i] {
-			lf.perItem[i][j].Y = offsets[lf.perItem[i][j].Y]
+			f := &lf.perItem[i][j]
+			f.X += lf.alignShift(f.Y)
+			f.Y = offsets[f.Y]
 		}
 	}
+}
+
+// alignShift returns the X offset that aligns the given line within the
+// available width.
+func (lf *lineFlow) alignShift(line int) int {
+	if lf.align != "center" && lf.align != "right" {
+		return 0
+	}
+	pad := lf.availW - lf.lineWidths[line]
+	if pad <= 0 {
+		return 0
+	}
+	if lf.align == "center" {
+		return pad / 2
+	}
+	return pad
 }

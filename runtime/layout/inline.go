@@ -24,10 +24,10 @@ type inlineItem struct {
 // run's Box receives box-relative Fragments plus a bounding rect.
 // Inline elements keep their pairwise child structure with a union
 // bounding rect.
-func layoutInlineChildren(children []*Input, offsetX, offsetY, availW, availH int) []*Box {
+func layoutInlineChildren(children []*Input, offsetX, offsetY, availW, availH int, align string) []*Box {
 	var items []inlineItem
 	gatherInlineItems(children, &items, availW, availH)
-	perItem := breakInline(items, availW)
+	perItem := breakInline(items, availW, align)
 	itemIdx := 0
 	return buildInlineBoxes(children, items, perItem, &itemIdx, offsetX, offsetY)
 }

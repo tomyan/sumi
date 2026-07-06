@@ -618,7 +618,7 @@ func layoutNode(input *Input, availW, availH int) *Box {
 	} else if input.Display == "table" {
 		flowBoxes = layoutTable(input, flowChildren, offsetX, offsetY, flexAvailW, flexAvailH)
 	} else if input.Display == "block" {
-		flowBoxes = layoutBlockFlow(flowChildren, offsetX, offsetY, contentAvailW, childAvailH)
+		flowBoxes = layoutBlockFlow(flowChildren, offsetX, offsetY, contentAvailW, childAvailH, input.TextAlign)
 	} else if input.Direction == "row" && input.FlexWrap {
 		flowBoxes = layoutRowWrap(flowChildren, offsetX, offsetY, gap, flexAvailW, flexAvailH)
 	} else if input.Direction == "row" {

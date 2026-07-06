@@ -386,9 +386,7 @@ vt100 assertions for end-to-end slices; unit tests for parser/css/layout.
     UA flip only affects tag-resolved trees.
     NOTE: projections must NEVER write CSS-owned Input fields (the
     cascade re-stamps them) — use runtime flags like Hidden instead.
-    FOLLOW-UP (small): text-align per-line shifting inside an IFC
-    (mixed-content p with text-align:center doesn't centre lines yet;
-    single text nodes still centre via the legacy path).
+    (text-align per-line inside an IFC shipped as a follow-up.)
   - D5 global selection + clipboard (drag/word/line inverse painting,
     OSC 52 + pbcopy fallback; svelterm src/input/selection.ts is the
     reference).
