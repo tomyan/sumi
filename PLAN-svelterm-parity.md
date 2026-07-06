@@ -432,7 +432,18 @@ vt100 assertions for end-to-end slices; unit tests for parser/css/layout.
     driver, 211a1db RunOptions.Inline, 5d6abfe FrameLog, f7b6bf2 CPR
     origin + inline mouse). Design in design-f3-inline-mode.md
     (untracked). PHASES E AND F COMPLETE.
-  - G1 sumi init, G2 sumi dev, G3 sumi inspect.
+  - G tooling — DONE 2026-07-06 (PHASE G COMPLETE): G1 init scaffold
+    w/ replace-to-local-checkout (cc15d0b), G2a rebuild pipeline +
+    tree watcher (54990a6), G2b PTY-supervisor sumi dev with vt100
+    mirror, keep-last-good error bar, hot swap (0a8b91b; design
+    decision: PTY supervisor over bare exec loop, resolved with Tom;
+    NOTE component OnEvent wiring is name-based on handleKey), G3
+    inspect over SUMI_CONTROL_SOCKET w/ short hashed socket path —
+    sun_path 104-byte cap (dae0235). Design: design-g-tooling.md
+    (untracked). H PARKED per Tom 2026-07-06 (leave the UI package).
+    NEXT: Phase I site (new sumi-site repo; WASM spike first). NOTE:
+    J blog gate says phases A–H — needs revisiting with Tom since H
+    is parked.
   - H component library (needs cross-dir component consumption in
     the generate CLI).
   - I docs/site, J blog (gated on A–H complete).
