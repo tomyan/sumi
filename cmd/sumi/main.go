@@ -8,11 +8,16 @@ import (
 func main() {
 	if len(os.Args) < 2 {
 		fmt.Fprintln(os.Stderr, "usage: sumi <command> [args]")
-		fmt.Fprintln(os.Stderr, "commands: generate, test-preview")
+		fmt.Fprintln(os.Stderr, "commands: init, generate, test-preview")
 		os.Exit(1)
 	}
 
 	switch os.Args[1] {
+	case "init":
+		if err := initCommand(os.Args[2:]); err != nil {
+			fmt.Fprintln(os.Stderr, err)
+			os.Exit(1)
+		}
 	case "generate":
 		dir := "."
 		if len(os.Args) > 2 {
