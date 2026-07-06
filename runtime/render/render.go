@@ -106,6 +106,14 @@ const (
 	syncEnd   = "\x1b[?2026l"
 )
 
+// WriteFrame writes a frame bracketed by synchronized-output markers.
+func WriteFrame(w io.Writer, frame []byte) {
+	if len(frame) == 0 {
+		return
+	}
+	writeSynchronized(w, frame)
+}
+
 func writeSynchronized(w io.Writer, frame []byte) {
 	out := make([]byte, 0, len(frame)+len(syncBegin)+len(syncEnd))
 	out = append(out, syncBegin...)

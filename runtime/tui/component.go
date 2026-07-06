@@ -157,6 +157,7 @@ type RunOptions struct {
 	ReducedMotion bool              // prefers-reduced-motion: reduce (also via SUMI_REDUCED_MOTION env)
 	ColorScheme   string            // "light" or "dark" forces the scheme (skips the OSC 11 probe); "" = detect
 	Mouse         *bool             // override mouse-mode auto-detection (hover styles / click handlers)
+	Inline        bool              // render at the shell cursor (no alt screen); final frame stays in scrollback
 	In            io.Reader         // terminal input stream (nil = os.Stdin)
 	Out           io.Writer         // terminal output stream (nil = os.Stdout)
 	OnLog         func(string)      // capture stdlib log lines while the app owns the terminal (nil = log untouched)
@@ -182,6 +183,7 @@ func RunWithOptions(comp *Component, opts RunOptions) {
 	app.SchemeLocked = opts.ColorScheme != ""
 	app.In = opts.In
 	app.Out = opts.Out
+	app.Inline = opts.Inline
 	if opts.OnLog != nil {
 		restore := captureLogs(opts.OnLog)
 		defer restore()
@@ -226,7 +228,18 @@ func RunWithOptions(comp *Component, opts RunOptions) {
 			comp.Dirty = false
 			app.Dirty = true
 		}
-		frameBuf.Resize(termW, termH)
+		frameH := termH
+		if app.Inline {
+			// The live zone is content-sized, clamped to the viewport.
+			frameH = tree.Height
+			if frameH < 1 {
+				frameH = 1
+			}
+			if frameH > termH {
+				frameH = termH
+			}
+		}
+		frameBuf.Resize(termW, frameH)
 		layout.RenderTreeWithEngine(frameBuf, tree, nil, engine)
 		if app.Selection != nil {
 			ApplySelectionOverlay(frameBuf, app.Selection.Range())
@@ -234,7 +247,10 @@ func RunWithOptions(comp *Component, opts RunOptions) {
 		if engine.HasActive() {
 			app.RequestFrame()
 		}
-		if termW != prevW || termH != prevH || app.NeedsFullRedraw {
+		if app.Inline {
+			app.NeedsFullRedraw = false
+			render.WriteFrame(app.out(), app.inlineZone().Render(frameBuf))
+		} else if termW != prevW || termH != prevH || app.NeedsFullRedraw {
 			// Resize or post-suspend: clear + full redraw in one write.
 			app.NeedsFullRedraw = false
 			frameBuf.RenderWithClear(app.out())

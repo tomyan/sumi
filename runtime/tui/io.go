@@ -57,6 +57,15 @@ func (a *App) terminalSize() (int, int) {
 	return 80, 24
 }
 
+// inlineZone returns the inline screen driver, creating it on first
+// use.
+func (a *App) inlineZone() *render.InlineScreen {
+	if a.inlineScreen == nil {
+		a.inlineScreen = render.NewInlineScreen()
+	}
+	return a.inlineScreen
+}
+
 // writeOSC52 writes the in-band OSC 52 clipboard sequence to the
 // terminal writer.
 func (a *App) writeOSC52(text string) {

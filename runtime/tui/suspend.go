@@ -52,7 +52,11 @@ func (a *App) enterTerminal() {
 	if fd, ok := a.inFd(); ok {
 		a.termRestore, _ = input.EnableRawMode(fd)
 	}
-	render.EnterAlternateScreen(a.out())
+	if a.Inline {
+		render.HideCursor(a.out())
+	} else {
+		render.EnterAlternateScreen(a.out())
+	}
 	fmt.Fprint(a.out(), input.PasteEnableSeq)
 	fmt.Fprint(a.out(), input.KittyEnableSeq)
 	if a.HasMouse {
@@ -68,7 +72,14 @@ func (a *App) exitTerminal() {
 	}
 	fmt.Fprint(a.out(), input.KittyDisableSeq)
 	fmt.Fprint(a.out(), input.PasteDisableSeq)
-	render.ExitAlternateScreen(a.out())
+	if a.Inline {
+		// Park the cursor after the content and leave the final frame
+		// in scrollback; forget the zone (suspend resumes fresh).
+		a.out().Write(a.inlineZone().Finish())
+		a.inlineZone().Reset()
+	} else {
+		render.ExitAlternateScreen(a.out())
+	}
 	if a.termRestore != nil {
 		a.termRestore()
 		a.termRestore = nil

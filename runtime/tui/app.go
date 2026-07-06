@@ -45,6 +45,11 @@ type App struct {
 	Out         io.Writer
 	termRestore func() // raw-mode restore, set by enterTerminal
 
+	// Inline mode (F3): render a live zone at the shell cursor instead
+	// of the alternate screen; the final frame stays in scrollback.
+	Inline       bool
+	inlineScreen *render.InlineScreen
+
 	quitCh chan struct{} // closed by Quit() to exit the event loop
 	wakeCh chan struct{} // receives from RequestFrame() to wake the event loop
 	doCh   chan func()   // queued functions to run on the main goroutine
