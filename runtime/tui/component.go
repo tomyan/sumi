@@ -1,8 +1,10 @@
 package tui
 
 import (
-	"github.com/tomyan/sumi/parser/style"
+	"io"
 	"os"
+
+	"github.com/tomyan/sumi/parser/style"
 
 	"github.com/tomyan/sumi/runtime/anim"
 	"github.com/tomyan/sumi/runtime/css"
@@ -156,6 +158,9 @@ type RunOptions struct {
 	ReducedMotion bool              // prefers-reduced-motion: reduce (also via SUMI_REDUCED_MOTION env)
 	ColorScheme   string            // "light" or "dark" forces the scheme (skips the OSC 11 probe); "" = detect
 	Mouse         *bool             // override mouse-mode auto-detection (hover styles / click handlers)
+	In            io.Reader         // terminal input stream (nil = os.Stdin)
+	Out           io.Writer         // terminal output stream (nil = os.Stdout)
+	OnLog         func(string)      // capture stdlib log lines while the app owns the terminal (nil = log untouched)
 }
 
 // RunWithOptions runs a component with additional configuration.
@@ -176,6 +181,12 @@ func RunWithOptions(comp *Component, opts RunOptions) {
 	app := &App{}
 	app.ExitOn = opts.ExitOn
 	app.SchemeLocked = opts.ColorScheme != ""
+	app.In = opts.In
+	app.Out = opts.Out
+	if opts.OnLog != nil {
+		restore := captureLogs(opts.OnLog)
+		defer restore()
+	}
 	if opts.SetApp != nil {
 		opts.SetApp(app)
 	}
@@ -190,7 +201,7 @@ func RunWithOptions(comp *Component, opts RunOptions) {
 	var prevW, prevH int
 
 	app.OnRender = func() {
-		termW, termH := term.GetSize(int(os.Stdout.Fd()))
+		termW, termH := app.terminalSize()
 		updateEnvSignals(termW, termH)
 		// Update hover state on Input tree using previous layout positions.
 		if comp.LayoutResult != nil {
@@ -230,18 +241,18 @@ func RunWithOptions(comp *Component, opts RunOptions) {
 		if termW != prevW || termH != prevH || app.NeedsFullRedraw {
 			// Resize or post-suspend: clear + full redraw in one write.
 			app.NeedsFullRedraw = false
-			frameBuf.RenderWithClear(os.Stdout)
+			frameBuf.RenderWithClear(app.out())
 			prevW = termW
 			prevH = termH
 		} else {
 			// Normal: diff against previous screen.
-			frameBuf.RenderDiff(os.Stdout, screenBuf, termW, termH)
+			frameBuf.RenderDiff(app.out(), screenBuf, termW, termH)
 		}
 	}
 
 	app.OnEvent = componentEventHandler(app, comp)
 	app.Selection = NewSelectionController(func() *render.Buffer { return frameBuf }, nil)
-	app.Clipboard = systemClipboard
+	app.Clipboard = app.systemClipboard
 
 	if opts.OnPostRender != nil {
 		app.OnPostRender = opts.OnPostRender
@@ -270,86 +281,7 @@ func RunWithOptions(comp *Component, opts RunOptions) {
 
 // Run runs a component as a full-screen terminal application.
 func Run(comp *Component) {
-	css.SetReducedMotion(os.Getenv("SUMI_REDUCED_MOTION") != "")
-	app := &App{}
-
-	engine := anim.NewEngine(anim.WallClock{}, func() { app.RequestFrame() })
-	for name, kf := range comp.Keyframes {
-		engine.RegisterKeyframes(name, kf)
-	}
-
-	screenBuf := render.NewBuffer(0, 0)
-	frameBuf := render.NewBuffer(0, 0)
-	var prevW, prevH int
-
-	app.OnRender = func() {
-		termW, termH := term.GetSize(int(os.Stdout.Fd()))
-		updateEnvSignals(termW, termH)
-		// Update hover state on Input tree using previous layout positions.
-		if comp.LayoutResult != nil {
-			layout.UpdateHover(comp.Tree, comp.LayoutResult, app.mouseX, app.mouseY)
-		}
-		syncFocus(comp)
-		layout.ResolveStyles(comp.Tree, comp.Stylesheet, termW, termH)
-		if stepLengthTransitions(comp.Tree, engine) {
-			app.RequestFrame()
-		}
-		tree := layout.Layout(comp.Tree, termW, termH)
-		if comp.Stylesheet != nil && comp.Stylesheet.HasContainerRules() {
-			// Container queries need laid-out ancestor sizes: re-resolve
-			// against the sizes just stamped and lay out again.
-			layout.ResolveStyles(comp.Tree, comp.Stylesheet, termW, termH)
-			tree = layout.Layout(comp.Tree, termW, termH)
-		}
-		comp.LayoutResult = tree
-		if resyncInputElements(comp) {
-			app.Dirty = true
-		}
-		if comp.AfterLayout != nil {
-			comp.AfterLayout()
-		}
-		if comp.Dirty {
-			comp.Dirty = false
-			app.Dirty = true
-		}
-		frameBuf.Resize(termW, termH)
-		layout.RenderTreeWithEngine(frameBuf, tree, nil, engine)
-		if app.Selection != nil {
-			ApplySelectionOverlay(frameBuf, app.Selection.Range())
-		}
-		if engine.HasActive() {
-			app.RequestFrame()
-		}
-		if termW != prevW || termH != prevH || app.NeedsFullRedraw {
-			// Resize or post-suspend: clear + full redraw in one write.
-			app.NeedsFullRedraw = false
-			frameBuf.RenderWithClear(os.Stdout)
-			prevW = termW
-			prevH = termH
-		} else {
-			// Normal: diff against previous screen.
-			frameBuf.RenderDiff(os.Stdout, screenBuf, termW, termH)
-		}
-	}
-
-	app.OnEvent = componentEventHandler(app, comp)
-	app.Selection = NewSelectionController(func() *render.Buffer { return frameBuf }, nil)
-	app.Clipboard = systemClipboard
-
-	// Mouse mode defaults on (global selection replaces the terminal's
-	// native selection).
-	app.HasMouse = true
-
-	app.componentDispose = comp.Dispose
-	activeApp = app
-	initFocus(comp)
-	app.Run()
-	activeApp = nil
-
-	// Cleanup on exit.
-	if comp.Dispose != nil {
-		comp.Dispose()
-	}
+	RunWithOptions(comp, RunOptions{})
 }
 
 // Cleanup disposes the component associated with this app (for testing).

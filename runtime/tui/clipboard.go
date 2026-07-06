@@ -5,15 +5,13 @@ import (
 	"os/exec"
 	"runtime"
 	"strings"
-
-	"github.com/tomyan/sumi/runtime/render"
 )
 
 // systemClipboard writes text to the clipboard two ways, best-effort:
 // OSC 52 in-band (survives ssh and OSC-forwarding multiplexers) plus
 // the platform clipboard tool when one exists. Failures are silent.
-func systemClipboard(text string) {
-	render.CopyToClipboard(os.Stdout, text)
+func (a *App) systemClipboard(text string) {
+	a.writeOSC52(text)
 	copyViaPlatformTool(text)
 }
 

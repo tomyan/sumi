@@ -2,7 +2,6 @@ package tui
 
 import (
 	"fmt"
-	"os"
 	"syscall"
 
 	"github.com/tomyan/sumi/runtime/input"
@@ -50,11 +49,13 @@ func isSuspendChord(evt input.Event) bool {
 // enterTerminal puts the terminal into application state: raw mode,
 // alternate screen, bracketed paste, and mouse tracking when enabled.
 func (a *App) enterTerminal() {
-	a.termRestore, _ = input.EnableRawMode(int(os.Stdin.Fd()))
-	render.EnterAlternateScreen(os.Stdout)
-	fmt.Fprint(os.Stdout, input.PasteEnableSeq)
+	if fd, ok := a.inFd(); ok {
+		a.termRestore, _ = input.EnableRawMode(fd)
+	}
+	render.EnterAlternateScreen(a.out())
+	fmt.Fprint(a.out(), input.PasteEnableSeq)
 	if a.HasMouse {
-		fmt.Fprint(os.Stdout, input.MouseEnableSeq)
+		fmt.Fprint(a.out(), input.MouseEnableSeq)
 	}
 }
 
@@ -62,10 +63,10 @@ func (a *App) enterTerminal() {
 // enterTerminal).
 func (a *App) exitTerminal() {
 	if a.HasMouse {
-		fmt.Fprint(os.Stdout, input.MouseDisableSeq)
+		fmt.Fprint(a.out(), input.MouseDisableSeq)
 	}
-	fmt.Fprint(os.Stdout, input.PasteDisableSeq)
-	render.ExitAlternateScreen(os.Stdout)
+	fmt.Fprint(a.out(), input.PasteDisableSeq)
+	render.ExitAlternateScreen(a.out())
 	if a.termRestore != nil {
 		a.termRestore()
 		a.termRestore = nil

@@ -2,6 +2,7 @@ package tui
 
 import (
 	"fmt"
+	"io"
 	"os"
 	"os/signal"
 	"syscall"
@@ -38,7 +39,11 @@ type App struct {
 	// and repaint instead of diffing.
 	SuspendHooks    *SuspendHooks
 	NeedsFullRedraw bool
-	termRestore     func() // raw-mode restore, set by enterTerminal
+
+	// Injected terminal streams (F4b). Nil = os.Stdin / os.Stdout.
+	In          io.Reader
+	Out         io.Writer
+	termRestore func() // raw-mode restore, set by enterTerminal
 
 	quitCh chan struct{} // closed by Quit() to exit the event loop
 	wakeCh chan struct{} // receives from RequestFrame() to wake the event loop
@@ -168,27 +173,27 @@ func (a *App) Run() {
 	a.initQuit()
 
 	if a.Title != "" || a.SaveTitle {
-		fmt.Fprint(os.Stdout, "\033[22;2t") // save current title
+		fmt.Fprint(a.out(), "\033[22;2t") // save current title
 	}
 
 	a.enterTerminal()
 	defer a.exitTerminal()
 
 	if a.Title != "" || a.SaveTitle {
-		defer fmt.Fprint(os.Stdout, "\033[23;2t") // restore title
+		defer fmt.Fprint(a.out(), "\033[23;2t") // restore title
 	}
 	if a.Title != "" {
-		fmt.Fprintf(os.Stdout, "\033]2;%s\007", a.Title)
+		fmt.Fprintf(a.out(), "\033]2;%s\007", a.Title)
 	}
 
 	// Query the terminal background colour; the OSC 11 reply arrives on
 	// stdin as an EventScheme and drives light-dark() resolution.
-	fmt.Fprint(os.Stdout, "\033]11;?\007")
+	fmt.Fprint(a.out(), "\033]11;?\007")
 
 	eventCh := make(chan input.Event, 64)
 	go func() {
 		for {
-			evt, err := input.ReadEvent(os.Stdin)
+			evt, err := input.ReadEvent(a.in())
 			if err != nil {
 				close(eventCh)
 				return
