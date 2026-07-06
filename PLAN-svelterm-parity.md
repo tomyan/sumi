@@ -411,7 +411,14 @@ vt100 assertions for end-to-end slices; unit tests for parser/css/layout.
     modifier mask; PUA functional map; Shift+Tab convention kept.
     Also DONE: F4b io injection + onLog + Run/RunWithOptions dedupe
     (bc34d60).
-  - D7 terminal matrix CI.
+  - D7 terminal matrix CI — DONE 2026-07-06 (ff1a56a): ANSI
+    round-trip tests (RunWithOptions with injected streams → replay
+    through runtime/vt100, assert content/styles/diffs; caught a
+    vt100 '<'-marker gap on day one); docs/terminals.md support
+    matrix; GH Actions ubuntu+macos build/vet/test/gofmt;
+    runtime/pty split darwin/linux (TIOCSPTLCK+TIOCGPTN).
+    PHASE D COMPLETE. Also: keyframe registry duplication removed
+    (7294e37).
   - E3b keyframe var()/light-dark() — DONE 2026-07-06 (94792d5):
     resolver stamps AnimationSpec.Stops per node (var() from node
     scope, ColorPair kept); engine prefers spec stops over registry;
