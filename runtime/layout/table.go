@@ -8,7 +8,6 @@ import "github.com/tomyan/sumi/runtime/render"
 // (shrunk proportionally on overflow), rows size to their tallest cell,
 // and cells stretch to their slot. colspan/rowspan place like a grid; a
 // caption child renders above the table at full width.
-// Collapsed cell borders are still to come (B7c).
 func layoutTable(input *Input, children []*Input, offsetX, offsetY, availW, availH int) []*Box {
 	caption, rows := splitTableExtras(children)
 	colHints := colgroupHints(input.Children)

@@ -19,8 +19,9 @@ The `display` value chooses the layout algorithm:
 - `block` — children stack vertically; the box fills the available width.
   Inline children form an inline formatting context. Vertical margins between
   block siblings collapse.
-- `flex` — the default box behaviour. Children lay out along a main axis (see
-  [Flex](#flex)).
+- `flex` — a flex container: children lay out along a main axis (see
+  [Flex](#flex)). HTML containers default to `block` via the UA
+  stylesheet, so flex is always an explicit opt-in.
 - `grid` — two-dimensional track grid (see [Grid](#grid)).
 - `table` — row/column table (see [Tables](#tables)).
 - `inline` — the element joins the surrounding inline flow rather than forming
@@ -32,8 +33,8 @@ The `display` value chooses the layout algorithm:
 - `none` — removed from layout entirely; it takes no space and cannot be
   focused, but keeps its slot so sibling indices stay stable.
 
-Deviation: `display: flex` is not a distinct branch — it is the default box path,
-which every unrecognised `display` value also falls through to. Deviation:
+Deviation: an unrecognised `display` value falls through to the flex
+container path rather than being ignored. Deviation:
 `display: table-row` and `display: table-cell` have no effect; table structure
 comes from element nesting (`tr`, `td`/`th`), not from `display`.
 
