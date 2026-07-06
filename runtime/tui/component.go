@@ -159,6 +159,7 @@ type RunOptions struct {
 	Mouse         *bool             // override mouse-mode auto-detection (hover styles / click handlers)
 	Inline        bool              // render at the shell cursor (no alt screen); final frame stays in scrollback
 	In            io.Reader         // terminal input stream (nil = os.Stdin)
+	Size          func() (w, h int) // viewport size override (hosts without a terminal fd)
 	Out           io.Writer         // terminal output stream (nil = os.Stdout)
 	OnLog         func(string)      // capture stdlib log lines while the app owns the terminal (nil = log untouched)
 }
@@ -183,6 +184,7 @@ func RunWithOptions(comp *Component, opts RunOptions) {
 	app.SchemeLocked = opts.ColorScheme != ""
 	app.In = opts.In
 	app.Out = opts.Out
+	app.Size = opts.Size
 	app.Inline = opts.Inline
 	if opts.OnLog != nil {
 		restore := captureLogs(opts.OnLog)

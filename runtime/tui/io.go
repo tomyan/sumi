@@ -48,6 +48,11 @@ func (a *App) inFd() (int, bool) {
 // then the output terminal's real size, then an 80x24 fallback for
 // injected writers without a descriptor.
 func (a *App) terminalSize() (int, int) {
+	if a.Size != nil {
+		if w, h := a.Size(); w > 0 && h > 0 {
+			return w, h
+		}
+	}
 	if a.TestWidth > 0 {
 		return a.TestWidth, a.TestHeight
 	}

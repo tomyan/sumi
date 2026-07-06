@@ -43,7 +43,8 @@ type App struct {
 	// Injected terminal streams (F4b). Nil = os.Stdin / os.Stdout.
 	In          io.Reader
 	Out         io.Writer
-	termRestore func() // raw-mode restore, set by enterTerminal
+	Size        func() (w, h int) // viewport override for hosts without an fd (wasm)
+	termRestore func()            // raw-mode restore, set by enterTerminal
 
 	// Inline mode (F3): render a live zone at the shell cursor instead
 	// of the alternate screen; the final frame stays in scrollback.
