@@ -9,8 +9,16 @@ This chapter takes you from an empty directory to a running, hot-reloading app.
 
 ## Installing the CLI
 
-Sumi is not yet published as a Go module, so install the `sumi` binary from a
-checkout of the repository:
+On macOS or Linux with [Homebrew](https://brew.sh):
+
+```
+brew install tomyan/tap/sumi
+```
+
+This installs the `sumi` binary together with the framework source it
+scaffolds against — nothing else to set up.
+
+Alternatively, install from a checkout of the repository:
 
 ```
 git clone https://github.com/tomyan/sumi
@@ -19,8 +27,10 @@ go install ./cmd/sumi
 ```
 
 That puts `sumi` on your `PATH` (in `$(go env GOPATH)/bin`). Every scaffolded
-app depends on the framework through a `replace` directive pointing back at this
-checkout, so keep it around — see [Scaffolding an app](#scaffolding-an-app).
+app depends on the framework source through a `replace` directive — the brew
+install points it at the copy shipped with the formula; with a manual install
+it points back at your checkout, so keep it around — see
+[Scaffolding an app](#scaffolding-an-app).
 
 ## Scaffolding an app
 
