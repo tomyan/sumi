@@ -66,6 +66,15 @@ func (a *App) inlineZone() *render.InlineScreen {
 	return a.inlineScreen
 }
 
+// ReleaseTop hands the top n rows of the inline live zone to the
+// terminal's scrollback (no-op in fullscreen mode). Wire a FrameLog's
+// ReleaseTop to this.
+func (a *App) ReleaseTop(n int) {
+	if a.Inline {
+		a.inlineZone().ReleaseTop(n)
+	}
+}
+
 // writeOSC52 writes the in-band OSC 52 clipboard sequence to the
 // terminal writer.
 func (a *App) writeOSC52(text string) {
