@@ -241,11 +241,13 @@ func clickDefault(comp *Component, path []*layout.Input, evt input.Event, follow
 func componentEventHandler(app *App, comp *Component) func(input.Event) {
 	return func(evt input.Event) {
 		dispatchMouseScroll(evt, comp)
+		handleSelectionMouse(app, evt)
 		if evt.Kind == input.EventMouse && evt.Mouse.Action == input.MousePress && evt.Mouse.Button == input.ButtonLeft {
 			path := layout.HitTestPath(comp.Tree, comp.LayoutResult, evt.Mouse.X, evt.Mouse.Y)
 			if !pathInFocusScope(comp, path) {
 				path = nil // a modal dialog captures clicks outside it
 			}
+			armSelectionPress(app, path, evt)
 			focusClickedElement(comp, path)
 			dom := &layout.DOMEvent{Type: "click", Key: evt}
 			layout.DispatchDOM(path, dom)

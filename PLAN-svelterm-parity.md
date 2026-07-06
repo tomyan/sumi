@@ -387,9 +387,17 @@ vt100 assertions for end-to-end slices; unit tests for parser/css/layout.
     NOTE: projections must NEVER write CSS-owned Input fields (the
     cascade re-stamps them) — use runtime flags like Hidden instead.
     (text-align per-line inside an IFC shipped as a follow-up.)
-  - D5 global selection + clipboard (drag/word/line inverse painting,
-    OSC 52 + pbcopy fallback; svelterm src/input/selection.ts is the
-    reference).
+  - D5 global selection + clipboard — DONE 2026-07-06 (eb9d0db).
+    Screen-space SelectionController in runtime/tui/selection.go
+    (svelterm model: cell coords, drag/double-word/triple-line, click
+    clears); inverse-toggle overlay applied to frameBuf after tree
+    render (Ch untouched → extraction exact); copy on left release via
+    OSC 52 + pbcopy/wl-copy/xclip (App.Clipboard injectable). Presses
+    on editable controls skip global selection (they own their drag).
+    Mouse mode now DEFAULTS ON in Run/RunWithOptions (RunOptions.Mouse
+    overrides). Gaps kept at svelterm parity (no Escape-clear, no
+    Ctrl+C copy, no wide-glyph cells, no drag auto-scroll) —
+    SelectionController.Clear() exists for a future Escape binding.
   - D3 kitty keyboard protocol; D4b Ctrl+Z suspend (subprocess/PTY
     test); D7 terminal matrix CI.
   - E3b keyframe var()/light-dark() at start (check ColorPair first —

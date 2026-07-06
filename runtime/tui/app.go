@@ -25,11 +25,19 @@ type App struct {
 	ExitOn       []string          // quit chords ("ctrl+c", "q", "escape"); nil = ctrl+c
 	SchemeLocked bool              // scheme forced by options; ignore OSC 11 reports
 	OnPostRender func()            // called after each converge() cycle (if non-nil)
-	quitCh       chan struct{}     // closed by Quit() to exit the event loop
-	wakeCh       chan struct{}     // receives from RequestFrame() to wake the event loop
-	doCh         chan func()       // queued functions to run on the main goroutine
-	mouseX       int               // latest mouse X (0-indexed)
-	mouseY       int               // latest mouse Y (0-indexed)
+
+	// Global text selection (mouse drag / double-click word / triple-
+	// click line over the painted frame). Selection is armed by the
+	// component wiring; Clipboard receives the extracted text on
+	// release (nil = discard).
+	Selection *SelectionController
+	Clipboard func(string)
+
+	quitCh chan struct{} // closed by Quit() to exit the event loop
+	wakeCh chan struct{} // receives from RequestFrame() to wake the event loop
+	doCh   chan func()   // queued functions to run on the main goroutine
+	mouseX int           // latest mouse X (0-indexed)
+	mouseY int           // latest mouse Y (0-indexed)
 
 	// Test mode fields — set by CreateApp for synchronous stepping.
 	TestWidth  int            // test viewport width (0 = use real terminal)

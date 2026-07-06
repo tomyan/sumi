@@ -116,12 +116,16 @@ func TestApp(comp *Component, w, h int) *App {
 		}
 		buf := render.NewBuffer(termW, termH)
 		layout.RenderTree(buf, tree, nil)
+		if app.Selection != nil {
+			ApplySelectionOverlay(buf, app.Selection.Range())
+		}
 		if app.TestBuffer != nil {
 			app.TestBuffer = buf
 		}
 	}
 
 	app.OnEvent = componentEventHandler(app, comp)
+	app.Selection = NewSelectionController(func() *render.Buffer { return app.TestBuffer }, nil)
 
 	app.componentDispose = comp.Dispose
 
@@ -217,6 +221,9 @@ func RunWithOptions(comp *Component, opts RunOptions) {
 		}
 		frameBuf.Resize(termW, termH)
 		layout.RenderTreeWithEngine(frameBuf, tree, nil, engine)
+		if app.Selection != nil {
+			ApplySelectionOverlay(frameBuf, app.Selection.Range())
+		}
 		if engine.HasActive() {
 			app.RequestFrame()
 		}
@@ -232,6 +239,8 @@ func RunWithOptions(comp *Component, opts RunOptions) {
 	}
 
 	app.OnEvent = componentEventHandler(app, comp)
+	app.Selection = NewSelectionController(func() *render.Buffer { return frameBuf }, nil)
+	app.Clipboard = systemClipboard
 
 	if opts.OnPostRender != nil {
 		app.OnPostRender = opts.OnPostRender
@@ -240,11 +249,9 @@ func RunWithOptions(comp *Component, opts RunOptions) {
 		app.OnResize = opts.OnResize
 	}
 
-	// Auto-enable mouse when any node has hover styles or click handlers;
-	// an explicit option wins either way.
-	if layout.HasHoverStyles(comp.Tree) || layout.HasClickHandlers(comp.Tree) {
-		app.HasMouse = true
-	}
+	// Mouse mode defaults on (global selection replaces the terminal's
+	// native selection); an explicit option wins.
+	app.HasMouse = true
 	if opts.Mouse != nil {
 		app.HasMouse = *opts.Mouse
 	}
@@ -306,6 +313,9 @@ func Run(comp *Component) {
 		}
 		frameBuf.Resize(termW, termH)
 		layout.RenderTreeWithEngine(frameBuf, tree, nil, engine)
+		if app.Selection != nil {
+			ApplySelectionOverlay(frameBuf, app.Selection.Range())
+		}
 		if engine.HasActive() {
 			app.RequestFrame()
 		}
@@ -321,10 +331,12 @@ func Run(comp *Component) {
 	}
 
 	app.OnEvent = componentEventHandler(app, comp)
+	app.Selection = NewSelectionController(func() *render.Buffer { return frameBuf }, nil)
+	app.Clipboard = systemClipboard
 
-	if layout.HasHoverStyles(comp.Tree) || layout.HasClickHandlers(comp.Tree) {
-		app.HasMouse = true
-	}
+	// Mouse mode defaults on (global selection replaces the terminal's
+	// native selection).
+	app.HasMouse = true
 
 	app.componentDispose = comp.Dispose
 	activeApp = app
