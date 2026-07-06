@@ -457,9 +457,16 @@ vt100 assertions for end-to-end slices; unit tests for parser/css/layout.
     runtime/webterm + xterm.js — verified interactive in Chrome
     against the true static build (NOTE vite preview serves
     .svelte-kit/output, NOT build/ — test with a plain static
-    server). Remaining in I: more demos, docs review pass, I5 launch
-    checks, deploy infra (OpenTofu, domain — deferred per decision
-    3). NOTE:
+    server). I4 DEPLOYED 2026-07-06: https://gosumi.dev LIVE (zone
+    adopted via import block, S3+CloudFront+ACM via OpenTofu, profile
+    tyanroot; module fix vs svelterm's copy: s3 objects use
+    source_hash not etag — multipart etag on >5MB wasm never equals
+    filemd5, perpetual drift; static/404.html added, was missing).
+    I5 launch checks PASS (wasm content-type + edge compression,
+    live demo keypress-verified via CDP, docs deep-links + rewritten
+    internal links, light/dark, mobile, 404). Remaining in I: more
+    demos, docs review pass (docs pages ship no <title>), sitemap
+    line in robots.txt. NOTE:
     J blog gate says phases A–H — needs revisiting with Tom since H
     is parked.
   - H component library (needs cross-dir component consumption in
