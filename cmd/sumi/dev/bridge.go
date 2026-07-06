@@ -71,11 +71,12 @@ func attachChild(c *Child) {
 // errors, exit when the child exits.
 func RunDev(dir string, generate func(string) error) error {
 	binary := filepath.Join(dir, ".sumi-dev-bin")
+	socket := DevSocketPath(dir)
 	comp := NewDev(DevProps{})
 
 	spawn := func() error {
 		var c *Child
-		child, err := StartChild(binary, devRows, devCols,
+		child, err := StartChild(binary, socket, devRows, devCols,
 			func() { devApp.Wake() },
 			func(code int) {
 				// Only the CURRENT child's exit ends the session —

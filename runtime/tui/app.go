@@ -134,8 +134,22 @@ func (a *App) initQuit() {
 // Used for synchronous testing — no terminal setup, no goroutines.
 func (a *App) Step(evt input.Event) {
 	a.ensureInit()
+	a.drainDo()
 	a.dispatchEvent(evt)
 	a.converge()
+}
+
+// drainDo runs queued Do funcs synchronously (test mode has no event
+// loop to service them).
+func (a *App) drainDo() {
+	for {
+		select {
+		case fn := <-a.doCh:
+			fn()
+		default:
+			return
+		}
+	}
 }
 
 // Render triggers an initial render with bounded convergence.

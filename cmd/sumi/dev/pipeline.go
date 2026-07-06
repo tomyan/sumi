@@ -3,12 +3,26 @@
 package dev
 
 import (
+	"crypto/sha256"
+	"fmt"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"strings"
 	"time"
 )
+
+// DevSocketPath returns the inspect socket path for an app directory:
+// short and stable (sun_path caps Unix socket paths at ~104 bytes, so
+// the app dir cannot be used directly).
+func DevSocketPath(dir string) string {
+	abs, err := filepath.Abs(dir)
+	if err != nil {
+		abs = dir
+	}
+	sum := sha256.Sum256([]byte(abs))
+	return filepath.Join(os.TempDir(), fmt.Sprintf("sumi-dev-%x.sock", sum[:6]))
+}
 
 // Result reports one generate+build attempt. Binary is empty when the
 // attempt failed; Err then carries the human-readable tool output.

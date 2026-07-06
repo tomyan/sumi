@@ -283,6 +283,10 @@ func RunWithOptions(comp *Component, opts RunOptions) {
 	app.componentDispose = comp.Dispose
 	activeApp = app
 	initFocus(comp)
+	if sock := os.Getenv("SUMI_CONTROL_SOCKET"); sock != "" {
+		_ = ServeInspect(app, comp, sock) // best-effort: inspect is optional
+		defer os.Remove(sock)
+	}
 	app.Run()
 	activeApp = nil
 

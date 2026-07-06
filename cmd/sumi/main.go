@@ -10,7 +10,7 @@ import (
 func main() {
 	if len(os.Args) < 2 {
 		fmt.Fprintln(os.Stderr, "usage: sumi <command> [args]")
-		fmt.Fprintln(os.Stderr, "commands: init, dev, generate, test-preview")
+		fmt.Fprintln(os.Stderr, "commands: init, dev, inspect, generate, test-preview")
 		os.Exit(1)
 	}
 
@@ -26,6 +26,11 @@ func main() {
 			dir = os.Args[2]
 		}
 		if err := dev.RunDev(dir, generateDir); err != nil {
+			fmt.Fprintln(os.Stderr, err)
+			os.Exit(1)
+		}
+	case "inspect":
+		if err := inspectCommand(os.Args[2:]); err != nil {
 			fmt.Fprintln(os.Stderr, err)
 			os.Exit(1)
 		}

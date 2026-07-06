@@ -19,10 +19,14 @@ type Child struct {
 
 // StartChild launches binary on a rows×cols PTY. wake is called after
 // each output chunk lands in the screen; onExit fires once when the
-// process ends (with its exit code).
-func StartChild(binary string, rows, cols int, wake func(), onExit func(code int)) (*Child, error) {
+// process ends (with its exit code). socket, when non-empty, points the
+// child's inspect listener there (sumi inspect attaches to it).
+func StartChild(binary, socket string, rows, cols int, wake func(), onExit func(code int)) (*Child, error) {
 	cmd := exec.Command(binary)
 	cmd.Env = append(os.Environ(), "TERM=xterm-256color")
+	if socket != "" {
+		cmd.Env = append(cmd.Env, "SUMI_CONTROL_SOCKET="+socket)
+	}
 	master, err := pty.Start(cmd, rows, cols)
 	if err != nil {
 		return nil, err
