@@ -428,7 +428,10 @@ vt100 assertions for end-to-end slices; unit tests for parser/css/layout.
     Component.Keyframes registry is now redundant (stylesheet already
     serializes @keyframes; resolver stamping always wins) — remove in
     a cleanup slice.
-  - F3 inline mode + FrameLog; F4b io injection + onLog.
+  - F3 inline mode + FrameLog — DONE 2026-07-06 (2ef01b5 InlineScreen
+    driver, 211a1db RunOptions.Inline, 5d6abfe FrameLog, f7b6bf2 CPR
+    origin + inline mouse). Design in design-f3-inline-mode.md
+    (untracked). PHASES E AND F COMPLETE.
   - G1 sumi init, G2 sumi dev, G3 sumi inspect.
   - H component library (needs cross-dir component consumption in
     the generate CLI).

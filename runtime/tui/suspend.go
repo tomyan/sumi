@@ -62,6 +62,9 @@ func (a *App) enterTerminal() {
 	if a.HasMouse {
 		fmt.Fprint(a.out(), input.MouseEnableSeq)
 	}
+	if a.Inline {
+		a.queryInlineOrigin()
+	}
 }
 
 // exitTerminal restores the shell's terminal state (reverse order of

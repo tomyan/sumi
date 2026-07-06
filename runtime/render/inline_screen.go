@@ -15,6 +15,7 @@ type InlineScreen struct {
 	contentHeight int     // rows the last frame actually used
 	cursorRow     int     // relative to zone origin (may go negative after ReleaseTop)
 	cursorCol     int     // -1 = wrap-pending (last write hit the final column)
+	originRow     int     // 1-based screen row of zone row 0 (CPR); 0 = unknown
 }
 
 // NewInlineScreen returns a driver for a fresh zone at the cursor.
@@ -178,6 +179,40 @@ func (s *InlineScreen) ReleaseTop(n int) {
 	s.physicalRows -= n
 	s.contentHeight -= n
 	s.cursorRow -= n
+	if s.originRow > 0 {
+		s.originRow += n // zone row 0 moves down as top rows release
+	}
+}
+
+// CursorRow reports the cursor's zone row (for CPR query snapshots).
+func (s *InlineScreen) CursorRow() int { return s.cursorRow }
+
+// SetOriginRow records the 1-based screen row of zone row 0, derived
+// from a CPR reply minus the cursor's zone row at query time.
+func (s *InlineScreen) SetOriginRow(row int) {
+	if row < 1 {
+		row = 1
+	}
+	s.originRow = row
+}
+
+// ScreenRowToZone maps a 0-based screen row to a zone row. The
+// effective origin clamps so the zone bottom stays pinned to the
+// screen bottom after LF growth scrolled the zone up. Reports false
+// when the origin is unknown or the row lies outside the zone.
+func (s *InlineScreen) ScreenRowToZone(screenRow, termH int) (int, bool) {
+	if s.originRow == 0 || s.physicalRows == 0 {
+		return 0, false
+	}
+	origin := s.originRow
+	if maxOrigin := termH - s.physicalRows + 1; origin > maxOrigin {
+		origin = maxOrigin
+	}
+	zone := screenRow - (origin - 1)
+	if zone < 0 || zone >= s.physicalRows {
+		return 0, false
+	}
+	return zone, true
 }
 
 // Finish parks the cursor on a fresh line after the content and shows

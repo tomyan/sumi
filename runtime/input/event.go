@@ -10,15 +10,16 @@ import (
 type EventKind int
 
 const (
-	EventKey     EventKind = iota // regular character key
-	EventSpecial                  // special key (arrow, pgup, etc.)
-	EventMouse                    // mouse event
-	EventSignal                   // OS signal (SIGINT, SIGTERM, etc.)
-	EventFrame                    // animation frame tick
-	EventPaste                    // bracketed paste
-	EventFocus                    // terminal focus gained
-	EventBlur                     // terminal focus lost
-	EventScheme                   // terminal colour-scheme report (OSC 11)
+	EventKey       EventKind = iota // regular character key
+	EventSpecial                    // special key (arrow, pgup, etc.)
+	EventMouse                      // mouse event
+	EventSignal                     // OS signal (SIGINT, SIGTERM, etc.)
+	EventFrame                      // animation frame tick
+	EventPaste                      // bracketed paste
+	EventFocus                      // terminal focus gained
+	EventBlur                       // terminal focus lost
+	EventScheme                     // terminal colour-scheme report (OSC 11)
+	EventCursorPos                  // cursor position report (CPR reply to CSI 6n)
 )
 
 // SpecialKey identifies a special key.
@@ -65,6 +66,8 @@ type Event struct {
 	Signal    syscall.Signal // set for EventSignal
 	PasteText string         // set for EventPaste
 	Scheme    string         // set for EventScheme: "light" or "dark"
+	CursorRow int            // set for EventCursorPos (1-based)
+	CursorCol int            // set for EventCursorPos (1-based)
 }
 
 // ReadEvent reads a single input event from the reader.
@@ -233,6 +236,10 @@ func parseModifiedCSI(r io.Reader, num int) (Event, error) {
 		// Kitty key report: 'u' final, optional ':event-type' sub-param.
 		if b == 'u' {
 			return kittyKeyEvent(num, modifier), nil
+		}
+		// CPR reply (CSI row;col R) — requested by inline mode via CSI 6n.
+		if b == 'R' {
+			return Event{Kind: EventCursorPos, CursorRow: num, CursorCol: modifier}, nil
 		}
 		if b == ':' {
 			return parseKittyEventType(r, num, modifier)

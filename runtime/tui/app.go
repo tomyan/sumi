@@ -49,6 +49,7 @@ type App struct {
 	// of the alternate screen; the final frame stays in scrollback.
 	Inline       bool
 	inlineScreen *render.InlineScreen
+	cprZoneRow   int // cursor's zone row when the CPR query was sent
 
 	quitCh chan struct{} // closed by Quit() to exit the event loop
 	wakeCh chan struct{} // receives from RequestFrame() to wake the event loop
@@ -281,6 +282,24 @@ func (a *App) dispatchEvent(evt input.Event) {
 		}
 		return
 	}
+	// CPR reply: derive the inline zone's screen origin (reported row
+	// minus the cursor's zone row when the query was sent).
+	if evt.Kind == input.EventCursorPos {
+		if a.Inline {
+			a.inlineZone().SetOriginRow(evt.CursorRow - a.cprZoneRow)
+		}
+		return
+	}
+	// Inline mode: map mouse coordinates from screen rows to zone rows;
+	// events outside the live zone (shell history) are dropped.
+	if a.Inline && evt.Kind == input.EventMouse {
+		_, termH := a.terminalSize()
+		zone, ok := a.inlineZone().ScreenRowToZone(evt.Mouse.Y, termH)
+		if !ok {
+			return
+		}
+		evt.Mouse.Y = zone
+	}
 	// Track mouse position for hover.
 	if evt.Kind == input.EventMouse {
 		a.mouseX = evt.Mouse.X
@@ -306,7 +325,19 @@ func (a *App) dispatchResize() {
 	if a.OnResize != nil {
 		a.OnResize()
 	}
+	if a.Inline {
+		a.queryInlineOrigin() // rewrap may have moved the zone
+	}
 	a.Dirty = true
+}
+
+// queryInlineOrigin asks the terminal for the cursor position (CPR);
+// the reply arrives on stdin as EventCursorPos. The cursor's zone row
+// is snapshotted now so renders between query and reply don't skew the
+// derived origin.
+func (a *App) queryInlineOrigin() {
+	a.cprZoneRow = a.inlineZone().CursorRow()
+	fmt.Fprint(a.out(), "\x1b[6n")
 }
 
 // drain non-blocking reads all pending events from all channels.

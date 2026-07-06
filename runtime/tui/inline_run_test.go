@@ -83,3 +83,35 @@ func TestInlineRunUpdatesDiffInPlace(t *testing.T) {
 		t.Errorf("inline diff used absolute CUP: %q", s)
 	}
 }
+
+// F3d: CPR-derived origin maps mouse clicks into the zone; events
+// outside it are dropped.
+func TestInlineMouseMapsThroughOrigin(t *testing.T) {
+	// Given: an inline app with a click handler on its only row, run
+	// with a CPR reply placing the zone at screen row 10 (1-based),
+	// then a click on that screen row, then quit.
+	var clicks []int
+	target := &layout.Input{Kind: layout.KindText, Content: "click me",
+		CursorCol: -1, CursorRow: -1,
+		On: map[string]func(*layout.DOMEvent){
+			"click": func(evt *layout.DOMEvent) { clicks = append(clicks, evt.Key.Mouse.Y) },
+		}}
+	comp := &tui.Component{Tree: &layout.Input{
+		Kind: layout.KindBox, CursorCol: -1, CursorRow: -1,
+		Children: []*layout.Input{target},
+	}}
+	var out bytes.Buffer
+	// CPR reply row 10; click at screen row 9 (0-based) col 2 → zone row 0;
+	// a second click at screen row 3 is outside the zone and dropped.
+	in := "\x1b[10;1R" + "\x1b[<0;3;10M" + "\x1b[<0;3;4M" + "q"
+
+	// When
+	tui.RunWithOptions(comp, tui.RunOptions{
+		Inline: true, In: strings.NewReader(in), Out: &out, ExitOn: []string{"q"},
+	})
+
+	// Then: exactly one click, delivered at zone row 0.
+	if len(clicks) != 1 || clicks[0] != 0 {
+		t.Errorf("clicks = %v, want one click at zone row 0", clicks)
+	}
+}

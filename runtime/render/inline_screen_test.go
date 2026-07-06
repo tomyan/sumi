@@ -175,3 +175,68 @@ func TestInlineFinishParksCursorBelowContent(t *testing.T) {
 		t.Errorf("output %q: want cursor parked on a fresh line", out)
 	}
 }
+
+// F3d: CPR origin bookkeeping + screen→zone mapping.
+
+func TestInlineOriginMapping(t *testing.T) {
+	// Given: a 3-row zone whose row 0 sits at screen row 10 (1-based).
+	s := NewInlineScreen()
+	s.Render(inlineBuf("aa", "bb", "cc"))
+	s.SetOriginRow(10)
+
+	// When / Then: screen rows map into zone rows (0-based screen in).
+	if got, ok := s.ScreenRowToZone(9, 24); !ok || got != 0 {
+		t.Errorf("screen 9 → %d,%v, want 0,true", got, ok)
+	}
+	if got, ok := s.ScreenRowToZone(11, 24); !ok || got != 2 {
+		t.Errorf("screen 11 → %d,%v, want 2,true", got, ok)
+	}
+	if _, ok := s.ScreenRowToZone(5, 24); ok {
+		t.Error("row above the zone must not map")
+	}
+	if _, ok := s.ScreenRowToZone(12, 24); ok {
+		t.Error("row below the zone must not map")
+	}
+}
+
+func TestInlineOriginUnknownMapsNothing(t *testing.T) {
+	// Given
+	s := NewInlineScreen()
+	s.Render(inlineBuf("aa"))
+
+	// Then
+	if _, ok := s.ScreenRowToZone(0, 24); ok {
+		t.Error("unknown origin must not map")
+	}
+}
+
+func TestInlineOriginBottomClamp(t *testing.T) {
+	// Given: zone grew past the bottom — physical rows exceed what the
+	// stale origin allows; the zone bottom is pinned to the screen bottom.
+	s := NewInlineScreen()
+	s.Render(inlineBuf("a", "b", "c", "d"))
+	s.SetOriginRow(23) // stale: 4 rows can't start at 23 in a 24-row term
+
+	// When: effective origin clamps to 24-4+1 = 21.
+	got, ok := s.ScreenRowToZone(23, 24) // screen row 24 (1-based)
+
+	// Then: bottom row of the zone.
+	if !ok || got != 3 {
+		t.Errorf("screen 23 → %d,%v, want 3,true", got, ok)
+	}
+}
+
+func TestInlineReleaseTopShiftsOrigin(t *testing.T) {
+	// Given
+	s := NewInlineScreen()
+	s.Render(inlineBuf("aa", "bb", "cc"))
+	s.SetOriginRow(10)
+
+	// When: top row archived — zone row 0 moves down one screen row.
+	s.ReleaseTop(1)
+
+	// Then
+	if got, ok := s.ScreenRowToZone(10, 24); !ok || got != 0 {
+		t.Errorf("screen 10 → %d,%v, want 0,true after release", got, ok)
+	}
+}

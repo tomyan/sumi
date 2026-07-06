@@ -96,3 +96,11 @@ func TestLegacySequencesStillDecode(t *testing.T) {
 		t.Errorf("legacy pgup = %+v", evt)
 	}
 }
+
+// F3d: CPR (cursor position report) replies parse as events.
+func TestCPRReplyParses(t *testing.T) {
+	evt := readSeq(t, "\x1b[12;3R")
+	if evt.Kind != EventCursorPos || evt.CursorRow != 12 || evt.CursorCol != 3 {
+		t.Errorf("evt = %+v, want CPR row 12 col 3", evt)
+	}
+}
