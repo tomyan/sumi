@@ -93,20 +93,22 @@ func placeAtomBox(item inlineItem, frags []Fragment, offsetX, offsetY int) *Box 
 func buildInlineElementBox(c *Input, items []inlineItem, perItem [][]Fragment, itemIdx *int, offsetX, offsetY int) *Box {
 	childBoxes := buildInlineBoxes(c.Children, items, perItem, itemIdx, offsetX, offsetY)
 	box := &Box{
-		Kind:       KindBox,
-		Key:        c.Key,
-		Style:      c.Style,
-		HoverStyle: c.HoverStyle,
-		Hovered:    c.Hovered,
-		FocusStyle: c.FocusStyle,
-		Focused:    c.Focused,
-		Visibility: c.Visibility,
-		UnionBox:   true,
-		CursorCol:  -1,
-		CursorRow:  -1,
-		X:          offsetX,
-		Y:          offsetY,
-		Children:   childBoxes,
+		Kind:          KindBox,
+		Key:           c.Key,
+		Style:         c.Style,
+		HoverStyle:    c.HoverStyle,
+		Hovered:       c.Hovered,
+		FocusStyle:    c.FocusStyle,
+		Focused:       c.Focused,
+		Visibility:    c.Visibility,
+		UnionBox:      true,
+		Transitions:   c.Transitions,
+		AnimationSpec: c.AnimationSpec,
+		CursorCol:     -1,
+		CursorRow:     -1,
+		X:             offsetX,
+		Y:             offsetY,
+		Children:      childBoxes,
 	}
 	unionChildRects(box, childBoxes)
 	return box
@@ -153,18 +155,20 @@ func unionChildRects(box *Box, children []*Box) {
 // re-basing the fragments onto the box origin.
 func fragmentBox(child *Input, frags []Fragment, offsetX, offsetY int) *Box {
 	box := &Box{
-		Kind:       KindText,
-		Key:        child.Key,
-		Style:      child.Style,
-		HoverStyle: child.HoverStyle,
-		Hovered:    child.Hovered,
-		FocusStyle: child.FocusStyle,
-		Focused:    child.Focused,
-		Visibility: child.Visibility,
-		CursorCol:  -1,
-		CursorRow:  -1,
-		X:          offsetX,
-		Y:          offsetY,
+		Kind:          KindText,
+		Key:           child.Key,
+		Style:         child.Style,
+		HoverStyle:    child.HoverStyle,
+		Hovered:       child.Hovered,
+		FocusStyle:    child.FocusStyle,
+		Focused:       child.Focused,
+		Visibility:    child.Visibility,
+		Transitions:   child.Transitions,
+		AnimationSpec: child.AnimationSpec,
+		CursorCol:     -1,
+		CursorRow:     -1,
+		X:             offsetX,
+		Y:             offsetY,
 	}
 	if len(frags) == 0 {
 		return box

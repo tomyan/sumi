@@ -18,4 +18,5 @@ type AnimationSpec struct {
 	Direction      string         // "normal", "reverse", "alternate", "alternate-reverse"
 	FillMode       string         // "none", "forwards", "backwards", "both"
 	PlayState      string         // "running", "paused"
+	Stops          []KeyframeStop // stops resolved against the animating node (var()/light-dark()); nil = use the engine registry
 }

@@ -398,10 +398,23 @@ vt100 assertions for end-to-end slices; unit tests for parser/css/layout.
     overrides). Gaps kept at svelterm parity (no Escape-clear, no
     Ctrl+C copy, no wide-glyph cells, no drag auto-scroll) —
     SelectionController.Clear() exists for a future Escape binding.
-  - D3 kitty keyboard protocol; D4b Ctrl+Z suspend (subprocess/PTY
-    test); D7 terminal matrix CI.
-  - E3b keyframe var()/light-dark() at start (check ColorPair first —
-    light-dark may already work).
+  - D4b Ctrl+Z suspend — DONE 2026-07-06 (e76c77e): default action
+    unless preventDefault; enterTerminal/exitTerminal factored from
+    Run; SIGTSTP + NeedsFullRedraw on resume; PTY subprocess test
+    (SIGSTOP under env var — PTY session leader's orphaned pgrp
+    discards default SIGTSTP; raw 0x7f wait check — Go darwin
+    Stopped() misreads SIGSTOP stops as continued).
+  - D3 kitty keyboard protocol (scout report pending); D7 terminal
+    matrix CI.
+  - E3b keyframe var()/light-dark() — DONE 2026-07-06 (94792d5):
+    resolver stamps AnimationSpec.Stops per node (var() from node
+    scope, ColorPair kept); engine prefers spec stops over registry;
+    LerpColor collapses pairs to the active scheme before lerping
+    (fixes transitions too); IFC boxes propagate anim fields.
+    Simplification opportunity: codegen writeKeyframeRegistration +
+    Component.Keyframes registry is now redundant (stylesheet already
+    serializes @keyframes; resolver stamping always wins) — remove in
+    a cleanup slice.
   - F3 inline mode + FrameLog; F4b io injection + onLog.
   - G1 sumi init, G2 sumi dev, G3 sumi inspect.
   - H component library (needs cross-dir component consumption in

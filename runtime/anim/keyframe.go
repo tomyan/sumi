@@ -27,10 +27,16 @@ func (e *Engine) RegisterKeyframes(name string, kf *KeyframeAnimation) {
 }
 
 // evaluateKeyframe computes the interpolated style for a keyframe animation at the given time.
+// Stops resolved onto the spec (per-node var()/light-dark() resolution)
+// take precedence over the engine's registered keyframes.
 func (e *Engine) evaluateKeyframe(spec *AnimationSpec, nodeID string, baseStyle render.Style) render.Style {
-	kf, ok := e.keyframes[spec.Name]
-	if !ok || len(kf.Stops) == 0 {
-		return baseStyle
+	stops := spec.Stops
+	if len(stops) == 0 {
+		kf, ok := e.keyframes[spec.Name]
+		if !ok || len(kf.Stops) == 0 {
+			return baseStyle
+		}
+		stops = kf.Stops
 	}
 
 	ns := e.nodes[nodeID]
@@ -63,7 +69,7 @@ func (e *Engine) evaluateKeyframe(spec *AnimationSpec, nodeID string, baseStyle 
 	if elapsed < 0 {
 		// In delay period.
 		if spec.FillMode == "backwards" || spec.FillMode == "both" {
-			return kf.Stops[0].Style
+			return stops[0].Style
 		}
 		return baseStyle
 	}
@@ -81,7 +87,7 @@ func (e *Engine) evaluateKeyframe(spec *AnimationSpec, nodeID string, baseStyle 
 	if spec.IterationCount >= 0 && iteration >= int64(spec.IterationCount) {
 		ns.animDone = true
 		if spec.FillMode == "forwards" || spec.FillMode == "both" {
-			return kf.Stops[len(kf.Stops)-1].Style
+			return stops[len(stops)-1].Style
 		}
 		return baseStyle
 	}
@@ -100,7 +106,7 @@ func (e *Engine) evaluateKeyframe(spec *AnimationSpec, nodeID string, baseStyle 
 		cyclePos = 1.0 - cyclePos
 	}
 
-	return interpolateKeyframes(kf.Stops, cyclePos, spec.TimingFunction)
+	return interpolateKeyframes(stops, cyclePos, spec.TimingFunction)
 }
 
 // interpolateKeyframes finds the two surrounding stops and lerps between them.

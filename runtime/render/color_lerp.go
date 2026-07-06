@@ -35,6 +35,10 @@ func (c Color) IsZeroColor() bool {
 // Both colors are resolved to RGB first. If either color is zero (unset),
 // the other is returned directly.
 func LerpColor(from, to Color, t float64) Color {
+	// light-dark() pairs collapse to the active scheme's arm before
+	// interpolation (mid-lerp values are concrete RGB).
+	from = resolveScheme(from)
+	to = resolveScheme(to)
 	if from.IsZeroColor() {
 		return to
 	}

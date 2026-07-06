@@ -3,6 +3,7 @@ package layout
 import (
 	"testing"
 
+	"github.com/tomyan/sumi/runtime/anim"
 	"github.com/tomyan/sumi/runtime/render"
 )
 
@@ -165,5 +166,22 @@ func assertFragment(t *testing.T, name string, box *Box, i int, want Fragment) {
 	}
 	if box.Fragments[i] != want {
 		t.Errorf("%s fragment[%d] = %+v, want %+v", name, i, box.Fragments[i], want)
+	}
+}
+
+func TestInlineBoxesPropagateAnimationSpecs(t *testing.T) {
+	// Given: an animated strong run inside a block paragraph.
+	spec := &anim.AnimationSpec{Name: "pulse", DurationMs: 100}
+	p := &Input{Kind: KindBox, Display: "block", Children: []*Input{
+		{Kind: KindText, Content: "a "},
+		{Kind: KindText, Tag: "strong", Content: "b", AnimationSpec: spec},
+	}}
+
+	// When
+	box := Layout(p, 20, 24)
+
+	// Then
+	if box.Children[1].AnimationSpec != spec {
+		t.Error("fragment box should carry the AnimationSpec")
 	}
 }

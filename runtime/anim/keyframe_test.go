@@ -252,3 +252,32 @@ func TestKeyframePlayStatePauseAndResume(t *testing.T) {
 		t.Errorf("resumed final style = %+v, want blue", done.FG)
 	}
 }
+
+// E3b: per-node resolved stops on the spec beat the engine registry —
+// no registry entry needed at all.
+func TestKeyframeSpecStopsBeatRegistry(t *testing.T) {
+	// Given: no RegisterKeyframes call; stops live on the spec.
+	clock := NewTestClock()
+	engine := NewEngine(clock, func() {})
+	spec := &AnimationSpec{
+		Name:           "pulse",
+		DurationMs:     200,
+		TimingFunction: Linear,
+		IterationCount: 1,
+		Stops: []KeyframeStop{
+			{Percent: 0, Style: render.Style{FG: render.Color{IsRGB: true, R: 200}}},
+			{Percent: 1, Style: render.Style{FG: render.Color{IsRGB: true, R: 0}}},
+		},
+	}
+
+	// When / Then
+	got := engine.BeforeRenderAnim("node0", render.Style{}, spec)
+	if got.FG.R != 200 {
+		t.Errorf("at t=0 R=%d, want 200 (spec stops used)", got.FG.R)
+	}
+	clock.Advance(100)
+	got = engine.BeforeRenderAnim("node0", render.Style{}, spec)
+	if math.Abs(float64(got.FG.R)-100) > 5 {
+		t.Errorf("at midpoint R=%d, want ~100", got.FG.R)
+	}
+}

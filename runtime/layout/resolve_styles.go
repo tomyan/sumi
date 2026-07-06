@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"github.com/tomyan/sumi/parser/style"
+	"github.com/tomyan/sumi/runtime/anim"
 	"github.com/tomyan/sumi/runtime/css"
 )
 
@@ -25,6 +26,7 @@ func ResolveStyles(root *Input, ss *style.Stylesheet, viewportW, viewportH int) 
 	props := css.Resolve(ss, []css.Element{rootEl})
 	vars := customPropsFrom(nil, props)
 	applyResolvedProps(root, expandProps(props, vars), nil, nil)
+	stampKeyframeStops(root, ss, vars)
 	resolveChildren(root, ss, []css.Element{rootEl}, vars)
 }
 
@@ -67,6 +69,7 @@ func resolveChildren(parent *Input, ss *style.Stylesheet, path []css.Element, va
 			expandProps(props, childVars),
 			expandProps(css.ResolveHover(ss, p), childVars),
 			expandProps(css.ResolveFocus(ss, p), childVars))
+		stampKeyframeStops(child, ss, childVars)
 		resolveChildren(child, ss, p, childVars)
 	}
 }
@@ -216,6 +219,31 @@ func applyResolvedProps(n *Input, props, hover, focus map[string]string) {
 	n.Transitions = css.ParseTransitions(props)
 	n.AnimationSpec = css.ParseAnimation(props)
 	applyLayoutProps(n, props)
+}
+
+// stampKeyframeStops resolves the node's @keyframes stops at cascade
+// time against the node's context: var() references use its
+// custom-property scope, and light-dark() keeps its ColorPair for
+// scheme-aware emission. Stamped stops take precedence over the
+// engine's compile-time registry.
+func stampKeyframeStops(n *Input, ss *style.Stylesheet, vars map[string]string) {
+	if n.AnimationSpec == nil || ss == nil {
+		return
+	}
+	for _, kf := range ss.Keyframes {
+		if kf.Name != n.AnimationSpec.Name {
+			continue
+		}
+		stops := make([]anim.KeyframeStop, len(kf.Stops))
+		for i, stop := range kf.Stops {
+			stops[i] = anim.KeyframeStop{
+				Percent: stop.Percent,
+				Style:   css.ToRenderStyle(expandProps(stop.Properties, vars)),
+			}
+		}
+		n.AnimationSpec.Stops = stops
+		return
+	}
 }
 
 // cssValue returns the CSS value for a layout property, unless an inline

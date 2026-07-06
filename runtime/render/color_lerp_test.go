@@ -100,3 +100,31 @@ func TestLerpColorZeroColorReturnsOther(t *testing.T) {
 		t.Errorf("LerpColor(green, zero, 0.5) = %v, want %v", got2, green)
 	}
 }
+
+// E3b: light-dark() pairs resolve to the active scheme before
+// interpolating (mid-lerp values are concrete RGB).
+func TestLerpColorResolvesPairs(t *testing.T) {
+	// Given
+	pair := Color{Pair: &ColorPair{
+		Light: Color{IsRGB: true, R: 255, G: 255, B: 255},
+		Dark:  Color{IsRGB: true, R: 0, G: 0, B: 0},
+	}}
+	red := Color{IsRGB: true, R: 255}
+	SetColorScheme(SchemeDark)
+	defer SetColorScheme(SchemeDark)
+
+	// When: halfway between the dark arm (black) and red.
+	got := LerpColor(pair, red, 0.5)
+
+	// Then
+	if !got.IsRGB || got.R < 120 || got.R > 135 || got.G != 0 {
+		t.Errorf("lerp = %+v, want ~rgb(128,0,0) from the dark arm", got)
+	}
+
+	// And under the light scheme the light arm is used.
+	SetColorScheme(SchemeLight)
+	got = LerpColor(pair, red, 0.5)
+	if got.G < 120 || got.G > 135 {
+		t.Errorf("lerp = %+v, want G~128 from the white arm", got)
+	}
+}
