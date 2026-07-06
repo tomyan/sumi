@@ -51,33 +51,65 @@ func NewTodo(props TodoProps) *sumi.Component {
 		box0.Children = func() []*sumi.Input {
 			var cs []*sumi.Input
 			cs = append(cs, &sumi.Input{
-				Kind:    sumi.KindText,
-				Tag:     "span",
-				Classes: []string{"title"},
-				Attrs:   map[string]string{"class": "title"},
-				Content: "Todo List",
+				Kind:      sumi.KindBox,
+				Tag:       "div",
+				Classes:   []string{"title"},
+				Attrs:     map[string]string{"class": "title"},
+				CursorCol: -1,
+				CursorRow: -1,
+				Children: []*sumi.Input{
+					{
+						Kind:    sumi.KindText,
+						Tag:     "text",
+						Content: "Todo List",
+					},
+				},
 			})
 			cs = append(cs, &sumi.Input{
-				Kind:    sumi.KindText,
-				Tag:     "span",
-				Classes: []string{"hint"},
-				Attrs:   map[string]string{"class": "hint"},
-				Content: "Press any key to cycle, q to quit",
+				Kind:      sumi.KindBox,
+				Tag:       "div",
+				Classes:   []string{"hint"},
+				Attrs:     map[string]string{"class": "hint"},
+				CursorCol: -1,
+				CursorRow: -1,
+				Children: []*sumi.Input{
+					{
+						Kind:    sumi.KindText,
+						Tag:     "text",
+						Content: "Press any key to cycle, q to quit",
+					},
+				},
 			})
 			for i, item := range items.Get() {
 				if i == selected.Get() {
 					cs = append(cs, &sumi.Input{
-						Kind:    sumi.KindText,
-						Tag:     "span",
-						Classes: []string{"selected"},
-						Attrs:   map[string]string{"class": "selected"},
-						Content: sumi.Sprintf("> %v", item),
+						Kind:      sumi.KindBox,
+						Tag:       "div",
+						Classes:   []string{"selected"},
+						Attrs:     map[string]string{"class": "selected"},
+						CursorCol: -1,
+						CursorRow: -1,
+						Children: []*sumi.Input{
+							{
+								Kind:    sumi.KindText,
+								Tag:     "text",
+								Content: sumi.Sprintf("> %v", item),
+							},
+						},
 					})
 				} else {
 					cs = append(cs, &sumi.Input{
-						Kind:    sumi.KindText,
-						Tag:     "span",
-						Content: sumi.Sprintf("  %v", item),
+						Kind:      sumi.KindBox,
+						Tag:       "div",
+						CursorCol: -1,
+						CursorRow: -1,
+						Children: []*sumi.Input{
+							{
+								Kind:    sumi.KindText,
+								Tag:     "text",
+								Content: sumi.Sprintf("  %v", item),
+							},
+						},
 					})
 				}
 				cs[len(cs)-1].Key = sumi.Sprint(item)

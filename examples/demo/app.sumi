@@ -1,7 +1,7 @@
 <div border="single" padding="1 2">
-  <span>Welcome to Sumi!</span>
-  <span>A declarative TTY framework for Go.</span>
+  <div>Welcome to Sumi!</div>
+  <div>A declarative TTY framework for Go.</div>
   <div border="single" padding="0 1">
-    <span>Press Enter to exit.</span>
+    <div>Press Enter to exit.</div>
   </div>
 </div>

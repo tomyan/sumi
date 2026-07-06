@@ -36,14 +36,14 @@ func handleKey(evt sumi.Event) {
 </script>
 
 <div class="container" onkey="handleKey">
-    <span class="title">Modal Demo</span>
-    <span class="hint">Press any key to toggle modal, q to quit</span>
-    <span>Background content here</span>
+    <div class="title">Modal Demo</div>
+    <div class="hint">Press any key to toggle modal, q to quit</div>
+    <div>Background content here</div>
 </div>
 {if showModal.Get()}
     <div class="modal" position="fixed" top="5" left="10" width="40" height="8" z-index="2">
-        <span class="modal-title">Modal Dialog</span>
-        <span>This is a fixed-position modal overlay.</span>
-        <span class="hint">Press any key to close</span>
+        <div class="modal-title">Modal Dialog</div>
+        <div>This is a fixed-position modal overlay.</div>
+        <div class="hint">Press any key to close</div>
     </div>
 {/if}

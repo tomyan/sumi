@@ -31,7 +31,7 @@ func NewApp(props AppProps) *sumi.Component {
 
 	node0 := &sumi.Input{
 		Kind:    sumi.KindText,
-		Tag:     "span",
+		Tag:     "text",
 		Content: sumi.Sprintf("Count: %v", count.Get()),
 	}
 	root := &sumi.Input{
@@ -64,13 +64,29 @@ func NewApp(props AppProps) *sumi.Component {
 						CursorRow: -1,
 						Children: []*sumi.Input{
 							{
-								Kind:    sumi.KindText,
-								Tag:     "span",
-								Content: "[ Click me ]",
+								Kind:      sumi.KindBox,
+								Tag:       "div",
+								CursorCol: -1,
+								CursorRow: -1,
+								Children: []*sumi.Input{
+									{
+										Kind:    sumi.KindText,
+										Tag:     "text",
+										Content: "[ Click me ]",
+									},
+								},
 							},
 						},
 					},
-					node0,
+					{
+						Kind:      sumi.KindBox,
+						Tag:       "div",
+						CursorCol: -1,
+						CursorRow: -1,
+						Children: []*sumi.Input{
+							node0,
+						},
+					},
 				},
 			},
 		},

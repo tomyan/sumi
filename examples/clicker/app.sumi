@@ -24,7 +24,7 @@ func handleKey(evt sumi.Event) {
 
 <div onkey="handleKey">
     <div class="btn" onclick={increment}>
-        <span>[ Click me ]</span>
+        <div>[ Click me ]</div>
     </div>
-    <span>Count: {count}</span>
+    <div>Count: {count}</div>
 </div>

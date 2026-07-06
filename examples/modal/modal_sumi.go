@@ -44,23 +44,47 @@ func NewModal(props ModalProps) *sumi.Component {
 				CursorRow: -1,
 				Children: []*sumi.Input{
 					{
-						Kind:    sumi.KindText,
-						Tag:     "span",
-						Classes: []string{"title"},
-						Attrs:   map[string]string{"class": "title"},
-						Content: "Modal Demo",
+						Kind:      sumi.KindBox,
+						Tag:       "div",
+						Classes:   []string{"title"},
+						Attrs:     map[string]string{"class": "title"},
+						CursorCol: -1,
+						CursorRow: -1,
+						Children: []*sumi.Input{
+							{
+								Kind:    sumi.KindText,
+								Tag:     "text",
+								Content: "Modal Demo",
+							},
+						},
 					},
 					{
-						Kind:    sumi.KindText,
-						Tag:     "span",
-						Classes: []string{"hint"},
-						Attrs:   map[string]string{"class": "hint"},
-						Content: "Press any key to toggle modal, q to quit",
+						Kind:      sumi.KindBox,
+						Tag:       "div",
+						Classes:   []string{"hint"},
+						Attrs:     map[string]string{"class": "hint"},
+						CursorCol: -1,
+						CursorRow: -1,
+						Children: []*sumi.Input{
+							{
+								Kind:    sumi.KindText,
+								Tag:     "text",
+								Content: "Press any key to toggle modal, q to quit",
+							},
+						},
 					},
 					{
-						Kind:    sumi.KindText,
-						Tag:     "span",
-						Content: "Background content here",
+						Kind:      sumi.KindBox,
+						Tag:       "div",
+						CursorCol: -1,
+						CursorRow: -1,
+						Children: []*sumi.Input{
+							{
+								Kind:    sumi.KindText,
+								Tag:     "text",
+								Content: "Background content here",
+							},
+						},
 					},
 				},
 			})
@@ -80,23 +104,47 @@ func NewModal(props ModalProps) *sumi.Component {
 					CursorRow:   -1,
 					Children: []*sumi.Input{
 						{
-							Kind:    sumi.KindText,
-							Tag:     "span",
-							Classes: []string{"modal-title"},
-							Attrs:   map[string]string{"class": "modal-title"},
-							Content: "Modal Dialog",
+							Kind:      sumi.KindBox,
+							Tag:       "div",
+							Classes:   []string{"modal-title"},
+							Attrs:     map[string]string{"class": "modal-title"},
+							CursorCol: -1,
+							CursorRow: -1,
+							Children: []*sumi.Input{
+								{
+									Kind:    sumi.KindText,
+									Tag:     "text",
+									Content: "Modal Dialog",
+								},
+							},
 						},
 						{
-							Kind:    sumi.KindText,
-							Tag:     "span",
-							Content: "This is a fixed-position modal overlay.",
+							Kind:      sumi.KindBox,
+							Tag:       "div",
+							CursorCol: -1,
+							CursorRow: -1,
+							Children: []*sumi.Input{
+								{
+									Kind:    sumi.KindText,
+									Tag:     "text",
+									Content: "This is a fixed-position modal overlay.",
+								},
+							},
 						},
 						{
-							Kind:    sumi.KindText,
-							Tag:     "span",
-							Classes: []string{"hint"},
-							Attrs:   map[string]string{"class": "hint"},
-							Content: "Press any key to close",
+							Kind:      sumi.KindBox,
+							Tag:       "div",
+							Classes:   []string{"hint"},
+							Attrs:     map[string]string{"class": "hint"},
+							CursorCol: -1,
+							CursorRow: -1,
+							Children: []*sumi.Input{
+								{
+									Kind:    sumi.KindText,
+									Tag:     "text",
+									Content: "Press any key to close",
+								},
+							},
 						},
 					},
 				})

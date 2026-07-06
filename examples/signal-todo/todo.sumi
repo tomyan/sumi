@@ -39,13 +39,13 @@ func handleKey(evt sumi.Event) {
 </style>
 
 <div class="container" onkey="handleKey">
-    <span class="title">Todo List</span>
-    <span class="hint">↑↓ navigate, d delete, q quit</span>
+    <div class="title">Todo List</div>
+    <div class="hint">↑↓ navigate, d delete, q quit</div>
     {for i, item := range items.Get()}
         {if i == selected.Get()}
-            <span class="selected">▶ {item}</span>
+            <div class="selected">▶ {item}</div>
         {else}
-            <span class="item">  {item}</span>
+            <div class="item">  {item}</div>
         {/if}
     {/for}
 </div>

@@ -26,9 +26,7 @@ func NewCounter(props CounterProps) *sumi.Component {
 
 	node0 := &sumi.Input{
 		Kind:    sumi.KindText,
-		Tag:     "span",
-		Classes: []string{"count"},
-		Attrs:   map[string]string{"class": "count"},
+		Tag:     "text",
 		Content: sumi.Sprintf("Count: %v", count.Get()),
 	}
 	root := &sumi.Input{
@@ -47,18 +45,44 @@ func NewCounter(props CounterProps) *sumi.Component {
 				CursorRow: -1,
 				Children: []*sumi.Input{
 					{
-						Kind:    sumi.KindText,
-						Tag:     "span",
-						Classes: []string{"title"},
-						Attrs:   map[string]string{"class": "title"},
-						Content: "Signal Counter",
+						Kind:      sumi.KindBox,
+						Tag:       "div",
+						Classes:   []string{"title"},
+						Attrs:     map[string]string{"class": "title"},
+						CursorCol: -1,
+						CursorRow: -1,
+						Children: []*sumi.Input{
+							{
+								Kind:    sumi.KindText,
+								Tag:     "text",
+								Content: "Signal Counter",
+							},
+						},
 					},
 					{
-						Kind:    sumi.KindText,
-						Tag:     "span",
-						Content: "Press any key to increment, q to quit",
+						Kind:      sumi.KindBox,
+						Tag:       "div",
+						CursorCol: -1,
+						CursorRow: -1,
+						Children: []*sumi.Input{
+							{
+								Kind:    sumi.KindText,
+								Tag:     "text",
+								Content: "Press any key to increment, q to quit",
+							},
+						},
 					},
-					node0,
+					{
+						Kind:      sumi.KindBox,
+						Tag:       "div",
+						Classes:   []string{"count"},
+						Attrs:     map[string]string{"class": "count"},
+						CursorCol: -1,
+						CursorRow: -1,
+						Children: []*sumi.Input{
+							node0,
+						},
+					},
 				},
 			},
 		},

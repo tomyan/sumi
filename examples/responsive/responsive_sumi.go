@@ -24,9 +24,7 @@ func NewResponsive(props ResponsiveProps) *sumi.Component {
 
 	node0 := &sumi.Input{
 		Kind:    sumi.KindText,
-		Tag:     "span",
-		Classes: []string{"dims"},
-		Attrs:   map[string]string{"class": "dims"},
+		Tag:     "text",
 		Content: sumi.Sprintf("Terminal: %vx%v", width.Get(), height.Get()),
 	}
 	root := &sumi.Input{
@@ -45,19 +43,45 @@ func NewResponsive(props ResponsiveProps) *sumi.Component {
 				CursorRow: -1,
 				Children: []*sumi.Input{
 					{
-						Kind:    sumi.KindText,
-						Tag:     "span",
-						Classes: []string{"title"},
-						Attrs:   map[string]string{"class": "title"},
-						Content: "Sumi Responsive Demo",
+						Kind:      sumi.KindBox,
+						Tag:       "div",
+						Classes:   []string{"title"},
+						Attrs:     map[string]string{"class": "title"},
+						CursorCol: -1,
+						CursorRow: -1,
+						Children: []*sumi.Input{
+							{
+								Kind:    sumi.KindText,
+								Tag:     "text",
+								Content: "Sumi Responsive Demo",
+							},
+						},
 					},
-					node0,
 					{
-						Kind:    sumi.KindText,
-						Tag:     "span",
-						Classes: []string{"hint"},
-						Attrs:   map[string]string{"class": "hint"},
-						Content: "Resize your terminal to see this update! Press q to quit.",
+						Kind:      sumi.KindBox,
+						Tag:       "div",
+						Classes:   []string{"dims"},
+						Attrs:     map[string]string{"class": "dims"},
+						CursorCol: -1,
+						CursorRow: -1,
+						Children: []*sumi.Input{
+							node0,
+						},
+					},
+					{
+						Kind:      sumi.KindBox,
+						Tag:       "div",
+						Classes:   []string{"hint"},
+						Attrs:     map[string]string{"class": "hint"},
+						CursorCol: -1,
+						CursorRow: -1,
+						Children: []*sumi.Input{
+							{
+								Kind:    sumi.KindText,
+								Tag:     "text",
+								Content: "Resize your terminal to see this update! Press q to quit.",
+							},
+						},
 					},
 				},
 			},

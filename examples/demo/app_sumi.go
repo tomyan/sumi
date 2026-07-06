@@ -25,14 +25,30 @@ func Run() {
 				CursorRow: -1,
 				Children: []*sumi.Input{
 					{
-						Kind:    sumi.KindText,
-						Tag:     "span",
-						Content: "Welcome to Sumi!",
+						Kind:      sumi.KindBox,
+						Tag:       "div",
+						CursorCol: -1,
+						CursorRow: -1,
+						Children: []*sumi.Input{
+							{
+								Kind:    sumi.KindText,
+								Tag:     "text",
+								Content: "Welcome to Sumi!",
+							},
+						},
 					},
 					{
-						Kind:    sumi.KindText,
-						Tag:     "span",
-						Content: "A declarative TTY framework for Go.",
+						Kind:      sumi.KindBox,
+						Tag:       "div",
+						CursorCol: -1,
+						CursorRow: -1,
+						Children: []*sumi.Input{
+							{
+								Kind:    sumi.KindText,
+								Tag:     "text",
+								Content: "A declarative TTY framework for Go.",
+							},
+						},
 					},
 					{
 						Kind:      sumi.KindBox,
@@ -44,9 +60,17 @@ func Run() {
 						CursorRow: -1,
 						Children: []*sumi.Input{
 							{
-								Kind:    sumi.KindText,
-								Tag:     "span",
-								Content: "Press Enter to exit.",
+								Kind:      sumi.KindBox,
+								Tag:       "div",
+								CursorCol: -1,
+								CursorRow: -1,
+								Children: []*sumi.Input{
+									{
+										Kind:    sumi.KindText,
+										Tag:     "text",
+										Content: "Press Enter to exit.",
+									},
+								},
 							},
 						},
 					},
@@ -97,14 +121,30 @@ func CreateApp(w, h int) *sumi.App {
 				CursorRow: -1,
 				Children: []*sumi.Input{
 					{
-						Kind:    sumi.KindText,
-						Tag:     "span",
-						Content: "Welcome to Sumi!",
+						Kind:      sumi.KindBox,
+						Tag:       "div",
+						CursorCol: -1,
+						CursorRow: -1,
+						Children: []*sumi.Input{
+							{
+								Kind:    sumi.KindText,
+								Tag:     "text",
+								Content: "Welcome to Sumi!",
+							},
+						},
 					},
 					{
-						Kind:    sumi.KindText,
-						Tag:     "span",
-						Content: "A declarative TTY framework for Go.",
+						Kind:      sumi.KindBox,
+						Tag:       "div",
+						CursorCol: -1,
+						CursorRow: -1,
+						Children: []*sumi.Input{
+							{
+								Kind:    sumi.KindText,
+								Tag:     "text",
+								Content: "A declarative TTY framework for Go.",
+							},
+						},
 					},
 					{
 						Kind:      sumi.KindBox,
@@ -116,9 +156,17 @@ func CreateApp(w, h int) *sumi.App {
 						CursorRow: -1,
 						Children: []*sumi.Input{
 							{
-								Kind:    sumi.KindText,
-								Tag:     "span",
-								Content: "Press Enter to exit.",
+								Kind:      sumi.KindBox,
+								Tag:       "div",
+								CursorCol: -1,
+								CursorRow: -1,
+								Children: []*sumi.Input{
+									{
+										Kind:    sumi.KindText,
+										Tag:     "text",
+										Content: "Press Enter to exit.",
+									},
+								},
 							},
 						},
 					},

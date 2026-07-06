@@ -445,8 +445,17 @@ vt100 assertions for end-to-end slices; unit tests for parser/css/layout.
     apps build GOOS=js GOARCH=wasm (pty tagged unix, term resize js
     stub, suspend stopSelf seam); F4b RunOptions.In/Out is the
     xterm.js IO bridge; CI guards the wasm target. Live demos are GO
-    for the site. NEXT: Phase I proper — sumi-site repo (SvelteKit,
-    visual identity design conversation), docs skeleton I1. NOTE:
+    for the site. I1+I2+I3 CORE DONE 2026-07-06: 11 docs chapters in
+    docs/ (ea9e8be; reference.md = support matrix); sumi-site repo at
+    ~/projects/sumi-site (SvelteKit + adapter-static + mdsvex/shiki,
+    sync-docs from sumi/docs, sumi-e identity per Tom: washi/ink/
+    vermillion, brushstroke, 墨 wordmark); live wasm demos via
+    runtime/webterm + xterm.js — verified interactive in Chrome
+    against the true static build (NOTE vite preview serves
+    .svelte-kit/output, NOT build/ — test with a plain static
+    server). Remaining in I: more demos, docs review pass, I5 launch
+    checks, deploy infra (OpenTofu, domain — deferred per decision
+    3). NOTE:
     J blog gate says phases A–H — needs revisiting with Tom since H
     is parked.
   - H component library (needs cross-dir component consumption in
