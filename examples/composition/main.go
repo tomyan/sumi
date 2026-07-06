@@ -17,7 +17,7 @@ func main() {
 	root := &layout.Input{
 		Kind:      layout.KindBox,
 		Border:    "single",
-		Padding:   layout.Padding{1, 2, 1, 2},
+		Padding:   layout.Padding{Top: 1, Right: 2, Bottom: 1, Left: 2},
 		CursorCol: -1,
 		CursorRow: -1,
 		Style:     render.Style{FG: render.Color{Name: "cyan"}},
