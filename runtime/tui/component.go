@@ -227,8 +227,9 @@ func RunWithOptions(comp *Component, opts RunOptions) {
 		if engine.HasActive() {
 			app.RequestFrame()
 		}
-		if termW != prevW || termH != prevH {
-			// Resize: clear + full redraw in one buffered write.
+		if termW != prevW || termH != prevH || app.NeedsFullRedraw {
+			// Resize or post-suspend: clear + full redraw in one write.
+			app.NeedsFullRedraw = false
 			frameBuf.RenderWithClear(os.Stdout)
 			prevW = termW
 			prevH = termH
@@ -319,8 +320,9 @@ func Run(comp *Component) {
 		if engine.HasActive() {
 			app.RequestFrame()
 		}
-		if termW != prevW || termH != prevH {
-			// Resize: clear + full redraw in one buffered write.
+		if termW != prevW || termH != prevH || app.NeedsFullRedraw {
+			// Resize or post-suspend: clear + full redraw in one write.
+			app.NeedsFullRedraw = false
 			frameBuf.RenderWithClear(os.Stdout)
 			prevW = termW
 			prevH = termH

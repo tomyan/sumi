@@ -33,6 +33,13 @@ type App struct {
 	Selection *SelectionController
 	Clipboard func(string)
 
+	// Ctrl+Z suspend (default action unless a keydown handler calls
+	// preventDefault). NeedsFullRedraw forces the next frame to clear
+	// and repaint instead of diffing.
+	SuspendHooks    *SuspendHooks
+	NeedsFullRedraw bool
+	termRestore     func() // raw-mode restore, set by enterTerminal
+
 	quitCh chan struct{} // closed by Quit() to exit the event loop
 	wakeCh chan struct{} // receives from RequestFrame() to wake the event loop
 	doCh   chan func()   // queued functions to run on the main goroutine
@@ -164,22 +171,8 @@ func (a *App) Run() {
 		fmt.Fprint(os.Stdout, "\033[22;2t") // save current title
 	}
 
-	restore, _ := input.EnableRawMode(int(os.Stdin.Fd()))
-	defer func() {
-		if restore != nil {
-			restore()
-		}
-	}()
-	render.EnterAlternateScreen(os.Stdout)
-	defer render.ExitAlternateScreen(os.Stdout)
-
-	fmt.Fprint(os.Stdout, input.PasteEnableSeq)
-	defer fmt.Fprint(os.Stdout, input.PasteDisableSeq)
-
-	if a.HasMouse {
-		fmt.Fprint(os.Stdout, input.MouseEnableSeq)
-		defer fmt.Fprint(os.Stdout, input.MouseDisableSeq)
-	}
+	a.enterTerminal()
+	defer a.exitTerminal()
 
 	if a.Title != "" || a.SaveTitle {
 		defer fmt.Fprint(os.Stdout, "\033[23;2t") // restore title

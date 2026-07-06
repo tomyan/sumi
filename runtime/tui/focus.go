@@ -264,6 +264,10 @@ func componentEventHandler(app *App, comp *Component) func(input.Event) {
 			app.Dirty = true
 			return
 		}
+		if isSuspendChord(evt) && (dom == nil || !dom.DefaultPrevented()) {
+			app.Suspend()
+			return
+		}
 		if comp.OnEvent != nil {
 			comp.OnEvent(evt)
 		}
