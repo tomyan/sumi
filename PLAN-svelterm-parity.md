@@ -38,10 +38,12 @@ vt100 assertions for end-to-end slices; unit tests for parser/css/layout.
    xterm.js (pure static hosting). Live-edit playground is a **fast-follow after
    launch** using **fully client-side compilation** (Go toolchain in wasm,
    lazy-downloaded on first edit with progress bar + cancel — see I6). No server
-   compile service. Domain: **gosumi.dev** (decided 2026-07-06;
-   sumi.dev squatted; sumi-rs.dev free for a future Rust port — Tom to
-   register both or at least gosumi.dev; untrusted playground domain
-   deferred to I6 per the svelterm-untrusted.net pattern).
+   compile service. Domain: **gosumi.dev**, REGISTERED via Route53
+   2026-07-06 (sumi.dev squatted; sumi-rs.dev free for a future Rust
+   port). Untrusted playground origin (I6): a SUBDOMAIN of
+   svelterm-untrusted.net (decided with Tom) — no new registration.
+   Deploy runbook: ~/projects/sumi-site/PLAN-deploy.md — read it first
+   when resuming site/deploy work.
 4. **Release gate for the blog post: full parity complete** — J3 publishes only
    after phases A–H are done. At publish time the repo must also be public with a
    version tag and the site live (site convention: never link unreleased projects).
