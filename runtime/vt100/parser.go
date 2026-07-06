@@ -142,7 +142,7 @@ func (s *Screen) handleEscape(b byte) {
 }
 
 func (s *Screen) handleCSI(b byte) {
-	if b == '?' || b == '>' || b == '=' {
+	if b == '?' || b == '>' || b == '=' || b == '<' {
 		s.pState = statePrivate
 	} else if isIntermediate(b) {
 		s.pState = stateCSIIgn

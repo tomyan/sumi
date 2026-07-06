@@ -17,11 +17,11 @@ type extractedNode struct {
 // build-once / sync pattern. Dynamic-children parents (boxes with {if}/{for})
 // have their Children rebuilt in sync.
 type extractionCtx struct {
-	nodes             []extractedNode              // text nodes needing Content sync
+	nodes             []extractedNode // text nodes needing Content sync
 	count             int
 	boxCount          int
-	signals           map[string]bool              // signal variable names (for auto-unwrapping in expressions)
-	eventFuncs        map[string]bool              // declared funcs with params — emitted as direct DOM handler refs
+	signals           map[string]bool               // signal variable names (for auto-unwrapping in expressions)
+	eventFuncs        map[string]bool               // declared funcs with params — emitted as direct DOM handler refs
 	componentChildren map[string]ComponentChildInfo // child components for template
 	declBuf           bytes.Buffer
 	syncBuf           bytes.Buffer // dynamic children rebuild code (for {if}/{for} inside sumi.Effect)
@@ -52,4 +52,3 @@ func (e *extractionCtx) nextBoxName() string {
 func (e *extractionCtx) hasSyncContent() bool {
 	return len(e.nodes) > 0 || e.syncBuf.Len() > 0
 }
-

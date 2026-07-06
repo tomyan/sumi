@@ -266,7 +266,7 @@ func TestGenerateBoxWithScrollAttribute(t *testing.T) {
 			&template.BoxElement{
 				Attributes: map[string]string{
 					"overflow": "auto",
-					"scroll":  "{myScroll}",
+					"scroll":   "{myScroll}",
 				},
 				Children: []template.Node{textNode("content")},
 			},

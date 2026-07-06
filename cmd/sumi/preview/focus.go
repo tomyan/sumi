@@ -6,11 +6,11 @@ import "github.com/tomyan/sumi/runtime/input"
 type FocusState int
 
 const (
-	FocusControls   FocusState = iota // preview commands (h/l/u/q/i)
-	FocusEditor1                      // source .sumi file
-	FocusEditor2                      // snapshot file
-	FocusEditor3                      // scenario.go file
-	FocusInteractive                  // component subprocess
+	FocusControls    FocusState = iota // preview commands (h/l/u/q/i)
+	FocusEditor1                       // source .sumi file
+	FocusEditor2                       // snapshot file
+	FocusEditor3                       // scenario.go file
+	FocusInteractive                   // component subprocess
 )
 
 // Name returns a human-readable name for the focus state.

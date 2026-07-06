@@ -79,9 +79,9 @@ func TestHandleFocusKeyPressDigit(t *testing.T) {
 func TestHandlePrefixCommand(t *testing.T) {
 	// Given — prefix pending
 	tests := []struct {
-		name    string
-		rune    rune
-		want    string
+		name string
+		rune rune
+		want string
 	}{
 		{"quit", 'q', "quit"},
 		{"next", 'l', "next"},

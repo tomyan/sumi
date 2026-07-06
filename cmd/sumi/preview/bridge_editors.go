@@ -244,4 +244,3 @@ func pvHandleFileChange(path string) {
 		pvApp.Wake()
 	}
 }
-
