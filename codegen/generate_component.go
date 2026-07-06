@@ -9,7 +9,6 @@ import (
 	"github.com/tomyan/sumi/parser/script"
 	"github.com/tomyan/sumi/parser/style"
 	"github.com/tomyan/sumi/parser/template"
-	"github.com/tomyan/sumi/runtime/css"
 )
 
 // ComponentOptions configures component code generation.
@@ -330,29 +329,7 @@ func writeComponentReturn(buf *bytes.Buffer, info *script.ScriptInfo, stylesheet
 	if stylesheet != nil && len(stylesheet.Rules) > 0 {
 		fmt.Fprintf(buf, "\t\tStylesheet: sumi.MustParseStylesheet(%q),\n", style.Serialize(stylesheet))
 	}
-	if stylesheet != nil && len(stylesheet.Keyframes) > 0 {
-		writeKeyframeRegistration(buf, stylesheet)
-	}
 	buf.WriteString("\t}\n")
-}
-
-// writeKeyframeRegistration emits Keyframes map on the Component.
-func writeKeyframeRegistration(buf *bytes.Buffer, stylesheet *style.Stylesheet) {
-	buf.WriteString("\t\tKeyframes: map[string]*sumi.KeyframeAnimation{\n")
-	for _, kf := range stylesheet.Keyframes {
-		fmt.Fprintf(buf, "\t\t\t%q: {\n", kf.Name)
-		fmt.Fprintf(buf, "\t\t\t\tName: %q,\n", kf.Name)
-		buf.WriteString("\t\t\t\tStops: []sumi.KeyframeStop{\n")
-		for _, stop := range kf.Stops {
-			s := css.ToRenderStyle(stop.Properties)
-			fmt.Fprintf(buf, "\t\t\t\t\t{Percent: %v, Style: sumi.Style{", stop.Percent)
-			writeInlineStyleFields(buf, s)
-			buf.WriteString("}},\n")
-		}
-		buf.WriteString("\t\t\t\t},\n")
-		buf.WriteString("\t\t\t},\n")
-	}
-	buf.WriteString("\t\t},\n")
 }
 
 // hasStyles checks if any node in the document has style attributes.

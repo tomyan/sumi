@@ -72,11 +72,10 @@ type Component struct {
 	OnEvent      func(input.Event)
 	AfterLayout  func() // called after layout to sync self-measurement signals
 	Dispose      func()
-	Dirty        bool                               // set by AfterLayout to request a re-render pass
-	LayoutResult *layout.Box                        // set before AfterLayout with the latest layout result
-	FocusIndex   int                                // index into the focus scope's focusables of the focused element
-	Keyframes    map[string]*anim.KeyframeAnimation // named keyframe animations from CSS
-	Stylesheet   *style.Stylesheet                  // component CSS for runtime resolution
+	Dirty        bool              // set by AfterLayout to request a re-render pass
+	LayoutResult *layout.Box       // set before AfterLayout with the latest layout result
+	FocusIndex   int               // index into the focus scope's focusables of the focused element
+	Stylesheet   *style.Stylesheet // component CSS for runtime resolution
 
 	lastFocusScope *layout.Input // focus-trap scope from the previous render (open dialog or tree root)
 }
@@ -192,9 +191,6 @@ func RunWithOptions(comp *Component, opts RunOptions) {
 	}
 
 	engine := anim.NewEngine(anim.WallClock{}, func() { app.RequestFrame() })
-	for name, kf := range comp.Keyframes {
-		engine.RegisterKeyframes(name, kf)
-	}
 
 	screenBuf := render.NewBuffer(0, 0)
 	frameBuf := render.NewBuffer(0, 0)
