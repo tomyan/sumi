@@ -40,11 +40,16 @@ func writeIdentityFields(buf *bytes.Buffer, tabs, tag string, attrs map[string]s
 		}
 		fmt.Fprintf(buf, "%s\tClasses: []string{%s},\n", tabs, strings.Join(quoted, ", "))
 	}
-	if len(attrs) > 0 {
-		names := make([]string, 0, len(attrs))
-		for name := range attrs {
-			names = append(names, name)
+	names := make([]string, 0, len(attrs))
+	for name := range attrs {
+		// bind:* carry Go expressions, not attribute strings; codegen wires
+		// them as handlers + sync, so they never belong in the Attrs map.
+		if strings.HasPrefix(name, "bind:") {
+			continue
 		}
+		names = append(names, name)
+	}
+	if len(names) > 0 {
 		sort.Strings(names)
 		fmt.Fprintf(buf, "%s\tAttrs: map[string]string{", tabs)
 		for i, name := range names {

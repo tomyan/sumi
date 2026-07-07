@@ -76,8 +76,34 @@ type Component struct {
 	LayoutResult *layout.Box       // set before AfterLayout with the latest layout result
 	FocusIndex   int               // index into the focus scope's focusables of the focused element
 	Stylesheet   *style.Stylesheet // component CSS for runtime resolution
+	Children     []*Component      // spliced child components, resolved against their own stylesheets
 
 	lastFocusScope *layout.Input // focus-trap scope from the previous render (open dialog or tree root)
+}
+
+// resolveStyles resolves the parent stylesheet over the whole tree, then
+// resolves each spliced child subtree against its own stylesheet. The
+// parent cascade skips child subtrees (their roots carry Tag "root"), so
+// neither direction leaks. Recurses so grandchildren resolve too.
+func resolveComponentStyles(comp *Component, w, h int) {
+	layout.ResolveStyles(comp.Tree, comp.Stylesheet, w, h)
+	for _, child := range comp.Children {
+		resolveComponentStyles(child, w, h)
+	}
+}
+
+// hasContainerRules reports whether this component or any descendant uses
+// container queries, which need a second resolve pass against laid-out sizes.
+func hasContainerRules(comp *Component) bool {
+	if comp.Stylesheet != nil && comp.Stylesheet.HasContainerRules() {
+		return true
+	}
+	for _, child := range comp.Children {
+		if hasContainerRules(child) {
+			return true
+		}
+	}
+	return false
 }
 
 // TestApp creates a test-mode App from a Component with the given viewport dimensions.
@@ -96,12 +122,12 @@ func TestApp(comp *Component, w, h int) *App {
 			termW, termH = term.GetSize(int(os.Stdin.Fd()))
 		}
 		syncFocus(comp)
-		layout.ResolveStyles(comp.Tree, comp.Stylesheet, termW, termH)
+		resolveComponentStyles(comp, termW, termH)
 		tree := layout.Layout(comp.Tree, termW, termH)
-		if comp.Stylesheet != nil && comp.Stylesheet.HasContainerRules() {
+		if hasContainerRules(comp) {
 			// Container queries need laid-out ancestor sizes: re-resolve
 			// against the sizes just stamped and lay out again.
-			layout.ResolveStyles(comp.Tree, comp.Stylesheet, termW, termH)
+			resolveComponentStyles(comp, termW, termH)
 			tree = layout.Layout(comp.Tree, termW, termH)
 		}
 		comp.LayoutResult = tree
@@ -208,15 +234,15 @@ func RunWithOptions(comp *Component, opts RunOptions) {
 			layout.UpdateHover(comp.Tree, comp.LayoutResult, app.mouseX, app.mouseY)
 		}
 		syncFocus(comp)
-		layout.ResolveStyles(comp.Tree, comp.Stylesheet, termW, termH)
+		resolveComponentStyles(comp, termW, termH)
 		if stepLengthTransitions(comp.Tree, engine) {
 			app.RequestFrame()
 		}
 		tree := layout.Layout(comp.Tree, termW, termH)
-		if comp.Stylesheet != nil && comp.Stylesheet.HasContainerRules() {
+		if hasContainerRules(comp) {
 			// Container queries need laid-out ancestor sizes: re-resolve
 			// against the sizes just stamped and lay out again.
-			layout.ResolveStyles(comp.Tree, comp.Stylesheet, termW, termH)
+			resolveComponentStyles(comp, termW, termH)
 			tree = layout.Layout(comp.Tree, termW, termH)
 		}
 		comp.LayoutResult = tree

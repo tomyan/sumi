@@ -1,93 +1,52 @@
-# Components and reactivity
+# Components
 
 A `.sumi` file is a single-file component: a `<script>` block of Go, a
 `<style>` block of CSS, and a template of HTML elements. `sumi generate`
-compiles each file to a Go constructor (`counter.sumi` →
-`NewCounter(CounterProps) *sumi.Component`) that your `main.go` — or
-another component — mounts.
+compiles each file to a Go constructor that your `main.go` — or another
+component — mounts.
 
-## Signals
+This chapter covers component files, props, composition, and scoped
+styles. Reactivity has its own chapters — [signals](signals.md),
+[templates](template-syntax.md), [control flow](control-flow.md),
+[snippets](snippets.md) — events are in [events](events.md).
 
-State lives in signals — fine-grained reactive values in the Solid.js
-style. Reading a signal inside a template expression subscribes that
-expression; writing the signal re-renders exactly what depends on it.
+## Component files and naming
+
+The component's name comes from the filename: the `.sumi` extension is
+dropped, hyphens are removed, and the first letter is capitalized — and
+only the first letter, so `split-panel.sumi` is `Splitpanel`, not
+`SplitPanel`. `counter.sumi` → `Counter`.
+
+Each file generates a props struct and a constructor beside it, in the
+same package:
 
 ```go
-count := sumi.New(0)                 // *Signal[int]
-count.Get()                          // read
-count.Set(5)                         // write
-count.Update(func(n int) int { return n + 1 })
-
-doubled := sumi.From(func() int {    // derived: recomputes when count changes
-	return count.Get() * 2
-})
+func NewCounter(props CounterProps) *sumi.Component
 ```
 
-In the template, `{count}` renders the current value and stays live —
-signals are auto-unwrapped in text expressions. Attribute expressions
-are raw Go: write `class={barClass.Get()}` explicitly.
+`main.go` mounts the root component by calling its constructor and
+passing it to the runtime:
 
-## Template expressions
+```go
+package main
 
-- `{expr}` in text — any Go expression; signals auto-unwrap.
-- `name="literal"` — string attribute.
-- `name={expr}` — expression attribute (raw Go, no auto-unwrap).
-- `{name}` — shorthand for `name={name}`.
+import "github.com/tomyan/sumi/runtime/tui"
 
-## Control flow
-
-```sumi
-{if count.Get() > 0}
-	<p>Non-empty</p>
-{else}
-	<p>Empty</p>
-{/if}
-
-{for _, item := range items.Get() key=item.ID}
-	<div>{item.Title}</div>
-{/for}
-```
-
-The `{for}` clause is a real Go range clause. `key=` enables identity-based
-diffing so reordered items keep their boxes (and focus) instead of being
-rebuilt positionally.
-
-## Event handlers
-
-Declare functions in `<script>` and reference them from `on<type>`
-attributes:
-
-```sumi
-<script>
-func save(evt *sumi.DOMEvent) {
-	evt.PreventDefault()
+func main() {
+	tui.Run(NewCounter(CounterProps{}))
 }
-
-func handleKey(evt sumi.Event) {
-	if evt.Rune == 'q' { sumi.Quit() }
-}
-</script>
-
-<div onkey="handleKey">
-	<button onclick={save}>Save</button>
-</div>
 ```
 
-Handlers taking `*sumi.DOMEvent` participate in capture/bubble dispatch
-with `StopPropagation` / `PreventDefault` (see the events sections in
-[elements](elements.md)). A function named `handleKey` taking
-`sumi.Event` becomes the component's raw event handler — it sees every
-input event after DOM dispatch. Deviation: that wiring is name-based;
-only `handleKey` is picked up.
-
-Zero-argument handlers get automatic Ctrl+C/quit-signal handling;
-declaring any event-aware handler hands you full control (call
-`sumi.Quit()` yourself).
+Everything spelled `sumi.X` in a `<script>` — `sumi.New`, `sumi.Event`,
+`sumi.DOMEvent`, `sumi.Quit`, the type aliases below — resolves to the
+runtime prelude (`.../runtime/prelude`), which the generated file imports
+under the alias `sumi`.
 
 ## Props
 
-Declare props as plain `var` declarations; consumers pass them via the
-generated props struct:
+Declare props as plain package-level `var` declarations in `<script>`.
+Each becomes a field on the props struct, with the first letter
+capitalized:
 
 ```sumi
 <!-- greeting.sumi -->
@@ -98,34 +57,74 @@ var name string
 ```
 
 ```go
-greeting.NewGreeting(greeting.GreetingProps{Name: "Tom"})
+NewGreeting(GreetingProps{Name: "Tom"})
 ```
 
-Callback props are function-typed vars, passed the same way. `bind:value`
-on an input-like component binds a parent signal to the child's value in
-both directions.
+In a parent template, pass props as attributes — the lowercase prop name,
+capitalized to the struct field (`name` → `Name`). A string literal is a
+string value; a `{expr}` attribute is raw Go:
 
-## Composition
-
-Components compose two ways:
-
-- **In a template** — `<counter label="Clicks" />` mounts a sibling
-  component (its constructor must be importable by the generate CLI).
-- **In Go** — embed a child's tree directly:
-
-```go
-c1 := counter.NewCounter(counter.CounterProps{Label: "Clicks"})
-root := parent.Tree // any *layout.Input
-root.Children = append(root.Children, c1.Tree)
+```sumi
+<Greeting name="Tom" />
+<Greeting name={who.Get()} />
 ```
 
-Each component carries its own stylesheet; styles are scoped by the
-component's own cascade and do not leak into embedded children.
+### Callback props
 
-## Snippets
+A prop whose type is a function is a callback. Declare it, pass a
+function in, and invoke it from the child's own handlers:
 
-Snippets pass template chunks to a child component. The child declares
-each one as a `func` prop and renders it with `{render name(args)}`:
+```sumi
+<!-- child field.sumi -->
+<script>
+var onclear func()
+</script>
+<button onclick={onclear}>clear</button>
+```
+
+```sumi
+<!-- parent -->
+<script>
+func clear() { count.Set(0) }
+</script>
+<Field onclear={clear} />
+```
+
+### bind: and cross-component signal flow
+
+State is shared between components by passing the *signal itself*, not
+its value. Declare the child prop as a signal type; both sides then hold
+the same `*sumi.Signal`, so a write on either is seen by both:
+
+```sumi
+<!-- child field.sumi -->
+<script>
+var count *sumi.Signal[int]
+var label string
+</script>
+<span>{label}: {count}</span>
+```
+
+```sumi
+<!-- parent -->
+<script>
+clicks := sumi.New(0)
+</script>
+<Field label="Clicks" bind:count={clicks} />
+```
+
+`{count}` in the child auto-unwraps because the prop type contains
+`Signal` (see [signals](signals.md)). For a signal-typed prop,
+`bind:count={clicks}` and `count={clicks}` compile identically — the
+signal is passed by reference either way — so `bind:` here is a
+convention marking two-way intent. It does real work on the fundamental
+elements (`textedit`, `scrollbar`), whose runtime wires it as binding.
+
+### Snippet props
+
+A prop typed `func() []*sumi.Input` is a *snippet* — a chunk of template
+the parent supplies. The child declares it and renders it with
+`{render name()}`:
 
 ```sumi
 <!-- card.sumi -->
@@ -133,30 +132,53 @@ each one as a `func` prop and renders it with `{render name(args)}`:
 var children func() []*sumi.Input
 var footer   func() []*sumi.Input
 </script>
-<div class="card">{render children()}{render footer()}</div>
+<div>{render children()}</div>
+<div>{render footer()}</div>
 ```
 
-The consumer fills them from the tag body: a
-`{snippet name(params)}...{/snippet}` block becomes the matching named
-prop, and the remaining body becomes the implicit `children` snippet.
+The parent fills them from the tag body — a `{snippet name()}...{/snippet}`
+block becomes the matching prop, and the remaining body becomes the
+implicit `children` snippet. Full treatment in [snippets](snippets.md).
 
-```sumi
-<Card>
-	<p>Body goes to children</p>
-	{snippet footer()}<p>Footer</p>{/snippet}
-</Card>
-```
+## The constructor model
 
-`{render name}` resolves a local `{snippet}` first, then a snippet prop;
-params are ordinary Go values. An unpassed prop renders nothing; a name
-that resolves to neither is a compile error. Deviations: a snippet
-closure is hoisted to component scope, so it cannot capture a `{for}`
-variable, and a child component inside a snippet body is not yet
-supported.
+Components are runtime constructors, not compile-time inlining: `NewFoo`
+builds the component's `*sumi.Input` tree, wires one reactive effect over
+its dynamic nodes, and returns a `*sumi.Component` holding that tree, its
+`OnEvent` handler, and its stylesheet. Mounting a child calls its
+constructor once during the parent's construction and splices the
+returned `.Tree` into the parent's tree.
 
-## Lifecycle
+Updates are component-grained: a component has a single effect, so a
+tracked signal change re-evaluates all of that component's dynamic
+expressions and children. The per-cell minimalism on screen comes from
+the tree diff that follows — only changed cells are written — not from
+per-node effects (see [signals](signals.md)).
 
-`sumi.Quit()` ends the app from any handler. A component's `Dispose`
-runs when the app exits (or when a [FrameLog](inline-mode.md) frame is
-archived or removed). There is no polling: a single dirty flag set by
-signal writes schedules the next render pass.
+Mounting a child requires the parent to compile on this constructor path,
+which needs at least one reactive declaration — a signal (`sumi.New` /
+`sumi.From`), a `var` prop, `sumi.Effect`, or `sumi.Env`. A parent whose
+script has only plain `:=` bindings and functions falls to an older
+whole-app path that leaves the child uninstantiated (`undefined:
+<name>0` at build); add a signal or `var` to any parent that mounts
+components.
+
+## Scoped styles
+
+Each component carries its own stylesheet, and a mounted child's subtree
+is a style boundary. Each component's `<style>` rules are resolved against
+its own subtree, and the boundary holds in both directions: the parent's
+rules do not cross into a mounted child, and the child's rules do not
+reach back out into the parent. Nesting works to any depth — a
+grandchild's stylesheet resolves against the grandchild's subtree.
+
+So a child styles itself with its own CSS classes, and the parent cannot
+restyle the child's internals through a class selector; pass a prop if
+the parent needs to influence the child's appearance.
+
+## Referring to components
+
+A local tag is the constructor name verbatim, so keep local names
+single-word (`<Field>` → `NewField`); an imported component is
+`<pkg.Name />` → `pkg.NewName`. Mounting gives you the child's structure,
+props, callbacks, `bind:` signals, snippets, and its own scoped CSS.

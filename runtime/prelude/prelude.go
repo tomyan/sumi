@@ -110,6 +110,11 @@ var (
 	RunWithOptions = tui.RunWithOptions
 	TestApp        = tui.TestApp
 	Quit           = tui.Quit
+
+	// Native two-way binding display helpers (emitted by bind:value/bind:checked).
+	BindInputValue  = tui.BindInputValue
+	BindSelectValue = tui.BindSelectValue
+	BindChecked     = tui.BindChecked
 )
 
 // Env returns a framework-provided signal for the given environment key.

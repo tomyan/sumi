@@ -14,10 +14,10 @@ supported, **~** supported with stated deviations, **✗** not supported
 | `strong/b`, `em/i`, `u`, `s/del`, `mark`, `kbd`, `abbr`, `samp`, `var` | ✓ | SGR-attribute styling |
 | `a` | ✓ | underlined, focusable; Enter/click opens `href` |
 | `button` | ✓ | Enter/Space/click activate |
-| `input` (text) | ✓ | readline keymap, `value`, `maxlength`, `readonly`, `password` |
-| `input` checkbox / radio | ✓ | `[x]` / `(•)`, Space toggles, radio `name` groups |
-| `select` / `option` / `optgroup` | ~ | popup-less cycling control (no dropdown overlay) |
-| `textarea` | ✓ | multi-line editing |
+| `input` (text) | ✓ | readline keymap, `value`, `maxlength`, `readonly`, `password`, `bind:value` |
+| `input` checkbox / radio | ✓ | `[x]` / `(•)`, Space toggles, radio `name` groups, `bind:checked` |
+| `select` / `option` / `optgroup` | ~ | popup-less cycling control (no dropdown overlay), `bind:value` |
+| `textarea` | ✓ | multi-line editing, `bind:value` |
 | `progress`, `meter` | ✓ | eighth-block bars |
 | `details` / `summary` | ✓ | ▶/▼, `open`, `toggle` event |
 | `dialog` | ✓ | modal focus trap, Escape closes |

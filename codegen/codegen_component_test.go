@@ -150,6 +150,12 @@ func TestGenerateComponentWithChildComponent(t *testing.T) {
 		t.Errorf("expected .Tree reference:\n%s", src)
 	}
 
+	// Should retain the child reference so its stylesheet resolves against
+	// its own subtree at runtime.
+	if !strings.Contains(src, "Children: []*sumi.Component{greeting0}") {
+		t.Errorf("expected child component retained in Children:\n%s", src)
+	}
+
 	assertValidGo(t, out)
 }
 

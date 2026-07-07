@@ -25,7 +25,7 @@ func writeLayoutTree(buf *bytes.Buffer, doc *template.Document, stylesheet *styl
 	fmt.Fprintf(buf, "%s\tKind: sumi.KindBox,\n", tabs)
 	writeIdentityFields(buf, tabs, "root", nil)
 	rootAttrs := map[string]string{"flex-direction": "column"}
-	writeBoxAttributes(buf, tabs, rootAttrs, nil, ext)
+	writeBoxAttributes(buf, tabs, "root", rootAttrs, nil, ext)
 	if hasDynamicChildren(doc.Children) {
 		if ext != nil {
 			// Build-once: root.Children rebuilt in sync
@@ -100,7 +100,7 @@ func writeTextInput(buf *bytes.Buffer, n *template.TextElement, stylesheet *styl
 		fmt.Fprintf(buf, "%s\tContentEditable: true,\n", tabs)
 		writeCursorAttr(buf, tabs, attrs, nil)
 	}
-	writeOnHandlers(buf, tabs, attrs, nil, ext)
+	writeOnHandlers(buf, tabs, textTagOf(n), attrs, nil, ext)
 	fmt.Fprintf(buf, "%s},\n", tabs)
 }
 
@@ -120,7 +120,7 @@ func writeExtractedTextNode(treeBuf, declBuf *bytes.Buffer, n *template.TextElem
 	fmt.Fprintf(declBuf, "\t\tKind:    sumi.KindText,\n")
 	writeIdentityFields(declBuf, "\t", textTagOf(n), n.Attributes)
 	fmt.Fprintf(declBuf, "\t\tContent: %s,\n", expr)
-	writeOnHandlers(declBuf, "\t", n.Attributes, nil, ext)
+	writeOnHandlers(declBuf, "\t", textTagOf(n), n.Attributes, nil, ext)
 	fmt.Fprintf(declBuf, "\t}\n")
 
 	// Record sync entries: content (when dynamic) and state attributes.
@@ -154,7 +154,7 @@ func writeBoxInput(buf *bytes.Buffer, n *template.BoxElement, stylesheet *style.
 		writeExtractedDynamicBox(buf, n, stylesheet, indent, ext)
 		return
 	}
-	if ext != nil && !ext.inDynamic && (hasDynamicCursor(n.Attributes) || hasDynamicSyncAttrs(n.Attributes)) {
+	if ext != nil && !ext.inDynamic && (hasDynamicCursor(n.Attributes) || hasDynamicSyncAttrs(n.Attributes) || hasBind(boxTagOf(n), n.Attributes)) {
 		writeExtractedCursorBox(buf, n, stylesheet, indent, ext)
 		return
 	}
@@ -163,7 +163,7 @@ func writeBoxInput(buf *bytes.Buffer, n *template.BoxElement, stylesheet *style.
 	fmt.Fprintf(buf, "%s{\n", tabs)
 	fmt.Fprintf(buf, "%s\tKind: sumi.KindBox,\n", tabs)
 	writeIdentityFields(buf, tabs, boxTagOf(n), n.Attributes)
-	writeBoxAttributes(buf, tabs, n.Attributes, nil, ext)
+	writeBoxAttributes(buf, tabs, boxTagOf(n), n.Attributes, nil, ext)
 	writeBoxChildren(buf, n.Children, stylesheet, indent, tabs, ext)
 	fmt.Fprintf(buf, "%s},\n", tabs)
 }
@@ -241,15 +241,16 @@ func writeExtractedCursorBox(treeBuf *bytes.Buffer, n *template.BoxElement, styl
 	fmt.Fprintf(&ext.declBuf, "\t%s := &sumi.Input{\n", name)
 	fmt.Fprintf(&ext.declBuf, "\t\tKind: sumi.KindBox,\n")
 	writeIdentityFields(&ext.declBuf, "\t", boxTagOf(n), n.Attributes)
-	writeBoxAttributes(&ext.declBuf, "\t", n.Attributes, nil, ext)
+	writeBoxAttributes(&ext.declBuf, "\t", boxTagOf(n), n.Attributes, nil, ext)
 	ext.declBuf.Write(childBuf.Bytes())
 	fmt.Fprintf(&ext.declBuf, "\t}\n")
 
-	// Write sync entries: cursor and state-attribute patching.
+	// Write sync entries: cursor, state-attribute and binding patching.
 	if hasDynamicCursor(n.Attributes) {
 		writeCursorSync(&ext.syncBuf, name, n.Attributes)
 	}
 	writeAttrSync(&ext.syncBuf, name, n.Attributes)
+	writeBindSync(&ext.syncBuf, name, boxTagOf(n), n.Attributes)
 
 	// Write reference in tree
 	fmt.Fprintf(treeBuf, "%s%s,\n", tabs, name)
@@ -277,7 +278,7 @@ func writeExtractedDynamicBox(treeBuf *bytes.Buffer, n *template.BoxElement, sty
 	fmt.Fprintf(&ext.declBuf, "\t%s := &sumi.Input{\n", name)
 	fmt.Fprintf(&ext.declBuf, "\t\tKind: sumi.KindBox,\n")
 	writeIdentityFields(&ext.declBuf, "\t", boxTagOf(n), n.Attributes)
-	writeBoxAttributes(&ext.declBuf, "\t", n.Attributes, nil, ext)
+	writeBoxAttributes(&ext.declBuf, "\t", boxTagOf(n), n.Attributes, nil, ext)
 	fmt.Fprintf(&ext.declBuf, "\t}\n")
 	writeAttrSync(&ext.syncBuf, name, n.Attributes)
 
@@ -289,7 +290,7 @@ func writeExtractedDynamicBox(treeBuf *bytes.Buffer, n *template.BoxElement, sty
 }
 
 // writeBoxAttributes writes direction, width, height, padding, and border fields.
-func writeBoxAttributes(buf *bytes.Buffer, tabs string, attrs map[string]string, props map[string]string, ext *extractionCtx) {
+func writeBoxAttributes(buf *bytes.Buffer, tabs, tag string, attrs map[string]string, props map[string]string, ext *extractionCtx) {
 	if dir, ok := mergedAttr(attrs, props, "flex-direction"); ok {
 		fmt.Fprintf(buf, "%s\tDirection: %q,\n", tabs, dir)
 	}
@@ -357,7 +358,7 @@ func writeBoxAttributes(buf *bytes.Buffer, tabs string, attrs map[string]string,
 	if ce, ok := mergedAttr(attrs, props, "contenteditable"); ok && ce == "true" {
 		fmt.Fprintf(buf, "%s\tContentEditable: true,\n", tabs)
 	}
-	writeOnHandlers(buf, tabs, attrs, props, ext)
+	writeOnHandlers(buf, tabs, tag, attrs, props, ext)
 	writeCursorAttr(buf, tabs, attrs, props)
 }
 
@@ -366,18 +367,27 @@ func writeBoxAttributes(buf *bytes.Buffer, tabs string, attrs map[string]string,
 // referenced directly (they take *sumi.DOMEvent); anything else is treated
 // as a zero-arg func and wrapped with a nil check. The string-valued onkey
 // attribute is legacy and handled separately via OnKey.
-func writeOnHandlers(buf *bytes.Buffer, tabs string, attrs, props map[string]string, ext *extractionCtx) {
+func writeOnHandlers(buf *bytes.Buffer, tabs, tag string, attrs, props map[string]string, ext *extractionCtx) {
+	bind := bindOf(tag, attrs)
 	var types []string
 	for key, val := range attrs {
 		if strings.HasPrefix(key, "on") && len(key) > 2 && isExprValue(val) {
+			// The binding owns its event; an author handler on the same
+			// type would clash on the map key, so let the binding win.
+			if bind != nil && key[2:] == bind.eventType {
+				continue
+			}
 			types = append(types, key[2:])
 		}
 	}
-	if len(types) == 0 {
+	if len(types) == 0 && bind == nil {
 		return
 	}
 	sort.Strings(types)
 	fmt.Fprintf(buf, "%s\tOn: map[string]func(*sumi.DOMEvent){\n", tabs)
+	if bind != nil {
+		writeBindHandler(buf, tabs, bind)
+	}
 	for _, typ := range types {
 		val, _ := mergedAttr(attrs, props, "on"+typ)
 		expr := extractExprValue(val)

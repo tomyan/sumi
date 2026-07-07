@@ -37,6 +37,9 @@ func GenerateComponent(doc *template.Document, scriptSrc string, stylesheet *sty
 	if err := validateSnippetRenders(doc, info.Props); err != nil {
 		return nil, err
 	}
+	if err := validateBindConflicts(doc); err != nil {
+		return nil, err
+	}
 
 	var buf bytes.Buffer
 	fmt.Fprintf(&buf, "package %s\n\n", opts.PackageName)
@@ -124,7 +127,7 @@ func writeConstructor(buf *bytes.Buffer, name string, info *script.ScriptInfo, d
 	}
 
 	// Instantiate child components before building the tree.
-	writeChildComponentInstances(buf, doc, opts.Components, stylesheet, info.Signals)
+	childVars := writeChildComponentInstances(buf, doc, opts.Components, stylesheet, info.Signals)
 
 	// Hoist local {snippet} declarations to component-scope closures.
 	writeSnippetClosures(buf, localSnippets, stylesheet, info.Signals)
@@ -157,7 +160,7 @@ func writeConstructor(buf *bytes.Buffer, name string, info *script.ScriptInfo, d
 	}
 
 	// Build and return Component.
-	writeComponentReturn(buf, info, stylesheet)
+	writeComponentReturn(buf, info, stylesheet, childVars)
 
 	buf.WriteString("}\n")
 }
@@ -185,9 +188,12 @@ func writeScriptDeclarations(buf *bytes.Buffer, info *script.ScriptInfo, src str
 //
 //	<Console />          → local:    NewConsole(ConsoleProps{})
 //	<console.Console />  → imported: console.NewConsole(console.ConsoleProps{})
-func writeChildComponentInstances(buf *bytes.Buffer, doc *template.Document, components map[string]ComponentChildInfo, stylesheet *style.Stylesheet, signals map[string]bool) {
+//
+// Returns the child instance variable names in document order so the
+// constructor can list them in Component.Children for style resolution.
+func writeChildComponentInstances(buf *bytes.Buffer, doc *template.Document, components map[string]ComponentChildInfo, stylesheet *style.Stylesheet, signals map[string]bool) []string {
 	idx := 0
-	hasAny := false
+	var varNames []string
 	walkComponentElements(doc.Children, func(comp *template.ComponentElement) {
 		pkg, name := splitComponentName(comp.Name)
 		varName := fmt.Sprintf("%s%d", strings.ToLower(name[:1])+name[1:], idx)
@@ -201,11 +207,12 @@ func writeChildComponentInstances(buf *bytes.Buffer, doc *template.Document, com
 		writeConsumerSnippetProps(buf, comp.Children, stylesheet, signals)
 		fmt.Fprintf(buf, "\t})\n")
 		idx++
-		hasAny = true
+		varNames = append(varNames, varName)
 	})
-	if hasAny {
+	if len(varNames) > 0 {
 		buf.WriteString("\n")
 	}
+	return varNames
 }
 
 // splitComponentName splits "pkg.Name" into ("pkg", "Name") or ("", "Name") for local.
@@ -278,7 +285,7 @@ func writeComponentFunc(buf *bytes.Buffer, f script.FuncInfo) {
 }
 
 // writeComponentReturn emits the return statement.
-func writeComponentReturn(buf *bytes.Buffer, info *script.ScriptInfo, stylesheet *style.Stylesheet) {
+func writeComponentReturn(buf *bytes.Buffer, info *script.ScriptInfo, stylesheet *style.Stylesheet, childVars []string) {
 	// Find the handleKey function if present.
 	var handler string
 	for _, f := range info.Funcs {
@@ -295,6 +302,9 @@ func writeComponentReturn(buf *bytes.Buffer, info *script.ScriptInfo, stylesheet
 	}
 	if stylesheet != nil && len(stylesheet.Rules) > 0 {
 		fmt.Fprintf(buf, "\t\tStylesheet: sumi.MustParseStylesheet(%q),\n", style.Serialize(stylesheet))
+	}
+	if len(childVars) > 0 {
+		fmt.Fprintf(buf, "\t\tChildren: []*sumi.Component{%s},\n", strings.Join(childVars, ", "))
 	}
 	buf.WriteString("\t}\n")
 }
