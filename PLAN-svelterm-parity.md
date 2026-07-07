@@ -473,7 +473,18 @@ vt100 assertions for end-to-end slices; unit tests for parser/css/layout.
     green; brew formula tomyan/tap/sumi (source build, framework tree
     in libexec via SUMI_PATH wrapper; verified install→init→build);
     docs install section updated + live. Only the H-wording question
-    remains on the J gate.
+    remains on the J gate. EDITOR SUPPORT COMPLETE 2026-07-07 (design:
+    design-syntax-highlighting.md untracked): TextMate grammar
+    (editors/grammar, single source) → shiki on the site (all docs
+    fences language-tagged; template fragments = ```sumi not ```html)
+    + VS Code ext (editors/vscode, .vsix built; marketplace publish
+    awaits Tom's publisher acct); vim classic syntax (editors/vim);
+    sumi lsp FULL v1 (diagnostics w/ typed template.Error offsets →
+    UTF-16 positions, completion, hover, symbols, definition;
+    hand-rolled stdio JSON-RPC, no new deps); skills/sumi/SKILL.md
+    (+~/.claude/skills); docs/editors.md chapter. v0.2.0 tagged,
+    formula bumped (NOTE: push tap BEFORE brew upgrade — brew update
+    hard-resets the tap clone).
   - H component library (needs cross-dir component consumption in
     the generate CLI).
   - I docs/site, J blog (gated on A–H complete).
