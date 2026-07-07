@@ -34,9 +34,6 @@ func writeLayoutTree(buf *bytes.Buffer, doc *template.Document, stylesheet *styl
 			return
 		}
 		writeDynamicChildren(buf, doc.Children, stylesheet, baseIndent, tabs, nil)
-	} else if hasSlotChild(doc.Children) {
-		// Slot children require dynamic construction (can't spread in a literal).
-		writeSlotChildren(buf, doc.Children, stylesheet, baseIndent, tabs, ext)
 	} else {
 		fmt.Fprintf(buf, "%s\tChildren: []*sumi.Input{\n", tabs)
 		for _, child := range doc.Children {
@@ -56,8 +53,6 @@ func writeInputNode(buf *bytes.Buffer, node template.Node, stylesheet *style.Sty
 		writeBoxInput(buf, n, stylesheet, indent, ext)
 	case *template.ComponentElement:
 		writeSignalComponentRef(buf, n, indent, ext)
-	case *template.SlotElement:
-		writeSlotReference(buf, n, indent)
 	}
 }
 
@@ -72,59 +67,6 @@ func writeSignalComponentRef(buf *bytes.Buffer, comp *template.ComponentElement,
 	}
 	varName := fmt.Sprintf("%s%d", strings.ToLower(name[:1])+name[1:], idx)
 	fmt.Fprintf(buf, "%s%s.Tree,\n", tabs, varName)
-}
-
-// writeSlotReference emits slot content from props as children.
-// When inside a slice literal, this won't work — the parent must detect slots
-// and use a dynamic children pattern instead.
-func writeSlotReference(buf *bytes.Buffer, slot *template.SlotElement, indent int) {
-	// This is handled by the parent box via hasSlotChild detection.
-	// Slots inside a dynamic IIFE are emitted as: cs = append(cs, props.Name...)
-	tabs := indentStr(indent)
-	fieldName := strings.ToUpper(slot.Name[:1]) + slot.Name[1:]
-	fmt.Fprintf(buf, "%scs = append(cs, props.%s...)\n", tabs, fieldName)
-}
-
-// writeSlotChildren emits Children referencing slot props.
-// For simple cases (only slots), emits direct props references.
-func writeSlotChildren(buf *bytes.Buffer, children []template.Node, stylesheet *style.Stylesheet, baseIndent int, tabs string, ext *extractionCtx) {
-	// Check if only slot children (no mixed content).
-	allSlots := true
-	for _, c := range children {
-		if _, ok := c.(*template.SlotElement); !ok {
-			allSlots = false
-			break
-		}
-	}
-	if allSlots && len(children) == 1 {
-		// Single slot — direct reference.
-		slot := children[0].(*template.SlotElement)
-		fieldName := strings.ToUpper(slot.Name[:1]) + slot.Name[1:]
-		fmt.Fprintf(buf, "%s\tChildren: props.%s,\n", tabs, fieldName)
-		return
-	}
-	// Multiple slots or mixed — use IIFE.
-	fmt.Fprintf(buf, "%s\tChildren: func() []*sumi.Input {\n", tabs)
-	fmt.Fprintf(buf, "%s\t\tvar cs []*sumi.Input\n", tabs)
-	for _, child := range children {
-		if slot, ok := child.(*template.SlotElement); ok {
-			fieldName := strings.ToUpper(slot.Name[:1]) + slot.Name[1:]
-			fmt.Fprintf(buf, "%s\t\tcs = append(cs, props.%s...)\n", tabs, fieldName)
-		}
-		// TODO: handle mixed slot + non-slot children
-	}
-	fmt.Fprintf(buf, "%s\t\treturn cs\n", tabs)
-	fmt.Fprintf(buf, "%s\t}(),\n", tabs)
-}
-
-// hasSlotChild checks if any immediate child is a SlotElement.
-func hasSlotChild(children []template.Node) bool {
-	for _, c := range children {
-		if _, ok := c.(*template.SlotElement); ok {
-			return true
-		}
-	}
-	return false
 }
 
 // writeTextInput writes a layout.Input literal for a text element.
@@ -552,10 +494,6 @@ func parseCellLength(s string) (int, bool) {
 // writeBoxChildren writes the Children field of a box input if there are children.
 func writeBoxChildren(buf *bytes.Buffer, children []template.Node, stylesheet *style.Stylesheet, indent int, tabs string, ext *extractionCtx) {
 	if len(children) == 0 {
-		return
-	}
-	if hasSlotChild(children) {
-		writeSlotChildren(buf, children, stylesheet, indent, tabs, ext)
 		return
 	}
 	if hasDynamicChildren(children) {

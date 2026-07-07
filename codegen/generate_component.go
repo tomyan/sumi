@@ -34,17 +34,18 @@ func GenerateComponent(doc *template.Document, scriptSrc string, stylesheet *sty
 		return nil, fmt.Errorf("parse script: %w", err)
 	}
 
+	if err := validateSnippetRenders(doc, info.Props); err != nil {
+		return nil, err
+	}
+
 	var buf bytes.Buffer
 	fmt.Fprintf(&buf, "package %s\n\n", opts.PackageName)
 
 	// Imports.
 	writeComponentImports(&buf, info, doc, opts)
 
-	// Collect slot definitions from template for props.
-	slots := collectSlots(doc)
-
 	// Props struct (always generated, even if empty).
-	writePropsStruct(&buf, opts.ComponentName, info.Props, slots)
+	writePropsStruct(&buf, opts.ComponentName, info.Props)
 
 	// Constructor function.
 	writeConstructor(&buf, opts.ComponentName, info, doc, scriptSrc, stylesheet, opts)
@@ -87,62 +88,31 @@ func writeComponentImports(buf *bytes.Buffer, info *script.ScriptInfo, doc *temp
 }
 
 // writePropsStruct emits the props struct type.
-func writePropsStruct(buf *bytes.Buffer, name string, props []script.PropInfo, slots []slotInfo) {
+func writePropsStruct(buf *bytes.Buffer, name string, props []script.PropInfo) {
 	fmt.Fprintf(buf, "type %sProps struct {\n", name)
 	for _, p := range props {
 		fieldName := exportedName(p.Name)
 		fmt.Fprintf(buf, "\t%s %s\n", fieldName, p.TypeStr)
 	}
-	for _, s := range slots {
-		fieldName := exportedName(s.name)
-		fmt.Fprintf(buf, "\t%s []*sumi.Input\n", fieldName)
-	}
 	buf.WriteString("}\n\n")
-}
-
-type slotInfo struct {
-	name string
-}
-
-// collectSlots finds all <slot:name> elements in the template.
-func collectSlots(doc *template.Document) []slotInfo {
-	var slots []slotInfo
-	walkSlots(doc.Children, func(s *template.SlotElement) {
-		slots = append(slots, slotInfo{name: s.Name})
-	})
-	return slots
-}
-
-func walkSlots(children []template.Node, fn func(*template.SlotElement)) {
-	for _, child := range children {
-		switch n := child.(type) {
-		case *template.SlotElement:
-			fn(n)
-		case *template.BoxElement:
-			walkSlots(n.Children, fn)
-		}
-	}
 }
 
 // writeConstructor emits the NewFoo function.
 func writeConstructor(buf *bytes.Buffer, name string, info *script.ScriptInfo, doc *template.Document, scriptSrc string, stylesheet *style.Stylesheet, opts ComponentOptions) {
+	localSnippets := collectLocalSnippets(doc.Children)
+	snippetNames := snippetNameSet(localSnippets)
+
+	fmt.Fprintf(buf, "func New%s(props %sProps) *sumi.Component {\n", name, name)
 	if len(info.Props) > 0 {
-		fmt.Fprintf(buf, "func New%s(props %sProps) *sumi.Component {\n", name, name)
-		// Extract props into local variables.
-		for _, p := range info.Props {
-			field := exportedName(p.Name)
-			if p.Default != "" {
-				fmt.Fprintf(buf, "\t%s := props.%s\n", p.Name, field)
-				fmt.Fprintf(buf, "\tif %s == %s {\n", p.Name, zeroValue(p.TypeStr))
-				fmt.Fprintf(buf, "\t\t%s = %s\n", p.Name, p.Default)
-				fmt.Fprintf(buf, "\t}\n")
-			} else {
-				fmt.Fprintf(buf, "\t%s := props.%s\n", p.Name, field)
-			}
+		writePropExtraction(buf, info.Props, snippetNames)
+	}
+
+	// Signal-typed props auto-unwrap in expressions; register before any
+	// closure (snippet or child-instance body) that may read them.
+	for _, p := range info.Props {
+		if strings.Contains(p.TypeStr, "Signal") {
+			info.Signals[p.Name] = true
 		}
-		buf.WriteString("\n")
-	} else {
-		fmt.Fprintf(buf, "func New%s(props %sProps) *sumi.Component {\n", name, name)
 	}
 
 	// Emit signal/variable declarations (non-var, non-func lines from script).
@@ -154,15 +124,11 @@ func writeConstructor(buf *bytes.Buffer, name string, info *script.ScriptInfo, d
 	}
 
 	// Instantiate child components before building the tree.
-	writeChildComponentInstances(buf, doc, opts.Components)
+	writeChildComponentInstances(buf, doc, opts.Components, stylesheet, info.Signals)
 
-	// Build layout tree with signal-aware expressions.
-	// Include signal-typed props so text expressions auto-unwrap with .Get().
-	for _, p := range info.Props {
-		if strings.Contains(p.TypeStr, "Signal") {
-			info.Signals[p.Name] = true
-		}
-	}
+	// Hoist local {snippet} declarations to component-scope closures.
+	writeSnippetClosures(buf, localSnippets, stylesheet, info.Signals)
+
 	ext := newExtractionCtx()
 	ext.signals = info.Signals
 	ext.componentChildren = opts.Components
@@ -219,7 +185,7 @@ func writeScriptDeclarations(buf *bytes.Buffer, info *script.ScriptInfo, src str
 //
 //	<Console />          → local:    NewConsole(ConsoleProps{})
 //	<console.Console />  → imported: console.NewConsole(console.ConsoleProps{})
-func writeChildComponentInstances(buf *bytes.Buffer, doc *template.Document, components map[string]ComponentChildInfo) {
+func writeChildComponentInstances(buf *bytes.Buffer, doc *template.Document, components map[string]ComponentChildInfo, stylesheet *style.Stylesheet, signals map[string]bool) {
 	idx := 0
 	hasAny := false
 	walkComponentElements(doc.Children, func(comp *template.ComponentElement) {
@@ -232,6 +198,7 @@ func writeChildComponentInstances(buf *bytes.Buffer, doc *template.Document, com
 			fmt.Fprintf(buf, "\t%s := New%s(%sProps{\n", varName, name, name)
 		}
 		writeComponentProps(buf, comp.Attributes)
+		writeConsumerSnippetProps(buf, comp.Children, stylesheet, signals)
 		fmt.Fprintf(buf, "\t})\n")
 		idx++
 		hasAny = true

@@ -15,7 +15,7 @@ func (p *parser) parseControlFlow() (Node, error) {
 	case "for":
 		return p.parseForNode()
 	case "slot":
-		return p.parseSlotDefBlock()
+		return nil, p.errorf(slotRemovedMessage)
 	case "snippet":
 		return p.parseSnippetBlock()
 	case "render":

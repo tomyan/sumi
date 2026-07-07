@@ -75,7 +75,7 @@ func (p *parser) parseElement() (Node, error) {
 	case tagName == "title":
 		return p.parseTitleElement()
 	case strings.HasPrefix(tagName, "slot:"):
-		return p.parseSlotElement(tagName)
+		return nil, p.errorf(slotRemovedMessage)
 	case isHTMLTagName(tagName):
 		return p.parseHTMLElement(tagName)
 	default:
@@ -251,12 +251,11 @@ func (p *parser) parseComponentClosingTag(name string, attrs map[string]string) 
 	if err := p.expectClose(name); err != nil {
 		return nil, err
 	}
-	closingTag := "</" + name + ">"
-	if !strings.HasPrefix(p.input[p.pos:], closingTag) {
-		return nil, p.errorf("expected closing </%s> tag", name)
+	children, err := p.parseChildren(name)
+	if err != nil {
+		return nil, err
 	}
-	p.pos += len(closingTag)
-	return &ComponentElement{Name: name, Attributes: attrs}, nil
+	return &ComponentElement{Name: name, Attributes: attrs, Children: children}, nil
 }
 
 // expectClose expects and consumes a '>' to close an opening tag.

@@ -9,11 +9,13 @@ import (
 	"github.com/tomyan/sumi/parser/template"
 )
 
-// hasDynamicChildren checks if any immediate child is an IfNode or ForNode.
+// hasDynamicChildren checks if any immediate child forces dynamic (append-based)
+// construction: control flow or a {render} invocation. A lone {snippet}
+// declaration does not — it is hoisted and skipped in place.
 func hasDynamicChildren(children []template.Node) bool {
 	for _, child := range children {
 		switch child.(type) {
-		case *template.IfNode, *template.ForNode:
+		case *template.IfNode, *template.ForNode, *template.RenderNode:
 			return true
 		}
 	}
@@ -49,6 +51,10 @@ func writeDynamicChild(buf *bytes.Buffer, child template.Node, stylesheet *style
 		writeIfBlock(buf, n, stylesheet, indent, tabs, signals)
 	case *template.ForNode:
 		writeForBlock(buf, n, stylesheet, indent, tabs, signals)
+	case *template.RenderNode:
+		writeRenderAppend(buf, n, tabs)
+	case *template.SnippetNode:
+		// Hoisted to a component-scope closure; nothing to emit in place.
 	default:
 		writeAppendNode(buf, child, stylesheet, indent, tabs, signals)
 	}

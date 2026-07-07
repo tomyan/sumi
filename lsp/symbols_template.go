@@ -73,10 +73,6 @@ func childrenOf(n template.Node) []template.Node {
 		return node.Children
 	case *template.SnippetNode:
 		return node.Children
-	case *template.SlotDefNode:
-		return node.Children
-	case *template.SlotElement:
-		return node.Default
 	}
 	return nil
 }

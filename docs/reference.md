@@ -102,7 +102,7 @@ supported, **~** supported with stated deviations, **✗** not supported
 | mixed content (text interleaved with elements) | ✓ | whitespace-only gaps follow the JSX newline rule |
 | `{if}/{else}/{/if}`, `{for}` with `key=` diffing | ✓ | |
 | snippets and `{render}` | ✓ | |
-| components with props, callback props, `bind:value`, slots | ✓ | |
+| components with props, callback props, `bind:value`, snippets | ✓ | |
 | `{#await}` / `{#key}` equivalents | ✗ | |
 
 Deviations from web behaviour are listed in each chapter. The terminal

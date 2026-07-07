@@ -122,12 +122,37 @@ root.Children = append(root.Children, c1.Tree)
 Each component carries its own stylesheet; styles are scoped by the
 component's own cascade and do not leak into embedded children.
 
-## Slots and snippets
+## Snippets
 
-A component template can declare `<slot:name />` placeholders with
-optional fallback content; consumers fill them with
-`{slot name}...{/slot}` blocks. `{snippet name(params)}...{/snippet}`
-defines a local template function invoked with `{render name(args)}`.
+Snippets pass template chunks to a child component. The child declares
+each one as a `func` prop and renders it with `{render name(args)}`:
+
+```sumi
+<!-- card.sumi -->
+<script>
+var children func() []*sumi.Input
+var footer   func() []*sumi.Input
+</script>
+<div class="card">{render children()}{render footer()}</div>
+```
+
+The consumer fills them from the tag body: a
+`{snippet name(params)}...{/snippet}` block becomes the matching named
+prop, and the remaining body becomes the implicit `children` snippet.
+
+```sumi
+<Card>
+	<p>Body goes to children</p>
+	{snippet footer()}<p>Footer</p>{/snippet}
+</Card>
+```
+
+`{render name}` resolves a local `{snippet}` first, then a snippet prop;
+params are ordinary Go values. An unpassed prop renders nothing; a name
+that resolves to neither is a compile error. Deviations: a snippet
+closure is hoisted to component scope, so it cannot capture a `{for}`
+variable, and a child component inside a snippet body is not yet
+supported.
 
 ## Lifecycle
 
