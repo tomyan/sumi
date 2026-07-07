@@ -2,9 +2,9 @@
 
 A sumi app ships as a single static binary. There is no runtime to install
 alongside it, no `node_modules`, no interpreter — you hand someone one file and
-it runs. This is the concrete payoff of building a TUI framework in Go rather
-than on a scripting runtime, and it shapes how sumi apps are built, cross-
-compiled, and delivered.
+it runs. This follows from building the framework in Go rather than on a
+scripting runtime, and it shapes how sumi apps are built, cross-compiled, and
+delivered.
 
 ## One binary
 
