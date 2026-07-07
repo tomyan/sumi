@@ -1,0 +1,128 @@
+# Script section
+
+<script>x := 1</script>
+
+==>
+
+Document(ScriptSection(RawGo))
+
+# Style section
+
+<style>.a{color:red}</style>
+
+==>
+
+Document(StyleSection(RawCSS))
+
+# Imports section
+
+<sumi:imports>import "x"</sumi:imports>
+
+==>
+
+Document(ImportsSection(RawGo))
+
+# Empty script section
+
+<script></script>
+
+==>
+
+Document(ScriptSection)
+
+# Element with all attribute forms
+
+<div class="card" id={rowID} {title} onkey="h"></div>
+
+==>
+
+Document(Element(OpenTag(StartTag,TagName(ElementName),Attribute(AttributeName,Eq,AttributeValue(AttributeString)),Attribute(AttributeName,Eq,AttributeValue(AttrInterpolation(InterpBrace,AttrExpr(AttrInterpText),RBrace))),Attribute(AttrInterpolation(InterpBrace,AttrExpr(AttrInterpText),RBrace)),Attribute(AttributeName,Eq,AttributeValue(AttributeString)),TagEnd),CloseTag(CloseTagStart,TagName(ElementName),TagEnd)))
+
+# Component self-closing tag
+
+<Card title="Hi" />
+
+==>
+
+Document(Element(SelfClosingTag(StartTag,TagName(ComponentName),Attribute(AttributeName,Eq,AttributeValue(AttributeString)),SelfCloseEnd)))
+
+# Dotted component tag lowercases to element
+
+<pkg.Card />
+
+==>
+
+Document(Element(SelfClosingTag(StartTag,TagName(ElementName),SelfCloseEnd)))
+
+# Self-closing HTML element
+
+<input type="text" />
+
+==>
+
+Document(Element(SelfClosingTag(StartTag,TagName(ElementName),Attribute(AttributeName,Eq,AttributeValue(AttributeString)),SelfCloseEnd)))
+
+# If else block
+
+{if ok}<p>a</p>{else}<p>b</p>{/if}
+
+==>
+
+Document(ControlBlock(IfBlock(CtrlBrace,KwIf,Clause(ClauseText),RBrace,Element(OpenTag(StartTag,TagName(ElementName),TagEnd),Text,CloseTag(CloseTagStart,TagName(ElementName),TagEnd)),ElseClause(ElseTok,Element(OpenTag(StartTag,TagName(ElementName),TagEnd),Text,CloseTag(CloseTagStart,TagName(ElementName),TagEnd))),EndIf)))
+
+# For block with key
+
+{for i, x := range xs key=x.ID}<li>{x}</li>{/for}
+
+==>
+
+Document(ControlBlock(ForBlock(CtrlBrace,KwFor,Clause(ClauseText),RBrace,Element(OpenTag(StartTag,TagName(ElementName),TagEnd),Interpolation(InterpBrace,Expr(InterpText),RBrace),CloseTag(CloseTagStart,TagName(ElementName),TagEnd)),EndFor)))
+
+# Snippet and render
+
+{snippet cell(label string)}<td>{label}</td>{/snippet}{render cell("x")}
+
+==>
+
+Document(ControlBlock(SnippetBlock(CtrlBrace,KwSnippet,SnippetName,SnippetArgs,RBrace,Element(OpenTag(StartTag,TagName(ElementName),TagEnd),Interpolation(InterpBrace,Expr(InterpText),RBrace),CloseTag(CloseTagStart,TagName(ElementName),TagEnd)),EndSnippet)),ControlBlock(RenderTag(CtrlBrace,KwRender,SnippetName,SnippetArgs,RBrace)))
+
+# Render without parentheses
+
+{render divider}
+
+==>
+
+Document(ControlBlock(RenderTag(CtrlBrace,KwRender,SnippetName,RBrace)))
+
+# Text with interpolation
+
+<p>Hi {name}</p>
+
+==>
+
+Document(Element(OpenTag(StartTag,TagName(ElementName),TagEnd),Text,Interpolation(InterpBrace,Expr(InterpText),RBrace),CloseTag(CloseTagStart,TagName(ElementName),TagEnd)))
+
+# Interpolation resembling a keyword
+
+<p>{ifx}</p>
+
+==>
+
+Document(Element(OpenTag(StartTag,TagName(ElementName),TagEnd),Interpolation(InterpBrace,Expr(InterpText),RBrace),CloseTag(CloseTagStart,TagName(ElementName),TagEnd)))
+
+# Nested control flow in element
+
+<ul>{for _, t := range ts}<li>{t}</li>{/for}</ul>
+
+==>
+
+Document(Element(OpenTag(StartTag,TagName(ElementName),TagEnd),ControlBlock(ForBlock(CtrlBrace,KwFor,Clause(ClauseText),RBrace,Element(OpenTag(StartTag,TagName(ElementName),TagEnd),Interpolation(InterpBrace,Expr(InterpText),RBrace),CloseTag(CloseTagStart,TagName(ElementName),TagEnd)),EndFor)),CloseTag(CloseTagStart,TagName(ElementName),TagEnd)))
+
+# Unclosed tags recover
+
+<div><span>oops
+
+==>
+
+Document(Element(OpenTag(StartTag,TagName(ElementName),TagEnd),Element(OpenTag(StartTag,TagName(ElementName),TagEnd),Text,⚠),⚠))
+

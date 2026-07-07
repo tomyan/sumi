@@ -1,0 +1,155 @@
+// Lezer grammar for the sumi template language.
+//
+// A .sumi file is up to three raw-text sections (<sumi:imports>, <script>,
+// <style>) plus template markup. Go nests into script/imports and every
+// {expression} island; CSS nests into <style>. See src/index.js for the
+// parseMixed wiring and src/tokens.js for the external tokenizers that
+// mirror the Go parser's brace and raw-text rules.
+
+@top Document { item* }
+
+@skip { space }
+
+item {
+  ScriptSection |
+  StyleSection |
+  ImportsSection |
+  Element |
+  ControlBlock |
+  Interpolation |
+  Text
+}
+
+// --- Raw-text sections (bodies nested as Go / CSS) ---
+
+ScriptSection  { scriptOpen  RawGo?  scriptClose }
+ImportsSection { importsOpen RawGo?  importsClose }
+StyleSection   { styleOpen   RawCSS? styleClose }
+
+// --- Elements ---
+
+Element {
+  SelfClosingTag |
+  OpenTag item* CloseTag
+}
+
+OpenTag        { StartTag TagName Attribute* TagEnd }
+SelfClosingTag { StartTag TagName Attribute* SelfCloseEnd }
+CloseTag       { CloseTagStart TagName TagEnd }
+
+TagName { ElementName | ComponentName }
+
+Attribute {
+  AttributeName (Eq AttributeValue)? |
+  AttrInterpolation
+}
+
+AttributeValue {
+  AttributeString |
+  AttrInterpolation
+}
+
+AttrInterpolation { InterpBrace AttrExpr? RBrace }
+AttrExpr { AttrInterpText }
+
+// --- Text-body interpolation: {expr} ---
+
+Interpolation { InterpBrace Expr? RBrace }
+Expr { InterpText }
+
+// --- Control flow ---
+
+ControlBlock {
+  IfBlock |
+  ForBlock |
+  SnippetBlock |
+  RenderTag
+}
+
+IfBlock {
+  CtrlBrace KwIf Clause? RBrace
+  item*
+  ElseClause?
+  EndIf
+}
+
+ElseClause { ElseTok item* }
+
+ForBlock {
+  CtrlBrace KwFor Clause? RBrace
+  item*
+  EndFor
+}
+
+SnippetBlock {
+  CtrlBrace KwSnippet SnippetName SnippetArgs? RBrace
+  item*
+  EndSnippet
+}
+
+RenderTag { CtrlBrace KwRender SnippetName SnippetArgs? RBrace }
+
+Clause { ClauseText }
+
+// --- External tokenizers (see src/tokens.js) ---
+
+@external tokens braceOpen from "./tokens.js" { CtrlBrace, InterpBrace }
+@external tokens textInterp from "./tokens.js" { InterpText }
+@external tokens attrInterp from "./tokens.js" { AttrInterpText }
+@external tokens clauseText from "./tokens.js" { ClauseText }
+@external tokens snippetArgs from "./tokens.js" { SnippetArgs }
+@external tokens rawSection from "./tokens.js" { RawGo, RawCSS }
+
+@tokens {
+  // Section delimiters are fixed literal strings (the Go section splitter
+  // matches them verbatim, never with attributes), so they win by length
+  // over the generic tag brackets.
+  scriptOpen   { "<script>" }
+  scriptClose  { "</script>" }
+  styleOpen    { "<style>" }
+  styleClose   { "</style>" }
+  importsOpen  { "<sumi:imports>" }
+  importsClose { "</sumi:imports>" }
+
+  CloseTagStart { "</" }
+  SelfCloseEnd  { "/>" }
+  StartTag      { "<" }
+  TagEnd        { ">" }
+  Eq            { "=" }
+  RBrace        { "}" }
+
+  AttributeString { '"' !["]* '"' }
+
+  space { $[ \t\r\n]+ }
+
+  tagChar { $[a-zA-Z0-9_.:-] }
+  ElementName   { $[a-z] tagChar* }
+  ComponentName { $[A-Z] tagChar* }
+
+  AttributeName { $[a-zA-Z] $[a-zA-Z0-9_:-]* }
+  SnippetName   { $[a-zA-Z_] $[a-zA-Z0-9_]* }
+
+  KwIf      { "if" }
+  KwFor     { "for" }
+  KwSnippet { "snippet" }
+  KwRender  { "render" }
+
+  // Block terminators and {else} are whole literal tokens, distinct from the
+  // opener brace, so a nested block and a closer are one token of lookahead
+  // apart. braceOpen (src/tokens.js) declines these so the literals match.
+  ElseTok    { "{else}" }
+  EndIf      { "{/if}" }
+  EndFor     { "{/for}" }
+  EndSnippet { "{/snippet}" }
+
+  // Literal template text runs until the next tag, brace island, or run of
+  // whitespace (which the global skip drops — whitespace carries no colour).
+  Text { ![ \t\r\n<{]+ }
+
+  @precedence {
+    scriptClose, styleClose, importsClose, CloseTagStart, SelfCloseEnd
+    scriptOpen, styleOpen, importsOpen, StartTag
+  }
+}
+
+@detectDelim

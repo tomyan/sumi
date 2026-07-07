@@ -1,0 +1,31 @@
+{
+  "name": "@sumi/lang-sumi",
+  "version": "0.1.0",
+  "description": "Lezer grammar and CodeMirror 6 language support for the sumi template language",
+  "private": true,
+  "type": "module",
+  "main": "dist/index.cjs",
+  "module": "src/index.js",
+  "scripts": {
+    "build:parser": "lezer-generator src/sumi.grammar -o src/parser.js",
+    "test": "npm run build:parser && mocha test/*.test.js",
+    "build:demo": "npm run build:parser && esbuild demo/demo.js --bundle --format=iife --outfile=dist/demo.bundle.js"
+  },
+  "devDependencies": {
+    "@codemirror/state": "^6.7.1",
+    "@codemirror/view": "^6.43.6",
+    "@lezer/generator": "^1.7.1",
+    "esbuild": "^0.24.0",
+    "mocha": "^10.7.3"
+  },
+  "dependencies": {
+    "@codemirror/lang-css": "^6.3.1",
+    "@codemirror/lang-go": "^6.0.1",
+    "@codemirror/language": "^6.10.8",
+    "@lezer/common": "^1.2.3",
+    "@lezer/css": "^1.1.9",
+    "@lezer/go": "^1.0.0",
+    "@lezer/highlight": "^1.2.1",
+    "@lezer/lr": "^1.4.2"
+  }
+}
