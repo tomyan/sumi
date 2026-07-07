@@ -473,7 +473,15 @@ vt100 assertions for end-to-end slices; unit tests for parser/css/layout.
     green; brew formula tomyan/tap/sumi (source build, framework tree
     in libexec via SUMI_PATH wrapper; verified install→init→build);
     docs install section updated + live. Only the H-wording question
-    remains on the J gate. EDITOR SUPPORT COMPLETE 2026-07-07 (design:
+    remains on the J gate (J itself PARKED per Tom 2026-07-07).
+    2026-07-07 LOCAL PUSH: v0.3.0 snippets replace slots; v0.4.0 child
+    scoped styles + native bind:; v0.5.0 unified codegen (static Run()
+    retired); framework docs section (8 chapters, source-verified);
+    live-compilation engine (real Go toolchain in wasm) powering
+    /playground + editable examples + 34-lesson interactive tutorial;
+    /examples page. All local-verified + committed; deploy =
+    sumi-site/DEPLOY-NEXT.md when AWS access returns.
+    EDITOR SUPPORT COMPLETE 2026-07-07 (design:
     design-syntax-highlighting.md untracked): TextMate grammar
     (editors/grammar, single source) → shiki on the site (all docs
     fences language-tagged; template fragments = ```sumi not ```html)
