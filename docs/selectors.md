@@ -32,7 +32,7 @@ flag (`[attr="v" i]`) is not supported.
 
 All four combinators are supported:
 
-```
+```sumi
 <style>
 nav a { }        /* descendant */
 ul > li { }      /* child */
@@ -53,7 +53,7 @@ The `An+B` argument accepts `odd`, `even`, a plain integer, and forms like `2n`,
 `2n+1`, `-n+3`, and `3n-1`. Deviation: no spaces are allowed inside the argument
 (`2n + 1` does not parse); write `2n+1`.
 
-```
+```sumi
 <style>
 li:first-child { color: cyan; }
 tr:nth-child(odd) { background: black; }
@@ -69,7 +69,7 @@ tr:nth-child(odd) { background: black; }
 - `:disabled` / `:enabled` — form controls (`input`, `button`, `textarea`,
   `select`, `option`) with or without a truthy `disabled` attribute.
 
-```
+```sumi
 <style>
 button:focus { color: yellow; }
 input:checked { color: green; }
@@ -86,7 +86,7 @@ compound of a selector; a state pseudo on an ancestor makes the rule inert.
 Each takes a comma-separated list of selectors. `:is()` and `:where()` match if
 any argument matches; `:not()` matches if none do.
 
-```
+```sumi
 <style>
 :is(h1, h2, h3) { font-weight: bold; }
 p:not(.hint) { color: white; }
@@ -105,7 +105,7 @@ a generated child at the start or end of an element. The `content` value accepts
 quoted string literals, `attr(name)` (substitutes an attribute value), `none`,
 and space-separated concatenations of these.
 
-```
+```sumi
 <style>
 li::before { content: "• "; }
 a::after { content: " (" attr(href) ")"; }
@@ -145,7 +145,7 @@ only — there is no `or`, `not`, comma-OR, or media type (`screen`/`print`).
 - `prefers-reduced-motion` — `reduce` or `no-preference`.
 - `display-mode` — matches `terminal`.
 
-```
+```sumi
 <style>
 @media (min-width: 80) {
 	.sidebar { width: 24; }
@@ -173,7 +173,7 @@ Any property beginning with `--` is a custom property. Custom properties inherit
 down the tree, and `var(--name, fallback)` reads one with an optional fallback.
 Unresolved references (with no fallback) drop the declaration.
 
-```
+```sumi
 <style>
 .theme {
 	--accent: cyan;
@@ -192,7 +192,7 @@ supports `+`, `-`, `*`, `/`, parentheses, and nesting; put spaces around `+` and
 resolves against the containing block. Deviation: no `px`/`em`/`rem`/`fr` in these
 functions.
 
-```
+```sumi
 <style>
 .panel {
 	width: calc(100% - 4);

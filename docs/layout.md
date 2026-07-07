@@ -78,7 +78,7 @@ Flex is the default layout. The main axis is set by `flex-direction`:
 - `align-items` / `align-self` — `stretch` (default), `start`, `end`, `center`.
 - `order` — integer; lower orders lay out first, ties keep source order.
 
-```
+```sumi
 <style>
 .toolbar {
 	display: flex;
@@ -110,7 +110,7 @@ Set `display: grid` and define tracks:
   end, end exclusive), or `"span N"`.
 - `gap` — cells between tracks.
 
-```
+```sumi
 <style>
 .grid {
 	display: grid;
@@ -156,7 +156,7 @@ Deviation: spanning cells do not contribute to automatic column-width sizing.
   the box; on a block child, horizontal `auto` margins centre it.
 - `box-sizing` — `border-box` (default) or `content-box`.
 
-```
+```sumi
 <style>
 .card {
 	width: 40;
@@ -200,7 +200,7 @@ Offsets `top`/`right`/`bottom`/`left` and `z-index` are integer cells.
 `z-index` sets paint order: children are painted in ascending `z-index`, ties
 keeping document order.
 
-```
+```sumi
 <style>
 dialog {
 	position: absolute;

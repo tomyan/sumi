@@ -99,7 +99,7 @@ Count: 0
 Run the tests with the `-update` flag to (re)write the snapshot files instead
 of comparing:
 
-```
+```sh
 go test ./... -update
 ```
 

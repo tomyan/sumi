@@ -28,7 +28,7 @@ containers (a vertical column), which you can override with `display`.
 - `code` — inline; no special styling by default (pair with a class for colour).
 - `hr` — a one-row horizontal rule drawn with a top border across the full width.
 
-```
+```sumi
 <div>
 	<h1>Report</h1>
 	<p>Totals for the current period.</p>
@@ -56,7 +56,7 @@ These are inline and can be mixed inside a line of text; runs wrap across them.
 | `kbd` | inverse video |
 | `samp` | cyan text |
 
-```
+```sumi
 <p>Press <kbd>Ctrl</kbd>+<kbd>C</kbd> to <strong>quit</strong>.</p>
 ```
 
@@ -66,7 +66,7 @@ These are inline and can be mixed inside a line of text; runs wrap across them.
 mouse click dispatches a `click` event and then opens the URL through the
 platform opener. Underlined by default.
 
-```
+```sumi
 <a href="https://example.com/docs" onclick={docsClicked}>Documentation</a>
 ```
 
@@ -79,7 +79,7 @@ Focusable and centred (`text-align: center`). Enter or a mouse click dispatches 
 checkboxes and radios). Add `disabled` to remove it from focus and match
 `:disabled`.
 
-```
+```sumi
 <button onclick={increment}>Press me</button>
 ```
 
@@ -92,7 +92,7 @@ Backspace, Delete, and Ctrl+A/E/B/F/H/D/K/U/W/Y/T. An `input` event fires with
 `•`. `maxlength` and `readonly` constrain editing. The value scrolls horizontally
 to keep the cursor visible when it exceeds the width.
 
-```
+```sumi
 <input type="text" value="hello" maxlength="40" oninput={nameChanged} />
 ```
 
@@ -104,7 +104,7 @@ and dispatches `change` and `input` events carrying `{checked, value}`. A radio
 checks itself, unchecks every other radio sharing its `name`, and never toggles
 itself off. The `checked` attribute drives the `:checked` pseudo-class.
 
-```
+```sumi
 <input type="checkbox" onchange={notifyChanged} />
 <input type="radio" name="size" value="small" checked="true" onchange={sizeChanged} />
 ```
@@ -118,7 +118,7 @@ Space, Enter, or a click advance to the next option. Each change dispatches a
 its text). `<option selected="true">` sets the initial choice; `<optgroup>`
 groups options (its own label is not rendered).
 
-```
+```sumi
 <select onchange={themeChanged}>
 	<option value="dark" selected="true">Dark</option>
 	<option value="light">Light</option>
@@ -138,7 +138,7 @@ an eighth-block partial, then track (`░`), from `value` against `min` (default
 and `max` (default 1). With no numeric `value`, the bar renders as an
 indeterminate all-track strip.
 
-```
+```sumi
 <progress value="0.4" />
 <meter value="72" min="0" max="100" />
 ```
@@ -149,7 +149,7 @@ indeterminate all-track strip.
 open) and hides its other children while closed. The summary is focusable; Enter
 or a click toggles the open state and dispatches a `toggle` event with `{open}`.
 
-```
+```sumi
 <details>
 	<summary>Advanced options</summary>
 	<p>Hidden until expanded.</p>
@@ -162,7 +162,7 @@ Hidden unless it has the `open` attribute. An open dialog is modal: it traps
 focus inside its subtree and captures mouse clicks outside it. Escape closes the
 dialog and dispatches a `close` event, returning focus to the page.
 
-```
+```sumi
 <dialog open="true" onclose={dialogClosed}>
 	<p>Delete this item?</p>
 	<button onclick={confirmYes}>Yes</button>
@@ -176,7 +176,7 @@ Associates a caption with a control, either through `for="id"` or by wrapping th
 control. Clicking or activating the label focuses its control and synthesises a
 click on it, so a label toggles the checkbox or radio it names.
 
-```
+```sumi
 <label for="notify">Notifications</label>
 <input id="notify" type="checkbox" />
 ```
@@ -211,7 +211,7 @@ render, so signal-driven bodies stay live.
 Renders the image at `src` (PNG, JPEG, or GIF) as half-block glyphs (`▀`), packing
 two vertical pixels per cell. The decode is cached against `src`.
 
-```
+```sumi
 <img src="logo.png" width="20" height="10" />
 ```
 

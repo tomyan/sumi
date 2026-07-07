@@ -11,7 +11,7 @@ This chapter takes you from an empty directory to a running, hot-reloading app.
 
 On macOS or Linux with [Homebrew](https://brew.sh):
 
-```
+```sh
 brew install tomyan/tap/sumi
 ```
 
@@ -20,7 +20,7 @@ scaffolds against — nothing else to set up.
 
 Alternatively, install from a checkout of the repository:
 
-```
+```sh
 git clone https://github.com/tomyan/sumi
 cd sumi
 go install ./cmd/sumi
@@ -34,7 +34,7 @@ it points back at your checkout, so keep it around — see
 
 ## Scaffolding an app
 
-```
+```sh
 sumi init myapp
 ```
 
@@ -86,7 +86,7 @@ your `.sumi` files; `sumi generate .` does the same directly.
 `app.sumi` has three sections. Here is the whole file, then a walk through each
 part.
 
-```
+```sumi
 <script>
 count := sumi.New(0)
 
@@ -157,7 +157,7 @@ an explicit close tag: `<div></div>`, not `<div />` for content.
 
 ## Running
 
-```
+```sh
 cd myapp
 go run .
 ```
@@ -169,7 +169,7 @@ go run .
 `sumi dev` runs a supervisor that rebuilds and relaunches your app whenever a
 `.sumi` or `.go` file under the directory changes:
 
-```
+```sh
 sumi dev
 ```
 
@@ -187,7 +187,7 @@ next command uses.
 
 While `sumi dev` is running, from another shell in the same directory:
 
-```
+```sh
 sumi inspect tree
 ```
 

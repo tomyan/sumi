@@ -11,7 +11,7 @@ compiled, and delivered.
 `.sumi` components compile to ordinary Go source, and Go source compiles to a
 single self-contained executable:
 
-```
+```sh
 sumi generate .   # .sumi -> _sumi.go (committed alongside the source)
 go build .        # _sumi.go + your Go -> one static binary
 ```
@@ -40,7 +40,7 @@ dependencies to satisfy on the target machine.
 A pure-Go, cgo-free codebase cross-compiles with the stock toolchain by setting
 `GOOS` and `GOARCH` — no C cross-toolchain, no per-platform build environment:
 
-```
+```sh
 GOOS=linux   GOARCH=amd64 go build -o myapp-linux    .
 GOOS=darwin  GOARCH=arm64 go build -o myapp-macos-arm .
 GOOS=windows GOARCH=amd64 go build -o myapp.exe       .
