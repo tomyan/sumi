@@ -36,7 +36,7 @@ are raw Go: write `class={barClass.Get()}` explicitly.
 
 ## Control flow
 
-```html
+```sumi
 {if count.Get() > 0}
 	<p>Non-empty</p>
 {else}
@@ -57,7 +57,7 @@ rebuilt positionally.
 Declare functions in `<script>` and reference them from `on<type>`
 attributes:
 
-```html
+```sumi
 <script>
 func save(evt *sumi.DOMEvent) {
 	evt.PreventDefault()
@@ -89,7 +89,7 @@ declaring any event-aware handler hands you full control (call
 Declare props as plain `var` declarations; consumers pass them via the
 generated props struct:
 
-```html
+```sumi
 <!-- greeting.sumi -->
 <script>
 var name string
