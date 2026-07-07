@@ -5,12 +5,13 @@ import (
 	"os"
 
 	"github.com/tomyan/sumi/cmd/sumi/dev"
+	"github.com/tomyan/sumi/lsp"
 )
 
 func main() {
 	if len(os.Args) < 2 {
 		fmt.Fprintln(os.Stderr, "usage: sumi <command> [args]")
-		fmt.Fprintln(os.Stderr, "commands: init, dev, inspect, generate, test-preview")
+		fmt.Fprintln(os.Stderr, "commands: init, dev, inspect, generate, lsp, test-preview")
 		os.Exit(1)
 	}
 
@@ -40,6 +41,11 @@ func main() {
 			dir = os.Args[2]
 		}
 		if err := generateDir(dir); err != nil {
+			fmt.Fprintln(os.Stderr, err)
+			os.Exit(1)
+		}
+	case "lsp":
+		if err := lsp.NewServer(os.Stdin, os.Stdout).Run(); err != nil {
 			fmt.Fprintln(os.Stderr, err)
 			os.Exit(1)
 		}

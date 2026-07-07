@@ -1,9 +1,6 @@
 package template
 
-import (
-	"fmt"
-	"strings"
-)
+import "strings"
 
 // parseControlFlow dispatches {if ...} and {for ...} blocks.
 func (p *parser) parseControlFlow() (Node, error) {
@@ -24,7 +21,7 @@ func (p *parser) parseControlFlow() (Node, error) {
 	case "render":
 		return p.parseRenderCall()
 	default:
-		return nil, fmt.Errorf("unexpected control flow keyword %q at position %d", keyword, p.pos)
+		return nil, p.errorf("unexpected control flow keyword %q at position %d", keyword, p.pos)
 	}
 }
 
@@ -33,7 +30,7 @@ func (p *parser) parseIfNode() (Node, error) {
 	p.skipWhitespace()
 	condition := strings.TrimSpace(p.readUntil('}'))
 	if p.pos >= len(p.input) {
-		return nil, fmt.Errorf("unterminated {if} tag")
+		return nil, p.errorf("unterminated {if} tag")
 	}
 	p.pos++ // consume '}'
 
@@ -62,7 +59,7 @@ func (p *parser) parseForNode() (Node, error) {
 	p.skipWhitespace()
 	raw := strings.TrimSpace(p.readUntil('}'))
 	if p.pos >= len(p.input) {
-		return nil, fmt.Errorf("unterminated {for} tag")
+		return nil, p.errorf("unterminated {for} tag")
 	}
 	p.pos++ // consume '}'
 
@@ -100,7 +97,7 @@ func (p *parser) parseControlFlowChildren(keyword string) ([]Node, bool, error) 
 
 	for {
 		if p.pos >= len(p.input) {
-			return nil, false, fmt.Errorf("missing closing {/%s}", keyword)
+			return nil, false, p.errorf("missing closing {/%s}", keyword)
 		}
 		if strings.HasPrefix(p.input[p.pos:], closeTag) {
 			p.pos += len(closeTag)

@@ -33,7 +33,7 @@ func (p *parser) parseSlotElement(tagName string) (Node, error) {
 	for {
 		p.skipWhitespace()
 		if p.pos >= len(p.input) {
-			return nil, fmt.Errorf("missing closing %s", closingTag)
+			return nil, p.errorf("missing closing %s", closingTag)
 		}
 		if strings.HasPrefix(p.input[p.pos:], closingTag) {
 			p.pos += len(closingTag)
@@ -52,7 +52,7 @@ func (p *parser) parseSlotElement(tagName string) (Node, error) {
 			}
 			children = append(children, child)
 		} else {
-			return nil, fmt.Errorf("unexpected character %q inside <slot:%s> at position %d", p.input[p.pos], slotName, p.pos)
+			return nil, p.errorf("unexpected character %q inside <slot:%s> at position %d", p.input[p.pos], slotName, p.pos)
 		}
 	}
 }
@@ -84,7 +84,7 @@ func (p *parser) parseSlotDefBlock() (Node, error) {
 	for {
 		p.skipWhitespace()
 		if p.pos >= len(p.input) {
-			return nil, fmt.Errorf("missing {/slot} for slot %q", name)
+			return nil, p.errorf("missing {/slot} for slot %q", name)
 		}
 		if strings.HasPrefix(p.input[p.pos:], "{/slot}") {
 			p.pos += len("{/slot}")
@@ -103,7 +103,7 @@ func (p *parser) parseSlotDefBlock() (Node, error) {
 			}
 			children = append(children, child)
 		} else {
-			return nil, fmt.Errorf("unexpected character %q inside {slot %s} at position %d", p.input[p.pos], name, p.pos)
+			return nil, p.errorf("unexpected character %q inside {slot %s} at position %d", p.input[p.pos], name, p.pos)
 		}
 	}
 }

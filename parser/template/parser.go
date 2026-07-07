@@ -32,7 +32,7 @@ func (p *parser) parse() (*Document, error) {
 			continue
 		}
 		if p.input[p.pos] != '<' {
-			return nil, fmt.Errorf("unexpected character %q at position %d", p.input[p.pos], p.pos)
+			return nil, p.errorf("unexpected character %q at position %d", p.input[p.pos], p.pos)
 		}
 		node, err := p.parseElement()
 		if err != nil {
@@ -64,13 +64,13 @@ func (p *parser) parseElement() (Node, error) {
 	p.pos++ // consume opening '<'
 	tagName := p.readTagName()
 	if tagName == "" {
-		return nil, fmt.Errorf("empty tag name at position %d", p.pos)
+		return nil, p.errorf("empty tag name at position %d", p.pos)
 	}
 	switch {
 	case tagName == "text":
-		return nil, fmt.Errorf("the <text> tag was removed; use <span> (or another HTML text element)")
+		return nil, p.errorf("the <text> tag was removed; use <span> (or another HTML text element)")
 	case tagName == "box":
-		return nil, fmt.Errorf("the <box> tag was removed; use <div> (or another HTML container element)")
+		return nil, p.errorf("the <box> tag was removed; use <div> (or another HTML container element)")
 	case tagName == "title":
 		return p.parseTitleElement()
 	case strings.HasPrefix(tagName, "slot:"):
@@ -205,7 +205,7 @@ func (p *parser) parseTitleElement() (Node, error) {
 	closingTag := "</title>"
 	closeIdx := strings.Index(p.input[p.pos:], closingTag)
 	if closeIdx == -1 {
-		return nil, fmt.Errorf("missing closing </title> tag")
+		return nil, p.errorf("missing closing </title> tag")
 	}
 	content := p.input[p.pos : p.pos+closeIdx]
 	p.pos += closeIdx + len(closingTag)
@@ -241,7 +241,7 @@ func (p *parser) parseComponentClosingTag(name string, attrs map[string]string) 
 	}
 	closingTag := "</" + name + ">"
 	if !strings.HasPrefix(p.input[p.pos:], closingTag) {
-		return nil, fmt.Errorf("expected closing </%s> tag", name)
+		return nil, p.errorf("expected closing </%s> tag", name)
 	}
 	p.pos += len(closingTag)
 	return &ComponentElement{Name: name, Attributes: attrs}, nil
@@ -250,7 +250,7 @@ func (p *parser) parseComponentClosingTag(name string, attrs map[string]string) 
 // expectClose expects and consumes a '>' to close an opening tag.
 func (p *parser) expectClose(tagName string) error {
 	if p.pos >= len(p.input) || p.input[p.pos] != '>' {
-		return fmt.Errorf("expected '>' to close <%s> tag", tagName)
+		return p.errorf("expected '>' to close <%s> tag", tagName)
 	}
 	p.pos++ // consume '>'
 	return nil
@@ -279,7 +279,7 @@ func (p *parser) parseChildren(tagName string) ([]Node, error) {
 func (p *parser) parseNextChild(closingTag, tagName string) (Node, bool, error) {
 	for {
 		if p.pos >= len(p.input) {
-			return nil, false, fmt.Errorf("missing closing </%s> tag", tagName)
+			return nil, false, p.errorf("missing closing </%s> tag", tagName)
 		}
 		if strings.HasPrefix(p.input[p.pos:], closingTag) {
 			p.pos += len(closingTag)
@@ -304,7 +304,7 @@ func (p *parser) parseAttributes() (map[string]string, error) {
 	for {
 		p.skipWhitespace()
 		if p.pos >= len(p.input) {
-			return nil, fmt.Errorf("unexpected end of input in tag attributes")
+			return nil, p.errorf("unexpected end of input in tag attributes")
 		}
 		if p.input[p.pos] == '>' || p.input[p.pos] == '/' {
 			break
@@ -342,7 +342,7 @@ func (p *parser) readAttribute() (string, string, error) {
 		return "", "", nil
 	}
 	if p.pos >= len(p.input) || p.input[p.pos] != '=' {
-		return "", "", fmt.Errorf("expected '=' after attribute name %q", name)
+		return "", "", p.errorf("expected '=' after attribute name %q", name)
 	}
 	p.pos++ // consume '='
 
@@ -381,7 +381,7 @@ func (p *parser) readBracedValue() (string, error) {
 		}
 	}
 	if depth != 0 {
-		return "", fmt.Errorf("unterminated expression value")
+		return "", p.errorf("unterminated expression value")
 	}
 	expr := p.input[start:p.pos]
 	p.pos++ // consume closing '}'
@@ -395,7 +395,7 @@ func (p *parser) readQuotedValue(attrName string) (string, error) {
 	}
 	value := p.readUntil('"')
 	if p.pos >= len(p.input) {
-		return "", fmt.Errorf("unterminated attribute value for %q", attrName)
+		return "", p.errorf("unterminated attribute value for %q", attrName)
 	}
 	p.pos++ // consume closing '"'
 	return value, nil
@@ -405,7 +405,7 @@ func (p *parser) readQuotedValue(attrName string) (string, error) {
 func (p *parser) expectByte(ch byte, context string, args ...any) error {
 	if p.pos >= len(p.input) || p.input[p.pos] != ch {
 		msg := fmt.Sprintf(context, args...)
-		return fmt.Errorf("expected %q %s", ch, msg)
+		return p.errorf("expected %q %s", ch, msg)
 	}
 	p.pos++
 	return nil
@@ -420,7 +420,7 @@ func (p *parser) parseTextBody(tag string, attrs map[string]string) (Node, error
 	closingTag := "</" + tag + ">"
 	closeIdx := strings.Index(p.input[p.pos:], closingTag)
 	if closeIdx == -1 {
-		return nil, fmt.Errorf("missing closing %s tag", closingTag)
+		return nil, p.errorf("missing closing %s tag", closingTag)
 	}
 	content := p.input[p.pos : p.pos+closeIdx]
 	p.pos += closeIdx + len(closingTag)

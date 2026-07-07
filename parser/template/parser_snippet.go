@@ -1,9 +1,6 @@
 package template
 
-import (
-	"fmt"
-	"strings"
-)
+import "strings"
 
 // parseSnippetBlock parses {snippet name(params)}...{/snippet}.
 func (p *parser) parseSnippetBlock() (Node, error) {
@@ -46,7 +43,7 @@ func (p *parser) parseSnippetBlock() (Node, error) {
 	for {
 		p.skipWhitespace()
 		if p.pos >= len(p.input) {
-			return nil, fmt.Errorf("missing {/snippet} for snippet %q", name)
+			return nil, p.errorf("missing {/snippet} for snippet %q", name)
 		}
 		if strings.HasPrefix(p.input[p.pos:], "{/snippet}") {
 			p.pos += len("{/snippet}")
@@ -65,7 +62,7 @@ func (p *parser) parseSnippetBlock() (Node, error) {
 			}
 			children = append(children, child)
 		} else {
-			return nil, fmt.Errorf("unexpected character %q inside {snippet %s} at position %d", p.input[p.pos], name, p.pos)
+			return nil, p.errorf("unexpected character %q inside {snippet %s} at position %d", p.input[p.pos], name, p.pos)
 		}
 	}
 }
