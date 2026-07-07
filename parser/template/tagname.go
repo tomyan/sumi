@@ -1,6 +1,7 @@
 package template
 
 import (
+	"path/filepath"
 	"strings"
 	"unicode"
 )
@@ -53,6 +54,26 @@ func TagComponentFile(name string) string {
 		return pascalToKebab(local) + ".sumi"
 	}
 	return name + ".sumi"
+}
+
+// ComponentName derives a component's lowercase name from a .sumi file path,
+// stripping the extension and hyphens: "my-widget.sumi" → "mywidget".
+func ComponentName(path string) string {
+	base := filepath.Base(path)
+	name := strings.TrimSuffix(base, ".sumi")
+	return strings.ReplaceAll(name, "-", "")
+}
+
+// ExportedComponentName capitalizes the first letter of a component name:
+// "mywidget" → "Mywidget". Editor tooling uses it as the tag a component is
+// referenced by.
+func ExportedComponentName(name string) string {
+	if name == "" {
+		return ""
+	}
+	runes := []rune(name)
+	runes[0] = unicode.ToUpper(runes[0])
+	return string(runes)
 }
 
 // SplitPrefix splits "prefix:Local" into ("prefix", "Local", true).

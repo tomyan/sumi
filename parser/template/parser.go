@@ -2,6 +2,7 @@ package template
 
 import (
 	"fmt"
+	"sort"
 	"strings"
 )
 
@@ -106,6 +107,17 @@ var htmlTags = map[string]bool{
 // isHTMLTagName reports whether a tag is a recognised HTML element name.
 func isHTMLTagName(tag string) bool {
 	return htmlTags[tag]
+}
+
+// HTMLTagNames returns the sorted list of recognised HTML element names.
+// Editor tooling (completion) uses it as the tag vocabulary.
+func HTMLTagNames() []string {
+	names := make([]string, 0, len(htmlTags))
+	for name := range htmlTags {
+		names = append(names, name)
+	}
+	sort.Strings(names)
+	return names
 }
 
 // containerTags are HTML elements that default to container (box) form

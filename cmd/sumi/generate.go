@@ -6,7 +6,6 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
-	"unicode"
 
 	"github.com/tomyan/sumi/codegen"
 	"github.com/tomyan/sumi/parser/script"
@@ -182,19 +181,12 @@ func writeOutput(path string, out []byte) error {
 // componentName derives a component name from a file path.
 // Strips the extension and removes hyphens: "my-widget.sumi" -> "mywidget".
 func componentName(path string) string {
-	base := filepath.Base(path)
-	name := strings.TrimSuffix(base, ".sumi")
-	return strings.ReplaceAll(name, "-", "")
+	return template.ComponentName(path)
 }
 
 // exportedName capitalizes the first letter of a component name.
 func exportedName(name string) string {
-	if name == "" {
-		return ""
-	}
-	runes := []rune(name)
-	runes[0] = unicode.ToUpper(runes[0])
-	return string(runes)
+	return template.ExportedComponentName(name)
 }
 
 // outputPath converts "foo.sumi" to "foo_sumi.go".

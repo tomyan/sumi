@@ -81,3 +81,66 @@ type DidChangeTextDocumentParams struct {
 	TextDocument   VersionedTextDocumentIdentifier  `json:"textDocument"`
 	ContentChanges []TextDocumentContentChangeEvent `json:"contentChanges"`
 }
+
+// TextDocumentIdentifier references a document by URI.
+type TextDocumentIdentifier struct {
+	URI string `json:"uri"`
+}
+
+// TextDocumentPositionParams locates a cursor within a document. It is the
+// payload shape shared by completion, hover, and definition requests.
+type TextDocumentPositionParams struct {
+	TextDocument TextDocumentIdentifier `json:"textDocument"`
+	Position     Position               `json:"position"`
+}
+
+// CompletionItemKind values used by sumi completion.
+const (
+	KindField    = 5
+	KindClass    = 7
+	KindProperty = 10
+	KindKeyword  = 14
+)
+
+// CompletionItem is a single completion candidate. sumi emits only a label
+// and a kind.
+type CompletionItem struct {
+	Label string `json:"label"`
+	Kind  int    `json:"kind,omitempty"`
+}
+
+// MarkupContent is formatted hover text.
+type MarkupContent struct {
+	Kind  string `json:"kind"`
+	Value string `json:"value"`
+}
+
+// Hover is the result of a textDocument/hover request.
+type Hover struct {
+	Contents MarkupContent `json:"contents"`
+}
+
+// DocumentSymbolParams is the payload of textDocument/documentSymbol.
+type DocumentSymbolParams struct {
+	TextDocument TextDocumentIdentifier `json:"textDocument"`
+}
+
+// SymbolKind values used by sumi documentSymbol.
+const (
+	SymbolFunction = 12
+	SymbolVariable = 13
+	SymbolObject   = 19
+)
+
+// Location is a document range, used by definition results.
+type Location struct {
+	URI   string `json:"uri"`
+	Range Range  `json:"range"`
+}
+
+// SymbolInformation is one entry in a flat documentSymbol response.
+type SymbolInformation struct {
+	Name     string   `json:"name"`
+	Kind     int      `json:"kind"`
+	Location Location `json:"location"`
+}

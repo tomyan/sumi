@@ -55,15 +55,29 @@ func (s *Server) handle(msg *Message) error {
 		return s.didOpen(msg.Params)
 	case "textDocument/didChange":
 		return s.didChange(msg.Params)
+	case "textDocument/completion":
+		return s.completion(msg.ID, msg.Params)
+	case "textDocument/hover":
+		return s.hover(msg.ID, msg.Params)
+	case "textDocument/documentSymbol":
+		return s.documentSymbol(msg.ID, msg.Params)
+	case "textDocument/definition":
+		return s.definition(msg.ID, msg.Params)
 	default:
 		return nil
 	}
 }
 
-// capabilities advertises full-text sync; richer capabilities arrive in
-// later slices.
+// capabilities advertises full-text sync plus the language features the
+// server implements.
 func capabilities() ServerCapabilities {
-	return ServerCapabilities{TextDocumentSync: 1}
+	return ServerCapabilities{
+		TextDocumentSync:       1,
+		CompletionProvider:     &CompletionOptions{TriggerCharacters: []string{"<", " "}},
+		HoverProvider:          true,
+		DocumentSymbolProvider: true,
+		DefinitionProvider:     true,
+	}
 }
 
 // didOpen tracks a newly opened document and publishes its diagnostics.

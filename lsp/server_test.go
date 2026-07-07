@@ -106,6 +106,12 @@ func assertInitializeResult(t *testing.T, msgs []*Message) {
 		if res.Capabilities.TextDocumentSync != 1 {
 			t.Errorf("textDocumentSync = %d, want 1", res.Capabilities.TextDocumentSync)
 		}
+		if !res.Capabilities.HoverProvider || !res.Capabilities.DefinitionProvider {
+			t.Errorf("language capabilities not advertised: %+v", res.Capabilities)
+		}
+		if res.Capabilities.CompletionProvider == nil {
+			t.Error("completionProvider not advertised")
+		}
 		return
 	}
 	t.Fatal("no initialize response found")

@@ -1,6 +1,7 @@
 package css
 
 import (
+	"sort"
 	"strconv"
 	"strings"
 
@@ -86,6 +87,18 @@ var supportedProperties = map[string]bool{
 	"right": true, "bottom": true, "z-index": true, "border": true,
 	"border-top": true, "border-bottom": true, "border-title": true,
 	"border-collapse": true, "transition": true, "animation": true,
+}
+
+// SupportedProperties returns the sorted list of CSS property names sumi
+// consumes. Editor tooling (completion, hover) uses it as the property
+// vocabulary.
+func SupportedProperties() []string {
+	names := make([]string, 0, len(supportedProperties))
+	for name := range supportedProperties {
+		names = append(names, name)
+	}
+	sort.Strings(names)
+	return names
 }
 
 // supportsMatches evaluates an @supports condition: (property: value)
