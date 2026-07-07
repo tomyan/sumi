@@ -8,11 +8,16 @@ to Go.
 ## Svelte
 
 The `.sumi` file layout follows Svelte's single-file components: a
-`<script>` block, a `<style>` block, and markup. The template
-syntax carries over too — `{if}` / `{else}` / `{/if}` and keyed
-`{for}` blocks are Svelte's control-flow blocks with Go expressions
-inside, and `bind:value`, `on*={handler}`, and `{expr}` attribute
-values follow Svelte's attribute grammar.
+`<script>` block, a `<style>` block, and markup. The template syntax
+is modelled on Svelte's with some differences. Control-flow blocks
+drop Svelte's sigils — `{if}` / `{else}` / `{/if}` where Svelte
+writes `{#if}` / `{:else}` / `{/if}` — and the expressions inside
+are Go. Loops keep Svelte's block form but not its clause: `{for i,
+item := range items.Get() key=item}` is a Go range clause plus a
+`key=` attribute, where Svelte writes `{#each items as item (key)}`.
+`{expr}` interpolation and `bind:value` are spelled as in Svelte,
+and event attributes are `onclick={handler}`, matching Svelte 5's
+event syntax.
 
 The compilation strategy is also Svelte's: `sumi generate` compiles
 components to plain Go, the way Svelte compiles to plain JavaScript,
@@ -27,7 +32,9 @@ character cells.
 ## Solid (and Svelte 5's runes)
 
 Reactivity is fine-grained signals with explicit reads and writes,
-which is Solid's API:
+modelled on Solid. The shape differs with the language: Solid's
+`createSignal` returns a getter/setter pair of functions, while a
+sumi signal is one value with methods:
 
 ```sumi
 <script>
