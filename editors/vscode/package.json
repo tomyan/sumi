@@ -1,0 +1,45 @@
+{
+	"name": "sumi-lang",
+	"displayName": "sumi",
+	"description": "Syntax highlighting for sumi — the declarative TTY framework for Go",
+	"version": "0.1.0",
+	"publisher": "tomyan",
+	"license": "MIT",
+	"icon": "icon.png",
+	"repository": {
+		"type": "git",
+		"url": "https://github.com/tomyan/sumi",
+		"directory": "editors/vscode"
+	},
+	"homepage": "https://gosumi.dev",
+	"engines": {
+		"vscode": "^1.75.0"
+	},
+	"categories": ["Programming Languages"],
+	"contributes": {
+		"languages": [
+			{
+				"id": "sumi",
+				"aliases": ["sumi"],
+				"extensions": [".sumi"],
+				"configuration": "./language-configuration.json"
+			}
+		],
+		"grammars": [
+			{
+				"language": "sumi",
+				"scopeName": "source.sumi",
+				"path": "./syntaxes/sumi.tmLanguage.json",
+				"embeddedLanguages": {
+					"meta.embedded.block.go": "go",
+					"meta.embedded.expression.go": "go",
+					"meta.embedded.block.css": "css"
+				}
+			}
+		]
+	},
+	"scripts": {
+		"sync-grammar": "cp ../grammar/sumi.tmLanguage.json syntaxes/sumi.tmLanguage.json",
+		"package": "npm run sync-grammar && npx @vscode/vsce package"
+	}
+}
