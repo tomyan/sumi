@@ -5,7 +5,6 @@ import (
 
 	"github.com/tomyan/sumi/runtime/render"
 	"github.com/tomyan/sumi/runtime/sumitest"
-	"github.com/tomyan/sumi/runtime/tui"
 )
 
 func splitPanelScenario() sumitest.Scenario {
@@ -13,7 +12,7 @@ func splitPanelScenario() sumitest.Scenario {
 		Name:       "splitpanel-basics",
 		Width:      40,
 		Height:     10,
-		NewApp:     func(w, h int) *tui.App { return CreateApp(w, h) },
+		NewApp:     createApp,
 		SourceFile: "../split-panel.sumi",
 		Steps: []sumitest.Step{
 			{Name: "initial"},
@@ -27,7 +26,7 @@ func TestSplitPanelSnapshots(t *testing.T) {
 
 func TestSplitPanelRendersWithTitles(t *testing.T) {
 	// Given
-	app := CreateApp(40, 10)
+	app := createApp(40, 10)
 
 	// Then — panels should have titled borders
 	row0 := rowText(app.TestBuffer, 0)
@@ -41,7 +40,7 @@ func TestSplitPanelRendersWithTitles(t *testing.T) {
 
 func TestSplitPanelEqualWidth(t *testing.T) {
 	// Given
-	app := CreateApp(40, 10)
+	app := createApp(40, 10)
 
 	// Then — both panels should roughly split the width
 	// The junction character should be near column 20 (middle)
@@ -62,7 +61,7 @@ func TestSplitPanelEqualWidth(t *testing.T) {
 
 func TestSplitPanelFixedHeight(t *testing.T) {
 	// Given — panelHeight=5 in app.sumi
-	app := CreateApp(40, 10)
+	app := createApp(40, 10)
 
 	// Then — panels should be 5 rows tall
 	// Row 4 should be the bottom border

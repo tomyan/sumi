@@ -155,13 +155,12 @@ expressions and children. The per-cell minimalism on screen comes from
 the tree diff that follows — only changed cells are written — not from
 per-node effects (see [signals](signals.md)).
 
-Mounting a child requires the parent to compile on this constructor path,
-which needs at least one reactive declaration — a signal (`sumi.New` /
-`sumi.From`), a `var` prop, `sumi.Effect`, or `sumi.Env`. A parent whose
-script has only plain `:=` bindings and functions falls to an older
-whole-app path that leaves the child uninstantiated (`undefined:
-<name>0` at build); add a signal or `var` to any parent that mounts
-components.
+Every `.sumi` compiles to this constructor form — a file with no
+`<script>`, or one whose script has only plain `:=` bindings and
+functions, generates the same `NewFoo`/`FooProps` constructor as a
+reactive one (with an empty effect when there is nothing dynamic to
+track). So any parent can mount a child; there is no reactive-declaration
+requirement and no separate static path.
 
 ## Scoped styles
 

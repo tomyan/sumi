@@ -27,7 +27,7 @@ func generateBox(t *testing.T, attrs map[string]string) string {
 			},
 		},
 	}
-	out, err := Generate(doc, nil, nil, "main")
+	out, err := generateStatic(doc, nil, nil, "main")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -114,15 +114,15 @@ func TestGenerateDescendantSelectorAppliesThroughNesting(t *testing.T) {
 	ss := mustParseStylesheet(t, `.panel text { color: red; }`)
 
 	// When
-	out, err := Generate(doc, nil, ss, "main")
+	out, err := generateStatic(doc, nil, ss, "main")
 
 	// Then
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 	src := string(out)
-	// Styles are runtime-resolved: no baked literals, stylesheet embedded,
-	// and the static render resolves before layout. Descendant-matching
+	// Styles are runtime-resolved: no baked literals, stylesheet embedded on
+	// the component, and the runtime resolves it. Descendant-matching
 	// behaviour itself is covered by layout.ResolveStyles tests.
 	if strings.Contains(src, "sumi.Style{") {
 		t.Errorf("styles must not be baked into literals:\n%s", src)
@@ -130,8 +130,8 @@ func TestGenerateDescendantSelectorAppliesThroughNesting(t *testing.T) {
 	if !strings.Contains(src, "MustParseStylesheet") || !strings.Contains(src, ".panel text") {
 		t.Errorf("expected embedded stylesheet with descendant rule:\n%s", src)
 	}
-	if !strings.Contains(src, "sumi.ResolveStyles(root, stylesheet, termW, termH)") {
-		t.Errorf("static render must resolve styles at runtime:\n%s", src)
+	if !strings.Contains(src, "Stylesheet: sumi.MustParseStylesheet(") {
+		t.Errorf("component must carry its stylesheet for runtime resolution:\n%s", src)
 	}
 }
 
@@ -199,7 +199,7 @@ func TestGenerateHTMLElementIdentity(t *testing.T) {
 				}},
 		},
 	}
-	out, err := Generate(doc, nil, nil, "main")
+	out, err := generateStatic(doc, nil, nil, "main")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}

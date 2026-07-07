@@ -21,7 +21,7 @@ func TestGenerateBoxContainingTextIsValidGo(t *testing.T) {
 	}
 
 	// When
-	out, err := Generate(doc, nil, nil, "main")
+	out, err := generateStatic(doc, nil, nil, "main")
 
 	// Then
 	if err != nil {
@@ -46,7 +46,7 @@ func TestGenerateBoxUsesLayoutKindBox(t *testing.T) {
 	}
 
 	// When
-	out, err := Generate(doc, nil, nil, "main")
+	out, err := generateStatic(doc, nil, nil, "main")
 
 	// Then
 	if err != nil {
@@ -70,7 +70,7 @@ func TestGenerateBoxWithAttributesDirection(t *testing.T) {
 	}
 
 	// When
-	out, err := Generate(doc, nil, nil, "main")
+	out, err := generateStatic(doc, nil, nil, "main")
 
 	// Then
 	if err != nil {
@@ -94,7 +94,7 @@ func TestGenerateBoxWithBorder(t *testing.T) {
 	}
 
 	// When
-	out, err := Generate(doc, nil, nil, "main")
+	out, err := generateStatic(doc, nil, nil, "main")
 
 	// Then
 	if err != nil {
@@ -118,7 +118,7 @@ func TestGenerateBoxWithPadding(t *testing.T) {
 	}
 
 	// When
-	out, err := Generate(doc, nil, nil, "main")
+	out, err := generateStatic(doc, nil, nil, "main")
 
 	// Then
 	if err != nil {
@@ -142,7 +142,7 @@ func TestGenerateBoxWithWidthAndHeight(t *testing.T) {
 	}
 
 	// When
-	out, err := Generate(doc, nil, nil, "main")
+	out, err := generateStatic(doc, nil, nil, "main")
 
 	// Then
 	if err != nil {
@@ -169,7 +169,7 @@ func TestGenerateBoxWithGap(t *testing.T) {
 	}
 
 	// When
-	out, err := Generate(doc, nil, nil, "main")
+	out, err := generateStatic(doc, nil, nil, "main")
 
 	// Then
 	if err != nil {
@@ -198,7 +198,7 @@ func TestGenerateBoxWithFlexGrow(t *testing.T) {
 	}
 
 	// When
-	out, err := Generate(doc, nil, nil, "main")
+	out, err := generateStatic(doc, nil, nil, "main")
 
 	// Then
 	if err != nil {
@@ -227,7 +227,7 @@ func TestGenerateNestedBoxesIsValidGo(t *testing.T) {
 	}
 
 	// When
-	out, err := Generate(doc, nil, nil, "main")
+	out, err := generateStatic(doc, nil, nil, "main")
 
 	// Then
 	if err != nil {
@@ -240,22 +240,22 @@ func TestGenerateNestedBoxesIsValidGo(t *testing.T) {
 	}
 }
 
-func TestGenerateCallsLayoutRenderTreeFromLayoutTest(t *testing.T) {
+func TestGenerateWiresLayoutTreeIntoComponent(t *testing.T) {
 	// Given
 	doc := &template.Document{
 		Children: []template.Node{textNode("Hello")},
 	}
 
 	// When
-	out, err := Generate(doc, nil, nil, "main")
+	out, err := generateStatic(doc, nil, nil, "main")
 
 	// Then
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 	src := string(out)
-	if !strings.Contains(src, "sumi.RenderTree(") {
-		t.Errorf("expected layout.RenderTree call in output:\n%s", src)
+	if !strings.Contains(src, "Tree: root,") {
+		t.Errorf("expected the layout tree wired into the component:\n%s", src)
 	}
 }
 
@@ -274,7 +274,7 @@ func TestGenerateBoxWithScrollAttribute(t *testing.T) {
 	}
 
 	// When
-	out, err := Generate(doc, nil, nil, "main")
+	out, err := generateStatic(doc, nil, nil, "main")
 
 	// Then
 	if err != nil {

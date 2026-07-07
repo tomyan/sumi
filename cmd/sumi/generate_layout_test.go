@@ -47,11 +47,8 @@ func TestGenerateBoxWithBorderAndPadding(t *testing.T) {
 	if !contains(code, "sumi.ParsePadding") {
 		t.Errorf("expected layout.ParsePadding in generated code:\n%s", code)
 	}
-	if !contains(code, "sumi.Layout(") {
-		t.Errorf("expected layout.Layout call in generated code:\n%s", code)
-	}
-	if !contains(code, "sumi.RenderTree(") {
-		t.Errorf("expected layout.RenderTree call in generated code:\n%s", code)
+	if !contains(code, "Tree: root,") {
+		t.Errorf("expected the layout tree wired into the component:\n%s", code)
 	}
 }
 

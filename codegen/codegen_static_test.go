@@ -21,7 +21,7 @@ func TestGenerateSingleTextElementIsValidGo(t *testing.T) {
 	}
 
 	// When
-	out, err := Generate(doc, nil, nil, "main")
+	out, err := generateStatic(doc, nil, nil, "main")
 
 	// Then
 	if err != nil {
@@ -41,7 +41,7 @@ func TestGenerateTextElementUsesLayout(t *testing.T) {
 	}
 
 	// When
-	out, err := Generate(doc, nil, nil, "main")
+	out, err := generateStatic(doc, nil, nil, "main")
 
 	// Then
 	if err != nil {
@@ -54,8 +54,8 @@ func TestGenerateTextElementUsesLayout(t *testing.T) {
 	if !strings.Contains(src, `Content: "Hello"`) {
 		t.Errorf("expected Content: \"Hello\" in output:\n%s", src)
 	}
-	if !strings.Contains(src, "sumi.Layout(") {
-		t.Errorf("expected layout.Layout call in output:\n%s", src)
+	if !strings.Contains(src, "Tree: root,") {
+		t.Errorf("expected the layout tree wired into the component:\n%s", src)
 	}
 }
 
@@ -66,7 +66,7 @@ func TestGenerateMultipleTextElements(t *testing.T) {
 	}
 
 	// When
-	out, err := Generate(doc, nil, nil, "main")
+	out, err := generateStatic(doc, nil, nil, "main")
 
 	// Then
 	if err != nil {
@@ -88,65 +88,61 @@ func TestGenerateContainsCorrectImports(t *testing.T) {
 	}
 
 	// When
-	out, err := Generate(doc, nil, nil, "main")
+	out, err := generateStatic(doc, nil, nil, "main")
 
 	// Then
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 	src := string(out)
-	if !strings.Contains(src, `"github.com/tomyan/sumi/runtime/prelude"`) {
+	if !strings.Contains(src, `sumi "github.com/tomyan/sumi/runtime/prelude"`) {
 		t.Errorf("expected runtime/prelude import in output:\n%s", src)
 	}
-	if !strings.Contains(src, `"github.com/tomyan/sumi/runtime/prelude"`) {
-		t.Errorf("expected runtime/prelude import in output:\n%s", src)
-	}
-	if !strings.Contains(src, `"os"`) {
-		t.Errorf("expected os import in output:\n%s", src)
-	}
-	if !strings.Contains(src, `"github.com/tomyan/sumi/runtime/prelude"`) {
-		t.Errorf("expected runtime/prelude import in output:\n%s", src)
+	// The component form runs under tui.Run, so the constructor does not
+	// import os or wire its own render loop.
+	if strings.Contains(src, `"os"`) {
+		t.Errorf("component form should not import os:\n%s", src)
 	}
 }
 
-func TestGenerateReferencesRuntimeRender(t *testing.T) {
+func TestGenerateReturnsComponent(t *testing.T) {
 	// Given
 	doc := &template.Document{
 		Children: []template.Node{textNode("Hello")},
 	}
 
 	// When
-	out, err := Generate(doc, nil, nil, "main")
+	out, err := generateStatic(doc, nil, nil, "main")
 
 	// Then
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 	src := string(out)
-	if !strings.Contains(src, "sumi.NewBuffer(") {
-		t.Errorf("expected render.NewBuffer call in output:\n%s", src)
+	if !strings.Contains(src, "return &sumi.Component{") {
+		t.Errorf("expected a *sumi.Component return in output:\n%s", src)
 	}
 }
 
-func TestStaticCodeUsesApp(t *testing.T) {
+func TestGeneratesComponentConstructor(t *testing.T) {
 	// Given
 	doc := &template.Document{
 		Children: []template.Node{textNode("Hello")},
 	}
 
-	// When
-	out, err := Generate(doc, nil, nil, "main")
+	// When — a script-free template still compiles to the component form
+	out, err := generateStatic(doc, nil, nil, "main")
 
 	// Then
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 	src := string(out)
-	if !strings.Contains(src, "sumi.App") {
-		t.Errorf("expected tui.App in static output:\n%s", src)
+	if !strings.Contains(src, "func NewApp(props AppProps) *sumi.Component") {
+		t.Errorf("expected NewApp constructor in output:\n%s", src)
 	}
-	if !strings.Contains(src, "app.Run()") {
-		t.Errorf("expected app.Run() in static output:\n%s", src)
+	if !strings.Contains(src, "type AppProps struct") {
+		t.Errorf("expected AppProps struct in output:\n%s", src)
 	}
 }
 
@@ -157,7 +153,7 @@ func TestStaticCodeNoInlineEventLoop(t *testing.T) {
 	}
 
 	// When
-	out, err := Generate(doc, nil, nil, "main")
+	out, err := generateStatic(doc, nil, nil, "main")
 
 	// Then
 	if err != nil {
@@ -183,7 +179,7 @@ func TestGenerateRespectsPackageName(t *testing.T) {
 	}
 
 	// When
-	out, err := Generate(doc, nil, nil, "myapp")
+	out, err := generateStatic(doc, nil, nil, "myapp")
 
 	// Then
 	if err != nil {

@@ -92,16 +92,6 @@ func buildSprintfExpr(parts []template.Part) string {
 	return fmt.Sprintf("sumi.Sprintf(%q, %s)", fmtStr.String(), strings.Join(args, ", "))
 }
 
-// docHasExprs checks if any TextElement in the document has ExprParts.
-func docHasExprs(doc *template.Document) bool {
-	for _, child := range doc.Children {
-		if nodeHasExprs(child) {
-			return true
-		}
-	}
-	return false
-}
-
 // docHasForKey checks if any ForNode in the document has a Key expression.
 func docHasForKey(doc *template.Document) bool {
 	for _, child := range doc.Children {
@@ -138,42 +128,6 @@ func nodeHasForKey(node template.Node) bool {
 		}
 		for _, child := range n.Children {
 			if nodeHasForKey(child) {
-				return true
-			}
-		}
-	}
-	return false
-}
-
-// nodeHasExprs checks if a single node (or its children) contains ExprParts.
-func nodeHasExprs(node template.Node) bool {
-	switch n := node.(type) {
-	case *template.TextElement:
-		for _, p := range n.Parts {
-			if _, ok := p.(*template.ExprPart); ok {
-				return true
-			}
-		}
-	case *template.BoxElement:
-		for _, child := range n.Children {
-			if nodeHasExprs(child) {
-				return true
-			}
-		}
-	case *template.IfNode:
-		for _, child := range n.Then {
-			if nodeHasExprs(child) {
-				return true
-			}
-		}
-		for _, child := range n.Else {
-			if nodeHasExprs(child) {
-				return true
-			}
-		}
-	case *template.ForNode:
-		for _, child := range n.Children {
-			if nodeHasExprs(child) {
 				return true
 			}
 		}

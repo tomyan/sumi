@@ -34,7 +34,7 @@ func diagnose(text string) []Diagnostic {
 	if err != nil {
 		return []Diagnostic{templateDiagnostic(text, sections, err)}
 	}
-	sc, d, ok := parseScript(text, sections)
+	_, d, ok := parseScript(text, sections)
 	if !ok {
 		return []Diagnostic{d}
 	}
@@ -42,7 +42,11 @@ func diagnose(text string) []Diagnostic {
 	if !ok {
 		return []Diagnostic{d}
 	}
-	if _, err := codegen.Generate(doc, sc, ss, "app"); err != nil {
+	if _, err := codegen.GenerateComponent(doc, sections.Script, ss, codegen.ComponentOptions{
+		PackageName:   "app",
+		ComponentName: "App",
+		UserImports:   sections.Imports,
+	}); err != nil {
 		return []Diagnostic{firstLineDiagnostic(text, err.Error())}
 	}
 	return []Diagnostic{}

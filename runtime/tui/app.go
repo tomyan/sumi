@@ -58,7 +58,7 @@ type App struct {
 	mouseX int           // latest mouse X (0-indexed)
 	mouseY int           // latest mouse Y (0-indexed)
 
-	// Test mode fields — set by CreateApp for synchronous stepping.
+	// Test mode fields — set by TestApp for synchronous stepping.
 	TestWidth  int            // test viewport width (0 = use real terminal)
 	TestHeight int            // test viewport height (0 = use real terminal)
 	TestBuffer *render.Buffer // populated by doRender in test mode instead of writing to stdout

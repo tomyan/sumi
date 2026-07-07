@@ -20,7 +20,7 @@ func TestGenerateMixedContentChildren(t *testing.T) {
 	}
 
 	// When
-	out, err := Generate(doc, nil, nil, "main")
+	out, err := generateStatic(doc, nil, nil, "main")
 
 	// Then
 	if err != nil {
@@ -52,7 +52,7 @@ func TestGenerateMixedContentWithExpression(t *testing.T) {
 	}
 
 	// When
-	out, err := Generate(doc, nil, nil, "main")
+	out, err := generateStatic(doc, nil, nil, "main")
 
 	// Then: expression text node extracted for sync, em emitted after it.
 	if err != nil {

@@ -10,12 +10,12 @@ import (
 	"github.com/tomyan/sumi/runtime/tui"
 )
 
-// createCounterApp simulates what generated CreateApp code would produce
-// for a simple counter component:
+// createCounterApp builds, by hand, the test app a generated counter
+// component would produce via tui.TestApp(NewCounter(...)):
 //
 //	<script>
-//	  $state count = 0
-//	  function increment() { count++ }
+//	  count := sumi.New(0)
+//	  func increment() { count.Update(func(n int) int { return n + 1 }) }
 //	</script>
 //	<div onkey="increment">Count: {count}</div>
 func createCounterApp(w, h int) *tui.App {

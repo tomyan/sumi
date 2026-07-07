@@ -21,7 +21,6 @@ import (
 type component struct {
 	path       string
 	doc        *template.Document
-	script     *script.Script
 	scriptSrc  string // raw script source (for go/ast parsing)
 	imports    string // raw <sumi:imports> content
 	stylesheet *style.Stylesheet
@@ -58,8 +57,8 @@ func parse(path, src string) (*component, error) {
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", path, err)
 	}
-	sc, err := parseOptionalScript(path, sections.Script)
-	if err != nil {
+	// Validate the script grammar; the raw source drives codegen.
+	if _, err := parseOptionalScript(path, sections.Script); err != nil {
 		return nil, err
 	}
 	ss, err := parseOptionalStyle(path, sections.Style)
@@ -70,7 +69,6 @@ func parse(path, src string) (*component, error) {
 	return &component{
 		path:       path,
 		doc:        doc,
-		script:     sc,
 		scriptSrc:  sections.Script,
 		imports:    sections.Imports,
 		stylesheet: ss,
@@ -103,33 +101,20 @@ func parseOptionalStyle(path, src string) (*style.Stylesheet, error) {
 	return ss, nil
 }
 
-// generate selects the reactive or static codegen path for a parsed component.
+// generate produces Go code for a parsed component. Every .sumi — reactive
+// or not — compiles to the same constructor form (NewX/XProps returning a
+// *sumi.Component), so a script-free or signal-free file still mounts
+// children and resolves its own styles.
 func generate(comp *component) ([]byte, error) {
-	if comp.scriptSrc != "" && isSignalScript(comp.scriptSrc) {
-		out, err := codegen.GenerateComponent(comp.doc, comp.scriptSrc, comp.stylesheet, codegen.ComponentOptions{
-			PackageName:   packageName(comp.path),
-			ComponentName: comp.exported,
-			UserImports:   comp.imports,
-		})
-		if err != nil {
-			return nil, fmt.Errorf("%s: %w", comp.path, err)
-		}
-		return out, nil
-	}
-	out, err := codegen.Generate(comp.doc, comp.script, comp.stylesheet, packageName(comp.path))
+	out, err := codegen.GenerateComponent(comp.doc, comp.scriptSrc, comp.stylesheet, codegen.ComponentOptions{
+		PackageName:   packageName(comp.path),
+		ComponentName: comp.exported,
+		UserImports:   comp.imports,
+	})
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", comp.path, err)
 	}
 	return out, nil
-}
-
-// isSignalScript reports whether the script uses signals, var props, or other
-// reactive features that require the component codegen path.
-func isSignalScript(src string) bool {
-	return strings.Contains(src, "sumi.New") || strings.Contains(src, "sumi.From") ||
-		strings.Contains(src, "sumi.Effect") || strings.Contains(src, "sumi.Env") ||
-		strings.Contains(src, "signal.") ||
-		strings.Contains(src, "\nvar ") || strings.HasPrefix(strings.TrimSpace(src), "var ")
 }
 
 // packageName derives the Go package name from the directory containing the
